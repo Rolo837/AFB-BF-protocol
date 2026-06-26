@@ -1,0 +1,25 @@
+{
+  "protocol": "afb.execution.v1",
+  "message_id": "c7323cb1-ec63-4dac-8716-981a602eb751",
+  "correlation_id": null,
+  "causation_id": null,
+  "sender": "finam-arena-316",
+  "recipient": "afb",
+  "type": "session.hello",
+  "created_at": "2026-06-26T12:00:00+03:00",
+  "expires_at": "2026-06-26T12:05:00+03:00",
+  "idempotency_key": "finam-arena-316:session.hello:fixture-0001",
+  "payload_hash": "4b92efd27d999b05ea1dfc98b6cfe50cc8bad481b39f033cd0e75b794e00a645",
+  "payload": {
+    "bf_id": "finam-arena-316",
+    "dry_run": false,
+    "nonce": "ea2f6212-dd05-4f94-a5b3-9a2c8615eafb",
+    "protocol": "afb.execution.v1",
+    "version": "0.1.0"
+  },
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "belphegor-test-1",
+    "value": "vzPE22mMjyibTGHMj5-bdJOORFySXzHj7JEFejMvfvKdydRbHxewAUgl-2ZueTtuYDTRi-zOI2gGiQqHCNgmBA"
+  }
+}

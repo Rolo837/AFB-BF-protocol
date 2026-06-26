@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "properties": {
+    "condition_id": {
+      "type": "string"
+    },
+    "deal_id": {
+      "type": "string"
+    },
+    "phase": {
+      "type": "string"
+    },
+    "price": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "condition_id",
+    "deal_id"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/condition.triggered.json",
+  "title": "payload: condition.triggered"
+}

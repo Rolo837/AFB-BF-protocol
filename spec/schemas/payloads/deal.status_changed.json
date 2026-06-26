@@ -1,0 +1,29 @@
+{
+  "type": "object",
+  "properties": {
+    "deal_id": {
+      "type": "string"
+    },
+    "execution_phase": {
+      "type": "string"
+    },
+    "last_price": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    },
+    "status": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "deal_id",
+    "revision",
+    "status"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/deal.status_changed.json",
+  "title": "payload: deal.status_changed"
+}

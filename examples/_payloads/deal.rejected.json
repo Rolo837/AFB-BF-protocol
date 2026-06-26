@@ -1,0 +1,6 @@
+{
+  "code": "broker_grpc",
+  "command_type": "deal.operation",
+  "deal_id": null,
+  "message": "gRPC error: Security SVM6@RTSX is archived"
+}

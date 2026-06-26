@@ -1,0 +1,45 @@
+{
+  "type": "object",
+  "properties": {
+    "deal_id": {
+      "type": "string"
+    },
+    "order_id": {
+      "type": "string"
+    },
+    "price": {
+      "type": [
+        "string",
+        "number",
+        "integer",
+        "boolean",
+        "object",
+        "array",
+        "null"
+      ]
+    },
+    "quantity": {
+      "type": "integer"
+    },
+    "role": {
+      "type": "string"
+    },
+    "side": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "deal_id",
+    "order_id",
+    "role",
+    "side",
+    "status"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/order.created.json",
+  "title": "payload: order.created"
+}

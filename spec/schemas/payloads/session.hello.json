@@ -1,0 +1,29 @@
+{
+  "type": "object",
+  "properties": {
+    "bf_id": {
+      "type": "string"
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "nonce": {
+      "type": "string"
+    },
+    "protocol": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "bf_id",
+    "nonce",
+    "protocol"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/session.hello.json",
+  "title": "payload: session.hello"
+}

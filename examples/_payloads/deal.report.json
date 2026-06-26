@@ -1,0 +1,32 @@
+{
+  "close_reason": "stop_loss",
+  "deal_id": "deal-1c24-4c49-9da6:finam-arena-316",
+  "revision": 1,
+  "status": "closed",
+  "fills": [
+    {
+      "commission": null,
+      "order_id": "deal-ec7cec6cb3156",
+      "price": null,
+      "quantity": 3,
+      "role": "entry",
+      "side": "buy",
+      "timestamp": null
+    },
+    {
+      "commission": null,
+      "order_id": "deal-s08fc5b41f4cd6",
+      "price": null,
+      "quantity": 3,
+      "role": "stop_loss",
+      "side": "sell",
+      "timestamp": null
+    }
+  ],
+  "summary": {
+    "entry_avg_price": null,
+    "exit_avg_price": null,
+    "realized_pnl": null,
+    "total_commission": null
+  }
+}

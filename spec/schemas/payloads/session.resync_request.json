@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "properties": {
+    "active_deal_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "deal_revisions": {
+      "type": "object",
+      "properties": {
+        "deal-082a-4dc9-80a7:finam-arena-316": {
+          "type": "integer"
+        },
+        "deal-1cb4-4fe0-9c41:finam-arena-316": {
+          "type": "integer"
+        },
+        "deal-2368-4628-8829:finam-arena-316": {
+          "type": "integer"
+        },
+        "deal-47a2-4f09-9e0d:finam-arena-316": {
+          "type": "integer"
+        },
+        "deal-f29f-4984-80a8:finam-arena-316": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/session.resync_request.json",
+  "title": "payload: session.resync_request"
+}

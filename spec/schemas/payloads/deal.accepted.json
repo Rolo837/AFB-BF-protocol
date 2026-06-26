@@ -1,0 +1,190 @@
+{
+  "type": "object",
+  "properties": {
+    "binding": {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "broker_instrument": {
+      "type": "object",
+      "properties": {
+        "asset_type": {
+          "type": "string"
+        },
+        "bond_details": {
+          "type": [
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "decimals": {
+          "type": "integer"
+        },
+        "expiration_date": {
+          "type": [
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "future_details": {
+          "type": [
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "long_initial_margin": {
+          "type": "string"
+        },
+        "long_risk_rate": {
+          "type": "string"
+        },
+        "longable": {
+          "type": "boolean"
+        },
+        "lot_size": {
+          "type": "integer"
+        },
+        "market": {
+          "type": "string"
+        },
+        "mic": {
+          "type": "string"
+        },
+        "min_step_raw": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "price_step": {
+          "type": "string"
+        },
+        "quote_currency": {
+          "type": "string"
+        },
+        "short_initial_margin": {
+          "type": "string"
+        },
+        "short_risk_rate": {
+          "type": "string"
+        },
+        "shortable": {
+          "type": "boolean"
+        },
+        "tradable": {
+          "type": "boolean"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "broker_sizing": {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string"
+        },
+        "deal_notional": {
+          "type": "string"
+        },
+        "lots": {
+          "type": "integer"
+        },
+        "required_cash": {
+          "type": "string"
+        },
+        "required_cash_basis": {
+          "type": "string"
+        },
+        "sizing_mode": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "command_type": {
+      "type": "string"
+    },
+    "deal_id": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    },
+    "target_instrument_patch": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": true
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string"
+        },
+        "entry_order_type": {
+          "type": "string"
+        },
+        "side": {
+          "type": "string"
+        },
+        "sizing_mode": {
+          "type": "string"
+        },
+        "sizing_value": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "quantity_lots": {
+          "type": "integer"
+        },
+        "entry_price": {
+          "type": "string"
+        },
+        "required_cash": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true,
+      "required": [
+        "side"
+      ]
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "command_type",
+    "deal_id",
+    "revision"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/deal.accepted.json",
+  "title": "payload: deal.accepted"
+}

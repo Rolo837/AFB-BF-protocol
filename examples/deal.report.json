@@ -1,0 +1,50 @@
+{
+  "protocol": "afb.execution.v1",
+  "message_id": "3ae1ebe4-aa7d-4e5c-8ad3-29da0fec642e",
+  "correlation_id": null,
+  "causation_id": null,
+  "sender": "finam-arena-316",
+  "recipient": "afb",
+  "type": "deal.report",
+  "created_at": "2026-06-26T12:00:00+03:00",
+  "expires_at": "2026-06-26T12:05:00+03:00",
+  "idempotency_key": "finam-arena-316:deal.report:fixture-0001",
+  "payload_hash": "dec6881102399572ec77fbaab9e467b574d1d281c4b89d3f4c2545cd5b3b7aeb",
+  "payload": {
+    "close_reason": "stop_loss",
+    "deal_id": "deal-1c24-4c49-9da6:finam-arena-316",
+    "revision": 1,
+    "status": "closed",
+    "fills": [
+      {
+        "commission": null,
+        "order_id": "deal-ec7cec6cb3156",
+        "price": null,
+        "quantity": 3,
+        "role": "entry",
+        "side": "buy",
+        "timestamp": null
+      },
+      {
+        "commission": null,
+        "order_id": "deal-s08fc5b41f4cd6",
+        "price": null,
+        "quantity": 3,
+        "role": "stop_loss",
+        "side": "sell",
+        "timestamp": null
+      }
+    ],
+    "summary": {
+      "entry_avg_price": null,
+      "exit_avg_price": null,
+      "realized_pnl": null,
+      "total_commission": null
+    }
+  },
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "belphegor-test-1",
+    "value": "GHtrs0GON771rBOVKG19sx50ukTM3cL0khsXQ3fv8jft6fbPzlt5aVud7IETXY2fsRE_pCc8HRw91lyu4HBKBg"
+  }
+}

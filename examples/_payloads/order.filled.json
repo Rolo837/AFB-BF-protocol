@@ -1,0 +1,11 @@
+{
+  "deal_id": "deal-5103-4c21-be08:finam-arena-316",
+  "filled_quantity": 7,
+  "leg_index": 0,
+  "order_id": "deal-e08651a7f238b0",
+  "price": null,
+  "quantity": 7,
+  "role": "entry",
+  "side": "buy",
+  "status": "filled"
+}

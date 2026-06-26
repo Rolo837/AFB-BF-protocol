@@ -1,0 +1,8 @@
+{
+  "server_nonce": "b1d9c0f2-3a4e-4c2a-9f1e-77a0d6c2e510",
+  "heartbeat_interval_sec": 15,
+  "protocol": "afb.execution.v1",
+  "dry_run": true,
+  "dry_run_afb": true,
+  "dry_run_bf": false
+}

@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "properties": {
+    "archived_at": {
+      "type": "string"
+    },
+    "deal_id": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "deal_id",
+    "reason",
+    "revision"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/deal.archived.json",
+  "title": "payload: deal.archived"
+}

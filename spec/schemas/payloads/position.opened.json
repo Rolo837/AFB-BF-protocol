@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "properties": {
+    "average_price": {
+      "type": "string"
+    },
+    "deal_id": {
+      "type": "string"
+    },
+    "quantity": {
+      "type": "integer"
+    },
+    "realized_pnl": {
+      "type": [
+        "string",
+        "number",
+        "integer",
+        "boolean",
+        "object",
+        "array",
+        "null"
+      ]
+    },
+    "symbol": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "deal_id"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/position.opened.json",
+  "title": "payload: position.opened"
+}

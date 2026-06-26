@@ -1,0 +1,31 @@
+{
+  "type": "object",
+  "properties": {
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "deal_id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "op": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "deal_id",
+          "revision"
+        ]
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/deal.operation.json",
+  "title": "payload: deal.operation"
+}

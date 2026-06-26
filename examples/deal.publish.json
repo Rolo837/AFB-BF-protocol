@@ -1,0 +1,85 @@
+{
+  "protocol": "afb.execution.v1",
+  "message_id": "6df2af01-7057-4ad4-847a-c38047626b76",
+  "correlation_id": null,
+  "causation_id": null,
+  "sender": "afb",
+  "recipient": "finam-arena-316",
+  "type": "deal.publish",
+  "created_at": "2026-06-26T12:00:00+03:00",
+  "expires_at": "2026-06-26T12:05:00+03:00",
+  "idempotency_key": "afb:deal.publish:fixture-0001",
+  "payload_hash": "fcc13421a8d06c6c95cfcd6b3133e455b691e704c512aeb9a0d0d3adfb9379a1",
+  "payload": {
+    "deal": {
+      "schema": "afb.deal.v1",
+      "deal_id": "deal-1c24-4c49-9da6:finam-arena-316",
+      "revision": 1,
+      "owner": {
+        "user_id": "id_9139066366"
+      },
+      "target": {
+        "bf_id": "finam-arena-316",
+        "broker": "finam-arena",
+        "instrument": {
+          "exchange": "MOEX",
+          "board": "RFUD",
+          "ticker": "GDU6",
+          "market": "futures",
+          "price_step": "0.1",
+          "step_price": "7.3439"
+        }
+      },
+      "entry": {
+        "side": "buy",
+        "condition": {
+          "node_type": "event",
+          "id": "entry_1",
+          "op": "above",
+          "left": {
+            "source": "price",
+            "field": "last"
+          },
+          "right": {
+            "const": "4202.1"
+          }
+        },
+        "order": {
+          "type": "market",
+          "limit_offset_steps": 1,
+          "time_in_force": "day"
+        }
+      },
+      "sizing": {
+        "mode": "lots",
+        "value": "3"
+      },
+      "risk": {
+        "stop_loss": {
+          "condition": {
+            "node_type": "event",
+            "id": "sl_1",
+            "op": "below",
+            "left": {
+              "source": "price",
+              "field": "last"
+            },
+            "right": {
+              "const": "4136.3"
+            }
+          }
+        }
+      },
+      "execution_policy": {
+        "on_afb_disconnect": "pause_new_entries",
+        "max_spread_steps": 5,
+        "margin_trading": false
+      }
+    }
+  },
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "afb-test-1",
+    "value": "Zu8_eAKIu-4O2AWLvnFU60oDZ5C3LY6P66jvFGEpWs-llkawNpjC0_BKMqFTXWMpFgIC6Vvjioei5qsXH8w5Cw"
+  }
+}

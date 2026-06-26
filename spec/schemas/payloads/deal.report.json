@@ -1,0 +1,135 @@
+{
+  "type": "object",
+  "properties": {
+    "close_reason": {
+      "type": "string"
+    },
+    "deal_id": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    },
+    "status": {
+      "type": "string"
+    },
+    "fills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "commission": {
+            "type": [
+              "string",
+              "number",
+              "integer",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "order_id": {
+            "type": "string"
+          },
+          "price": {
+            "type": [
+              "string",
+              "number",
+              "integer",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "role": {
+            "type": "string"
+          },
+          "side": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": [
+              "string",
+              "number",
+              "integer",
+              "boolean",
+              "object",
+              "array",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": true,
+        "required": [
+          "order_id",
+          "role",
+          "side"
+        ]
+      }
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "entry_avg_price": {
+          "type": [
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "exit_avg_price": {
+          "type": [
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "realized_pnl": {
+          "type": [
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "total_commission": {
+          "type": [
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "deal_id",
+    "revision",
+    "status"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/deal.report.json",
+  "title": "payload: deal.report"
+}

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/envelope.json",
+  "title": "Envelope",
+  "description": "Signed transport envelope for afb.execution.v1. Every wire message is one of these. payload_hash and signature are computed over canonical JSON (sort_keys, separators=(',',':'), UTF-8); signing string is '{protocol}|{type}|{message_id}|{created_at}|{payload_hash}'.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol",
+    "message_id",
+    "sender",
+    "recipient",
+    "type",
+    "created_at",
+    "expires_at",
+    "payload_hash",
+    "payload",
+    "signature"
+  ],
+  "properties": {
+    "protocol": {"const": "afb.execution.v1"},
+    "message_id": {"type": "string", "minLength": 1, "description": "UUID, unique per sender"},
+    "correlation_id": {"type": ["string", "null"], "description": "Links a reply to the command message_id"},
+    "causation_id": {"type": ["string", "null"], "description": "Prior event that caused this message"},
+    "sender": {"type": "string", "minLength": 1, "description": "'afb' or a bf_id"},
+    "recipient": {"type": "string", "minLength": 1, "description": "target bf_id or 'afb'"},
+    "type": {"type": "string", "pattern": "^[a-z_]+\\.[a-z_]+$", "description": "category.event (see taxonomy)"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "idempotency_key": {"type": "string", "description": "Stable dedup key; required for commands"},
+    "payload_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 hex of canonical payload"},
+    "payload": {"type": "object"},
+    "signature": {"$ref": "#/$defs/signature"}
+  },
+  "$defs": {
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alg", "key_id", "value"],
+      "properties": {
+        "alg": {"const": "Ed25519"},
+        "key_id": {"type": "string", "minLength": 1},
+        "value": {"type": "string", "minLength": 1, "description": "base64url (no padding) signature"}
+      }
+    }
+  }
+}

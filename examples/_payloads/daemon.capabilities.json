@@ -1,0 +1,43 @@
+{
+  "bf_id": "finam-arena-316",
+  "broker": "finam",
+  "protocol": "afb.execution.v1",
+  "software_version": "0.1.0",
+  "markets": [
+    "stock",
+    "futures",
+    "currency"
+  ],
+  "order_types": [
+    "limit"
+  ],
+  "time_in_force": [
+    "day"
+  ],
+  "sizing_modes": [
+    "lots",
+    "margin",
+    "risk_currency",
+    "risk_factor",
+    "balance_pct"
+  ],
+  "condition_ops": [
+    "above",
+    "below",
+    "crosses_above",
+    "crosses_below",
+    "crossing"
+  ],
+  "condition_nodes": [
+    "event"
+  ],
+  "account_aliases": [
+    "main"
+  ],
+  "features": {
+    "dry_run": true,
+    "server_sltp": false,
+    "reports_api": false,
+    "catalog": true
+  }
+}

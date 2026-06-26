@@ -1,0 +1,19 @@
+{
+  "protocol": "afb.execution.v1",
+  "message_id": "22a5a587-56c0-41cf-8d94-4c416607cd68",
+  "correlation_id": null,
+  "causation_id": null,
+  "sender": "afb",
+  "recipient": "finam-arena-316",
+  "type": "daemon.capabilities_query",
+  "created_at": "2026-06-26T12:00:00+03:00",
+  "expires_at": "2026-06-26T12:05:00+03:00",
+  "idempotency_key": "afb:daemon.capabilities_query:fixture-0001",
+  "payload_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "payload": {},
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "afb-test-1",
+    "value": "2rzWxnIJrNOsJaOBrzk0EzlvMW23ZghslynBkNXZggScsyELv0sGPWJknW7GlR1QWr8KL1_Kyyn2dwDc6LHyBg"
+  }
+}

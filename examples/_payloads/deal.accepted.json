@@ -1,0 +1,51 @@
+{
+  "binding": {
+    "account_id": "1918978",
+    "symbol": "ALRS@MISX"
+  },
+  "broker_instrument": {
+    "asset_type": "EQUITIES",
+    "bond_details": null,
+    "decimals": 2,
+    "expiration_date": null,
+    "future_details": null,
+    "long_initial_margin": "38.205",
+    "long_risk_rate": "15",
+    "longable": true,
+    "lot_size": 10,
+    "market": "stock",
+    "mic": "MISX",
+    "min_step_raw": 1,
+    "name": "АЛРОСА ао",
+    "price_step": "0.01",
+    "quote_currency": "RUB",
+    "short_initial_margin": "38.205",
+    "short_risk_rate": "15",
+    "shortable": true,
+    "tradable": true,
+    "updated_at": "2026-06-19T05:50:22.034947+00:00"
+  },
+  "broker_sizing": {
+    "account_id": "1918978",
+    "deal_notional": "47138",
+    "lots": 185,
+    "required_cash": "4713.8",
+    "required_cash_basis": "notional",
+    "sizing_mode": "risk_factor"
+  },
+  "command_type": "deal.publish",
+  "deal_id": "deal-db2b-4e92-87a4:finam-arena-316",
+  "revision": 1,
+  "target_instrument_patch": {},
+  "validation": {
+    "account_id": "1918978",
+    "entry_order_type": "market",
+    "side": "buy",
+    "sizing_mode": "risk_factor",
+    "sizing_value": "0.2",
+    "symbol": "ALRS@MISX",
+    "quantity_lots": 185,
+    "entry_price": "25.48",
+    "required_cash": "4713.8"
+  }
+}

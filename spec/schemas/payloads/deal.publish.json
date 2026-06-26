@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/deal.publish.json",
+  "title": "payload: deal.publish",
+  "type": "object",
+  "required": ["deal"],
+  "properties": {
+    "deal": {
+      "oneOf": [
+        {"$ref": "../deal.v1.json"},
+        {"$ref": "../deal.v2.json"}
+      ]
+    }
+  }
+}

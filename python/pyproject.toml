@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "afb-bf-protocol"
+version = "1.0.0"
+description = "Shared wire protocol (afb.execution.v1) for AFB OMS and BF executor: models, envelope, signing, validation, taxonomy"
+requires-python = ">=3.11"
+dependencies = [
+  "cryptography>=42.0.0",
+]
+
+[project.optional-dependencies]
+# Codegen / linting / tests. Not needed at runtime by AFB or BF.
+dev = [
+  "pytest>=8.0",
+  "jsonschema>=4.20",
+  "pyyaml>=6.0",
+  "datamodel-code-generator>=0.25",
+]
+
+[project.scripts]
+afb-bf-protocol-generate = "afb_bf_protocol.tools.generate:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["afb_bf_protocol*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

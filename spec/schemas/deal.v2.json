@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/deal.v2.json",
+  "title": "ExecutionDeal afb.deal.v2",
+  "description": "Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string). Sum of percents per role resolves to 100. Reuses condition/order/sizing defs from deal.v1.json.",
+  "type": "object",
+  "required": ["schema", "deal_id", "revision", "target", "entry", "sizing"],
+  "properties": {
+    "schema": {"const": "afb.deal.v2"},
+    "deal_id": {"type": "string", "minLength": 1},
+    "revision": {"type": "integer", "minimum": 1},
+    "owner": {"type": "object"},
+    "target": {"$ref": "deal.v1.json#/$defs/target"},
+    "entry": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["side", "condition"],
+        "properties": {
+          "side": {"enum": ["buy", "sell"]},
+          "percent": {"$ref": "deal.v1.json#/$defs/decimalString"},
+          "condition": {"$ref": "deal.v1.json#/$defs/conditionNode"},
+          "order": {"$ref": "deal.v1.json#/$defs/order"}
+        }
+      }
+    },
+    "stop_loss": {"$ref": "#/$defs/exitList"},
+    "take_profit": {"$ref": "#/$defs/exitList"},
+    "sizing": {"$ref": "deal.v1.json#/$defs/sizing"},
+    "execution_policy": {"$ref": "deal.v1.json#/$defs/executionPolicy"}
+  },
+  "$defs": {
+    "exitList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["condition"],
+        "properties": {
+          "percent": {"$ref": "deal.v1.json#/$defs/decimalString"},
+          "condition": {"$ref": "deal.v1.json#/$defs/conditionNode"}
+        }
+      }
+    }
+  }
+}

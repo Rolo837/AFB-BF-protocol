@@ -1,0 +1,24 @@
+{
+  "protocol": "afb.execution.v1",
+  "message_id": "7ed167ad-6743-43ea-8c41-e00d6bc7e074",
+  "correlation_id": null,
+  "causation_id": null,
+  "sender": "finam-arena-316",
+  "recipient": "afb",
+  "type": "condition.triggered",
+  "created_at": "2026-06-26T12:00:00+03:00",
+  "expires_at": "2026-06-26T12:05:00+03:00",
+  "idempotency_key": "finam-arena-316:condition.triggered:fixture-0001",
+  "payload_hash": "c9c9b418bca4156e7d8ec1317b41d81e1520325f6ceb1de8b8652ea4e5e5d696",
+  "payload": {
+    "condition_id": "entry_1",
+    "deal_id": "deal-5103-4c21-be08:finam-arena-316",
+    "phase": "entry",
+    "price": "3.304"
+  },
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "belphegor-test-1",
+    "value": "YNoR13ktJJV5YsXvUP63rvqfqQm8euB5hagkh673nifGB6-IfFWOnbhVYqsJUOgQyaiPwPJUBF-yAePtxWAXBA"
+  }
+}

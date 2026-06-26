@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "properties": {},
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/daemon.capabilities_query.json",
+  "title": "payload: daemon.capabilities_query"
+}

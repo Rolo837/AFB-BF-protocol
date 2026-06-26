@@ -1,0 +1,816 @@
+asyncapi: 3.1.0
+info:
+  title: AFB <-> BF Execution Protocol
+  version: 1.0.0
+  description: >-
+    Business protocol between AFB (OMS) and BF (executor daemon), wire version
+    afb.execution.v1. Every message is a signed JSON envelope (Ed25519 over a
+    canonical signing string). Transport v1 is WebSocket; the envelope is
+    transport-agnostic (MQTT and others planned).
+  license:
+    name: Proprietary
+defaultContentType: application/json
+servers:
+  afb-ws:
+    host: 127.0.0.1:8013
+    pathname: /bf/v1
+    protocol: ws
+    description: AFB WebSocket endpoint; BF connects as a client.
+channels:
+  afbBf:
+    address: /bf/v1
+    title: AFB <-> BF envelope channel
+    description: Single bidirectional channel carrying all signed envelopes.
+    messages:
+      session_hello:
+        $ref: '#/components/messages/session_hello'
+      session_heartbeat:
+        $ref: '#/components/messages/session_heartbeat'
+      session_resync_request:
+        $ref: '#/components/messages/session_resync_request'
+      session_hello_ack:
+        $ref: '#/components/messages/session_hello_ack'
+      session_resync_response:
+        $ref: '#/components/messages/session_resync_response'
+      daemon_status:
+        $ref: '#/components/messages/daemon_status'
+      daemon_capabilities:
+        $ref: '#/components/messages/daemon_capabilities'
+      daemon_error:
+        $ref: '#/components/messages/daemon_error'
+      daemon_capabilities_query:
+        $ref: '#/components/messages/daemon_capabilities_query'
+      daemon_restart:
+        $ref: '#/components/messages/daemon_restart'
+      broker_get_account:
+        $ref: '#/components/messages/broker_get_account'
+      broker_get_orders:
+        $ref: '#/components/messages/broker_get_orders'
+      broker_get_catalog:
+        $ref: '#/components/messages/broker_get_catalog'
+      broker_get_instrument:
+        $ref: '#/components/messages/broker_get_instrument'
+      broker_resolve_instrument:
+        $ref: '#/components/messages/broker_resolve_instrument'
+      broker_account:
+        $ref: '#/components/messages/broker_account'
+      broker_orders:
+        $ref: '#/components/messages/broker_orders'
+      broker_catalog:
+        $ref: '#/components/messages/broker_catalog'
+      broker_instrument:
+        $ref: '#/components/messages/broker_instrument'
+      broker_instrument_resolved:
+        $ref: '#/components/messages/broker_instrument_resolved'
+      deal_publish:
+        $ref: '#/components/messages/deal_publish'
+      deal_operation:
+        $ref: '#/components/messages/deal_operation'
+      deal_resync:
+        $ref: '#/components/messages/deal_resync'
+      deal_signal:
+        $ref: '#/components/messages/deal_signal'
+      deal_accepted:
+        $ref: '#/components/messages/deal_accepted'
+      deal_rejected:
+        $ref: '#/components/messages/deal_rejected'
+      deal_status_changed:
+        $ref: '#/components/messages/deal_status_changed'
+      deal_archived:
+        $ref: '#/components/messages/deal_archived'
+      deal_orders_synced:
+        $ref: '#/components/messages/deal_orders_synced'
+      deal_positions_synced:
+        $ref: '#/components/messages/deal_positions_synced'
+      deal_report:
+        $ref: '#/components/messages/deal_report'
+      condition_triggered:
+        $ref: '#/components/messages/condition_triggered'
+      order_created:
+        $ref: '#/components/messages/order_created'
+      order_partially_filled:
+        $ref: '#/components/messages/order_partially_filled'
+      order_filled:
+        $ref: '#/components/messages/order_filled'
+      order_cancelled:
+        $ref: '#/components/messages/order_cancelled'
+      order_rejected:
+        $ref: '#/components/messages/order_rejected'
+      position_opened:
+        $ref: '#/components/messages/position_opened'
+      position_changed:
+        $ref: '#/components/messages/position_changed'
+      position_closed:
+        $ref: '#/components/messages/position_closed'
+operations:
+  sendToBf:
+    action: send
+    title: AFB -> BF (commands)
+    channel:
+      $ref: '#/channels/afbBf'
+    messages:
+      - $ref: '#/channels/afbBf/messages/session_hello_ack'
+      - $ref: '#/channels/afbBf/messages/session_resync_response'
+      - $ref: '#/channels/afbBf/messages/daemon_capabilities_query'
+      - $ref: '#/channels/afbBf/messages/daemon_restart'
+      - $ref: '#/channels/afbBf/messages/broker_get_account'
+      - $ref: '#/channels/afbBf/messages/broker_get_orders'
+      - $ref: '#/channels/afbBf/messages/broker_get_catalog'
+      - $ref: '#/channels/afbBf/messages/broker_get_instrument'
+      - $ref: '#/channels/afbBf/messages/broker_resolve_instrument'
+      - $ref: '#/channels/afbBf/messages/deal_publish'
+      - $ref: '#/channels/afbBf/messages/deal_operation'
+      - $ref: '#/channels/afbBf/messages/deal_resync'
+      - $ref: '#/channels/afbBf/messages/deal_signal'
+  receiveFromBf:
+    action: receive
+    title: BF -> AFB (events & replies)
+    channel:
+      $ref: '#/channels/afbBf'
+    messages:
+      - $ref: '#/channels/afbBf/messages/session_hello'
+      - $ref: '#/channels/afbBf/messages/session_heartbeat'
+      - $ref: '#/channels/afbBf/messages/session_resync_request'
+      - $ref: '#/channels/afbBf/messages/daemon_status'
+      - $ref: '#/channels/afbBf/messages/daemon_capabilities'
+      - $ref: '#/channels/afbBf/messages/daemon_error'
+      - $ref: '#/channels/afbBf/messages/broker_account'
+      - $ref: '#/channels/afbBf/messages/broker_orders'
+      - $ref: '#/channels/afbBf/messages/broker_catalog'
+      - $ref: '#/channels/afbBf/messages/broker_instrument'
+      - $ref: '#/channels/afbBf/messages/broker_instrument_resolved'
+      - $ref: '#/channels/afbBf/messages/deal_accepted'
+      - $ref: '#/channels/afbBf/messages/deal_rejected'
+      - $ref: '#/channels/afbBf/messages/deal_status_changed'
+      - $ref: '#/channels/afbBf/messages/deal_archived'
+      - $ref: '#/channels/afbBf/messages/deal_orders_synced'
+      - $ref: '#/channels/afbBf/messages/deal_positions_synced'
+      - $ref: '#/channels/afbBf/messages/deal_report'
+      - $ref: '#/channels/afbBf/messages/condition_triggered'
+      - $ref: '#/channels/afbBf/messages/order_created'
+      - $ref: '#/channels/afbBf/messages/order_partially_filled'
+      - $ref: '#/channels/afbBf/messages/order_filled'
+      - $ref: '#/channels/afbBf/messages/order_cancelled'
+      - $ref: '#/channels/afbBf/messages/order_rejected'
+      - $ref: '#/channels/afbBf/messages/position_opened'
+      - $ref: '#/channels/afbBf/messages/position_changed'
+      - $ref: '#/channels/afbBf/messages/position_closed'
+components:
+  messages:
+    session_hello:
+      name: session.hello
+      title: session.hello
+      summary: 'system/bf2afb session.hello'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:bf2afb'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: session.hello
+              payload:
+                $ref: './schemas/payloads/session.hello.json'
+      description: 'Example: examples/session.hello.json' 
+    session_heartbeat:
+      name: session.heartbeat
+      title: session.heartbeat
+      summary: 'system/bf2afb session.heartbeat'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:bf2afb'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: session.heartbeat
+              payload:
+                $ref: './schemas/payloads/session.heartbeat.json'
+      description: 'Example: examples/session.heartbeat.json' 
+    session_resync_request:
+      name: session.resync_request
+      title: session.resync_request
+      summary: 'system/bf2afb session.resync_request'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:bf2afb'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: session.resync_request
+              payload:
+                $ref: './schemas/payloads/session.resync_request.json'
+      description: 'Example: examples/session.resync_request.json' 
+    session_hello_ack:
+      name: session.hello_ack
+      title: session.hello_ack
+      summary: 'system/afb2bf session.hello_ack'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: session.hello_ack
+              payload:
+                $ref: './schemas/payloads/session.hello_ack.json'
+      description: 'Example: examples/session.hello_ack.json' 
+    session_resync_response:
+      name: session.resync_response
+      title: session.resync_response
+      summary: 'system/afb2bf session.resync_response'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: session.resync_response
+              payload:
+                $ref: './schemas/payloads/session.resync_response.json'
+      description: 'Example: examples/session.resync_response.json' 
+    daemon_status:
+      name: daemon.status
+      title: daemon.status
+      summary: 'system/bf2afb daemon.status'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:bf2afb'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: daemon.status
+              payload:
+                $ref: './schemas/payloads/daemon.status.json'
+      description: 'Example: examples/daemon.status.json' 
+    daemon_capabilities:
+      name: daemon.capabilities
+      title: daemon.capabilities
+      summary: 'system/bf2afb daemon.capabilities'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:bf2afb'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: daemon.capabilities
+              payload:
+                $ref: './schemas/payloads/daemon.capabilities.json'
+      description: 'Example: examples/daemon.capabilities.json' 
+    daemon_error:
+      name: daemon.error
+      title: daemon.error
+      summary: 'system/bf2afb daemon.error'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: daemon.error
+      description: 'No fixture yet.'
+    daemon_capabilities_query:
+      name: daemon.capabilities_query
+      title: daemon.capabilities_query
+      summary: 'system/afb2bf daemon.capabilities_query'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: daemon.capabilities_query
+              payload:
+                $ref: './schemas/payloads/daemon.capabilities_query.json'
+      description: 'Example: examples/daemon.capabilities_query.json' 
+    daemon_restart:
+      name: daemon.restart
+      title: daemon.restart
+      summary: 'system/afb2bf daemon.restart'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: daemon.restart
+      description: 'No fixture yet.'
+    broker_get_account:
+      name: broker.get_account
+      title: broker.get_account
+      summary: 'user/afb2bf broker.get_account'
+      tags:
+        - name: 'class:user'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: broker.get_account
+      description: 'No fixture yet.'
+    broker_get_orders:
+      name: broker.get_orders
+      title: broker.get_orders
+      summary: 'user/afb2bf broker.get_orders'
+      tags:
+        - name: 'class:user'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: broker.get_orders
+      description: 'No fixture yet.'
+    broker_get_catalog:
+      name: broker.get_catalog
+      title: broker.get_catalog
+      summary: 'user/afb2bf broker.get_catalog'
+      tags:
+        - name: 'class:user'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: broker.get_catalog
+      description: 'No fixture yet.'
+    broker_get_instrument:
+      name: broker.get_instrument
+      title: broker.get_instrument
+      summary: 'user/afb2bf broker.get_instrument'
+      tags:
+        - name: 'class:user'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: broker.get_instrument
+      description: 'No fixture yet.'
+    broker_resolve_instrument:
+      name: broker.resolve_instrument
+      title: broker.resolve_instrument
+      summary: 'user/afb2bf broker.resolve_instrument'
+      tags:
+        - name: 'class:user'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: broker.resolve_instrument
+      description: 'No fixture yet.'
+    broker_account:
+      name: broker.account
+      title: broker.account
+      summary: 'user/bf2afb broker.account'
+      tags:
+        - name: 'class:user'
+        - name: 'dir:bf2afb'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: broker.account
+      description: 'No fixture yet.'
+    broker_orders:
+      name: broker.orders
+      title: broker.orders
+      summary: 'user/bf2afb broker.orders'
+      tags:
+        - name: 'class:user'
+        - name: 'dir:bf2afb'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: broker.orders
+      description: 'No fixture yet.'
+    broker_catalog:
+      name: broker.catalog
+      title: broker.catalog
+      summary: 'user/bf2afb broker.catalog'
+      tags:
+        - name: 'class:user'
+        - name: 'dir:bf2afb'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: broker.catalog
+      description: 'No fixture yet.'
+    broker_instrument:
+      name: broker.instrument
+      title: broker.instrument
+      summary: 'user/bf2afb broker.instrument'
+      tags:
+        - name: 'class:user'
+        - name: 'dir:bf2afb'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: broker.instrument
+      description: 'No fixture yet.'
+    broker_instrument_resolved:
+      name: broker.instrument_resolved
+      title: broker.instrument_resolved
+      summary: 'user/bf2afb broker.instrument_resolved'
+      tags:
+        - name: 'class:user'
+        - name: 'dir:bf2afb'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: broker.instrument_resolved
+      description: 'No fixture yet.'
+    deal_publish:
+      name: deal.publish
+      title: deal.publish
+      summary: 'user/afb2bf deal.publish'
+      tags:
+        - name: 'class:user'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: deal.publish
+              payload:
+                $ref: './schemas/payloads/deal.publish.json'
+      description: 'Example: examples/deal.publish.json' 
+    deal_operation:
+      name: deal.operation
+      title: deal.operation
+      summary: 'user/afb2bf deal.operation'
+      tags:
+        - name: 'class:user'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: deal.operation
+              payload:
+                $ref: './schemas/payloads/deal.operation.json'
+      description: 'Example: examples/deal.operation.json' 
+    deal_resync:
+      name: deal.resync
+      title: deal.resync
+      summary: 'system/afb2bf deal.resync'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: deal.resync
+      description: 'No fixture yet.'
+    deal_signal:
+      name: deal.signal
+      title: deal.signal
+      summary: 'system/afb2bf deal.signal'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: deal.signal
+      description: 'No fixture yet.'
+    deal_accepted:
+      name: deal.accepted
+      title: deal.accepted
+      summary: 'trading/bf2afb deal.accepted'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: deal.accepted
+              payload:
+                $ref: './schemas/payloads/deal.accepted.json'
+      description: 'Example: examples/deal.accepted.json' 
+    deal_rejected:
+      name: deal.rejected
+      title: deal.rejected
+      summary: 'trading/bf2afb deal.rejected'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: deal.rejected
+              payload:
+                $ref: './schemas/payloads/deal.rejected.json'
+      description: 'Example: examples/deal.rejected.json' 
+    deal_status_changed:
+      name: deal.status_changed
+      title: deal.status_changed
+      summary: 'trading/bf2afb deal.status_changed'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: deal.status_changed
+              payload:
+                $ref: './schemas/payloads/deal.status_changed.json'
+      description: 'Example: examples/deal.status_changed.json' 
+    deal_archived:
+      name: deal.archived
+      title: deal.archived
+      summary: 'trading/bf2afb deal.archived'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: deal.archived
+              payload:
+                $ref: './schemas/payloads/deal.archived.json'
+      description: 'Example: examples/deal.archived.json' 
+    deal_orders_synced:
+      name: deal.orders_synced
+      title: deal.orders_synced
+      summary: 'trading/bf2afb deal.orders_synced'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: deal.orders_synced
+      description: 'No fixture yet.'
+    deal_positions_synced:
+      name: deal.positions_synced
+      title: deal.positions_synced
+      summary: 'trading/bf2afb deal.positions_synced'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: deal.positions_synced
+              payload:
+                $ref: './schemas/payloads/deal.positions_synced.json'
+      description: 'Example: examples/deal.positions_synced.json' 
+    deal_report:
+      name: deal.report
+      title: deal.report
+      summary: 'trading/bf2afb deal.report'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: deal.report
+              payload:
+                $ref: './schemas/payloads/deal.report.json'
+      description: 'Example: examples/deal.report.json' 
+    condition_triggered:
+      name: condition.triggered
+      title: condition.triggered
+      summary: 'trading/bf2afb condition.triggered'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: condition.triggered
+              payload:
+                $ref: './schemas/payloads/condition.triggered.json'
+      description: 'Example: examples/condition.triggered.json' 
+    order_created:
+      name: order.created
+      title: order.created
+      summary: 'trading/bf2afb order.created'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: order.created
+              payload:
+                $ref: './schemas/payloads/order.created.json'
+      description: 'Example: examples/order.created.json' 
+    order_partially_filled:
+      name: order.partially_filled
+      title: order.partially_filled
+      summary: 'trading/bf2afb order.partially_filled'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: order.partially_filled
+      description: 'No fixture yet.'
+    order_filled:
+      name: order.filled
+      title: order.filled
+      summary: 'trading/bf2afb order.filled'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: order.filled
+              payload:
+                $ref: './schemas/payloads/order.filled.json'
+      description: 'Example: examples/order.filled.json' 
+    order_cancelled:
+      name: order.cancelled
+      title: order.cancelled
+      summary: 'trading/bf2afb order.cancelled'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: order.cancelled
+      description: 'No fixture yet.'
+    order_rejected:
+      name: order.rejected
+      title: order.rejected
+      summary: 'trading/bf2afb order.rejected'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: order.rejected
+      description: 'No fixture yet.'
+    position_opened:
+      name: position.opened
+      title: position.opened
+      summary: 'trading/bf2afb position.opened'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: position.opened
+              payload:
+                $ref: './schemas/payloads/position.opened.json'
+      description: 'Example: examples/position.opened.json' 
+    position_changed:
+      name: position.changed
+      title: position.changed
+      summary: 'trading/bf2afb position.changed'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: position.changed
+      description: 'No fixture yet.'
+    position_closed:
+      name: position.closed
+      title: position.closed
+      summary: 'trading/bf2afb position.closed'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: position.closed
+      description: 'No fixture yet.'

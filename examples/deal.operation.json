@@ -1,0 +1,27 @@
+{
+  "protocol": "afb.execution.v1",
+  "message_id": "c4db712a-e278-4640-8d62-e825f96db283",
+  "correlation_id": null,
+  "causation_id": null,
+  "sender": "afb",
+  "recipient": "finam-arena-316",
+  "type": "deal.operation",
+  "created_at": "2026-06-26T12:00:00+03:00",
+  "expires_at": "2026-06-26T12:05:00+03:00",
+  "idempotency_key": "afb:deal.operation:fixture-0001",
+  "payload_hash": "e82dbf05ca10e72475b4060ec15c03e4c43602987c616d9f8f5af745cb3491d3",
+  "payload": {
+    "operations": [
+      {
+        "deal_id": "deal-1c24-4c49-9da6:finam-arena-316",
+        "revision": 1,
+        "op": "activate"
+      }
+    ]
+  },
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "afb-test-1",
+    "value": "M2bbxFdsi5Yo-_Vk_f5CHAhGQA3gSNiWYVgUgVaH_KIBroxp78RkfTDgPh5ccE7iODMg99Pi_ACK-BFcYhEKCg"
+  }
+}

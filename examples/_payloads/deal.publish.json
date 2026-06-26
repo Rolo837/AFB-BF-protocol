@@ -1,0 +1,67 @@
+{
+  "deal": {
+    "schema": "afb.deal.v1",
+    "deal_id": "deal-1c24-4c49-9da6:finam-arena-316",
+    "revision": 1,
+    "owner": {
+      "user_id": "id_9139066366"
+    },
+    "target": {
+      "bf_id": "finam-arena-316",
+      "broker": "finam-arena",
+      "instrument": {
+        "exchange": "MOEX",
+        "board": "RFUD",
+        "ticker": "GDU6",
+        "market": "futures",
+        "price_step": "0.1",
+        "step_price": "7.3439"
+      }
+    },
+    "entry": {
+      "side": "buy",
+      "condition": {
+        "node_type": "event",
+        "id": "entry_1",
+        "op": "above",
+        "left": {
+          "source": "price",
+          "field": "last"
+        },
+        "right": {
+          "const": "4202.1"
+        }
+      },
+      "order": {
+        "type": "market",
+        "limit_offset_steps": 1,
+        "time_in_force": "day"
+      }
+    },
+    "sizing": {
+      "mode": "lots",
+      "value": "3"
+    },
+    "risk": {
+      "stop_loss": {
+        "condition": {
+          "node_type": "event",
+          "id": "sl_1",
+          "op": "below",
+          "left": {
+            "source": "price",
+            "field": "last"
+          },
+          "right": {
+            "const": "4136.3"
+          }
+        }
+      }
+    },
+    "execution_policy": {
+      "on_afb_disconnect": "pause_new_entries",
+      "max_spread_steps": 5,
+      "margin_trading": false
+    }
+  }
+}
