@@ -13,6 +13,7 @@ from .envelope import (
     canonical_json,
     payload_hash,
     signing_string,
+    signing_string_parts,
     parse_iso_datetime,
     make_envelope,
 )
@@ -49,6 +50,8 @@ from .deal_state import (
     DealStatus,
     safe_deal_filename,
     archived_deal_filename,
+    set_now_iso,
+    current_now_iso,
 )
 
 __all__ = [
@@ -60,6 +63,7 @@ __all__ = [
     "canonical_json",
     "payload_hash",
     "signing_string",
+    "signing_string_parts",
     "parse_iso_datetime",
     "make_envelope",
     "sign_envelope",
@@ -88,4 +92,6 @@ __all__ = [
     "DealStatus",
     "safe_deal_filename",
     "archived_deal_filename",
+    "set_now_iso",
+    "current_now_iso",
 ]

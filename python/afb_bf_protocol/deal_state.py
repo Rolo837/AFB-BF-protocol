@@ -1,11 +1,11 @@
 """``deal_state.v2`` — shared on-disk deal schema for AFB and BF.
 
-Both projects persist per-deal YAML with this exact shape (AFB at
+Both projects persist per-deal YAML with this shape (AFB at
 ``state/deals/<bf_id>/<deal_id>.yaml``, BF at ``state/deals/<deal_id>.yaml``).
 
-Timestamps: the default ``now_iso`` is UTC. BF/AFB render in market timezone, so
-they should pass timestamps explicitly (or set ``DealState.now_iso``) to preserve
-their ``+03:00`` market-local rendering.
+Timestamps default to UTC. AFB and BF render in market-local time, so each calls
+``set_now_iso(market_now_iso)`` once at import to install its timestamp provider;
+the field order and ``to_dict()`` output then match each side's existing files.
 """
 from __future__ import annotations
 
@@ -22,27 +22,18 @@ __all__ = [
     "DealState",
     "safe_deal_filename",
     "archived_deal_filename",
+    "set_now_iso",
+    "current_now_iso",
 ]
 
-# Note: ``waiting_external_signal`` (previously AFB-only) is intentionally
-# excluded from the canonical set.
+# Note: ``waiting_external_signal`` (previously AFB-only) is intentionally excluded.
 DealStatus = Literal[
-    "draft",
-    "publishing",
-    "published",
-    "active",
-    "paused",
-    "closed",
-    "cancelled",
-    "orphaned",
+    "draft", "publishing", "published", "active", "paused", "closed", "cancelled", "orphaned"
 ]
-
 ExecutionPhase = Literal[
     "idle", "awaiting_entry", "entry_working", "holding", "exit_working"
 ]
-
 OrderRole = Literal["entry", "stop_loss", "take_profit", "cancel_close"]
-
 CancelReason = Literal[
     "user_cancel",
     "publish_rejected",
@@ -53,12 +44,24 @@ CancelReason = Literal[
     "legacy_failed",
     "legacy_degraded",
 ]
-
 DealStatusSource = Literal["afb", "bf"]
 
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+_now_iso: Callable[[], str] = _utc_now_iso
+
+
+def set_now_iso(fn: Callable[[], str]) -> None:
+    """Install the timestamp provider used for created_at/updated_at/status history."""
+    global _now_iso
+    _now_iso = fn
+
+
+def current_now_iso() -> str:
+    return _now_iso()
 
 
 def safe_deal_filename(deal_id: str) -> str:
@@ -78,30 +81,23 @@ def archived_deal_filename(deal_id: str) -> str:
 
 @dataclass
 class DealState:
-    # Override to render timestamps in a project-specific timezone.
-    now_iso: Callable[[], str] = field(default=_utc_now_iso, repr=False, compare=False)
-
-    deal_id: str = ""
-    revision: int = 1
-    owner_user_id: str = ""
-    status: DealStatus = "published"
-    deal: dict[str, Any] = field(default_factory=dict)
+    deal_id: str
+    revision: int
+    owner_user_id: str
+    status: DealStatus
+    deal: dict[str, Any]
     source_refs: dict[str, Any] = field(default_factory=dict)
     status_history: list[dict[str, Any]] = field(default_factory=list)
     orders: list[dict[str, Any]] = field(default_factory=list)
     positions: list[dict[str, Any]] = field(default_factory=list)
     event_journal: list[dict[str, Any]] = field(default_factory=list)
+    # Compact observed-state snapshot (controller model). orders[]/positions[]
+    # remain the authoritative observed facts; this is a derived summary.
     observed: dict[str, Any] = field(default_factory=dict)
-    # Derived; kept on-disk for AFB compatibility (not the source of truth).
+    # Derived; kept on-disk for compatibility (not the source of truth).
     execution_phase: ExecutionPhase = "idle"
-    created_at: str = ""
-    updated_at: str = ""
-
-    def __post_init__(self) -> None:
-        if not self.created_at:
-            self.created_at = self.now_iso()
-        if not self.updated_at:
-            self.updated_at = self.now_iso()
+    created_at: str = field(default_factory=current_now_iso)
+    updated_at: str = field(default_factory=current_now_iso)
 
     def bf_id(self) -> str:
         target = self.deal.get("target") if isinstance(self.deal.get("target"), dict) else {}
@@ -115,7 +111,7 @@ class DealState:
         correlation_id: str | None = None,
         cancel_reason: str | None = None,
     ) -> None:
-        entry: dict[str, Any] = {"status": status, "at": self.now_iso(), "source": source}
+        entry: dict[str, Any] = {"status": status, "at": current_now_iso(), "source": source}
         if correlation_id:
             entry["correlation_id"] = correlation_id
         if cancel_reason:
@@ -123,7 +119,7 @@ class DealState:
         self.status_history.append(entry)
 
     @classmethod
-    def from_dict(cls, raw: Any, *, now_iso: Callable[[], str] = _utc_now_iso) -> "DealState":
+    def from_dict(cls, raw: Any) -> "DealState":
         if not isinstance(raw, dict):
             raise ValueError("deal_state must be an object")
         deal = raw.get("deal")
@@ -135,7 +131,6 @@ class DealState:
         revision = int(raw.get("revision", deal.get("revision", 1)))
         execution_phase = str(raw.get("execution_phase") or "idle").strip() or "idle"
         return cls(
-            now_iso=now_iso,
             deal_id=deal_id,
             revision=revision,
             owner_user_id=str(raw.get("owner_user_id") or ""),
@@ -148,11 +143,20 @@ class DealState:
             event_journal=list(raw.get("event_journal") or []),
             observed=dict(raw.get("observed") or {}),
             execution_phase=execution_phase,  # type: ignore[arg-type]
-            created_at=str(raw.get("created_at") or now_iso()),
-            updated_at=str(raw.get("updated_at") or now_iso()),
+            created_at=str(raw.get("created_at") or current_now_iso()),
+            updated_at=str(raw.get("updated_at") or current_now_iso()),
         )
 
     def to_dict(self) -> dict[str, Any]:
-        data = asdict(self)
-        data.pop("now_iso", None)
-        return data
+        return asdict(self)
+
+    def to_resync_payload(self) -> dict[str, Any]:
+        """Snapshot for deal.resync (status authoritative from AFB)."""
+        return {
+            "deal_id": self.deal_id,
+            "revision": self.revision,
+            "status": self.status,
+            "deal": self.deal,
+            "status_history": list(self.status_history),
+            "source_refs": dict(self.source_refs),
+        }

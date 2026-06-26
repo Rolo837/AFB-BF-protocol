@@ -24,6 +24,7 @@ __all__ = [
     "canonical_json",
     "payload_hash",
     "signing_string",
+    "signing_string_parts",
     "parse_iso_datetime",
     "make_envelope",
 ]
@@ -37,15 +38,20 @@ def payload_hash(payload: dict[str, Any]) -> str:
     return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
 
 
+def signing_string_parts(
+    protocol: str, msg_type: str, message_id: str, created_at: str, payload_hash_value: str
+) -> str:
+    """The canonical signing string from explicit parts (single source of the format)."""
+    return f"{protocol}|{msg_type}|{message_id}|{created_at}|{payload_hash_value}"
+
+
 def signing_string(envelope: Envelope) -> str:
-    return "|".join(
-        [
-            envelope.protocol,
-            envelope.type,
-            envelope.message_id,
-            envelope.created_at,
-            envelope.payload_hash,
-        ]
+    return signing_string_parts(
+        envelope.protocol,
+        envelope.type,
+        envelope.message_id,
+        envelope.created_at,
+        envelope.payload_hash,
     )
 
 
