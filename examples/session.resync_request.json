@@ -9,23 +9,26 @@
   "created_at": "2026-06-26T12:00:00+03:00",
   "expires_at": "2026-06-26T12:05:00+03:00",
   "idempotency_key": "finam-arena-316:session.resync_request:fixture-0001",
-  "payload_hash": "0e9014c730018aa362e82cbc644c452ac13daa85a1d989c2ac32c96117be5ee6",
+  "payload_hash": "dc1f7ca5880a746bcdaea4a33bbfec45f551efb04cd20eb8527dadc944a95f34",
   "payload": {
     "active_deal_ids": [
       "deal-2368-4628-8829:finam-arena-316",
       "deal-f29f-4984-80a8:finam-arena-316"
     ],
+    "deal_archived": {
+      "deal-082a-4dc9-80a7:finam-arena-316": "instrument_delisted",
+      "deal-1cb4-4fe0-9c41:finam-arena-316": "instrument_delisted",
+      "deal-47a2-4f09-9e0d:finam-arena-316": "no_binding",
+      "deal-e5b1-4fad-9921:finam-arena-316": "user_delete"
+    },
     "deal_revisions": {
-      "deal-082a-4dc9-80a7:finam-arena-316": 3,
-      "deal-1cb4-4fe0-9c41:finam-arena-316": 4,
       "deal-2368-4628-8829:finam-arena-316": 5,
-      "deal-47a2-4f09-9e0d:finam-arena-316": 3,
       "deal-f29f-4984-80a8:finam-arena-316": 1
     }
   },
   "signature": {
     "alg": "Ed25519",
     "key_id": "belphegor-test-1",
-    "value": "9qc2hAkiVKu-yXdINpHjN4IgT8mtQQqwCTJLze5hZ815UXz257R_ejBDxB1DStKf2APhtY-XMCU7txp7LCg7AA"
+    "value": "Fn1T-PsblYsh53qUagGT1u2N5lr_LKyDOnPjW2K_g1yana1g8aKjGFZLWJkx93FOmdKIBV47QILljQMZQ5IRCg"
   }
 }

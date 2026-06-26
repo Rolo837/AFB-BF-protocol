@@ -7,6 +7,13 @@
         "type": "string"
       }
     },
+    "deal_archived": {
+      "type": "object",
+      "description": "Deals archived by BF: {deal_id: archive_reason}",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
     "deal_revisions": {
       "type": "object",
       "properties": {

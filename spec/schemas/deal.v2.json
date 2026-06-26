@@ -28,7 +28,8 @@
     "stop_loss": {"$ref": "#/$defs/exitList"},
     "take_profit": {"$ref": "#/$defs/exitList"},
     "sizing": {"$ref": "deal.v1.json#/$defs/sizing"},
-    "execution_policy": {"$ref": "deal.v1.json#/$defs/executionPolicy"}
+    "execution_policy": {"$ref": "deal.v1.json#/$defs/executionPolicy"},
+    "archive_reason": {"type": "string"}
   },
   "$defs": {
     "exitList": {

@@ -20,7 +20,8 @@
         "stop_loss": {"$ref": "#/$defs/exitBlock"}
       }
     },
-    "execution_policy": {"$ref": "#/$defs/executionPolicy"}
+    "execution_policy": {"$ref": "#/$defs/executionPolicy"},
+    "archive_reason": {"type": "string"}
   },
   "$defs": {
     "decimalString": {"type": "string", "pattern": "^-?[0-9]+(\\.[0-9]+)?$"},

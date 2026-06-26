@@ -3,11 +3,14 @@
     "deal-2368-4628-8829:finam-arena-316",
     "deal-f29f-4984-80a8:finam-arena-316"
   ],
+  "deal_archived": {
+    "deal-082a-4dc9-80a7:finam-arena-316": "instrument_delisted",
+    "deal-1cb4-4fe0-9c41:finam-arena-316": "instrument_delisted",
+    "deal-47a2-4f09-9e0d:finam-arena-316": "no_binding",
+    "deal-e5b1-4fad-9921:finam-arena-316": "user_delete"
+  },
   "deal_revisions": {
-    "deal-082a-4dc9-80a7:finam-arena-316": 3,
-    "deal-1cb4-4fe0-9c41:finam-arena-316": 4,
     "deal-2368-4628-8829:finam-arena-316": 5,
-    "deal-47a2-4f09-9e0d:finam-arena-316": 3,
     "deal-f29f-4984-80a8:finam-arena-316": 1
   }
 }
