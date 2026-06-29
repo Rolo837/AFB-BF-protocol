@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/deal.amend.json",
+  "title": "payload: deal.amend",
+  "description": "Re-define an existing deal in place. `deal` is the full new definition (its `revision` must be `base_revision` + 1, same `deal_id`). BF gates the change against the allowed-edit matrix (amend_rules) using the deal's live execution phase, then lets reconcile bring broker orders to the new desired state. Unlike deal.publish, the deal's status and observed execution state (orders/positions/phase) are preserved.",
+  "type": "object",
+  "required": ["deal_id", "base_revision", "deal"],
+  "properties": {
+    "deal_id": {"type": "string", "minLength": 1},
+    "base_revision": {"type": "integer", "minimum": 1},
+    "deal": {
+      "oneOf": [
+        {"$ref": "../deal.v1.json"},
+        {"$ref": "../deal.v2.json"}
+      ]
+    }
+  },
+  "additionalProperties": false
+}

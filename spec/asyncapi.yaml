@@ -66,6 +66,8 @@ channels:
         $ref: '#/components/messages/deal_publish'
       deal_operation:
         $ref: '#/components/messages/deal_operation'
+      deal_amend:
+        $ref: '#/components/messages/deal_amend'
       deal_resync:
         $ref: '#/components/messages/deal_resync'
       deal_signal:
@@ -120,6 +122,7 @@ operations:
       - $ref: '#/channels/afbBf/messages/broker_resolve_instrument'
       - $ref: '#/channels/afbBf/messages/deal_publish'
       - $ref: '#/channels/afbBf/messages/deal_operation'
+      - $ref: '#/channels/afbBf/messages/deal_amend'
       - $ref: '#/channels/afbBf/messages/deal_resync'
       - $ref: '#/channels/afbBf/messages/deal_signal'
   receiveFromBf:
@@ -507,7 +510,24 @@ components:
                 const: deal.operation
               payload:
                 $ref: './schemas/payloads/deal.operation.json'
-      description: 'Example: examples/deal.operation.json' 
+      description: 'Example: examples/deal.operation.json'
+    deal_amend:
+      name: deal.amend
+      title: deal.amend
+      summary: 'user/afb2bf deal.amend'
+      tags:
+        - name: 'class:user'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: deal.amend
+              payload:
+                $ref: './schemas/payloads/deal.amend.json'
+      description: 'Example: examples/deal.amend.json'
     deal_resync:
       name: deal.resync
       title: deal.resync

@@ -53,6 +53,14 @@ from .deal_state import (
     set_now_iso,
     current_now_iso,
 )
+from .amend_rules import (
+    AmendContext,
+    AmendDecision,
+    FieldVerdict,
+    AMEND_FIELDS,
+    evaluate_amend,
+    is_amend_allowed,
+)
 
 __all__ = [
     "PROTOCOL_VERSION",
@@ -94,4 +102,10 @@ __all__ = [
     "archived_deal_filename",
     "set_now_iso",
     "current_now_iso",
+    "AmendContext",
+    "AmendDecision",
+    "FieldVerdict",
+    "AMEND_FIELDS",
+    "evaluate_amend",
+    "is_amend_allowed",
 ]

@@ -19,6 +19,7 @@ Every message is a signed envelope (see `spec/schemas/envelope.json`).
 | `broker.resolve_instrument` | user |  | — | — |
 | `deal.publish` | user |  | `spec/schemas/payloads/deal.publish.json` | `examples/deal.publish.json` |
 | `deal.operation` | user |  | `spec/schemas/payloads/deal.operation.json` | `examples/deal.operation.json` |
+| `deal.amend` | user |  | `spec/schemas/payloads/deal.amend.json` | — |
 | `deal.resync` | system |  | — | — |
 | `deal.signal` | system |  | — | — |
 

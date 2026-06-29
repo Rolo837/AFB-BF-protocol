@@ -1,0 +1,292 @@
+"""Allowed-edit matrix for amending an already-published deal.
+
+Single source of truth for *what* may change *when* in a live deal. Both AFB
+(for UX gating / pre-validation) and BF (the authoritative gate) call
+``evaluate_amend`` so the rules never drift between the two sides — same pattern
+as the spec-driven ``taxonomy``.
+
+The rules are a function of the deal's **execution phase** (derived in BF by
+``infer_execution_stage``) plus its **status**. ``idle`` phase is reached both by
+``published`` (not yet activated → everything editable) and by terminal statuses
+(``closed`` / ``cancelled`` / ``orphaned`` → nothing editable), so ``status`` is
+needed to tell them apart.
+
+Matrix (``✓`` allow · ``~`` allow-with-warning · ``✗`` deny):
+
+    field \\ phase        published  awaiting_entry  entry_working  holding  exit_working  terminal
+    instrument           ✓          ✗               ✗              ✗        ✗             ✗
+    side                 ✓          ✓               ~              ✗        ✗             ✗
+    entry (cond/order)   ✓          ✓               ~              ✗        ✗             ✗
+    sizing  (increase)   ✓          ✓               ✓              ✓        ✗             ✗
+    sizing  (decrease)   ✓          ✓               ✓ (>0)         ✗        ✗             ✗
+    stop_loss            ✓          ✓               ✓              ✓        ~             ✗
+    take_profit          ✓          ✓               ✓              ✓        ~             ✗
+    execution_policy     ✓          ✓               ✓              ✓        ~             ✗
+
+Invariants encoded here:
+- Entry-defining fields (instrument / side / entry condition+order) freeze the
+  moment a position exists. ``entry_working`` means a live entry order with **no**
+  fill yet (``infer_execution_stage`` returns ``holding`` as soon as there is any
+  position), so it is still safe to cancel+replace the entry there.
+- Sizing is a ratchet: the target size may always go up; it may only go down
+  while no position has been taken. Reducing a held position is a *reduce/exit*
+  action, not an amend.
+- Protective levels (stop_loss / take_profit) stay editable for almost the whole
+  life of the deal; in ``exit_working`` they are allowed but flagged (race with
+  the closing order in flight).
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+from .deal_state import DealStatus, ExecutionPhase
+
+__all__ = [
+    "AmendContext",
+    "FieldVerdict",
+    "AmendDecision",
+    "AMEND_FIELDS",
+    "evaluate_amend",
+    "is_amend_allowed",
+]
+
+# Terminal statuses: the deal is finished, nothing may change.
+_TERMINAL_STATUSES: frozenset[str] = frozenset({"closed", "cancelled", "orphaned"})
+
+# Semantic fields the matrix governs, in display order.
+AMEND_FIELDS: tuple[str, ...] = (
+    "instrument",
+    "side",
+    "entry",
+    "sizing",
+    "stop_loss",
+    "take_profit",
+    "execution_policy",
+)
+
+
+@dataclass(frozen=True)
+class AmendContext:
+    """Authoritative facts the gate needs, supplied by the caller.
+
+    ``status`` / ``phase`` come from the stored deal (BF derives ``phase`` via
+    ``infer_execution_stage``; AFB uses the last ``execution_phase`` it was told).
+    ``position_qty`` is the absolute net position in lots. ``proposed_target_qty``
+    is the new revision's target size in lots *if the caller resolved it* — needed
+    only to judge a sizing change while holding (the ratchet). BF always knows it
+    (``estimate_publish_sizing``); AFB may pass ``None`` and let BF be the final
+    arbiter.
+    """
+
+    status: DealStatus
+    phase: ExecutionPhase
+    position_qty: int = 0
+    proposed_target_qty: int | None = None
+
+
+@dataclass(frozen=True)
+class FieldVerdict:
+    field: str
+    changed: bool
+    allowed: bool
+    reason: str = ""
+    warning: bool = False
+
+
+@dataclass(frozen=True)
+class AmendDecision:
+    """Result of evaluating an amend. ``allowed`` is True iff every *changed*
+    field is permitted (an amend that changes nothing governed by the matrix is
+    trivially allowed)."""
+
+    allowed: bool
+    fields: tuple[FieldVerdict, ...] = field(default_factory=tuple)
+
+    def changed(self) -> list[FieldVerdict]:
+        return [v for v in self.fields if v.changed]
+
+    def rejected(self) -> list[FieldVerdict]:
+        return [v for v in self.fields if v.changed and not v.allowed]
+
+    def warnings(self) -> list[FieldVerdict]:
+        return [v for v in self.fields if v.changed and v.allowed and v.warning]
+
+    def reasons(self) -> list[str]:
+        return [v.reason for v in self.rejected() if v.reason]
+
+    def per_field(self) -> dict[str, dict[str, Any]]:
+        """Compact map for wire/UI: {field: {changed, allowed, reason, warning}}."""
+        return {
+            v.field: {
+                "changed": v.changed,
+                "allowed": v.allowed,
+                "reason": v.reason,
+                "warning": v.warning,
+            }
+            for v in self.fields
+        }
+
+
+# --- deal field extraction (schema v1 + v2) ---------------------------------
+
+def _is_v2(deal: dict[str, Any]) -> bool:
+    if str(deal.get("schema") or "") == "afb.deal.v2":
+        return True
+    return isinstance(deal.get("entry"), list)
+
+
+def _instrument_identity(deal: dict[str, Any]) -> tuple[str, str, str, str]:
+    target = deal.get("target") if isinstance(deal.get("target"), dict) else {}
+    instr = target.get("instrument") if isinstance(target.get("instrument"), dict) else {}
+    return (
+        str(instr.get("exchange") or ""),
+        str(instr.get("board") or ""),
+        str(instr.get("ticker") or ""),
+        str(instr.get("market") or ""),
+    )
+
+
+def _sides(deal: dict[str, Any]) -> tuple[str, ...]:
+    entry = deal.get("entry")
+    if _is_v2(deal) and isinstance(entry, list):
+        return tuple(str((e or {}).get("side") or "") for e in entry)
+    if isinstance(entry, dict):
+        return (str(entry.get("side") or ""),)
+    return ()
+
+
+def _entry_triggers(deal: dict[str, Any]) -> Any:
+    """Entry condition+order(s), excluding ``side`` (governed separately)."""
+    entry = deal.get("entry")
+    if _is_v2(deal) and isinstance(entry, list):
+        return [
+            {
+                "percent": (e or {}).get("percent"),
+                "condition": (e or {}).get("condition"),
+                "order": (e or {}).get("order"),
+            }
+            for e in entry
+        ]
+    if isinstance(entry, dict):
+        return [{"condition": entry.get("condition"), "order": entry.get("order")}]
+    return []
+
+
+def _sizing(deal: dict[str, Any]) -> Any:
+    return deal.get("sizing")
+
+
+def _stops(deal: dict[str, Any]) -> Any:
+    if _is_v2(deal):
+        return deal.get("stop_loss") or []
+    risk = deal.get("risk") if isinstance(deal.get("risk"), dict) else {}
+    sl = risk.get("stop_loss")
+    return [sl] if sl else []
+
+
+def _takes(deal: dict[str, Any]) -> Any:
+    if _is_v2(deal):
+        return deal.get("take_profit") or []
+    risk = deal.get("risk") if isinstance(deal.get("risk"), dict) else {}
+    tp = risk.get("take_profit")
+    return [tp] if tp else []
+
+
+def _policy(deal: dict[str, Any]) -> Any:
+    return deal.get("execution_policy")
+
+
+_EXTRACTORS = {
+    "instrument": _instrument_identity,
+    "side": _sides,
+    "entry": _entry_triggers,
+    "sizing": _sizing,
+    "stop_loss": _stops,
+    "take_profit": _takes,
+    "execution_policy": _policy,
+}
+
+
+# --- per-field phase rules ---------------------------------------------------
+
+def _field_allowed(field_name: str, ctx: AmendContext) -> tuple[bool, str, bool]:
+    """Return (allowed, reason_code, warning) for changing ``field_name`` now."""
+    status, phase = ctx.status, ctx.phase
+
+    if status in _TERMINAL_STATUSES:
+        return False, "terminal_immutable", False
+
+    # ``idle`` phase with a non-terminal status == published but not activated:
+    # nothing is executing yet, so everything is editable (re-binds on activate).
+    if phase == "idle":
+        return True, "", False
+
+    # Active / paused, position-bearing lifecycle.
+    if field_name == "instrument":
+        return False, "instrument_immutable_on_active", False
+
+    if field_name in ("side", "entry"):
+        if phase == "awaiting_entry":
+            return True, "", False
+        if phase == "entry_working":
+            # live entry order, no fill yet — safe to cancel+replace
+            return True, "entry_cancel_replace", True
+        return False, "entry_locked_after_fill", False  # holding / exit_working
+
+    if field_name == "sizing":
+        if phase in ("awaiting_entry", "entry_working"):
+            return True, "", False
+        if phase == "holding":
+            target = ctx.proposed_target_qty
+            if target is None:
+                return False, "size_change_needs_lots", False
+            if target < ctx.position_qty:
+                return False, "size_decrease_below_filled", False
+            return True, "", False  # increase or hold
+        return False, "size_immutable_while_exiting", False  # exit_working
+
+    if field_name in ("stop_loss", "take_profit"):
+        if phase == "exit_working":
+            return True, "exit_in_flight", True
+        return True, "", False
+
+    if field_name == "execution_policy":
+        return True, "", phase == "exit_working"
+
+    # Unknown / non-governed field (owner, binding, archive_reason): permissive.
+    return True, "", False
+
+
+def evaluate_amend(
+    old_deal: dict[str, Any],
+    new_deal: dict[str, Any],
+    ctx: AmendContext,
+) -> AmendDecision:
+    """Decide whether ``new_deal`` may replace ``old_deal`` given ``ctx``.
+
+    Compares the matrix-governed fields, and for each field that actually changed
+    applies the phase rule. The amend is allowed iff no changed field is denied.
+    """
+    verdicts: list[FieldVerdict] = []
+    for name in AMEND_FIELDS:
+        extract = _EXTRACTORS[name]
+        changed = extract(old_deal) != extract(new_deal)
+        if not changed:
+            verdicts.append(FieldVerdict(name, changed=False, allowed=True))
+            continue
+        allowed, reason, warning = _field_allowed(name, ctx)
+        verdicts.append(
+            FieldVerdict(name, changed=True, allowed=allowed, reason=reason, warning=warning)
+        )
+
+    overall = all(v.allowed for v in verdicts if v.changed)
+    return AmendDecision(allowed=overall, fields=tuple(verdicts))
+
+
+def is_amend_allowed(
+    old_deal: dict[str, Any],
+    new_deal: dict[str, Any],
+    ctx: AmendContext,
+) -> bool:
+    return evaluate_amend(old_deal, new_deal, ctx).allowed

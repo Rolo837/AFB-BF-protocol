@@ -1,0 +1,235 @@
+"""amend_rules: the allowed-edit matrix (phase × field) for live deals."""
+from __future__ import annotations
+
+import copy
+
+import pytest
+
+from afb_bf_protocol import AmendContext, evaluate_amend, is_amend_allowed
+
+
+def _deal_v1(**over):
+    d = {
+        "schema": "afb.deal.v1",
+        "deal_id": "deal-x:bf1",
+        "revision": 1,
+        "owner": {"user_id": "u"},
+        "target": {
+            "bf_id": "bf1",
+            "broker": "finam-arena",
+            "instrument": {
+                "exchange": "MOEX", "board": "TQBR", "ticker": "SBER",
+                "market": "stock", "price_step": "0.01",
+            },
+        },
+        "entry": {
+            "side": "buy",
+            "condition": {
+                "node_type": "event", "id": "entry_1", "op": "above",
+                "left": {"source": "price", "field": "last"},
+                "right": {"const": "100.5"},
+            },
+            "order": {"type": "market"},
+        },
+        "sizing": {"mode": "lots", "value": "10"},
+        "risk": {
+            "stop_loss": {"condition": {
+                "node_type": "event", "id": "sl", "op": "below",
+                "left": {"source": "price", "field": "last"}, "right": {"const": "95"}}},
+            "take_profit": {"condition": {
+                "node_type": "event", "id": "tp", "op": "above",
+                "left": {"source": "price", "field": "last"}, "right": {"const": "110"}}},
+        },
+        "execution_policy": {"max_spread_steps": 5},
+    }
+    d.update(over)
+    return d
+
+
+def _ctx(status, phase, **kw):
+    return AmendContext(status=status, phase=phase, **kw)
+
+
+# --- changed-field detection ------------------------------------------------
+
+def _mutate(deal, path, value):
+    d = copy.deepcopy(deal)
+    cur = d
+    for k in path[:-1]:
+        cur = cur[k]
+    cur[path[-1]] = value
+    return d
+
+
+def test_noop_amend_always_allowed():
+    d = _deal_v1()
+    dec = evaluate_amend(d, copy.deepcopy(d), _ctx("active", "holding"))
+    assert dec.allowed
+    assert dec.changed() == []
+
+
+def test_only_changed_fields_are_judged():
+    d = _deal_v1()
+    new = _mutate(d, ["risk", "stop_loss", "condition", "right", "const"], "96")
+    dec = evaluate_amend(d, new, _ctx("active", "holding"))
+    changed = {v.field for v in dec.changed()}
+    assert changed == {"stop_loss"}
+
+
+# --- entry-defining fields freeze once a position exists --------------------
+
+@pytest.mark.parametrize("phase,allowed", [
+    ("idle", True),            # published, not activated
+    ("awaiting_entry", True),
+    ("entry_working", True),   # no fill yet -> cancel+replace
+    ("holding", False),
+    ("exit_working", False),
+])
+def test_entry_level_by_phase(phase, allowed):
+    d = _deal_v1()
+    new = _mutate(d, ["entry", "condition", "right", "const"], "101.5")
+    dec = evaluate_amend(d, new, _ctx("active" if phase != "idle" else "published", phase))
+    assert dec.allowed is allowed
+
+
+@pytest.mark.parametrize("phase,allowed", [
+    ("awaiting_entry", True), ("entry_working", True),
+    ("holding", False), ("exit_working", False),
+])
+def test_side_by_phase(phase, allowed):
+    d = _deal_v1()
+    new = _mutate(d, ["entry", "side"], "sell")
+    assert is_amend_allowed(d, new, _ctx("active", phase)) is allowed
+
+
+def test_instrument_immutable_once_active():
+    d = _deal_v1()
+    new = _mutate(d, ["target", "instrument", "ticker"], "GAZP")
+    assert is_amend_allowed(d, new, _ctx("published", "idle")) is True
+    for phase in ("awaiting_entry", "entry_working", "holding", "exit_working"):
+        assert is_amend_allowed(d, new, _ctx("active", phase)) is False
+
+
+# --- sizing ratchet ---------------------------------------------------------
+
+def test_sizing_free_before_entry():
+    d = _deal_v1()
+    bigger = _mutate(d, ["sizing", "value"], "20")
+    smaller = _mutate(d, ["sizing", "value"], "5")
+    for phase in ("awaiting_entry", "entry_working"):
+        assert is_amend_allowed(d, bigger, _ctx("active", phase)) is True
+        assert is_amend_allowed(d, smaller, _ctx("active", phase)) is True
+
+
+def test_sizing_increase_allowed_while_holding():
+    d = _deal_v1()
+    bigger = _mutate(d, ["sizing", "value"], "20")
+    ctx = _ctx("active", "holding", position_qty=10, proposed_target_qty=20)
+    assert is_amend_allowed(d, bigger, ctx) is True
+
+
+def test_sizing_decrease_below_filled_denied_while_holding():
+    d = _deal_v1()
+    smaller = _mutate(d, ["sizing", "value"], "4")
+    ctx = _ctx("active", "holding", position_qty=10, proposed_target_qty=4)
+    dec = evaluate_amend(d, smaller, ctx)
+    assert dec.allowed is False
+    assert "size_decrease_below_filled" in dec.reasons()
+
+
+def test_sizing_change_while_holding_needs_lots():
+    d = _deal_v1()
+    bigger = _mutate(d, ["sizing", "value"], "20")
+    ctx = _ctx("active", "holding", position_qty=10, proposed_target_qty=None)
+    dec = evaluate_amend(d, bigger, ctx)
+    assert dec.allowed is False
+    assert "size_change_needs_lots" in dec.reasons()
+
+
+def test_sizing_immutable_while_exiting():
+    d = _deal_v1()
+    bigger = _mutate(d, ["sizing", "value"], "20")
+    ctx = _ctx("active", "exit_working", position_qty=10, proposed_target_qty=20)
+    assert is_amend_allowed(d, bigger, ctx) is False
+
+
+# --- protective levels stay editable ----------------------------------------
+
+@pytest.mark.parametrize("phase", ["awaiting_entry", "entry_working", "holding"])
+def test_stop_loss_editable_through_lifecycle(phase):
+    d = _deal_v1()
+    new = _mutate(d, ["risk", "stop_loss", "condition", "right", "const"], "97")
+    assert is_amend_allowed(d, new, _ctx("active", phase)) is True
+
+
+def test_stop_loss_in_exit_allowed_with_warning():
+    d = _deal_v1()
+    new = _mutate(d, ["risk", "stop_loss", "condition", "right", "const"], "97")
+    dec = evaluate_amend(d, new, _ctx("active", "exit_working"))
+    assert dec.allowed is True
+    assert any(w.field == "stop_loss" for w in dec.warnings())
+
+
+def test_take_profit_editable_while_holding():
+    d = _deal_v1()
+    new = _mutate(d, ["risk", "take_profit", "condition", "right", "const"], "115")
+    assert is_amend_allowed(d, new, _ctx("active", "holding")) is True
+
+
+# --- terminal & multi-field -------------------------------------------------
+
+@pytest.mark.parametrize("status", ["closed", "cancelled", "orphaned"])
+def test_terminal_immutable(status):
+    d = _deal_v1()
+    new = _mutate(d, ["risk", "stop_loss", "condition", "right", "const"], "97")
+    dec = evaluate_amend(d, new, _ctx(status, "idle"))
+    assert dec.allowed is False
+    assert "terminal_immutable" in dec.reasons()
+
+
+def test_mixed_amend_denied_if_any_field_denied():
+    d = _deal_v1()
+    # move SL (allowed in holding) AND change entry level (denied in holding)
+    new = _mutate(d, ["risk", "stop_loss", "condition", "right", "const"], "97")
+    new = _mutate(new, ["entry", "condition", "right", "const"], "102")
+    dec = evaluate_amend(d, new, _ctx("active", "holding"))
+    assert dec.allowed is False
+    rejected = {v.field for v in dec.rejected()}
+    assert rejected == {"entry"}
+
+
+# --- v2 schema --------------------------------------------------------------
+
+def _deal_v2():
+    return {
+        "schema": "afb.deal.v2",
+        "deal_id": "deal-y:bf1",
+        "revision": 1,
+        "target": _deal_v1()["target"],
+        "entry": [
+            {"side": "buy", "percent": "100",
+             "condition": {"node_type": "event", "id": "e1", "op": "above",
+                           "left": {"source": "price", "field": "last"}, "right": {"const": "100"}}},
+        ],
+        "stop_loss": [{"percent": "100", "condition": {
+            "node_type": "event", "id": "sl", "op": "below",
+            "left": {"source": "price", "field": "last"}, "right": {"const": "95"}}}],
+        "take_profit": [],
+        "sizing": {"mode": "lots", "value": "10"},
+    }
+
+
+def test_v2_stop_loss_change_detected_and_allowed_while_holding():
+    d = _deal_v2()
+    new = copy.deepcopy(d)
+    new["stop_loss"][0]["condition"]["right"]["const"] = "96"
+    dec = evaluate_amend(d, new, _ctx("active", "holding"))
+    assert dec.allowed is True
+    assert {v.field for v in dec.changed()} == {"stop_loss"}
+
+
+def test_v2_entry_change_denied_while_holding():
+    d = _deal_v2()
+    new = copy.deepcopy(d)
+    new["entry"][0]["condition"]["right"]["const"] = "101"
+    assert is_amend_allowed(d, new, _ctx("active", "holding")) is False
