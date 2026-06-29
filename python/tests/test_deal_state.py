@@ -43,3 +43,37 @@ def test_bf_id_and_resync_payload():
     d = _mk()
     assert d.bf_id() == "bf1"
     assert d.to_resync_payload()["deal_id"] == "d:bf1"
+
+
+def test_from_dict_backfills_owner_from_nested_deal():
+    # Simulates a BF file saved before deal.publish carried owner_user_id:
+    # top-level owner_user_id is empty, but deal.owner.user_id is populated.
+    raw = {
+        "deal_id": "deal-abc:bf2",
+        "revision": 1,
+        "owner_user_id": "",
+        "status": "published",
+        "deal": {
+            "deal_id": "deal-abc:bf2",
+            "owner": {"user_id": "u42"},
+            "target": {"bf_id": "bf2"},
+        },
+    }
+    state = DealState.from_dict(raw)
+    assert state.owner_user_id == "u42"
+
+
+def test_from_dict_top_level_owner_takes_precedence():
+    raw = {
+        "deal_id": "deal-abc:bf2",
+        "revision": 1,
+        "owner_user_id": "u99",
+        "status": "published",
+        "deal": {
+            "deal_id": "deal-abc:bf2",
+            "owner": {"user_id": "u42"},
+            "target": {"bf_id": "bf2"},
+        },
+    }
+    state = DealState.from_dict(raw)
+    assert state.owner_user_id == "u99"

@@ -133,7 +133,7 @@ class DealState:
         return cls(
             deal_id=deal_id,
             revision=revision,
-            owner_user_id=str(raw.get("owner_user_id") or ""),
+            owner_user_id=str(raw.get("owner_user_id") or deal.get("owner", {}).get("user_id") or ""),
             status=str(raw.get("status") or "published"),  # type: ignore[arg-type]
             deal=deal,
             source_refs=dict(raw.get("source_refs") or {}),
