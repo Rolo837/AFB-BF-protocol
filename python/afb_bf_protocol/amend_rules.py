@@ -17,8 +17,7 @@ Matrix (``✓`` allow · ``~`` allow-with-warning · ``✗`` deny):
     instrument           ✓          ✗               ✗              ✗        ✗             ✗
     side                 ✓          ✓               ~              ✗        ✗             ✗
     entry (cond/order)   ✓          ✓               ~              ✗        ✗             ✗
-    sizing  (increase)   ✓          ✓               ✓              ✓        ✗             ✗
-    sizing  (decrease)   ✓          ✓               ✓ (>0)         ✗        ✗             ✗
+    sizing               ✓          ✓               ✓              ✗        ✗             ✗
     stop_loss            ✓          ✓               ✓              ✓        ~             ✗
     take_profit          ✓          ✓               ✓              ✓        ~             ✗
     execution_policy     ✓          ✓               ✓              ✓        ~             ✗
@@ -28,9 +27,8 @@ Invariants encoded here:
   moment a position exists. ``entry_working`` means a live entry order with **no**
   fill yet (``infer_execution_stage`` returns ``holding`` as soon as there is any
   position), so it is still safe to cancel+replace the entry there.
-- Sizing is a ratchet: the target size may always go up; it may only go down
-  while no position has been taken. Reducing a held position is a *reduce/exit*
-  action, not an amend.
+- Sizing is editable only before a position is taken; once holding (or exiting) it
+  is frozen. Changing a held position's size is a *reduce/add* flow, not an amend.
 - Protective levels (stop_loss / take_profit) stay editable for almost the whole
   life of the deal; in ``exit_working`` they are allowed but flagged (race with
   the closing order in flight).
@@ -71,18 +69,12 @@ class AmendContext:
     """Authoritative facts the gate needs, supplied by the caller.
 
     ``status`` / ``phase`` come from the stored deal (BF derives ``phase`` via
-    ``infer_execution_stage``; AFB uses the last ``execution_phase`` it was told).
-    ``position_qty`` is the absolute net position in lots. ``proposed_target_qty``
-    is the new revision's target size in lots *if the caller resolved it* — needed
-    only to judge a sizing change while holding (the ratchet). BF always knows it
-    (``estimate_publish_sizing``); AFB may pass ``None`` and let BF be the final
-    arbiter.
+    ``infer_execution_stage``; AFB uses the last ``execution_phase`` it was told,
+    defaulting an active/paused deal with unknown phase to ``holding``).
     """
 
     status: DealStatus
     phase: ExecutionPhase
-    position_qty: int = 0
-    proposed_target_qty: int | None = None
 
 
 @dataclass(frozen=True)
@@ -235,16 +227,12 @@ def _field_allowed(field_name: str, ctx: AmendContext) -> tuple[bool, str, bool]
         return False, "entry_locked_after_fill", False  # holding / exit_working
 
     if field_name == "sizing":
+        # Editable only before any position is taken; once holding (or exiting),
+        # the size is frozen — changing a held position is a reduce/add flow, not
+        # an amend.
         if phase in ("awaiting_entry", "entry_working"):
             return True, "", False
-        if phase == "holding":
-            target = ctx.proposed_target_qty
-            if target is None:
-                return False, "size_change_needs_lots", False
-            if target < ctx.position_qty:
-                return False, "size_decrease_below_filled", False
-            return True, "", False  # increase or hold
-        return False, "size_immutable_while_exiting", False  # exit_working
+        return False, "size_immutable_after_entry", False  # holding / exit_working
 
     if field_name in ("stop_loss", "take_profit"):
         if phase == "exit_working":

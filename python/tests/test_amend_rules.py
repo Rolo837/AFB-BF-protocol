@@ -110,7 +110,7 @@ def test_instrument_immutable_once_active():
         assert is_amend_allowed(d, new, _ctx("active", phase)) is False
 
 
-# --- sizing ratchet ---------------------------------------------------------
+# --- sizing: editable only before entry -------------------------------------
 
 def test_sizing_free_before_entry():
     d = _deal_v1()
@@ -121,36 +121,14 @@ def test_sizing_free_before_entry():
         assert is_amend_allowed(d, smaller, _ctx("active", phase)) is True
 
 
-def test_sizing_increase_allowed_while_holding():
+@pytest.mark.parametrize("phase", ["holding", "exit_working"])
+def test_sizing_frozen_after_entry(phase):
     d = _deal_v1()
-    bigger = _mutate(d, ["sizing", "value"], "20")
-    ctx = _ctx("active", "holding", position_qty=10, proposed_target_qty=20)
-    assert is_amend_allowed(d, bigger, ctx) is True
-
-
-def test_sizing_decrease_below_filled_denied_while_holding():
-    d = _deal_v1()
-    smaller = _mutate(d, ["sizing", "value"], "4")
-    ctx = _ctx("active", "holding", position_qty=10, proposed_target_qty=4)
-    dec = evaluate_amend(d, smaller, ctx)
-    assert dec.allowed is False
-    assert "size_decrease_below_filled" in dec.reasons()
-
-
-def test_sizing_change_while_holding_needs_lots():
-    d = _deal_v1()
-    bigger = _mutate(d, ["sizing", "value"], "20")
-    ctx = _ctx("active", "holding", position_qty=10, proposed_target_qty=None)
-    dec = evaluate_amend(d, bigger, ctx)
-    assert dec.allowed is False
-    assert "size_change_needs_lots" in dec.reasons()
-
-
-def test_sizing_immutable_while_exiting():
-    d = _deal_v1()
-    bigger = _mutate(d, ["sizing", "value"], "20")
-    ctx = _ctx("active", "exit_working", position_qty=10, proposed_target_qty=20)
-    assert is_amend_allowed(d, bigger, ctx) is False
+    for value in ("20", "4"):  # neither increase nor decrease is allowed
+        new = _mutate(d, ["sizing", "value"], value)
+        dec = evaluate_amend(d, new, _ctx("active", phase))
+        assert dec.allowed is False
+        assert "size_immutable_after_entry" in dec.reasons()
 
 
 # --- protective levels stay editable ----------------------------------------
