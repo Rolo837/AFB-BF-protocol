@@ -1,39 +1,34 @@
 {
   "type": "object",
   "properties": {
+    "deals": {
+      "type": "object",
+      "description": "Canonical per-deal inventory: {deal_id: {revision, status, execution_phase, archived}}",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "revision": { "type": "integer" },
+          "status": { "type": "string" },
+          "execution_phase": { "type": "string" },
+          "archived": { "type": "boolean" }
+        },
+        "required": ["revision", "status", "archived"]
+      }
+    },
     "active_deal_ids": {
       "type": "array",
-      "items": {
-        "type": "string"
-      }
+      "description": "Legacy field — use 'deals' instead.",
+      "items": { "type": "string" }
     },
     "deal_archived": {
       "type": "object",
-      "description": "Deals archived by BF: {deal_id: archive_reason}",
-      "additionalProperties": {
-        "type": "string"
-      }
+      "description": "Legacy field — archived deals are now in 'deals' with archived=true.",
+      "additionalProperties": { "type": "string" }
     },
     "deal_revisions": {
       "type": "object",
-      "properties": {
-        "deal-082a-4dc9-80a7:finam-arena-316": {
-          "type": "integer"
-        },
-        "deal-1cb4-4fe0-9c41:finam-arena-316": {
-          "type": "integer"
-        },
-        "deal-2368-4628-8829:finam-arena-316": {
-          "type": "integer"
-        },
-        "deal-47a2-4f09-9e0d:finam-arena-316": {
-          "type": "integer"
-        },
-        "deal-f29f-4984-80a8:finam-arena-316": {
-          "type": "integer"
-        }
-      },
-      "additionalProperties": true
+      "description": "Legacy field — use 'deals' instead.",
+      "additionalProperties": { "type": "integer" }
     }
   },
   "additionalProperties": true,
