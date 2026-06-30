@@ -79,6 +79,7 @@ MESSAGE_REGISTRY: dict[str, MessageMeta] = {
     "deal.orders_synced": MessageMeta("trading", "bf2afb", "deal", "orders_synced", persists_on_bf=True),
     "deal.positions_synced": MessageMeta("trading", "bf2afb", "deal", "positions_synced", persists_on_bf=True),
     "deal.report": MessageMeta("trading", "bf2afb", "deal", "report", persists_on_bf=True),
+    "deal.snapshot": MessageMeta("trading", "bf2afb", "deal", "snapshot"),
     "condition.triggered": MessageMeta("trading", "bf2afb", "condition", "triggered", persists_on_bf=True),
     "order.created": MessageMeta("trading", "bf2afb", "order", "created", persists_on_bf=True),
     "order.partially_filled": MessageMeta("trading", "bf2afb", "order", "partially_filled", persists_on_bf=True),

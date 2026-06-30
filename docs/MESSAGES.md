@@ -45,6 +45,7 @@ Every message is a signed envelope (see `spec/schemas/envelope.json`).
 | `deal.orders_synced` | trading | yes | — | — |
 | `deal.positions_synced` | trading | yes | `spec/schemas/payloads/deal.positions_synced.json` | `examples/deal.positions_synced.json` |
 | `deal.report` | trading | yes | `spec/schemas/payloads/deal.report.json` | `examples/deal.report.json` |
+| `deal.snapshot` | trading |  | — | — |
 | `condition.triggered` | trading | yes | `spec/schemas/payloads/condition.triggered.json` | `examples/condition.triggered.json` |
 | `order.created` | trading | yes | `spec/schemas/payloads/order.created.json` | `examples/order.created.json` |
 | `order.partially_filled` | trading | yes | — | — |

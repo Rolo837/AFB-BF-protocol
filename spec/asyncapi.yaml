@@ -86,6 +86,8 @@ channels:
         $ref: '#/components/messages/deal_positions_synced'
       deal_report:
         $ref: '#/components/messages/deal_report'
+      deal_snapshot:
+        $ref: '#/components/messages/deal_snapshot'
       condition_triggered:
         $ref: '#/components/messages/condition_triggered'
       order_created:
@@ -149,6 +151,7 @@ operations:
       - $ref: '#/channels/afbBf/messages/deal_orders_synced'
       - $ref: '#/channels/afbBf/messages/deal_positions_synced'
       - $ref: '#/channels/afbBf/messages/deal_report'
+      - $ref: '#/channels/afbBf/messages/deal_snapshot'
       - $ref: '#/channels/afbBf/messages/condition_triggered'
       - $ref: '#/channels/afbBf/messages/order_created'
       - $ref: '#/channels/afbBf/messages/order_partially_filled'
@@ -682,6 +685,21 @@ components:
               payload:
                 $ref: './schemas/payloads/deal.report.json'
       description: 'Example: examples/deal.report.json' 
+    deal_snapshot:
+      name: deal.snapshot
+      title: deal.snapshot
+      summary: 'trading/bf2afb deal.snapshot'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: deal.snapshot
+      description: 'On-demand reconcile snapshot: status, execution_phase, observed.'
     condition_triggered:
       name: condition.triggered
       title: condition.triggered
