@@ -1,7 +1,7 @@
 asyncapi: 3.1.0
 info:
   title: AFB <-> BF Execution Protocol
-  version: 1.0.2
+  version: 1.2.0
   description: >-
     Business protocol between AFB (OMS) and BF (executor daemon), wire version
     afb.execution.v1. Every message is a signed JSON envelope (Ed25519 over a
@@ -699,7 +699,35 @@ components:
             properties:
               type:
                 const: deal.snapshot
-      description: 'On-demand reconcile snapshot: status, execution_phase, observed.'
+              payload:
+                type: object
+                properties:
+                  deal_id:
+                    type: string
+                  status:
+                    type: string
+                  execution_phase:
+                    type: string
+                  observed:
+                    type: object
+                  positions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        symbol:
+                          type: string
+                        quantity:
+                          type: integer
+                        average_price:
+                          type: string
+                        updated_at:
+                          type: string
+                      additionalProperties: true
+                additionalProperties: true
+                required:
+                  - deal_id
+      description: 'On-demand reconcile snapshot: status, execution_phase, observed (aggregate), positions[] (per-symbol).'
     condition_triggered:
       name: condition.triggered
       title: condition.triggered
