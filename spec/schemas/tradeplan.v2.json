@@ -4,13 +4,13 @@
   "title": "TradePlan template afb.tradeplan.v2",
   "description": "AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes (`op` optional, derived from direction/scope at compile time) with one extension: the `right` side of a condition may be a `primitiveRef` (`{\"primitive_id\": \"...\"}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef.",
   "type": "object",
-  "required": ["schema", "id", "ticker", "direction", "entries", "sizing"],
+  "required": ["id", "ticker", "direction", "schema", "entries", "sizing"],
   "properties": {
-    "schema": {"const": "afb.tradeplan.v2"},
     "id": {"type": "string", "minLength": 1},
     "ticker": {"type": "string", "minLength": 1},
-    "direction": {"enum": ["long", "short"]},
     "status": {"enum": ["new", "active", "published", "closed", "expired"]},
+    "direction": {"enum": ["long", "short"]},
+    "schema": {"const": "afb.tradeplan.v2"},
     "activated_at": {"type": "string"},
     "closed_at": {"type": "string"},
     "entries": {

@@ -6,14 +6,14 @@
   "type": "object",
   "required": ["id", "ticker", "entry_condition"],
   "properties": {
-    "schema": {"const": "afb.tradeplan.v1"},
     "id": {"type": "string", "minLength": 1},
     "ticker": {"type": "string", "minLength": 1},
+    "status": {"enum": ["new", "active", "published", "closed", "expired"]},
     "direction": {
       "enum": ["buy", "long", "sell", "short"],
       "description": "Transitional vocabulary: 'buy'/'sell' is the legacy value, 'long'/'short' is the target one (matches afb.deal.v1's optional root `direction` and afb.deal.v2/afb.tradeplan.v2). Both are accepted while the frontend migrates; a single tradeplan uses one or the other, not both."
     },
-    "status": {"enum": ["new", "active", "published", "closed", "expired"]},
+    "schema": {"const": "afb.tradeplan.v1"},
     "activated_at": {"type": "string"},
     "closed_at": {"type": "string"},
     "entry_condition": {"$ref": "#/$defs/entryCondition"},

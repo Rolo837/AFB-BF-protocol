@@ -1,9 +1,9 @@
 {
-  "schema": "afb.tradeplan.v1",
   "id": "tradeplan-7a1c-4e2b",
   "ticker": "SBER",
-  "direction": "buy",
   "status": "new",
+  "direction": "buy",
+  "schema": "afb.tradeplan.v1",
   "activated_at": "",
   "closed_at": "",
   "entry_condition": {
