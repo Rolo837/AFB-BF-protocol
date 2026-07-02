@@ -102,6 +102,29 @@ def test_side_by_phase(phase, allowed):
     assert is_amend_allowed(d, new, _ctx("active", phase)) is allowed
 
 
+def test_v1_direction_change_detected_when_entry_side_absent():
+    """Transitional afb.deal.v1: entry.side is optional when the deal-level
+    `direction` is set — the "side" amend field must fall back to it."""
+    d = _deal_v1()
+    del d["entry"]["side"]
+    d["direction"] = "long"
+    new = copy.deepcopy(d)
+    new["direction"] = "short"
+    dec = evaluate_amend(d, new, _ctx("active", "holding"))
+    assert dec.allowed is False
+    assert "side" in {v.field for v in dec.rejected()}
+
+
+def test_v1_entry_side_wins_over_direction_when_both_present():
+    d = _deal_v1()
+    d["direction"] = "long"
+    new = copy.deepcopy(d)
+    new["direction"] = "short"  # direction changes, but entry.side (governing) does not
+    dec = evaluate_amend(d, new, _ctx("active", "holding"))
+    assert dec.allowed is True
+    assert dec.changed() == []
+
+
 def test_instrument_immutable_once_active():
     d = _deal_v1()
     new = _mutate(d, ["target", "instrument", "ticker"], "GAZP")
@@ -184,8 +207,9 @@ def _deal_v2():
         "deal_id": "deal-y:bf1",
         "revision": 1,
         "target": _deal_v1()["target"],
+        "direction": "long",
         "entry": [
-            {"side": "buy", "percent": "100",
+            {"percent": "100",
              "condition": {"node_type": "event", "id": "e1", "op": "above",
                            "left": {"source": "price", "field": "last"}, "right": {"const": "100"}}},
         ],
@@ -211,3 +235,55 @@ def test_v2_entry_change_denied_while_holding():
     new = copy.deepcopy(d)
     new["entry"][0]["condition"]["right"]["const"] = "101"
     assert is_amend_allowed(d, new, _ctx("active", "holding")) is False
+
+
+@pytest.mark.parametrize("phase,allowed", [
+    ("awaiting_entry", True), ("entry_working", True),
+    ("holding", False), ("exit_working", False),
+])
+def test_v2_direction_by_phase(phase, allowed):
+    """direction (long/short) is deal-level in v2 (no per-leg side) but is
+    governed by the same "side" amend-matrix row as v1's entry.side."""
+    d = _deal_v2()
+    new = copy.deepcopy(d)
+    new["direction"] = "short"
+    dec = evaluate_amend(d, new, _ctx("active", phase))
+    assert dec.allowed is allowed
+    assert {v.field for v in dec.changed()} == {"side"}
+
+
+# --- v2 right-expression conditions -----------------------------------------
+# afb.deal.v2 conditions may compare an indicator/dataset expression against
+# another expression instead of a plain `const` — the matrix-governed fields
+# must detect that as a change (and gate it by phase) exactly like a const edit.
+
+def test_v2_stop_loss_right_expression_change_detected_and_gated():
+    d = _deal_v2()
+    d["stop_loss"][0]["condition"] = {
+        "node_type": "event", "id": "sl", "op": "below",
+        "left": {"source": "indicator", "type": "wma"},
+        "right": {"const": "95"},
+    }
+    new = copy.deepcopy(d)
+    new["stop_loss"][0]["condition"]["right"] = {"source": "indicator", "type": "kama"}
+
+    dec_holding = evaluate_amend(d, new, _ctx("active", "holding"))
+    assert dec_holding.allowed is True
+    assert {v.field for v in dec_holding.changed()} == {"stop_loss"}
+
+    dec_terminal = evaluate_amend(d, new, _ctx("closed", "idle"))
+    assert dec_terminal.allowed is False
+    assert "stop_loss" in {v.field for v in dec_terminal.rejected()}
+
+
+def test_v2_entry_right_expression_change_denied_while_holding():
+    d = _deal_v2()
+    d["entry"][0]["condition"] = {
+        "node_type": "event", "id": "e1", "op": "above",
+        "left": {"source": "dataset", "field": "x"},
+        "right": {"const": "100"},
+    }
+    new = copy.deepcopy(d)
+    new["entry"][0]["condition"]["right"] = {"source": "dataset", "field": "y"}
+    assert is_amend_allowed(d, new, _ctx("active", "holding")) is False
+    assert is_amend_allowed(d, new, _ctx("active", "awaiting_entry")) is True

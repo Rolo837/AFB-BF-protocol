@@ -1,0 +1,26 @@
+{
+  "schema": "afb.tradeplan.v1",
+  "id": "tradeplan-7a1c-4e2b",
+  "ticker": "SBER",
+  "direction": "buy",
+  "status": "new",
+  "activated_at": "",
+  "closed_at": "",
+  "entry_condition": {
+    "condition_type": "price",
+    "price_value": 280.5
+  },
+  "quantity_value": 10,
+  "quantity_mode": "lots",
+  "take_profit": {
+    "condition_type": "price",
+    "price_value": 295.0
+  },
+  "stop_loss": {
+    "condition_type": "primitive",
+    "primitive_id": "line-sl-1"
+  },
+  "deal_id": "",
+  "created_at": "2026-06-26T12:00:00+03:00",
+  "updated_at": "2026-06-26T12:00:00+03:00"
+}

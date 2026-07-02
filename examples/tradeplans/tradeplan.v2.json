@@ -1,0 +1,54 @@
+{
+  "schema": "afb.tradeplan.v2",
+  "id": "tradeplan-9c40-4b7e",
+  "ticker": "GDU6",
+  "direction": "long",
+  "status": "new",
+  "activated_at": "",
+  "closed_at": "",
+  "entries": [
+    {
+      "percent": "60",
+      "condition": {
+        "op": "above",
+        "left": {"source": "price", "field": "last"},
+        "right": {"const": "4202.1"}
+      },
+      "order": {"type": "market"}
+    },
+    {
+      "percent": "40",
+      "condition": {
+        "left": {"source": "price", "field": "last"},
+        "right": {"primitive_id": "line-entry-2"}
+      },
+      "order": {"type": "limit", "limit_offset_steps": 2}
+    }
+  ],
+  "stop_loss": [
+    {
+      "percent": "100",
+      "condition": {
+        "op": "crosses_below",
+        "left": {"source": "indicator", "type": "wma", "field": "value", "params": {"length": 20}},
+        "right": {"source": "indicator", "type": "kama", "field": "value", "params": {"length": 10}}
+      }
+    }
+  ],
+  "take_profit": [
+    {
+      "percent": "100",
+      "condition": {
+        "left": {"source": "price", "field": "last"},
+        "right": {"primitive_id": "line-tp-1"}
+      }
+    }
+  ],
+  "sizing": {
+    "mode": "lots",
+    "value": "5"
+  },
+  "deal_id": "",
+  "created_at": "2026-06-26T12:00:00+03:00",
+  "updated_at": "2026-06-26T12:00:00+03:00"
+}

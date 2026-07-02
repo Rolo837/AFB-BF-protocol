@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/deal_state.json",
+  "title": "deal_state.v2 (on-disk)",
+  "description": "Shared per-deal YAML/JSON state, identical on AFB and BF. orders[]/positions[] are the authoritative observed facts; observed{} and execution_phase are derived.",
+  "type": "object",
+  "required": ["deal_id", "revision", "status", "deal"],
+  "properties": {
+    "deal_id": {"type": "string"},
+    "revision": {"type": "integer", "minimum": 1},
+    "owner_user_id": {"type": "string"},
+    "status": {"enum": ["draft", "publishing", "published", "active", "paused", "closed", "cancelled", "orphaned"]},
+    "execution_phase": {"enum": ["idle", "awaiting_entry", "entry_working", "holding", "exit_working"]},
+    "deal": {"type": "object"},
+    "orders": {"type": "array", "items": {"$ref": "#/$defs/order"}},
+    "positions": {"type": "array", "items": {"$ref": "#/$defs/position"}},
+    "observed": {"type": "object"},
+    "source_refs": {"type": "object"},
+    "status_history": {"type": "array", "items": {"type": "object"}},
+    "event_journal": {"type": "array"},
+    "created_at": {"type": "string"},
+    "updated_at": {"type": "string"}
+  },
+  "$defs": {
+    "order": {
+      "type": "object",
+      "properties": {
+        "order_id": {"type": "string"},
+        "side": {"enum": ["buy", "sell"]},
+        "role": {"enum": ["entry", "stop_loss", "take_profit", "cancel_close"]},
+        "status": {"enum": ["new", "partially_filled", "filled", "cancelled", "rejected"]},
+        "quantity": {"type": "integer"},
+        "filled_quantity": {"type": "integer"},
+        "leg_index": {"type": "integer"},
+        "limit_price": {"type": ["string", "null"]},
+        "average_price": {"type": ["string", "null"]},
+        "updated_at": {"type": "string"}
+      }
+    },
+    "position": {
+      "type": "object",
+      "properties": {
+        "instrument": {"type": "object"},
+        "symbol": {"type": "string"},
+        "quantity": {"type": "integer"},
+        "average_price": {"type": ["string", "null"]},
+        "broker_ref": {"type": "object"}
+      }
+    }
+  }
+}

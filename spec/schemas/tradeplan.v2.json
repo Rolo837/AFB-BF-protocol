@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/tradeplan.v2.json",
+  "title": "TradePlan template afb.tradeplan.v2",
+  "description": "AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes (`op` optional, derived from direction/scope at compile time) with one extension: the `right` side of a condition may be a `primitiveRef` (`{\"primitive_id\": \"...\"}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef.",
+  "type": "object",
+  "required": ["schema", "id", "ticker", "direction", "entries", "sizing"],
+  "properties": {
+    "schema": {"const": "afb.tradeplan.v2"},
+    "id": {"type": "string", "minLength": 1},
+    "ticker": {"type": "string", "minLength": 1},
+    "direction": {"enum": ["long", "short"]},
+    "status": {"enum": ["new", "active", "published", "closed", "expired"]},
+    "activated_at": {"type": "string"},
+    "closed_at": {"type": "string"},
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["condition"],
+        "properties": {
+          "percent": {"$ref": "deal.v1.json#/$defs/decimalString"},
+          "condition": {"$ref": "#/$defs/tpConditionNode"},
+          "order": {"$ref": "deal.v1.json#/$defs/order"}
+        }
+      }
+    },
+    "stop_loss": {"$ref": "#/$defs/tpExitList"},
+    "take_profit": {"$ref": "#/$defs/tpExitList"},
+    "sizing": {"$ref": "deal.v1.json#/$defs/sizing"},
+    "deal_id": {"type": "string"},
+    "created_at": {"type": "string"},
+    "updated_at": {"type": "string"}
+  },
+  "$defs": {
+    "primitiveRef": {
+      "type": "object",
+      "required": ["primitive_id"],
+      "properties": {"primitive_id": {"type": "string", "minLength": 1}},
+      "additionalProperties": false
+    },
+    "tpConditionNode": {
+      "type": "object",
+      "required": ["left", "right"],
+      "properties": {
+        "id": {"type": "string"},
+        "op": {"enum": ["above", "below", "crosses_above", "crosses_below", "crossing"]},
+        "left": {
+          "oneOf": [
+            {"$ref": "deal.v2.json#/$defs/priceExpr"},
+            {"$ref": "deal.v2.json#/$defs/quoteExpr"},
+            {"$ref": "deal.v2.json#/$defs/indicatorExpr"},
+            {"$ref": "deal.v2.json#/$defs/datasetExpr"}
+          ]
+        },
+        "right": {
+          "oneOf": [
+            {"$ref": "deal.v2.json#/$defs/rightConst"},
+            {"$ref": "deal.v2.json#/$defs/indicatorExpr"},
+            {"$ref": "deal.v2.json#/$defs/datasetExpr"},
+            {"$ref": "#/$defs/primitiveRef"}
+          ]
+        }
+      }
+    },
+    "tpExitList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["condition"],
+        "properties": {
+          "percent": {"$ref": "deal.v1.json#/$defs/decimalString"},
+          "condition": {"$ref": "#/$defs/tpConditionNode"}
+        }
+      }
+    }
+  }
+}

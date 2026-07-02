@@ -1,0 +1,33 @@
+{
+  "type": "object",
+  "properties": {
+    "deals": {
+      "type": "object",
+      "description": "Canonical per-deal inventory: {deal_id: {revision, status, execution_phase, archived: false}}",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "revision": { "type": "integer" },
+          "status": { "type": "string" },
+          "execution_phase": { "type": "string" },
+          "archived": { "type": "boolean" }
+        },
+        "required": ["revision", "status", "archived"]
+      }
+    },
+    "deal_revisions": {
+      "type": "object",
+      "description": "Legacy field — use 'deals' instead.",
+      "additionalProperties": { "type": "integer" }
+    },
+    "deal_statuses": {
+      "type": "object",
+      "description": "Legacy field — use 'deals' instead.",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/session.resync_response.json",
+  "title": "payload: session.resync_response"
+}

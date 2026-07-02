@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/tradeplan.v1.json",
+  "title": "TradePlan template afb.tradeplan.v1",
+  "description": "AFB-side single-entry / single-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v1. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `schema` is optional: its absence means afb.tradeplan.v1 (compatibility with frontends older than the tradeplan schema itself).",
+  "type": "object",
+  "required": ["id", "ticker", "entry_condition"],
+  "properties": {
+    "schema": {"const": "afb.tradeplan.v1"},
+    "id": {"type": "string", "minLength": 1},
+    "ticker": {"type": "string", "minLength": 1},
+    "direction": {
+      "enum": ["buy", "long", "sell", "short"],
+      "description": "Transitional vocabulary: 'buy'/'sell' is the legacy value, 'long'/'short' is the target one (matches afb.deal.v1's optional root `direction` and afb.deal.v2/afb.tradeplan.v2). Both are accepted while the frontend migrates; a single tradeplan uses one or the other, not both."
+    },
+    "status": {"enum": ["new", "active", "published", "closed", "expired"]},
+    "activated_at": {"type": "string"},
+    "closed_at": {"type": "string"},
+    "entry_condition": {"$ref": "#/$defs/entryCondition"},
+    "quantity_value": {"type": ["number", "null"]},
+    "quantity_mode": {"enum": ["lots", "margin", "balance_pct", "risk_currency", "risk_factor"]},
+    "take_profit": {"oneOf": [{"$ref": "#/$defs/condition"}, {"type": "null"}]},
+    "stop_loss": {"oneOf": [{"$ref": "#/$defs/condition"}, {"type": "null"}]},
+    "deal_id": {"type": "string"},
+    "created_at": {"type": "string"},
+    "updated_at": {"type": "string"}
+  },
+  "$defs": {
+    "priceCondition": {
+      "type": "object",
+      "required": ["price_value"],
+      "properties": {
+        "condition_type": {"const": "price"},
+        "price_value": {"type": "number"}
+      }
+    },
+    "marketOrPriceCondition": {
+      "type": "object",
+      "properties": {
+        "condition_type": {"const": "price"},
+        "price_value": {"type": ["number", "null"]}
+      }
+    },
+    "primitiveCondition": {
+      "type": "object",
+      "required": ["condition_type", "primitive_id"],
+      "properties": {
+        "condition_type": {"const": "primitive"},
+        "primitive_id": {"type": "string", "minLength": 1},
+        "price_value": {"type": ["number", "null"]}
+      }
+    },
+    "condition": {
+      "oneOf": [{"$ref": "#/$defs/priceCondition"}, {"$ref": "#/$defs/primitiveCondition"}]
+    },
+    "entryCondition": {
+      "description": "price_value: null with condition_type price means market entry.",
+      "oneOf": [{"$ref": "#/$defs/marketOrPriceCondition"}, {"$ref": "#/$defs/primitiveCondition"}]
+    }
+  }
+}

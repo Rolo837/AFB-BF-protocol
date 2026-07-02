@@ -27,6 +27,10 @@ Invariants encoded here:
   moment a position exists. ``entry_working`` means a live entry order with **no**
   fill yet (``infer_execution_stage`` returns ``holding`` as soon as there is any
   position), so it is still safe to cancel+replace the entry there.
+  "side" reads ``entry.side`` (legacy buy/sell) or the deal-level ``direction``
+  (long/short) on afb.deal.v1 — at least one is present, entry.side wins when
+  both are — and only the deal-level ``direction`` on afb.deal.v2, which has
+  no per-leg side at all (see amend_rules._sides).
 - Sizing is editable only before a position is taken; once holding (or exiting) it
   is frozen. Changing a held position's size is a *reduce/add* flow, not an amend.
 - Protective levels (stop_loss / take_profit) stay editable for almost the whole
@@ -140,11 +144,16 @@ def _instrument_identity(deal: dict[str, Any]) -> tuple[str, str, str, str]:
 
 
 def _sides(deal: dict[str, Any]) -> tuple[str, ...]:
+    if _is_v2(deal):
+        return (str(deal.get("direction") or ""),)
+    # afb.deal.v1: position bias is entry.side (legacy) or the root `direction`
+    # (target vocabulary) — at least one is present per the deal.v1 schema;
+    # producers are moving to setting both, so prefer entry.side when present.
     entry = deal.get("entry")
-    if _is_v2(deal) and isinstance(entry, list):
-        return tuple(str((e or {}).get("side") or "") for e in entry)
-    if isinstance(entry, dict):
+    if isinstance(entry, dict) and entry.get("side"):
         return (str(entry.get("side") or ""),)
+    if deal.get("direction"):
+        return (str(deal.get("direction") or ""),)
     return ()
 
 

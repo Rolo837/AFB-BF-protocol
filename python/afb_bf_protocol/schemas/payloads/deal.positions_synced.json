@@ -1,0 +1,33 @@
+{
+  "type": "object",
+  "properties": {
+    "changed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "average_price": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "symbol": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "deal_id": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "deal_id"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/deal.positions_synced.json",
+  "title": "payload: deal.positions_synced"
+}

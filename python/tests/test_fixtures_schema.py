@@ -24,7 +24,11 @@ def test_example_validates(path: Path, registry):
     envelope_schema = json.loads((SPEC_SCHEMAS / "envelope.json").read_text())
     Draft202012Validator(envelope_schema, registry=registry).validate(env)
 
-    payload_schema_path = SPEC_SCHEMAS / "payloads" / f"{path.stem}.json"
-    assert payload_schema_path.exists(), f"missing payload schema for {path.stem}"
+    # A stem may carry a "__variant" suffix (e.g. deal.publish__v2) when a
+    # message type needs more than one example; the payload schema is keyed by
+    # the message type only (the part before "__").
+    msg_type = path.stem.split("__", 1)[0]
+    payload_schema_path = SPEC_SCHEMAS / "payloads" / f"{msg_type}.json"
+    assert payload_schema_path.exists(), f"missing payload schema for {msg_type}"
     payload_schema = json.loads(payload_schema_path.read_text())
     Draft202012Validator(payload_schema, registry=registry).validate(env["payload"])

@@ -3,7 +3,13 @@
 Reads ``examples/_payloads/<type>.json`` (authentic payload bodies sourced from
 real BF wire data and the protocol spec), wraps each in an envelope with the
 correct sender/recipient for its taxonomy direction, signs it with the committed
-**test** keypair, and writes ``examples/<type>.json``.
+**test** keypair, and writes ``examples/<stem>.json``.
+
+A source file name may carry a ``__variant`` suffix (e.g.
+``deal.publish__v2.json``) when a message type needs more than one example —
+the part before ``__`` is looked up in ``MESSAGE_REGISTRY`` and used to
+validate against ``spec/schemas/payloads/<type>.json``, while the full stem
+becomes the output file name so variants don't collide.
 
 The keypair under ``examples/_keys/`` is derived from a fixed seed — it is for
 fixtures/tests only and must never be used on a real connection.
@@ -60,18 +66,19 @@ def main() -> int:
 
     written = 0
     for pf in sorted(payloads_dir.glob("*.json")):
-        msg_type = pf.stem
+        stem = pf.stem
+        msg_type = stem.split("__", 1)[0]
         meta = MESSAGE_REGISTRY.get(msg_type)
         if meta is None:
-            print(f"  skip {msg_type}: not in MESSAGE_REGISTRY")
+            print(f"  skip {stem}: {msg_type!r} not in MESSAGE_REGISTRY")
             continue
         payload = json.loads(pf.read_text())
         if meta.direction == "afb2bf":
             side, sender, recipient = "afb", "afb", BF_ID
         else:
             side, sender, recipient = "bf", BF_ID, "afb"
-        idem = f"{sender}:{msg_type}:fixture-0001"
-        digest = hashlib.sha256(msg_type.encode()).hexdigest()
+        idem = f"{sender}:{stem}:fixture-0001"
+        digest = hashlib.sha256(stem.encode()).hexdigest()
         env = make_envelope(
             sender=sender,
             recipient=recipient,
@@ -83,7 +90,7 @@ def main() -> int:
             created_at="2026-06-26T12:00:00+03:00",
         )
         sign_envelope(env, keys[side])
-        (examples / f"{msg_type}.json").write_text(
+        (examples / f"{stem}.json").write_text(
             json.dumps(env.to_dict(), ensure_ascii=False, indent=2) + "\n"
         )
         written += 1

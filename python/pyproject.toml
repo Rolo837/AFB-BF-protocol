@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "afb-bf-protocol"
-version = "1.2.0"
+version = "1.3.0"
 description = "Shared wire protocol (afb.execution.v1) for AFB OMS and BF executor: models, envelope, signing, validation, taxonomy"
 requires-python = ">=3.11"
 dependencies = [
@@ -12,6 +12,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Runtime payload (tradeplan/deal) validation via the packaged JSON Schemas.
+# Consumers that only need envelope/signing (e.g. BF) don't need this.
+validation = [
+  "jsonschema>=4.20",
+]
 # Codegen / linting / tests. Not needed at runtime by AFB or BF.
 dev = [
   "pytest>=8.0",
@@ -26,6 +31,9 @@ afb-bf-protocol-generate = "afb_bf_protocol.tools.generate:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["afb_bf_protocol*"]
+
+[tool.setuptools.package-data]
+afb_bf_protocol = ["schemas/*.json", "schemas/**/*.json", "schemas/README.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

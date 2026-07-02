@@ -1,0 +1,113 @@
+{
+  "deal": {
+    "schema": "afb.deal.v2",
+    "deal_id": "deal-2b6a-4f11-9c02:finam-arena-316",
+    "revision": 1,
+    "owner": {
+      "user_id": "id_9139066366"
+    },
+    "target": {
+      "bf_id": "finam-arena-316",
+      "broker": "finam-arena",
+      "instrument": {
+        "exchange": "MOEX",
+        "board": "RFUD",
+        "ticker": "GDU6",
+        "market": "futures",
+        "price_step": "0.1",
+        "step_price": "7.3439"
+      }
+    },
+    "direction": "long",
+    "entry": [
+      {
+        "percent": "60",
+        "condition": {
+          "node_type": "event",
+          "id": "entry_1",
+          "op": "above",
+          "left": {
+            "source": "price",
+            "field": "last"
+          },
+          "right": {
+            "const": "4202.1"
+          }
+        },
+        "order": {
+          "type": "market",
+          "limit_offset_steps": 1,
+          "time_in_force": "day"
+        }
+      },
+      {
+        "percent": "40",
+        "condition": {
+          "node_type": "event",
+          "id": "entry_2",
+          "op": "crosses_above",
+          "left": {
+            "source": "price",
+            "field": "last"
+          },
+          "right": {
+            "const": "4215.0"
+          }
+        },
+        "order": {
+          "type": "limit",
+          "limit_offset_steps": 2,
+          "time_in_force": "day"
+        }
+      }
+    ],
+    "stop_loss": [
+      {
+        "percent": "100",
+        "condition": {
+          "node_type": "event",
+          "id": "sl_1",
+          "op": "crosses_below",
+          "left": {
+            "source": "indicator",
+            "type": "wma",
+            "field": "value",
+            "params": {"length": 20}
+          },
+          "right": {
+            "source": "indicator",
+            "type": "kama",
+            "field": "value",
+            "params": {"length": 10}
+          }
+        }
+      }
+    ],
+    "take_profit": [
+      {
+        "percent": "100",
+        "condition": {
+          "node_type": "event",
+          "id": "tp_1",
+          "op": "above",
+          "left": {
+            "source": "price",
+            "field": "last"
+          },
+          "right": {
+            "const": "4310.0"
+          }
+        }
+      }
+    ],
+    "sizing": {
+      "mode": "lots",
+      "value": "5"
+    },
+    "execution_policy": {
+      "on_afb_disconnect": "pause_new_entries",
+      "max_spread_steps": 5,
+      "margin_trading": false
+    }
+  }
+}

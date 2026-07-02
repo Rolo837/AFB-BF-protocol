@@ -1,0 +1,85 @@
+{
+  "type": "object",
+  "properties": {
+    "bf_id": {
+      "type": "string"
+    },
+    "broker": {
+      "type": "string"
+    },
+    "protocol": {
+      "type": "string"
+    },
+    "software_version": {
+      "type": "string"
+    },
+    "markets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "order_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "time_in_force": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sizing_modes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "condition_ops": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "condition_nodes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "account_aliases": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "features": {
+      "type": "object",
+      "properties": {
+        "dry_run": {
+          "type": "boolean"
+        },
+        "server_sltp": {
+          "type": "boolean"
+        },
+        "reports_api": {
+          "type": "boolean"
+        },
+        "catalog": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "bf_id",
+    "protocol"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/daemon.capabilities.json",
+  "title": "payload: daemon.capabilities"
+}

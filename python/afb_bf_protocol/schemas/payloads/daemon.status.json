@@ -1,0 +1,32 @@
+{
+  "type": "object",
+  "properties": {
+    "active": {
+      "type": "boolean"
+    },
+    "bf_id": {
+      "type": "string"
+    },
+    "broker_connected": {
+      "type": "boolean"
+    },
+    "code": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "bf_id",
+    "code",
+    "reason"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/daemon.status.json",
+  "title": "payload: daemon.status"
+}
