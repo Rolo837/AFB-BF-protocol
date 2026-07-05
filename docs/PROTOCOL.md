@@ -470,9 +470,10 @@ Top-level `period` — общий таймфрейм вычисления ала
 
 | Легаси (`condition_type` + `trigger_type`/`value_type`) | `afb.alarm.v1` |
 |---|---|
-| `price` + `above`/`below` (без `trigger_type` или явно touch) | `left: {source: price, field: last}`, `right: {const: value}`, **без `op`** (касание) |
+| `price` без `trigger_type` | `left: {source: price, field: last}`, `right: {const: value}`, **без `op`** (касание) |
+| `price` + `above`/`below` | `op: above`/`below` — deprecated-тиковая ветка **без переименования**: сохраняет легаси-семантику уровня (аларм с ценой уже за уровнем срабатывает сразу; касание при создании «за уровнем» не сработало бы). Из UI не предлагается; при редактировании пересохраняется как касание |
 | `price` + `break_up`/`break_down` | `op: breakout`/`breakdown`, `timeframe = period` аларма |
-| `price` + `crossing` | `op: crossing`, `timeframe = period` (свечной); тиковый `crossing` без таймфрейма — deprecated-ветка, сохраняется как есть при отсутствии `period`-контекста |
+| `price` + `crossing` | `op: crossing`, `timeframe = period` аларма (свечной; у легаси-аларма `period` есть всегда, дефолт `10min`) |
 | `indicator` + `break_up`/`break_down` | `op: crosses_above`/`crosses_below` |
 | `indicator` + `above`/`below`/`crossing` | без переименования |
 | `volume` (`condition_type=volume`) | `left: {source: dataset, dataset_id: volume}` — формат конвертируется, но **вычисление в бэкенде временно отключено** (см. §12, «volume») |
