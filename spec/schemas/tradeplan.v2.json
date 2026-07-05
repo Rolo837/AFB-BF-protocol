@@ -45,7 +45,16 @@
       "required": ["left", "right"],
       "properties": {
         "id": {"type": "string"},
-        "op": {"enum": ["above", "below", "crosses_above", "crosses_below", "crossing"]},
+        "op": {
+          "enum": [
+            "above", "below", "crosses_above", "crosses_below", "crossing",
+            "breakout", "breakdown"
+          ]
+        },
+        "timeframe": {
+          "$ref": "condition.v1.json#/$defs/timeframe",
+          "description": "Required (enforced after compilation, not here) when op is a price candle operator (breakout/breakdown/crossing)."
+        },
         "left": {
           "oneOf": [
             {"$ref": "deal.v2.json#/$defs/priceExpr"},

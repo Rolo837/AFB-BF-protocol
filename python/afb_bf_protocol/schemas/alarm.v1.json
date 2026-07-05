@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/alarm.v1.json",
+  "title": "Alarm afb.alarm.v1",
+  "description": "AFB-side user alarm — like afb.tradeplan.v2, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel; it is documented here (rather than only in AFB) because it shares condition.v1.json's operator vocabulary with deal.v2 and tradeplan.v2. Replaces the legacy YAML shape (condition_type/trigger_type/value_type/value/value_ref flat fields, break_up/break_down operator names) with a conditionNode. Legacy alarms are read via a lazy converter (see docs/PROTOCOL.md 'Алармы' mapping table) and rewritten in this format on next save/reactivation; the API layer only accepts/emits this format going forward. `period` is the alarm's overall computation timeframe (legacy default '10min'); when `condition` is a price candle operator, `condition.timeframe` carries the candle timeframe and by construction equals `period`.",
+  "type": "object",
+  "required": ["schema", "id", "ticker", "condition"],
+  "properties": {
+    "schema": {"const": "afb.alarm.v1"},
+    "id": {"type": "string", "minLength": 1},
+    "ticker": {"type": "string", "minLength": 1},
+    "condition": {"$ref": "#/$defs/alarmConditionNode"},
+    "period": {"$ref": "condition.v1.json#/$defs/timeframe"},
+    "trigger_frequency": {"enum": ["once", "every_candle", "daily"]},
+    "status": {"enum": ["active", "triggered", "expired"]},
+    "created_at": {"type": "string"},
+    "updated_at": {"type": "string"},
+    "triggered_at": {"type": "string"},
+    "delivery_at": {"type": "string"},
+    "trigger_count": {"type": "integer", "minimum": 0}
+  },
+  "$defs": {
+    "alarmIndicatorExpr": {
+      "type": "object",
+      "required": ["source", "id"],
+      "description": "Unlike condition.v1.json#/$defs/indicatorExpr, only `source`+`id` are required: AFB resolves `type`/`field`/`params` from the user's saved indicator settings by `id` rather than carrying them inline.",
+      "properties": {
+        "source": {"const": "indicator"},
+        "id": {"type": "string", "minLength": 1},
+        "type": {"enum": ["wma", "kama", "psar"]},
+        "field": {"type": "string"},
+        "params": {"type": "object"}
+      }
+    },
+    "alarmConditionNode": {
+      "type": "object",
+      "required": ["left", "right"],
+      "oneOf": [
+        {
+          "title": "price touch (level)",
+          "not": {"required": ["op"]},
+          "properties": {
+            "left": {"$ref": "condition.v1.json#/$defs/priceExpr"},
+            "right": {"$ref": "condition.v1.json#/$defs/rightConst"}
+          }
+        },
+        {
+          "title": "price candle operator",
+          "required": ["op", "timeframe"],
+          "properties": {
+            "left": {"$ref": "condition.v1.json#/$defs/priceExpr"},
+            "right": {"$ref": "condition.v1.json#/$defs/rightConst"},
+            "op": {"enum": ["breakout", "breakdown", "crossing"]},
+            "timeframe": {"$ref": "condition.v1.json#/$defs/timeframe"}
+          }
+        },
+        {
+          "title": "price tick operator (deprecated)",
+          "required": ["op"],
+          "not": {"required": ["timeframe"]},
+          "properties": {
+            "left": {"$ref": "condition.v1.json#/$defs/priceExpr"},
+            "right": {"$ref": "condition.v1.json#/$defs/rightConst"},
+            "op": {"$ref": "condition.v1.json#/$defs/scalarOp"}
+          }
+        },
+        {
+          "title": "quote operator (deprecated)",
+          "required": ["op"],
+          "properties": {
+            "left": {"$ref": "condition.v1.json#/$defs/quoteExpr"},
+            "right": {"$ref": "condition.v1.json#/$defs/rightConst"},
+            "op": {"$ref": "condition.v1.json#/$defs/scalarOp"}
+          }
+        },
+        {
+          "title": "indicator operator",
+          "required": ["op"],
+          "properties": {
+            "left": {"$ref": "#/$defs/alarmIndicatorExpr"},
+            "right": {"oneOf": [{"$ref": "condition.v1.json#/$defs/rightConst"}, {"$ref": "#/$defs/alarmIndicatorExpr"}]},
+            "op": {"$ref": "condition.v1.json#/$defs/scalarOp"}
+          }
+        },
+        {
+          "title": "dataset operator",
+          "required": ["op"],
+          "properties": {
+            "left": {"$ref": "condition.v1.json#/$defs/datasetExpr"},
+            "right": {"oneOf": [{"$ref": "condition.v1.json#/$defs/rightConst"}, {"$ref": "condition.v1.json#/$defs/datasetExpr"}]},
+            "op": {"$ref": "condition.v1.json#/$defs/scalarOp"}
+          }
+        }
+      ]
+    }
+  }
+}

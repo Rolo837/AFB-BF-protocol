@@ -10,6 +10,7 @@ import pytest
 from afb_bf_protocol.payload_validation import (
     PayloadValidationError,
     resolve_tradeplan_schema,
+    validate_alarm,
     validate_deal,
     validate_tradeplan,
 )
@@ -94,3 +95,25 @@ def test_validate_tradeplan_v2_rejects_empty_entries():
     plan["entries"] = []
     with pytest.raises(PayloadValidationError):
         validate_tradeplan(plan)
+
+
+def test_validate_alarm_accepts_touch_example():
+    data = json.loads((EXAMPLES / "alarms" / "alarm.touch.json").read_text())
+    assert validate_alarm(data) == "afb.alarm.v1"
+
+
+def test_validate_alarm_accepts_breakout_example():
+    data = json.loads((EXAMPLES / "alarms" / "alarm.breakout.json").read_text())
+    assert validate_alarm(data) == "afb.alarm.v1"
+
+
+def test_validate_alarm_rejects_unknown_schema():
+    with pytest.raises(PayloadValidationError):
+        validate_alarm({"schema": "afb.alarm.v2"})
+
+
+def test_validate_alarm_rejects_candle_op_without_timeframe():
+    data = json.loads((EXAMPLES / "alarms" / "alarm.breakout.json").read_text())
+    del data["condition"]["timeframe"]
+    with pytest.raises(PayloadValidationError):
+        validate_alarm(data)

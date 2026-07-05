@@ -28,11 +28,13 @@ __all__ = [
     "validate_deal",
     "validate_tradeplan",
     "resolve_tradeplan_schema",
+    "validate_alarm",
 ]
 
 _DEAL_SCHEMAS = {"afb.deal.v1", "afb.deal.v2"}
 _TRADEPLAN_SCHEMAS = {"afb.tradeplan.v1", "afb.tradeplan.v2"}
 _DEFAULT_TRADEPLAN_SCHEMA = "afb.tradeplan.v1"
+_ALARM_SCHEMAS = {"afb.alarm.v1"}
 
 
 def _schema_filename(schema_id: str) -> str:
@@ -129,4 +131,17 @@ def validate_tradeplan(obj: dict[str, Any]) -> str:
     Returns the resolved schema id."""
     schema = resolve_tradeplan_schema(obj)
     _validate(obj, schema_filename=_schema_filename(schema), what="tradeplan")
+    return schema
+
+
+def validate_alarm(obj: dict[str, Any]) -> str:
+    """Validate an AFB alarm against afb.alarm.v1 (dispatched on
+    ``obj["schema"]``). Returns the resolved schema id. Like trade plans,
+    alarms never cross the AFB<->BF wire."""
+    if not isinstance(obj, dict):
+        raise PayloadValidationError("invalid_schema", "alarm must be an object")
+    schema = obj.get("schema")
+    if schema not in _ALARM_SCHEMAS:
+        raise PayloadValidationError("invalid_schema", f"unknown alarm schema: {schema!r}")
+    _validate(obj, schema_filename=_schema_filename(schema), what="alarm")
     return schema

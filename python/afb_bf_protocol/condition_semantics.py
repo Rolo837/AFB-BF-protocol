@@ -1,0 +1,150 @@
+"""Reference implementation of the condition-node operator semantics defined by
+``spec/schemas/condition.v1.json``. This is the single point of truth for how
+every consumer (BF's ``plan_engine.conditions``, AFB's alarm checker, trade-plan
+processor and dataset signal runner) must evaluate a condition — see that
+schema's ``$defs.conditionNode`` description for the operator vocabulary and
+``docs/PROTOCOL.md`` for the worked examples.
+
+Pure stdlib, no I/O: callers own sourcing ``cur``/``prev`` (and, for indicators
+and datasets, the same for the right-hand side) and the last CLOSED candle for
+price candle operators. A ``None`` input at any point means "no data available"
+and always evaluates to ``False`` — never an exception — matching BF's existing
+invariant that a condition with missing data does not fire.
+
+Fixes the confirmed crossing boundary bug (case 3.248 in alarm
+alarm-5a01-4480-ba65's logs): a same-sample ``prev == ref`` used to be treated
+as strictly inside the "not yet crossed" side (via ``prev < ref``), silently
+swallowing a cross that starts exactly on the reference value. The correct
+boundary (this module's and hence the wire's semantics) is non-strict on the
+`prev` side: ``crosses_above`` fires when ``prev <= ref_prev and cur > ref_cur``.
+"""
+from __future__ import annotations
+
+from decimal import Decimal
+from typing import Optional, Union
+
+__all__ = [
+    "SCALAR_OPS",
+    "PRICE_CANDLE_OPS",
+    "DEPRECATED_PRICE_OPS",
+    "DEPRECATED_QUOTE_OPS",
+    "OPS_BY_SOURCE",
+    "evaluate_touch",
+    "evaluate_scalar_op",
+    "evaluate_candle_op",
+]
+
+Number = Union[str, int, float, Decimal]
+
+# indicator/dataset conditions, and the deprecated tick-based price/quote ops.
+SCALAR_OPS: frozenset[str] = frozenset(
+    {"above", "below", "crosses_above", "crosses_below", "crossing"}
+)
+
+# price conditions with a `timeframe`, evaluated on the last CLOSED candle only.
+PRICE_CANDLE_OPS: frozenset[str] = frozenset({"breakout", "breakdown", "crossing"})
+
+# price/quote conditions without a `timeframe` — legacy tick-by-tick comparison,
+# deprecated in v1.4.0, removal planned for v2.0.0.
+DEPRECATED_PRICE_OPS: frozenset[str] = SCALAR_OPS
+DEPRECATED_QUOTE_OPS: frozenset[str] = SCALAR_OPS
+
+# Valid explicit `op` values per left.source. `price` additionally allows
+# omitting `op` entirely (the touch shape, see evaluate_touch) — that case has
+# no entry here since there is no op string to look up.
+OPS_BY_SOURCE: dict[str, frozenset[str]] = {
+    "price": PRICE_CANDLE_OPS | DEPRECATED_PRICE_OPS,
+    "quote": DEPRECATED_QUOTE_OPS,
+    "indicator": SCALAR_OPS,
+    "dataset": SCALAR_OPS,
+}
+
+
+def _dec(value: Optional[Number]) -> Optional[Decimal]:
+    if value is None:
+        return None
+    return value if isinstance(value, Decimal) else Decimal(str(value))
+
+
+def evaluate_touch(
+    cur: Optional[Number], prev: Optional[Number], level: Optional[Number]
+) -> bool:
+    """Price touch (no `op`): the level lies between the previous and current
+    sample, i.e. ``min(prev, cur) <= level <= max(prev, cur)``. This is
+    afb.deal.v1's only condition shape."""
+    cur_d, prev_d, level_d = _dec(cur), _dec(prev), _dec(level)
+    if cur_d is None or prev_d is None or level_d is None:
+        return False
+    lo, hi = (prev_d, cur_d) if prev_d <= cur_d else (cur_d, prev_d)
+    return lo <= level_d <= hi
+
+
+def evaluate_scalar_op(
+    op: str,
+    cur: Optional[Number],
+    prev: Optional[Number],
+    ref_cur: Optional[Number],
+    ref_prev: Optional[Number] = None,
+) -> bool:
+    """The 5-operator scalar vocabulary shared by indicator/dataset conditions
+    and the deprecated tick-based price/quote conditions.
+
+    ``ref_prev`` defaults to ``ref_cur`` — a constant right-hand side has no
+    history of its own, which is exactly what makes the boundary semantics
+    below reduce correctly to "prev sample was on the const's other side".
+
+    Boundary (fixes the prev==ref bug, see module docstring):
+    ``crosses_above`` = ``prev <= ref_prev and cur > ref_cur``;
+    ``crosses_below`` = ``prev >= ref_prev and cur < ref_cur``;
+    ``crossing`` = either of the above. A touch without departure
+    (``cur == ref_cur``) is never a cross.
+    """
+    cur_d, ref_cur_d = _dec(cur), _dec(ref_cur)
+    if cur_d is None or ref_cur_d is None:
+        return False
+    if op == "above":
+        return cur_d > ref_cur_d
+    if op == "below":
+        return cur_d < ref_cur_d
+    if op not in ("crosses_above", "crosses_below", "crossing"):
+        raise ValueError(f"unknown scalar op: {op!r}")
+    prev_d = _dec(prev)
+    if prev_d is None:
+        return False
+    ref_prev_d = ref_cur_d if ref_prev is None else _dec(ref_prev)
+    crosses_above = prev_d <= ref_prev_d and cur_d > ref_cur_d
+    crosses_below = prev_d >= ref_prev_d and cur_d < ref_cur_d
+    if op == "crosses_above":
+        return crosses_above
+    if op == "crosses_below":
+        return crosses_below
+    return crosses_above or crosses_below
+
+
+def evaluate_candle_op(
+    op: str,
+    open_: Optional[Number],
+    close: Optional[Number],
+    level: Optional[Number],
+) -> bool:
+    """Price candle operators, evaluated against a single CLOSED candle's
+    open/close relative to `level`. Callers are responsible for only ever
+    passing the last closed candle of the condition's `timeframe` — this
+    function has no notion of "closed" itself.
+
+    ``breakout`` = ``open < level and close > level``;
+    ``breakdown`` = ``open > level and close < level``;
+    ``crossing`` = either of the above.
+    """
+    open_d, close_d, level_d = _dec(open_), _dec(close), _dec(level)
+    if open_d is None or close_d is None or level_d is None:
+        return False
+    if op not in ("breakout", "breakdown", "crossing"):
+        raise ValueError(f"unknown candle op: {op!r}")
+    breakout = open_d < level_d and close_d > level_d
+    breakdown = open_d > level_d and close_d < level_d
+    if op == "breakout":
+        return breakout
+    if op == "breakdown":
+        return breakdown
+    return breakout or breakdown

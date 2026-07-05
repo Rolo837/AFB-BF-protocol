@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/condition.v1.json",
+  "title": "condition.v1 — unified condition node vocabulary",
+  "description": "Single source of truth for the condition-node vocabulary shared by afb.deal.v2, afb.tradeplan.v2 and afb.alarm.v1 (alarms, trade plans and deals all evaluate the same operators identically). The root schema validates a bare conditionNode; deal.v2.json/tradeplan.v2.json/alarm.v1.json $ref into this file's $defs rather than duplicating them. Left/right pairing is enforced per source via oneOf: price node without `op` is a touch (level crossed between the previous and current sample); price node with a candle op (breakout/breakdown/crossing) requires `timeframe` and is evaluated only against the last CLOSED candle of that timeframe; price/quote node with a deprecated tick op (above/below/crosses_above/crosses_below/crossing, no timeframe) keeps legacy tick-based semantics. indicator and dataset nodes share one scalar vocabulary (above/below/crosses_above/crosses_below/crossing) comparing against a constant or another expression of the same kind.",
+  "type": "object",
+  "$ref": "#/$defs/conditionNode",
+  "$defs": {
+    "timeframe": {
+      "enum": ["5min", "10min", "15min", "30min", "1h", "2h", "4h", "1d"]
+    },
+    "scalarOp": {
+      "enum": ["above", "below", "crosses_above", "crosses_below", "crossing"],
+      "description": "above: cur > thr. below: cur < thr. crosses_above: prev <= prev_thr AND cur > thr. crosses_below: prev >= prev_thr AND cur < thr. crossing: crosses_above OR crosses_below. A touch without departure (cur == thr) is never a cross. For a constant right-hand side prev_thr == thr."
+    },
+    "rightConst": {
+      "type": "object",
+      "required": ["const"],
+      "properties": {"const": {"$ref": "deal.v1.json#/$defs/decimalString"}}
+    },
+    "priceExpr": {
+      "type": "object",
+      "required": ["source"],
+      "properties": {
+        "source": {"const": "price"},
+        "field": {"const": "last"}
+      }
+    },
+    "quoteExpr": {
+      "type": "object",
+      "required": ["source", "field"],
+      "description": "deprecated (v1.4.0): quote (bid/ask) conditions are still accepted and evaluated, but are no longer offered by the AFB UI and will be removed in v2.0.0.",
+      "properties": {
+        "source": {"const": "quote"},
+        "field": {"enum": ["bid", "ask"]}
+      }
+    },
+    "indicatorExpr": {
+      "type": "object",
+      "required": ["source", "type"],
+      "properties": {
+        "source": {"const": "indicator"},
+        "type": {"enum": ["wma", "kama", "psar"]},
+        "field": {"type": "string"},
+        "params": {"type": "object"},
+        "id": {"type": "string"}
+      }
+    },
+    "datasetExpr": {
+      "type": "object",
+      "required": ["source"],
+      "description": "position.* / orders / hhi / trades datasets share this shape; dataset_id=volume is declared here but temporarily unsupported by AFB/BF backends (see condition_semantics module docstring) and not offered by the UI.",
+      "properties": {
+        "source": {"const": "dataset"},
+        "field": {"type": "string"},
+        "dataset_id": {"type": "string"},
+        "params": {"type": "object"}
+      }
+    },
+    "conditionNode": {
+      "type": "object",
+      "required": ["left", "right"],
+      "properties": {
+        "node_type": {"const": "event"},
+        "id": {"type": "string"}
+      },
+      "oneOf": [
+        {
+          "title": "price touch (level)",
+          "description": "No `op`: the level is considered touched when it lies between the previous and current sample, i.e. min(prev, cur) <= level <= max(prev, cur). Equivalent to afb.deal.v1's only condition shape.",
+          "not": {"required": ["op"]},
+          "properties": {
+            "left": {"$ref": "#/$defs/priceExpr"},
+            "right": {"$ref": "#/$defs/rightConst"}
+          }
+        },
+        {
+          "title": "price candle operator",
+          "description": "breakout: last CLOSED candle of `timeframe` has open < level AND close > level. breakdown: open > level AND close < level. crossing: breakout OR breakdown. Evaluated only on candle close, never intra-bar.",
+          "required": ["op", "timeframe"],
+          "properties": {
+            "left": {"$ref": "#/$defs/priceExpr"},
+            "right": {"$ref": "#/$defs/rightConst"},
+            "op": {"enum": ["breakout", "breakdown", "crossing"]},
+            "timeframe": {"$ref": "#/$defs/timeframe"}
+          }
+        },
+        {
+          "title": "price tick operator (deprecated)",
+          "description": "deprecated (v1.4.0): tick-by-tick price comparison without a timeframe, using the scalar vocabulary (see #/$defs/scalarOp). Still accepted and evaluated; prefer the touch shape (no op) or a candle operator with `timeframe`. Removal planned for v2.0.0.",
+          "required": ["op"],
+          "not": {"required": ["timeframe"]},
+          "properties": {
+            "left": {"$ref": "#/$defs/priceExpr"},
+            "right": {"$ref": "#/$defs/rightConst"},
+            "op": {"$ref": "#/$defs/scalarOp"}
+          }
+        },
+        {
+          "title": "quote operator (deprecated)",
+          "description": "deprecated (v1.4.0): bid/ask conditions using the scalar vocabulary. Removal planned for v2.0.0.",
+          "required": ["op"],
+          "properties": {
+            "left": {"$ref": "#/$defs/quoteExpr"},
+            "right": {"$ref": "#/$defs/rightConst"},
+            "op": {"$ref": "#/$defs/scalarOp"}
+          }
+        },
+        {
+          "title": "indicator operator",
+          "description": "Scalar comparison (see #/$defs/scalarOp) of an indicator against a constant or another indicator expression.",
+          "required": ["op"],
+          "properties": {
+            "left": {"$ref": "#/$defs/indicatorExpr"},
+            "right": {"oneOf": [{"$ref": "#/$defs/rightConst"}, {"$ref": "#/$defs/indicatorExpr"}]},
+            "op": {"$ref": "#/$defs/scalarOp"}
+          }
+        },
+        {
+          "title": "dataset operator",
+          "description": "Scalar comparison (see #/$defs/scalarOp) of a dataset value (position.*, orders, hhi, trades) against a constant or another dataset expression of the same dataset_id.",
+          "required": ["op"],
+          "properties": {
+            "left": {"$ref": "#/$defs/datasetExpr"},
+            "right": {"oneOf": [{"$ref": "#/$defs/rightConst"}, {"$ref": "#/$defs/datasetExpr"}]},
+            "op": {"$ref": "#/$defs/scalarOp"}
+          }
+        }
+      ]
+    }
+  }
+}

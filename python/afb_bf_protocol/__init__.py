@@ -61,6 +61,16 @@ from .amend_rules import (
     evaluate_amend,
     is_amend_allowed,
 )
+from .condition_semantics import (
+    SCALAR_OPS,
+    PRICE_CANDLE_OPS,
+    DEPRECATED_PRICE_OPS,
+    DEPRECATED_QUOTE_OPS,
+    OPS_BY_SOURCE,
+    evaluate_touch,
+    evaluate_scalar_op,
+    evaluate_candle_op,
+)
 
 __all__ = [
     "PROTOCOL_VERSION",
@@ -108,4 +118,12 @@ __all__ = [
     "AMEND_FIELDS",
     "evaluate_amend",
     "is_amend_allowed",
+    "SCALAR_OPS",
+    "PRICE_CANDLE_OPS",
+    "DEPRECATED_PRICE_OPS",
+    "DEPRECATED_QUOTE_OPS",
+    "OPS_BY_SOURCE",
+    "evaluate_touch",
+    "evaluate_scalar_op",
+    "evaluate_candle_op",
 ]
