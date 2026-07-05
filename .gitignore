@@ -1,4 +1,3 @@
-# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -8,7 +7,10 @@ dist/
 .pytest_cache/
 .venv/
 venv/
-.cursor/
 
-# Node (asyncapi tooling)
+.cursor/
+.claude/
+CLAUDE.md
+.gitignore
+.python-version
 node_modules/
