@@ -9,7 +9,7 @@
   "created_at": "2026-06-26T12:00:00+03:00",
   "expires_at": "2026-06-26T12:05:00+03:00",
   "idempotency_key": "finam-arena-316:daemon.capabilities:fixture-0001",
-  "payload_hash": "60d7cb6eaebc0600bea51a1524346964648dc38885bb97982e68790dddd2c962",
+  "payload_hash": "8c178e234147d1ebe2dacc5e0b4cb8ed9cc428ed5753376443a321bad2970531",
   "payload": {
     "bf_id": "finam-arena-316",
     "broker": "finam",
@@ -46,6 +46,21 @@
     "account_aliases": [
       "main"
     ],
+    "market_data": {
+      "quotes": true,
+      "candles": true,
+      "orderbook": false,
+      "timeframes": [
+        "5min",
+        "10min",
+        "15min",
+        "30min",
+        "1h",
+        "2h",
+        "4h",
+        "1d"
+      ]
+    },
     "features": {
       "dry_run": true,
       "server_sltp": false,
@@ -56,6 +71,6 @@
   "signature": {
     "alg": "Ed25519",
     "key_id": "belphegor-test-1",
-    "value": "tGR9CR80bpit_bNO6Ntc6i1soWUvAe2cabHdFFIfrq-Ndzb5I6_NuLG6-NLBDXkQVTtellwv418W0U4_YOjICw"
+    "value": "Wu3AldrGADyV1GUzcZ6ZGIYyp9-LDk-7MQOcm6WtLlQ2lu9PZUCL1s56TogoVpCdV3RdwYHRLnSQ04YmrBrlDQ"
   }
 }

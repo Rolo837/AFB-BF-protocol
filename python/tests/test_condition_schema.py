@@ -44,6 +44,8 @@ CONST_100 = {"const": "100"}
         {"left": QUOTE_BID, "right": CONST_100, "op": "above"},  # deprecated quote
         {"left": INDICATOR_WMA, "right": CONST_100, "op": "above"},
         {"left": INDICATOR_WMA, "right": INDICATOR_WMA, "op": "crosses_above"},
+        {"left": INDICATOR_WMA, "right": CONST_100, "op": "above", "timeframe": "30min"},
+        {"left": INDICATOR_WMA, "right": INDICATOR_WMA, "op": "crosses_above", "timeframe": "1h"},
         {"left": DATASET_POS, "right": CONST_100, "op": "crossing"},
         {"left": DATASET_POS, "right": DATASET_POS, "op": "below"},
     ],
@@ -57,6 +59,8 @@ CONST_100 = {"const": "100"}
         "quote-deprecated-above",
         "indicator-vs-const",
         "indicator-vs-indicator",
+        "indicator-vs-const-with-timeframe",
+        "indicator-vs-indicator-with-timeframe",
         "dataset-vs-const",
         "dataset-vs-dataset",
     ],
@@ -77,6 +81,7 @@ def test_valid_condition_nodes(node, registry):
         {"left": QUOTE_BID, "right": CONST_100},  # quote requires an op (no touch shape for quote)
         {"right": CONST_100},  # missing left
         {"left": PRICE},  # missing right
+        {"left": INDICATOR_WMA, "right": CONST_100, "op": "above", "timeframe": "1min"},  # not in enum
     ],
     ids=[
         "price-deprecated-op-with-timeframe-rejected",
@@ -88,6 +93,7 @@ def test_valid_condition_nodes(node, registry):
         "quote-without-op-rejected",
         "missing-left-rejected",
         "missing-right-rejected",
+        "indicator-timeframe-not-in-enum-rejected",
     ],
 )
 def test_invalid_condition_nodes(node, registry):

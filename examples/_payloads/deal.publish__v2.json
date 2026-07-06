@@ -79,7 +79,8 @@
             "type": "kama",
             "field": "value",
             "params": {"length": 10}
-          }
+          },
+          "timeframe": "30min"
         }
       }
     ],

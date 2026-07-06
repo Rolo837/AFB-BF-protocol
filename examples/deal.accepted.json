@@ -9,7 +9,7 @@
   "created_at": "2026-06-26T12:00:00+03:00",
   "expires_at": "2026-06-26T12:05:00+03:00",
   "idempotency_key": "finam-arena-316:deal.accepted:fixture-0001",
-  "payload_hash": "90343c41631209288be55005f2280bacc8ce0f77e6de9b3d7afd26fb025ddfc2",
+  "payload_hash": "1d40b512fbd810ee12464f16d8cdf7627c1ccf9ad65dc7bc699adb53a9f10cae",
   "payload": {
     "binding": {
       "account_id": "1918978",
@@ -43,7 +43,8 @@
       "lots": 185,
       "required_cash": "4713.8",
       "required_cash_basis": "notional",
-      "sizing_mode": "risk_factor"
+      "sizing_mode": "risk_factor",
+      "estimated": true
     },
     "command_type": "deal.publish",
     "deal_id": "deal-db2b-4e92-87a4:finam-arena-316",
@@ -64,6 +65,6 @@
   "signature": {
     "alg": "Ed25519",
     "key_id": "belphegor-test-1",
-    "value": "-YtqlC8I341UFex2IUQuK_KZSrck2MJ7z_1vaZRX_rrFZ4jo9-1zmX_1oswryXaYUmtScdb9SO858kYkY0kDCw"
+    "value": "fI9Sns2MQ77MnrkzziKXdlqRiNea1epuwKS6hfe8U8sPHGmI6GHJJ76JpHil7fXaK0B31ATzKXgSlgCekKIaCA"
   }
 }

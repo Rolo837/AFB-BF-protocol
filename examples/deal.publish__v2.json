@@ -9,7 +9,7 @@
   "created_at": "2026-06-26T12:00:00+03:00",
   "expires_at": "2026-06-26T12:05:00+03:00",
   "idempotency_key": "afb:deal.publish__v2:fixture-0001",
-  "payload_hash": "7830486ac7fc597f92d5188b9b67e67e6efe05f1bed6c7133be19564b79464cb",
+  "payload_hash": "9280ac5a27f32089639b46bd3fd08e6ed69a48e5f1ee02c649d255d9a4070974",
   "payload": {
     "deal": {
       "schema": "afb.deal.v2",
@@ -95,7 +95,8 @@
               "params": {
                 "length": 10
               }
-            }
+            },
+            "timeframe": "30min"
           }
         }
       ],
@@ -130,6 +131,6 @@
   "signature": {
     "alg": "Ed25519",
     "key_id": "afb-test-1",
-    "value": "sAk5bxYMurjXL7XUgbUAfvNbG5gMVHbzxUeEEOc3nm2RoQGLU6KOok2QR1_WRuGQJYP8NndQNoFEuPbuIyfEBA"
+    "value": "I8DIYZdi3PQ8GddNYjd-YBubfL4whCZWuiZhETwJvcxv5pfhiCBf_9HFh4IDUklHcgNQtXNvGyERtkCNf_cRBQ"
   }
 }

@@ -123,6 +123,10 @@
         },
         "sizing_mode": {
           "type": "string"
+        },
+        "estimated": {
+          "type": "boolean",
+          "description": "True when lots/required_cash were computed from estimate-only prices (live last instead of an indicator entry condition's price, and/or an indicator stop condition's current value instead of a fixed stop price) rather than the deal's actual condition prices. The final sizing is recomputed when the entry condition fires."
         }
       },
       "additionalProperties": true

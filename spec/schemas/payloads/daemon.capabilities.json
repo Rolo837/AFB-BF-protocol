@@ -55,6 +55,28 @@
         "type": "string"
       }
     },
+    "market_data": {
+      "type": "object",
+      "description": "What market data this BF instance can serve, and on which wire timeframes (see condition.v1.json#/$defs/timeframe) — used by AFB to validate indicator/price-candle condition timeframes before publish.",
+      "properties": {
+        "quotes": {
+          "type": "boolean"
+        },
+        "candles": {
+          "type": "boolean"
+        },
+        "orderbook": {
+          "type": "boolean"
+        },
+        "timeframes": {
+          "type": "array",
+          "items": {
+            "$ref": "../condition.v1.json#/$defs/timeframe"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
     "features": {
       "type": "object",
       "properties": {

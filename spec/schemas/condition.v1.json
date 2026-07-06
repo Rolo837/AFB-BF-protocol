@@ -108,12 +108,13 @@
         },
         {
           "title": "indicator operator",
-          "description": "Scalar comparison (see #/$defs/scalarOp) of an indicator against a constant or another indicator expression.",
+          "description": "Scalar comparison (see #/$defs/scalarOp) of an indicator against a constant or another indicator expression. `timeframe` is optional at the schema level (this same conditionNode is reused by afb.alarm.v1, where the timeframe lives on the alarm itself, not the node) but is REQUIRED by the BF executor for afb.deal.v2/afb.tradeplan.v2 indicator conditions — see condition_semantics module docstring. When present, it applies to BOTH sides of the comparison: left and right are evaluated on the same bar series. Indicator values are a (previous CLOSED bar, current FORMING bar) pair, matching evaluate_scalar_op's cur/prev semantics.",
           "required": ["op"],
           "properties": {
             "left": {"$ref": "#/$defs/indicatorExpr"},
             "right": {"oneOf": [{"$ref": "#/$defs/rightConst"}, {"$ref": "#/$defs/indicatorExpr"}]},
-            "op": {"$ref": "#/$defs/scalarOp"}
+            "op": {"$ref": "#/$defs/scalarOp"},
+            "timeframe": {"$ref": "#/$defs/timeframe"}
           }
         },
         {

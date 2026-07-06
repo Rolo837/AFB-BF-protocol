@@ -31,7 +31,8 @@
     "lots": 185,
     "required_cash": "4713.8",
     "required_cash_basis": "notional",
-    "sizing_mode": "risk_factor"
+    "sizing_mode": "risk_factor",
+    "estimated": true
   },
   "command_type": "deal.publish",
   "deal_id": "deal-db2b-4e92-87a4:finam-arena-316",

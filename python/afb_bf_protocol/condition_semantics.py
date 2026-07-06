@@ -24,6 +24,7 @@ from decimal import Decimal
 from typing import Optional, Union
 
 __all__ = [
+    "TIMEFRAMES",
     "SCALAR_OPS",
     "PRICE_CANDLE_OPS",
     "DEPRECATED_PRICE_OPS",
@@ -35,6 +36,14 @@ __all__ = [
 ]
 
 Number = Union[str, int, float, Decimal]
+
+# condition.v1.json#/$defs/timeframe — single source of truth for the wire
+# timeframe enum, mirrored here (rather than parsed from the schema at import
+# time) so callers that only need envelope/signing (no jsonschema dependency,
+# e.g. BF's deep payload validation) can still validate timeframe values.
+TIMEFRAMES: tuple[str, ...] = (
+    "5min", "10min", "15min", "30min", "1h", "2h", "4h", "1d",
+)
 
 # indicator/dataset conditions, and the deprecated tick-based price/quote ops.
 SCALAR_OPS: frozenset[str] = frozenset(
