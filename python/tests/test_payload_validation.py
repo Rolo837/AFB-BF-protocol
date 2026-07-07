@@ -12,6 +12,7 @@ from afb_bf_protocol.payload_validation import (
     resolve_tradeplan_schema,
     validate_alarm,
     validate_deal,
+    validate_notification,
     validate_tradeplan,
 )
 from conftest import EXAMPLES
@@ -117,3 +118,15 @@ def test_validate_alarm_rejects_candle_op_without_timeframe():
     del data["condition"]["timeframe"]
     with pytest.raises(PayloadValidationError):
         validate_alarm(data)
+
+
+def test_validate_notification_accepts_touch_example():
+    data = json.loads((EXAMPLES / "notifications" / "alarm_triggered.touch.json").read_text())
+    assert validate_notification(data) == "afb.notification.alarm_triggered.v1"
+
+
+def test_validate_notification_rejects_missing_display():
+    data = json.loads((EXAMPLES / "notifications" / "alarm_triggered.touch.json").read_text())
+    del data["display"]
+    with pytest.raises(PayloadValidationError):
+        validate_notification(data)

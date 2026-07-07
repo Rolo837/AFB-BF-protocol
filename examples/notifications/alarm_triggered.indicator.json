@@ -1,0 +1,37 @@
+{
+  "schema": "afb.notification.alarm_triggered.v1",
+  "alarm_id": "alarm-indicator-crossing-0001",
+  "ticker": "SBER",
+  "instrument": {
+    "shortname": "Сбербанк",
+    "secname": "Сбербанк ао"
+  },
+  "condition": {
+    "op": "crosses_above",
+    "left": {"source": "indicator", "id": "wma20"},
+    "right": {"source": "indicator", "id": "kama10"}
+  },
+  "period": "15min",
+  "trigger_frequency": "every_candle",
+  "triggered_value": "248.50",
+  "instrument_price": 249.1,
+  "display": {
+    "instrument_label": "Сбербанк (SBER)",
+    "condition_op": "Пересечение вверх",
+    "condition_description": "WMA (20) / KAMA (10)",
+    "condition_text": "Пересечение вверх, WMA (20) / KAMA (10)"
+  },
+  "context": {
+    "indicator_prev_value": "247.10",
+    "indicator_last_value": "248.50",
+    "price_data": {"last": 249.1, "bid": 249.0, "offer": 249.2}
+  },
+  "user": {
+    "name": "Trader",
+    "telegram": "@trader",
+    "email": "trader@test",
+    "notify_telegram": true,
+    "notify_email": false
+  },
+  "timestamp": "2026-07-07T20:34:00.123456"
+}

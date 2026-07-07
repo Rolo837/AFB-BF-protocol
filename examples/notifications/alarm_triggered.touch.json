@@ -1,0 +1,35 @@
+{
+  "schema": "afb.notification.alarm_triggered.v1",
+  "alarm_id": "alarm-touch-0001",
+  "ticker": "SBER",
+  "instrument": {
+    "shortname": "Сбербанк",
+    "secname": "Сбербанк ао"
+  },
+  "condition": {
+    "left": {"source": "price", "field": "last"},
+    "right": {"const": "250.5"}
+  },
+  "period": "10min",
+  "trigger_frequency": "once",
+  "triggered_value": 251.2,
+  "instrument_price": 251.2,
+  "display": {
+    "instrument_label": "Сбербанк (SBER)",
+    "condition_op": "Касание",
+    "condition_description": "Цена 250.5",
+    "condition_text": "Касание, Цена 250.5"
+  },
+  "context": {
+    "last_candle": {"time": "2026-07-07T20:30:00+03:00", "close": 250.8},
+    "price_data": {"last": 251.2, "bid": 251.1, "offer": 251.3}
+  },
+  "user": {
+    "name": "Trader",
+    "telegram": "@trader",
+    "email": "trader@test",
+    "notify_telegram": true,
+    "notify_email": false
+  },
+  "timestamp": "2026-07-07T20:34:00.123456"
+}

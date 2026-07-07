@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/notification.alarm_triggered.v1.json",
+  "title": "Alarm notification afb.notification.alarm_triggered.v1",
+  "description": "AFB-side MQTT notification payload published to <topic_base>/alarms/<user_id> when a user alarm triggers. Consumed by the AFB informer daemon (Telegram/email). NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time. `display` carries human-readable strings pre-rendered by AFB backend (mirrors frontend alarm cards).",
+  "type": "object",
+  "required": [
+    "schema",
+    "alarm_id",
+    "ticker",
+    "condition",
+    "display",
+    "user"
+  ],
+  "properties": {
+    "schema": {"const": "afb.notification.alarm_triggered.v1"},
+    "alarm_id": {"type": "string", "minLength": 1},
+    "ticker": {"type": "string", "minLength": 1},
+    "instrument": {
+      "type": "object",
+      "properties": {
+        "shortname": {"type": "string"},
+        "secname": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "condition": {"$ref": "alarm.v1.json#/$defs/alarmConditionNode"},
+    "period": {"$ref": "condition.v1.json#/$defs/timeframe"},
+    "trigger_frequency": {"enum": ["once", "every_candle", "daily"]},
+    "triggered_value": {
+      "description": "Value that met the condition (price, indicator, or dataset field).",
+      "oneOf": [{"type": "number"}, {"type": "string"}]
+    },
+    "instrument_price": {
+      "description": "Instrument last price at trigger time (price_data.last).",
+      "type": "number"
+    },
+    "display": {
+      "type": "object",
+      "required": [
+        "instrument_label",
+        "condition_op",
+        "condition_description",
+        "condition_text"
+      ],
+      "properties": {
+        "instrument_label": {"type": "string", "minLength": 1},
+        "condition_op": {"type": "string", "minLength": 1},
+        "condition_description": {"type": "string", "minLength": 1},
+        "condition_text": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "context": {"type": "object"},
+    "user": {
+      "type": "object",
+      "required": ["name", "telegram", "email", "notify_telegram", "notify_email"],
+      "properties": {
+        "name": {"type": "string"},
+        "telegram": {"type": "string"},
+        "email": {"type": "string"},
+        "notify_telegram": {"type": "boolean"},
+        "notify_email": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO-8601 publish time; added by MQTTPublisher, not by build_alarm_notification."
+    }
+  },
+  "additionalProperties": false
+}

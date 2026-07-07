@@ -1,0 +1,39 @@
+{
+  "schema": "afb.notification.alarm_triggered.v1",
+  "alarm_id": "alarm-dataset-position-0001",
+  "ticker": "SBER",
+  "instrument": {
+    "shortname": "Сбербанк",
+    "secname": "Сбербанк ао"
+  },
+  "condition": {
+    "op": "above",
+    "left": {"source": "dataset", "dataset_id": "positions", "field": "long"},
+    "right": {"const": "1000"}
+  },
+  "period": "10min",
+  "trigger_frequency": "daily",
+  "triggered_value": 1500,
+  "instrument_price": 251.2,
+  "display": {
+    "instrument_label": "Сбербанк (SBER)",
+    "condition_op": "Выше",
+    "condition_description": "Позиции/long 1000",
+    "condition_text": "Выше, Позиции/long 1000"
+  },
+  "context": {
+    "dataset_type": "positions",
+    "condition_ref": "long",
+    "current_row": {"long": 1500, "short": 0},
+    "prev_row": {"long": 950, "short": 0},
+    "price_data": {"last": 251.2}
+  },
+  "user": {
+    "name": "Trader",
+    "telegram": "@trader",
+    "email": "trader@test",
+    "notify_telegram": true,
+    "notify_email": false
+  },
+  "timestamp": "2026-07-07T20:34:00.123456"
+}

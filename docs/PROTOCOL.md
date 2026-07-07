@@ -528,3 +528,28 @@ Top-level `period` — общий таймфрейм вычисления ала
 Отсутствие данных (значение `None`/недоступно) в любой точке вычисления →
 `False`, никогда исключение — инвариант BF сохраняется во всех трёх
 компонентах.
+
+## 13. MQTT-уведомления информера (`afb.notification.alarm_triggered.v1`)
+
+Схема: `spec/schemas/notification.alarm_triggered.v1.json`. Это **не**
+wire-сообщение AFB↔BF и **не** подписанный конверт — AFB публикует JSON в MQTT
+топик `<topic_base>/alarms/<user_id>` при срабатывании пользовательского
+аларма; демон **informer** (`AFB/informer/`) подписывается и рассылает
+Telegram/e-mail.
+
+Поле `condition` повторяет `alarm.v1.json#/$defs/alarmConditionNode` (тот же
+`conditionNode`, что в `afb.alarm.v1`). Блок `display` **обязателен** и
+заполняется бэкендом AFB до публикации — человекочитаемые строки для
+информера (зеркало карточек аларма во фронтенде). Информер **не** читает
+`config/users` и securities — только MQTT.
+
+| Поле | Смысл |
+|---|---|
+| `triggered_value` | значение, по которому сработало условие (цена, индикатор, поле dataset) |
+| `instrument_price` | цена инструмента (`price_data.last`) в момент срабатывания |
+| `timestamp` | добавляется `MQTTPublisher` при публикации (ISO-8601) |
+
+Форматирование `display` — `afb_bf_protocol.alarm_display` (порт
+`alarmConditionDescription.ts`). Валидация на рантайме —
+`afb_bf_protocol.payload_validation.validate_notification` (extra
+`[validation]`). Примеры: `examples/notifications/*.json`.
