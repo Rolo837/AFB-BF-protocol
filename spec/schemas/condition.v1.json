@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/condition.v1.json",
   "title": "condition.v1 — unified condition node vocabulary",
-  "description": "Single source of truth for the condition-node vocabulary shared by afb.deal.v2, afb.tradeplan.v2 and afb.alarm.v1 (alarms, trade plans and deals all evaluate the same operators identically). The root schema validates a bare conditionNode; deal.v2.json/tradeplan.v2.json/alarm.v1.json $ref into this file's $defs rather than duplicating them. Left/right pairing is enforced per source via oneOf: price node without `op` is a touch (level crossed between the previous and current sample); price node with a candle op (breakout/breakdown/crossing) requires `timeframe` and is evaluated only against the last CLOSED candle of that timeframe; price/quote node with a deprecated tick op (above/below/crosses_above/crosses_below/crossing, no timeframe) keeps legacy tick-based semantics. indicator and dataset nodes share one scalar vocabulary (above/below/crosses_above/crosses_below/crossing) comparing against a constant or another expression of the same kind.",
+  "description": "Single source of truth for the condition-node vocabulary shared by afb.deal.v2, afb.tradeplan.v2 and afb.alarm.v1. Left/right pairing is enforced per source via oneOf: price without `op` is legacy touch (level between prev/cur); price with `op` above/below is an inclusive level check (cur >= level / cur <= level), optionally with `duration` (seconds, BF-only debounce); price with a candle op requires `timeframe`; deprecated tick crosses_* on price/quote remain accepted. `field` is required only on dataset expressions; price and indicator legs omit it on the wire (legacy `field` on read is ignored). indicator and dataset nodes use strict scalar ops (above/below/crosses_*/crossing).",
   "type": "object",
   "$ref": "#/$defs/conditionNode",
   "$defs": {
@@ -11,7 +11,20 @@
     },
     "scalarOp": {
       "enum": ["above", "below", "crosses_above", "crosses_below", "crossing"],
-      "description": "above: cur > thr. below: cur < thr. crosses_above: prev <= prev_thr AND cur > thr. crosses_below: prev >= prev_thr AND cur < thr. crossing: crosses_above OR crosses_below. A touch without departure (cur == thr) is never a cross. For a constant right-hand side prev_thr == thr."
+      "description": "indicator/dataset: above cur > thr, below cur < thr. crosses_above: prev <= prev_thr AND cur > thr. crosses_below: prev >= prev_thr AND cur < thr. crossing: crosses_above OR crosses_below. Price above/below use evaluate_price_level_op (inclusive >= / <=) — see the price level operator branch."
+    },
+    "priceLevelOp": {
+      "enum": ["above", "below"],
+      "description": "Price level check (inclusive): above fires when cur >= level; below when cur <= level."
+    },
+    "deprecatedTickScalarOp": {
+      "enum": ["crosses_above", "crosses_below", "crossing"],
+      "description": "deprecated (v1.4.0) tick-by-tick price/quote ops without timeframe. Removal planned for v2.0.0."
+    },
+    "duration": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Optional protective time in seconds: condition must hold for this many consecutive BF monitor ticks (~1 s each) before firing. BF executor only; AFB draft emulation and alarms ignore it."
     },
     "rightConst": {
       "type": "object",
@@ -22,8 +35,7 @@
       "type": "object",
       "required": ["source"],
       "properties": {
-        "source": {"const": "price"},
-        "field": {"const": "last"}
+        "source": {"const": "price"}
       }
     },
     "quoteExpr": {
@@ -38,6 +50,7 @@
     "indicatorExpr": {
       "type": "object",
       "required": ["source", "type"],
+      "description": "`field` is optional and should not be sent on the wire; AFB resolves alarm indicators by `id`, BF by `type`+`params`.",
       "properties": {
         "source": {"const": "indicator"},
         "type": {"enum": ["wma", "kama", "psar"]},
@@ -48,7 +61,7 @@
     },
     "datasetExpr": {
       "type": "object",
-      "required": ["source"],
+      "required": ["source", "field"],
       "description": "position.* / orders / hhi / trades datasets share this shape; dataset_id=volume is declared here but temporarily unsupported by AFB/BF backends (see condition_semantics module docstring) and not offered by the UI.",
       "properties": {
         "source": {"const": "dataset"},
@@ -66,8 +79,8 @@
       },
       "oneOf": [
         {
-          "title": "price touch (level)",
-          "description": "No `op`: the level is considered touched when it lies between the previous and current sample, i.e. min(prev, cur) <= level <= max(prev, cur). Equivalent to afb.deal.v1's only condition shape.",
+          "title": "price touch (legacy)",
+          "description": "Legacy-only: no `op`. Level touched when min(prev, cur) <= level <= max(prev, cur). New trade plans use op above/below instead.",
           "not": {"required": ["op"]},
           "properties": {
             "left": {"$ref": "#/$defs/priceExpr"},
@@ -86,14 +99,26 @@
           }
         },
         {
-          "title": "price tick operator (deprecated)",
-          "description": "deprecated (v1.4.0): tick-by-tick price comparison without a timeframe, using the scalar vocabulary (see #/$defs/scalarOp). Still accepted and evaluated; prefer the touch shape (no op) or a candle operator with `timeframe`. Removal planned for v2.0.0.",
+          "title": "price level operator",
+          "description": "Inclusive price level: above = cur >= level, below = cur <= level. Optional `duration` (seconds) for BF protective-time debounce.",
           "required": ["op"],
           "not": {"required": ["timeframe"]},
           "properties": {
             "left": {"$ref": "#/$defs/priceExpr"},
             "right": {"$ref": "#/$defs/rightConst"},
-            "op": {"$ref": "#/$defs/scalarOp"}
+            "op": {"$ref": "#/$defs/priceLevelOp"},
+            "duration": {"$ref": "#/$defs/duration"}
+          }
+        },
+        {
+          "title": "price tick operator (deprecated)",
+          "description": "deprecated (v1.4.0): tick-by-tick crosses_* / crossing without timeframe. Removal planned for v2.0.0.",
+          "required": ["op"],
+          "not": {"required": ["timeframe"]},
+          "properties": {
+            "left": {"$ref": "#/$defs/priceExpr"},
+            "right": {"$ref": "#/$defs/rightConst"},
+            "op": {"$ref": "#/$defs/deprecatedTickScalarOp"}
           }
         },
         {

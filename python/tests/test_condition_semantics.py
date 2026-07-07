@@ -8,18 +8,22 @@ import pytest
 
 from afb_bf_protocol.condition_semantics import (
     DEPRECATED_PRICE_OPS,
+    DEPRECATED_PRICE_TICK_OPS,
     DEPRECATED_QUOTE_OPS,
     OPS_BY_SOURCE,
     PRICE_CANDLE_OPS,
+    PRICE_LEVEL_OPS,
     SCALAR_OPS,
     evaluate_candle_op,
+    evaluate_price_level_op,
     evaluate_scalar_op,
     evaluate_touch,
 )
 
 
 def test_ops_by_source_matches_schema_vocabulary():
-    assert OPS_BY_SOURCE["price"] == PRICE_CANDLE_OPS | DEPRECATED_PRICE_OPS
+    assert OPS_BY_SOURCE["price"] == PRICE_CANDLE_OPS | PRICE_LEVEL_OPS | DEPRECATED_PRICE_TICK_OPS
+    assert DEPRECATED_PRICE_OPS == PRICE_LEVEL_OPS | DEPRECATED_PRICE_TICK_OPS
     assert OPS_BY_SOURCE["quote"] == DEPRECATED_QUOTE_OPS
     assert OPS_BY_SOURCE["indicator"] == SCALAR_OPS
     assert OPS_BY_SOURCE["dataset"] == SCALAR_OPS
@@ -47,6 +51,28 @@ def test_evaluate_touch_missing_data_is_false():
     assert evaluate_touch(None, "99", "100") is False
     assert evaluate_touch("101", None, "100") is False
     assert evaluate_touch("101", "99", None) is False
+
+
+# --- evaluate_price_level_op: inclusive above/below ------------------------
+
+
+def test_price_level_above_below_inclusive():
+    assert evaluate_price_level_op("above", "101", "100") is True
+    assert evaluate_price_level_op("above", "100", "100") is True
+    assert evaluate_price_level_op("above", "99", "100") is False
+    assert evaluate_price_level_op("below", "99", "100") is True
+    assert evaluate_price_level_op("below", "100", "100") is True
+    assert evaluate_price_level_op("below", "101", "100") is False
+
+
+def test_price_level_op_missing_data_is_false():
+    assert evaluate_price_level_op("above", None, "100") is False
+    assert evaluate_price_level_op("above", "101", None) is False
+
+
+def test_price_level_op_unknown_raises():
+    with pytest.raises(ValueError):
+        evaluate_price_level_op("crossing", "101", "100")
 
 
 # --- evaluate_scalar_op: above/below ----------------------------------------

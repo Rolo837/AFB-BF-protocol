@@ -26,11 +26,14 @@ from typing import Optional, Union
 __all__ = [
     "TIMEFRAMES",
     "SCALAR_OPS",
+    "PRICE_LEVEL_OPS",
     "PRICE_CANDLE_OPS",
+    "DEPRECATED_PRICE_TICK_OPS",
     "DEPRECATED_PRICE_OPS",
     "DEPRECATED_QUOTE_OPS",
     "OPS_BY_SOURCE",
     "evaluate_touch",
+    "evaluate_price_level_op",
     "evaluate_scalar_op",
     "evaluate_candle_op",
 ]
@@ -50,19 +53,27 @@ SCALAR_OPS: frozenset[str] = frozenset(
     {"above", "below", "crosses_above", "crosses_below", "crossing"}
 )
 
+# Inclusive price level checks (no timeframe).
+PRICE_LEVEL_OPS: frozenset[str] = frozenset({"above", "below"})
+
 # price conditions with a `timeframe`, evaluated on the last CLOSED candle only.
 PRICE_CANDLE_OPS: frozenset[str] = frozenset({"breakout", "breakdown", "crossing"})
 
-# price/quote conditions without a `timeframe` — legacy tick-by-tick comparison,
-# deprecated in v1.4.0, removal planned for v2.0.0.
-DEPRECATED_PRICE_OPS: frozenset[str] = SCALAR_OPS
+# Deprecated tick crosses_* / crossing on price without timeframe.
+DEPRECATED_PRICE_TICK_OPS: frozenset[str] = frozenset(
+    {"crosses_above", "crosses_below", "crossing"}
+)
+
+# Back-compat alias: all non-candle tick ops on price (level + deprecated).
+DEPRECATED_PRICE_OPS: frozenset[str] = PRICE_LEVEL_OPS | DEPRECATED_PRICE_TICK_OPS
+
+# quote conditions — full scalar vocabulary, deprecated in v1.4.0.
 DEPRECATED_QUOTE_OPS: frozenset[str] = SCALAR_OPS
 
 # Valid explicit `op` values per left.source. `price` additionally allows
-# omitting `op` entirely (the touch shape, see evaluate_touch) — that case has
-# no entry here since there is no op string to look up.
+# omitting `op` entirely (the legacy touch shape, see evaluate_touch).
 OPS_BY_SOURCE: dict[str, frozenset[str]] = {
-    "price": PRICE_CANDLE_OPS | DEPRECATED_PRICE_OPS,
+    "price": PRICE_CANDLE_OPS | PRICE_LEVEL_OPS | DEPRECATED_PRICE_TICK_OPS,
     "quote": DEPRECATED_QUOTE_OPS,
     "indicator": SCALAR_OPS,
     "dataset": SCALAR_OPS,
@@ -86,6 +97,23 @@ def evaluate_touch(
         return False
     lo, hi = (prev_d, cur_d) if prev_d <= cur_d else (cur_d, prev_d)
     return lo <= level_d <= hi
+
+
+def evaluate_price_level_op(
+    op: str,
+    cur: Optional[Number],
+    level: Optional[Number],
+) -> bool:
+    """Inclusive price level check: ``above`` = ``cur >= level``;
+    ``below`` = ``cur <= level``. Does not use ``prev``."""
+    cur_d, level_d = _dec(cur), _dec(level)
+    if cur_d is None or level_d is None:
+        return False
+    if op == "above":
+        return cur_d >= level_d
+    if op == "below":
+        return cur_d <= level_d
+    raise ValueError(f"unknown price level op: {op!r}")
 
 
 def evaluate_scalar_op(

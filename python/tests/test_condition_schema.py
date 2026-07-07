@@ -25,10 +25,10 @@ def _validates(registry, node) -> bool:
         return False
 
 
-PRICE = {"source": "price", "field": "last"}
+PRICE = {"source": "price"}
 QUOTE_BID = {"source": "quote", "field": "bid"}
 INDICATOR_WMA = {"source": "indicator", "type": "wma", "id": "ind1"}
-DATASET_POS = {"source": "dataset", "dataset_id": "positions.long"}
+DATASET_POS = {"source": "dataset", "dataset_id": "positions.long", "field": "long"}
 CONST_100 = {"const": "100"}
 
 
@@ -39,7 +39,8 @@ CONST_100 = {"const": "100"}
         {"left": PRICE, "right": CONST_100, "op": "breakout", "timeframe": "5min"},
         {"left": PRICE, "right": CONST_100, "op": "breakdown", "timeframe": "1d"},
         {"left": PRICE, "right": CONST_100, "op": "crossing", "timeframe": "1h"},
-        {"left": PRICE, "right": CONST_100, "op": "above"},  # deprecated tick op
+        {"left": PRICE, "right": CONST_100, "op": "above"},  # price level op
+        {"left": PRICE, "right": CONST_100, "op": "above", "duration": 3},
         {"left": PRICE, "right": CONST_100, "op": "crossing"},  # deprecated tick crossing (no timeframe)
         {"left": QUOTE_BID, "right": CONST_100, "op": "above"},  # deprecated quote
         {"left": INDICATOR_WMA, "right": CONST_100, "op": "above"},
@@ -54,7 +55,8 @@ CONST_100 = {"const": "100"}
         "price-breakout-with-timeframe",
         "price-breakdown-with-timeframe",
         "price-crossing-candle-with-timeframe",
-        "price-deprecated-above",
+        "price-level-above",
+        "price-level-above-with-duration",
         "price-deprecated-crossing-no-timeframe",
         "quote-deprecated-above",
         "indicator-vs-const",
@@ -72,24 +74,28 @@ def test_valid_condition_nodes(node, registry):
 @pytest.mark.parametrize(
     "node",
     [
-        {"left": PRICE, "right": CONST_100, "op": "above", "timeframe": "5min"},  # deprecated op + timeframe
+        {"left": PRICE, "right": CONST_100, "op": "above", "timeframe": "5min"},  # level op + timeframe rejected
+        {"left": PRICE, "right": CONST_100, "op": "above", "duration": 0},  # duration minimum 1
         {"left": PRICE, "right": CONST_100, "op": "breakout"},  # candle op without required timeframe
         {"left": INDICATOR_WMA, "right": CONST_100, "op": "breakout"},  # candle op not valid for indicator
         {"left": DATASET_POS, "right": CONST_100, "op": "sideways"},  # unknown op
         {"left": PRICE, "right": CONST_100, "op": "crosses_above", "timeframe": "5min"},  # mixes deprecated op with timeframe
         {"left": INDICATOR_WMA, "right": DATASET_POS, "op": "above"},  # cross-kind right not allowed
+        {"left": {"source": "dataset", "dataset_id": "positions.long"}, "right": CONST_100, "op": "above"},  # missing field
         {"left": QUOTE_BID, "right": CONST_100},  # quote requires an op (no touch shape for quote)
         {"right": CONST_100},  # missing left
         {"left": PRICE},  # missing right
         {"left": INDICATOR_WMA, "right": CONST_100, "op": "above", "timeframe": "1min"},  # not in enum
     ],
     ids=[
-        "price-deprecated-op-with-timeframe-rejected",
+        "price-level-op-with-timeframe-rejected",
+        "price-duration-below-minimum-rejected",
         "price-breakout-without-timeframe-rejected",
         "indicator-with-candle-op-rejected",
         "dataset-unknown-op-rejected",
         "price-crosses-above-with-timeframe-rejected",
         "indicator-vs-dataset-cross-kind-rejected",
+        "dataset-missing-field-rejected",
         "quote-without-op-rejected",
         "missing-left-rejected",
         "missing-right-rejected",

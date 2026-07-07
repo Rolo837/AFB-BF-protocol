@@ -11,7 +11,7 @@
       "percent": "60",
       "condition": {
         "op": "above",
-        "left": {"source": "price", "field": "last"},
+        "left": {"source": "price"},
         "right": {"const": "4202.1"}
       },
       "order": {"type": "market"}
@@ -19,7 +19,7 @@
     {
       "percent": "40",
       "condition": {
-        "left": {"source": "price", "field": "last"},
+        "left": {"source": "price"},
         "right": {"primitive_id": "line-entry-2"}
       },
       "order": {"type": "limit", "limit_offset_steps": 2}
@@ -30,8 +30,8 @@
       "percent": "100",
       "condition": {
         "op": "crosses_below",
-        "left": {"source": "indicator", "type": "wma", "field": "value", "params": {"length": 20}},
-        "right": {"source": "indicator", "type": "kama", "field": "value", "params": {"length": 10}}
+        "left": {"source": "indicator", "type": "wma", "params": {"length": 20}},
+        "right": {"source": "indicator", "type": "kama", "params": {"length": 10}}
       }
     }
   ],
@@ -39,7 +39,7 @@
     {
       "percent": "100",
       "condition": {
-        "left": {"source": "price", "field": "last"},
+        "left": {"source": "price"},
         "right": {"primitive_id": "line-tp-1"}
       }
     }

@@ -63,11 +63,14 @@ from .amend_rules import (
 )
 from .condition_semantics import (
     SCALAR_OPS,
+    PRICE_LEVEL_OPS,
     PRICE_CANDLE_OPS,
+    DEPRECATED_PRICE_TICK_OPS,
     DEPRECATED_PRICE_OPS,
     DEPRECATED_QUOTE_OPS,
     OPS_BY_SOURCE,
     evaluate_touch,
+    evaluate_price_level_op,
     evaluate_scalar_op,
     evaluate_candle_op,
 )
@@ -119,11 +122,14 @@ __all__ = [
     "evaluate_amend",
     "is_amend_allowed",
     "SCALAR_OPS",
+    "PRICE_LEVEL_OPS",
     "PRICE_CANDLE_OPS",
+    "DEPRECATED_PRICE_TICK_OPS",
     "DEPRECATED_PRICE_OPS",
     "DEPRECATED_QUOTE_OPS",
     "OPS_BY_SOURCE",
     "evaluate_touch",
+    "evaluate_price_level_op",
     "evaluate_scalar_op",
     "evaluate_candle_op",
 ]

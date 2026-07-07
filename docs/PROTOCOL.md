@@ -498,18 +498,19 @@ Top-level `period` — общий таймфрейм вычисления ала
 
 | `left.source` | `right` | Операторы | Семантика |
 |---|---|---|---|
-| `price` (`field: last`) | `const` (или `primitiveRef` в ТП) | **без `op`** — касание | уровень пройден между prev и cur: `min(prev, cur) <= level <= max(prev, cur)` |
+| `price` | `const` (или `primitiveRef` в ТП) | **`above`**, **`below`** | inclusive level: `above` = `cur >= level`, `below` = `cur <= level`; опциональный `duration` (секунды, только BF) |
+| `price` | `const` | **без `op`** — legacy touch | уровень пройден между prev и cur: `min(prev, cur) <= level <= max(prev, cur)` |
 | `price` | `const` | **`breakout`**, **`breakdown`**, **`crossing`** + обязательный `timeframe` | по последней **закрытой** свече `timeframe`: `breakout` = `open < level AND close > level`; `breakdown` = `open > level AND close < level`; `crossing` = любое из двух. Никогда не вычисляется внутри бара. |
-| `indicator` | `const` или `indicator` | `above`, `below`, `crosses_above`, `crosses_below`, `crossing` | скалярное сравнение (см. ниже) |
-| `dataset` (`positions`/`orders`/`hhi`/`trades`; `volume` — только в схеме) | `const` или `dataset` того же `dataset_id` | те же 5 скалярных | как индикаторы; `volume` временно не вычисляется ни в AFB, ни в BF (статистика биржи по факту закрытия периода ещё не реализована) — схема протокола объявляет `dataset_id=volume`, но UI его не предлагает, а бэкенды возвращают "нет данных" |
-| *deprecated*: `price`/`quote` + `above`/`below`/`crosses_above`/`crosses_below`/тиковый `crossing` (без `timeframe`) | `const` | принимается и вычисляется по той же скалярной семантике | отличается от свечного `crossing` отсутствием `timeframe`; удаление в v2.0.0 |
+| `indicator` | `const` или `indicator` | `above`, `below`, `crosses_above`, `crosses_below`, `crossing` | скалярное сравнение (см. ниже); `field` на проводе не передаётся |
+| `dataset` (`positions`/`orders`/`hhi`/`trades`; `volume` — только в схеме) | `const` или `dataset` того же `dataset_id` | те же 5 скалярных | `field` **обязателен**; как индикаторы; `volume` временно не вычисляется |
+| *deprecated*: `price` + `crosses_above`/`crosses_below`/тиковый `crossing` (без `timeframe`) | `const` | принимается | удаление в v2.0.0 |
 | *deprecated*: `quote` (`bid`/`ask`) | `const` | принимается как раньше | из UI AFB убран; удаление в v2.0.0 |
 
-**Скалярная семантика (5 операторов, `indicator`/`dataset` и
-deprecated-тиковые `price`/`quote`)** — с `cur`/`prev` слева и `ref_cur`/
-`ref_prev` справа (для константы `ref_prev == ref_cur`):
+**Скалярная семантика (5 операторов, `indicator`/`dataset` и deprecated
+тиковые `price`/`quote`)** — с `cur`/`prev` слева и `ref_cur`/`ref_prev`
+справа (для константы `ref_prev == ref_cur`):
 
-- `above`: `cur > ref_cur`
+- `above`: `cur > ref_cur` (на `price` с `op: above`/`below` — отдельная inclusive-семантика, см. `evaluate_price_level_op`)
 - `below`: `cur < ref_cur`
 - `crosses_above`: `prev <= ref_prev AND cur > ref_cur`
 - `crosses_below`: `prev >= ref_prev AND cur < ref_cur`
