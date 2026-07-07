@@ -52,7 +52,7 @@ MESSAGE_REGISTRY: dict[str, MessageMeta] = {
     "session.resync_request": MessageMeta("system", "bf2afb", "session", "resync_request"),
     "session.hello_ack": MessageMeta("system", "afb2bf", "session", "hello_ack"),
     "session.resync_response": MessageMeta("system", "afb2bf", "session", "resync_response"),
-    "daemon.status": MessageMeta("system", "bf2afb", "daemon", "status"),
+    "daemon.status": MessageMeta("system", "bf2afb", "daemon", "status", persists_on_bf=True),
     "daemon.capabilities": MessageMeta("system", "bf2afb", "daemon", "capabilities"),
     "daemon.error": MessageMeta("system", "bf2afb", "daemon", "error", persists_on_bf=True),
     "daemon.capabilities_query": MessageMeta("system", "afb2bf", "daemon", "capabilities_query"),

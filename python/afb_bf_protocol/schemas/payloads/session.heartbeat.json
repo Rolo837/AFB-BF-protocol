@@ -9,6 +9,19 @@
     },
     "uptime_sec": {
       "type": "integer"
+    },
+    "health": {
+      "type": "object",
+      "properties": {
+        "overall": {
+          "type": "string",
+          "enum": ["ok", "warning", "critical"]
+        },
+        "points": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
     }
   },
   "additionalProperties": true,

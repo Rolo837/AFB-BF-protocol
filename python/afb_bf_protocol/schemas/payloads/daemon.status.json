@@ -18,6 +18,41 @@
     },
     "state": {
       "type": "string"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["ok", "warning", "critical"]
+    },
+    "health": {
+      "type": "object",
+      "properties": {
+        "overall": {
+          "type": "string",
+          "enum": ["ok", "warning", "critical"]
+        },
+        "points": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "point": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
     }
   },
   "additionalProperties": true,

@@ -30,7 +30,7 @@ Every message is a signed envelope (see `spec/schemas/envelope.json`).
 | `session.hello` | system |  | `spec/schemas/payloads/session.hello.json` | `examples/session.hello.json` |
 | `session.heartbeat` | system |  | `spec/schemas/payloads/session.heartbeat.json` | `examples/session.heartbeat.json` |
 | `session.resync_request` | system |  | `spec/schemas/payloads/session.resync_request.json` | `examples/session.resync_request.json` |
-| `daemon.status` | system |  | `spec/schemas/payloads/daemon.status.json` | `examples/daemon.status.json` |
+| `daemon.status` | system | yes | `spec/schemas/payloads/daemon.status.json` | `examples/daemon.status.json` |
 | `daemon.capabilities` | system |  | `spec/schemas/payloads/daemon.capabilities.json` | `examples/daemon.capabilities.json` |
 | `daemon.error` | system | yes | — | — |
 | `broker.account` | user |  | — | — |
