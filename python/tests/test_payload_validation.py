@@ -66,6 +66,53 @@ def test_validate_deal_v1_rejects_neither_side_nor_direction():
         validate_deal(deal)
 
 
+def test_validate_deal_accepts_hybrid_execution_mode_with_backstop():
+    """Фаза 3, этап D: execution_policy.execution_mode/backstop are opt-in
+    additions for the hybrid server-side SLTP backstop — see RESILIENCE.md."""
+    deal = copy.deepcopy(_fixture_deal("deal.publish"))
+    deal["execution_policy"] = {
+        "execution_mode": "hybrid",
+        "backstop": {"offset_steps": 5, "max_loss_steps": 100},
+    }
+    assert validate_deal(deal) == "afb.deal.v1"
+
+
+def test_validate_deal_accepts_reserved_server_execution_mode_at_schema_level():
+    """`server` is schema-valid (reserved for a future phase) — rejecting it
+    is a BF publish-time business rule (plan_validation.py), not a schema
+    constraint; see RESILIENCE.md Фаза 5."""
+    deal = copy.deepcopy(_fixture_deal("deal.publish"))
+    deal["execution_policy"] = {"execution_mode": "server"}
+    assert validate_deal(deal) == "afb.deal.v1"
+
+
+def test_validate_deal_rejects_unknown_execution_mode():
+    deal = copy.deepcopy(_fixture_deal("deal.publish"))
+    deal["execution_policy"] = {"execution_mode": "auto"}
+    with pytest.raises(PayloadValidationError):
+        validate_deal(deal)
+
+
+def test_validate_deal_rejects_negative_backstop_offset_steps():
+    deal = copy.deepcopy(_fixture_deal("deal.publish"))
+    deal["execution_policy"] = {"execution_mode": "hybrid", "backstop": {"offset_steps": -1}}
+    with pytest.raises(PayloadValidationError):
+        validate_deal(deal)
+
+
+def test_validate_deal_rejects_backstop_max_loss_steps_below_one():
+    deal = copy.deepcopy(_fixture_deal("deal.publish"))
+    deal["execution_policy"] = {"execution_mode": "hybrid", "backstop": {"max_loss_steps": 0}}
+    with pytest.raises(PayloadValidationError):
+        validate_deal(deal)
+
+
+def test_validate_deal_v2_inherits_execution_mode_via_shared_execution_policy():
+    deal = copy.deepcopy(_fixture_deal("deal.publish__v2"))
+    deal["execution_policy"] = {"execution_mode": "hybrid", "backstop": {"take_profit": False}}
+    assert validate_deal(deal) == "afb.deal.v2"
+
+
 def test_resolve_tradeplan_schema_defaults_to_v1_without_schema_field():
     assert resolve_tradeplan_schema({"id": "x"}) == "afb.tradeplan.v1"
 

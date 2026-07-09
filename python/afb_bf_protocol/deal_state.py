@@ -33,7 +33,7 @@ DealStatus = Literal[
 ExecutionPhase = Literal[
     "idle", "awaiting_entry", "entry_working", "holding", "exit_working"
 ]
-OrderRole = Literal["entry", "stop_loss", "take_profit", "cancel_close"]
+OrderRole = Literal["entry", "stop_loss", "take_profit", "cancel_close", "backstop"]
 CancelReason = Literal[
     "user_cancel",
     "publish_rejected",

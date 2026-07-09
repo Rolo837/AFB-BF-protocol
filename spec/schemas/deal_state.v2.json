@@ -27,13 +27,15 @@
       "properties": {
         "order_id": {"type": "string"},
         "side": {"enum": ["buy", "sell"]},
-        "role": {"enum": ["entry", "stop_loss", "take_profit", "cancel_close"]},
-        "status": {"enum": ["new", "partially_filled", "filled", "cancelled", "rejected"]},
+        "role": {"enum": ["entry", "stop_loss", "take_profit", "cancel_close", "backstop"]},
+        "status": {"enum": ["new", "partially_filled", "filled", "cancelled", "rejected", "watching", "expired"]},
         "quantity": {"type": "integer"},
         "filled_quantity": {"type": "integer"},
         "leg_index": {"type": "integer"},
         "limit_price": {"type": ["string", "null"]},
         "average_price": {"type": ["string", "null"]},
+        "stop_price": {"type": ["string", "null"], "description": "Server-side SLTP backstop trigger price (Фаза 3, этап E) — set only for role=backstop orders."},
+        "broker_order_id": {"type": "string", "description": "Exchange-assigned order id from the broker's own snapshot, distinct from order_id (BF's client_order_id) — see RESILIENCE.md, этап C."},
         "updated_at": {"type": "string"}
       }
     },

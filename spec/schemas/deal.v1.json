@@ -110,7 +110,24 @@
       "properties": {
         "on_afb_disconnect": {"type": "string"},
         "max_spread_steps": {"type": "integer"},
-        "margin_trading": {"type": "boolean"}
+        "margin_trading": {"type": "boolean"},
+        "execution_mode": {
+          "enum": ["client", "hybrid", "server"],
+          "description": "How exit protection is executed. Absent means `client` (condition engine only, current behaviour). `hybrid` additionally places a server-side SLTP backstop order once a position opens. `server` is reserved — not yet implemented by any BF, always rejected at publish. See RESILIENCE.md, Фаза 3/5."
+        },
+        "backstop": {
+          "type": "object",
+          "description": "Per-deal overrides for the hybrid-mode server-side backstop order; unset fields fall back to the executing BF's own config defaults. Meaningful only when execution_mode is `hybrid`.",
+          "properties": {
+            "offset_steps": {"type": "integer", "minimum": 0},
+            "stop_price": {"$ref": "#/$defs/decimalString"},
+            "max_loss_steps": {"type": "integer", "minimum": 1},
+            "take_profit": {
+              "type": "boolean",
+              "description": "Reserved for a future server-side take-profit leg (OCO). Always rejected as true for now — the backstop is protection-only in this phase."
+            }
+          }
+        }
       }
     }
   }

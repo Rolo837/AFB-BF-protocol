@@ -84,7 +84,15 @@
           "type": "boolean"
         },
         "server_sltp": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Alias kept for backward compatibility — equivalent to `hybrid` being present in execution_modes."
+        },
+        "execution_modes": {
+          "type": "array",
+          "description": "Deal execution modes this BF instance supports (see deal.v1.json#/$defs/executionPolicy/properties/execution_mode). AFB/UI use this to offer only modes the BF can actually run.",
+          "items": {
+            "enum": ["client", "hybrid", "server"]
+          }
         },
         "reports_api": {
           "type": "boolean"
