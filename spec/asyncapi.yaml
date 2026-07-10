@@ -1,7 +1,7 @@
 asyncapi: 3.1.0
 info:
   title: AFB <-> BF Execution Protocol
-  version: 1.8.0
+  version: 1.9.0
   description: >-
     Business protocol between AFB (OMS) and BF (executor daemon), wire version
     afb.execution.v1. Every message is a signed JSON envelope (Ed25519 over a
@@ -62,6 +62,8 @@ channels:
         $ref: '#/components/messages/broker_instrument'
       broker_instrument_resolved:
         $ref: '#/components/messages/broker_instrument_resolved'
+      broker_position_ledger:
+        $ref: '#/components/messages/broker_position_ledger'
       deal_publish:
         $ref: '#/components/messages/deal_publish'
       deal_operation:
@@ -144,6 +146,7 @@ operations:
       - $ref: '#/channels/afbBf/messages/broker_catalog'
       - $ref: '#/channels/afbBf/messages/broker_instrument'
       - $ref: '#/channels/afbBf/messages/broker_instrument_resolved'
+      - $ref: '#/channels/afbBf/messages/broker_position_ledger'
       - $ref: '#/channels/afbBf/messages/deal_accepted'
       - $ref: '#/channels/afbBf/messages/deal_rejected'
       - $ref: '#/channels/afbBf/messages/deal_status_changed'
@@ -481,6 +484,30 @@ components:
               type:
                 const: broker.instrument_resolved
       description: 'No fixture yet.'
+    broker_position_ledger:
+      name: broker.position_ledger
+      title: broker.position_ledger
+      summary: 'trading/bf2afb broker.position_ledger'
+      tags:
+        - name: 'class:trading'
+        - name: 'dir:bf2afb'
+        - name: 'persisted'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: broker.position_ledger
+              payload:
+                $ref: './schemas/payloads/broker.position_ledger.json'
+      description: >-
+        Account-level ledger of position qty not owned by any single deal —
+        BF's own orders explain a deal's qty, but the broker's account is
+        flat (one netted position per symbol shared by every deal bound to
+        it, and by anything that happened outside BF: manual trades, margin
+        calls, expirations). Emitted whenever a ledger entry is added and on
+        every reconcile pass. 'No fixture yet.'
     deal_publish:
       name: deal.publish
       title: deal.publish

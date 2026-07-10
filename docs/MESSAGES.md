@@ -38,6 +38,7 @@ Every message is a signed envelope (see `spec/schemas/envelope.json`).
 | `broker.catalog` | user |  | — | — |
 | `broker.instrument` | user |  | — | — |
 | `broker.instrument_resolved` | user |  | — | — |
+| `broker.position_ledger` | trading | yes | `spec/schemas/payloads/broker.position_ledger.json` | — |
 | `deal.accepted` | trading | yes | `spec/schemas/payloads/deal.accepted.json` | `examples/deal.accepted.json` |
 | `deal.rejected` | trading | yes | `spec/schemas/payloads/deal.rejected.json` | `examples/deal.rejected.json` |
 | `deal.status_changed` | trading | yes | `spec/schemas/payloads/deal.status_changed.json` | `examples/deal.status_changed.json` |

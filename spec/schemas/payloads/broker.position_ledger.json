@@ -1,0 +1,62 @@
+{
+  "type": "object",
+  "properties": {
+    "account_id": {
+      "type": "string"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "entry_id": {
+            "type": "string"
+          },
+          "account_id": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "integer",
+            "description": "Signed net qty this entry represents: positive = long, negative = short."
+          },
+          "avg_price": {
+            "type": ["string", "null"]
+          },
+          "origin": {
+            "type": "string",
+            "enum": ["bootstrap", "orphan_residual", "deal_archived", "external_close", "entry_only_release"]
+          },
+          "source_deal_id": {
+            "type": ["string", "null"]
+          },
+          "note": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true,
+        "required": ["entry_id", "symbol", "qty", "origin"]
+      }
+    },
+    "residual_by_symbol": {
+      "type": "object",
+      "description": "Sum of entries[].qty per symbol, keyed by symbol — a convenience projection of entries.",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "required": ["account_id", "entries", "residual_by_symbol"],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.position_ledger.json",
+  "title": "payload: broker.position_ledger"
+}

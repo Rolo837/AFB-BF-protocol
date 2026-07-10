@@ -67,6 +67,7 @@ MESSAGE_REGISTRY: dict[str, MessageMeta] = {
     "broker.catalog": MessageMeta("user", "bf2afb", "broker", "catalog"),
     "broker.instrument": MessageMeta("user", "bf2afb", "broker", "instrument"),
     "broker.instrument_resolved": MessageMeta("user", "bf2afb", "broker", "instrument_resolved"),
+    "broker.position_ledger": MessageMeta("trading", "bf2afb", "broker", "position_ledger", persists_on_bf=True),
     "deal.publish": MessageMeta("user", "afb2bf", "deal", "publish"),
     "deal.operation": MessageMeta("user", "afb2bf", "deal", "operation"),
     "deal.amend": MessageMeta("user", "afb2bf", "deal", "amend"),
