@@ -7,6 +7,9 @@
     "dry_run": {
       "type": "boolean"
     },
+    "margin_trading": {
+      "type": "boolean"
+    },
     "nonce": {
       "type": "string"
     },

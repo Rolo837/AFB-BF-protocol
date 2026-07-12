@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "afb-bf-protocol"
-version = "1.9.0"
+version = "1.10.0"
 description = "Shared wire protocol (afb.execution.v1) for AFB OMS and BF executor: models, envelope, signing, validation, taxonomy"
 requires-python = ">=3.11"
 dependencies = [

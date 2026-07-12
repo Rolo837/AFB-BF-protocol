@@ -10,6 +10,9 @@
     "protocol": {
       "type": "string"
     },
+    "accepted_protocol": {
+      "type": "string"
+    },
     "dry_run": {
       "type": "boolean"
     },
@@ -17,6 +20,15 @@
       "type": "boolean"
     },
     "dry_run_bf": {
+      "type": "boolean"
+    },
+    "margin_trading": {
+      "type": "boolean"
+    },
+    "margin_trading_afb": {
+      "type": "boolean"
+    },
+    "margin_trading_bf": {
       "type": "boolean"
     }
   },
