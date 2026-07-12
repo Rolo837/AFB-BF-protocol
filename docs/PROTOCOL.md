@@ -19,10 +19,10 @@ sequenceDiagram
 
     BF->>AFB: WS connect → /bf/v1
     BF->>AFB: session.hello
-    note right of BF: bf_id, protocol, nonce,<br/>version, dry_run
+    note right of BF: bf_id, protocol, nonce,<br/>version, dry_run, margin_trading
 
     AFB->>BF: session.hello_ack
-    note left of AFB: server_nonce, heartbeat_interval_sec,<br/>protocol, dry_run, dry_run_afb, dry_run_bf
+    note left of AFB: server_nonce, heartbeat_interval_sec,<br/>protocol, dry_run, dry_run_afb, dry_run_bf,<br/>margin_trading, margin_trading_afb, margin_trading_bf
 
     BF->>AFB: session.resync_request
     note right of BF: deal_revisions {deal_id: revision},<br/>deal_statuses {deal_id: status},<br/>deal_archived {deal_id: reason}
@@ -53,13 +53,13 @@ sequenceDiagram
 
 | Шаг | Отправитель | Тип | Ключевые поля payload |
 |-----|-------------|-----|-----------------------|
-| 1 | BF | `session.hello` | `bf_id`, `protocol`, `nonce`, `dry_run` |
-| 2 | AFB | `session.hello_ack` | `server_nonce`, `heartbeat_interval_sec`, `dry_run`, `dry_run_afb`, `dry_run_bf` |
+| 1 | BF | `session.hello` | `bf_id`, `protocol`, `nonce`, `dry_run`, `margin_trading` |
+| 2 | AFB | `session.hello_ack` | `server_nonce`, `heartbeat_interval_sec`, `dry_run`, `dry_run_afb`, `dry_run_bf`, `margin_trading`, `margin_trading_afb`, `margin_trading_bf` |
 | 3 | BF | `session.resync_request` | `deal_revisions`, `deal_statuses`, `deal_archived` |
 | 4 | AFB | `session.resync_response` | `deal_revisions`, `deal_statuses` (только активные) |
 | 5+ | AFB | `deal.publish` / `deal.operation` | при необходимости досинхронизации |
 
-`dry_run` в `hello_ack` — это `dry_run_afb OR dry_run_bf`; BF использует это значение для всей сессии.
+`dry_run`/`margin_trading` в `session.hello` — собственные (конфигурационные) значения BF. AFB-реестр (`trading_bf.yaml`) хранит для каждого коннектора `Optional[bool]` override: если задан — AFB замещает значение BF на всю сессию (уходит в соответствующее поле `hello_ack`); если не задан (`null`) — действует значение BF из `hello`. Ни dry_run, ни margin_trading никогда не перезаписывают yaml-конфиг BF — override живёт только в рамках текущей сессии AFB↔BF. (Начиная с v1.10.0; до этого `dry_run` в `hello_ack` был `dry_run_afb OR dry_run_bf`, а `margin_trading` на проводе отсутствовал.)
 
 ---
 
