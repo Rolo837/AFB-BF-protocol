@@ -12,7 +12,9 @@
     "limit"
   ],
   "time_in_force": [
-    "day"
+    "day",
+    "gtc",
+    "ioc"
   ],
   "sizing_modes": [
     "lots",

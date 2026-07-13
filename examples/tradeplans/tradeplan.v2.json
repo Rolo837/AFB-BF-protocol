@@ -13,16 +13,14 @@
         "op": "above",
         "left": {"source": "price"},
         "right": {"const": "4202.1"}
-      },
-      "order": {"type": "market"}
+      }
     },
     {
       "percent": "40",
       "condition": {
         "left": {"source": "price"},
         "right": {"primitive_id": "line-entry-2"}
-      },
-      "order": {"type": "limit", "limit_offset_steps": 2}
+      }
     }
   ],
   "stop_loss": [

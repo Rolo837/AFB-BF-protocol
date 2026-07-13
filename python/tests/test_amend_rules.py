@@ -29,7 +29,6 @@ def _deal_v1(**over):
                 "left": {"source": "price", "field": "last"},
                 "right": {"const": "100.5"},
             },
-            "order": {"type": "market"},
         },
         "sizing": {"mode": "lots", "value": "10"},
         "risk": {
@@ -120,6 +119,19 @@ def test_v1_entry_side_wins_over_direction_when_both_present():
     d["direction"] = "long"
     new = copy.deepcopy(d)
     new["direction"] = "short"  # direction changes, but entry.side (governing) does not
+    dec = evaluate_amend(d, new, _ctx("active", "holding"))
+    assert dec.allowed is True
+    assert dec.changed() == []
+
+
+def test_legacy_order_block_ignored_by_entry_field():
+    """Deprecated `entry.order` (order type/time_in_force/offset — now decided
+    solely by BF) must not trigger a spurious "entry changed" when an old
+    stored deal still carries it but the amend payload does not."""
+    d = _deal_v1()
+    d["entry"]["order"] = {"type": "market", "limit_offset_steps": 1, "time_in_force": "day"}
+    new = copy.deepcopy(d)
+    del new["entry"]["order"]
     dec = evaluate_amend(d, new, _ctx("active", "holding"))
     assert dec.allowed is True
     assert dec.changed() == []

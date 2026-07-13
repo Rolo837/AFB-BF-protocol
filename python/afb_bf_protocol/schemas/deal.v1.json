@@ -77,6 +77,8 @@
     },
     "order": {
       "type": "object",
+      "deprecated": true,
+      "description": "Deprecated (since 1.11.0): BF ignores this block. BF alone decides order type, time_in_force and limit offset from its own broker-adapter capabilities, config and execution mode — see daemon.capabilities.",
       "properties": {
         "type": {"enum": ["market", "limit"]},
         "limit_offset_steps": {"type": "integer"},
@@ -90,7 +92,7 @@
       "properties": {
         "side": {"enum": ["buy", "sell"]},
         "condition": {"$ref": "#/$defs/conditionNode"},
-        "order": {"$ref": "#/$defs/order"}
+        "order": {"$ref": "#/$defs/order", "deprecated": true}
       }
     },
     "exitBlock": {

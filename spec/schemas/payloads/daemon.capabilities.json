@@ -27,8 +27,9 @@
     },
     "time_in_force": {
       "type": "array",
+      "description": "Order lifetimes this BF instance can place, ordered by operator preference (first = default pick). `day` = до конца дня, `gtc` = до отмены, `ioc` = исполнить сразу (also used declaratively by brokers whose API has no time_in_force field at all, e.g. market-only REST APIs).",
       "items": {
-        "type": "string"
+        "enum": ["day", "gtc", "ioc"]
       }
     },
     "sizing_modes": {

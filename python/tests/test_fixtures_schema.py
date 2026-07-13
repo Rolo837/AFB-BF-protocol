@@ -32,3 +32,32 @@ def test_example_validates(path: Path, registry):
     assert payload_schema_path.exists(), f"missing payload schema for {msg_type}"
     payload_schema = json.loads(payload_schema_path.read_text())
     Draft202012Validator(payload_schema, registry=registry).validate(env["payload"])
+
+
+def test_legacy_entry_order_still_validates(registry):
+    """`entry.order` (deprecated since 1.11.0) must remain schema-valid so
+    deals published/stored before the deprecation keep validating."""
+    from jsonschema import Draft202012Validator
+
+    deal_schema = json.loads((SPEC_SCHEMAS / "deal.v1.json").read_text())
+    deal = {
+        "schema": "afb.deal.v1",
+        "deal_id": "deal-legacy:bf1",
+        "revision": 1,
+        "target": {
+            "bf_id": "bf1",
+            "broker": "finam-arena",
+            "instrument": {"exchange": "MOEX", "board": "TQBR", "ticker": "SBER"},
+        },
+        "entry": {
+            "side": "buy",
+            "condition": {
+                "node_type": "event", "id": "e1", "op": "above",
+                "left": {"source": "price", "field": "last"},
+                "right": {"const": "100.5"},
+            },
+            "order": {"type": "market", "limit_offset_steps": 1, "time_in_force": "day"},
+        },
+        "sizing": {"mode": "lots", "value": "1"},
+    }
+    Draft202012Validator(deal_schema, registry=registry).validate(deal)

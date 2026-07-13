@@ -16,17 +16,20 @@ Matrix (``✓`` allow · ``~`` allow-with-warning · ``✗`` deny):
     field \\ phase        published  awaiting_entry  entry_working  holding  exit_working  terminal
     instrument           ✓          ✗               ✗              ✗        ✗             ✗
     side                 ✓          ✓               ~              ✗        ✗             ✗
-    entry (cond/order)   ✓          ✓               ~              ✗        ✗             ✗
+    entry (condition)    ✓          ✓               ~              ✗        ✗             ✗
     sizing               ✓          ✓               ✓              ✗        ✗             ✗
     stop_loss            ✓          ✓               ✓              ✓        ~             ✗
     take_profit          ✓          ✓               ✓              ✓        ~             ✗
     execution_policy     ✓          ✓               ✓              ✓        ~             ✗
 
 Invariants encoded here:
-- Entry-defining fields (instrument / side / entry condition+order) freeze the
+- Entry-defining fields (instrument / side / entry condition) freeze the
   moment a position exists. ``entry_working`` means a live entry order with **no**
   fill yet (``infer_execution_stage`` returns ``holding`` as soon as there is any
   position), so it is still safe to cancel+replace the entry there.
+  ``entry``'s deprecated ``order`` sub-block (order type/time_in_force/offset —
+  now decided solely by BF, not part of the deal) is ignored here even if still
+  present on old stored deals, so it never causes a spurious "entry changed".
   "side" reads ``entry.side`` (legacy buy/sell) or the deal-level ``direction``
   (long/short) on afb.deal.v1 — at least one is present, entry.side wins when
   both are — and only the deal-level ``direction`` on afb.deal.v2, which has
@@ -158,19 +161,19 @@ def _sides(deal: dict[str, Any]) -> tuple[str, ...]:
 
 
 def _entry_triggers(deal: dict[str, Any]) -> Any:
-    """Entry condition+order(s), excluding ``side`` (governed separately)."""
+    """Entry condition(s), excluding ``side`` (governed separately) and the
+    deprecated per-leg ``order`` block (BF-only concern, not part of the deal)."""
     entry = deal.get("entry")
     if _is_v2(deal) and isinstance(entry, list):
         return [
             {
                 "percent": (e or {}).get("percent"),
                 "condition": (e or {}).get("condition"),
-                "order": (e or {}).get("order"),
             }
             for e in entry
         ]
     if isinstance(entry, dict):
-        return [{"condition": entry.get("condition"), "order": entry.get("order")}]
+        return [{"condition": entry.get("condition")}]
     return []
 
 

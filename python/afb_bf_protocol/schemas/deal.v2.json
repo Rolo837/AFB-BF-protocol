@@ -21,7 +21,7 @@
         "properties": {
           "percent": {"$ref": "deal.v1.json#/$defs/decimalString"},
           "condition": {"$ref": "#/$defs/conditionNode"},
-          "order": {"$ref": "deal.v1.json#/$defs/order"}
+          "order": {"$ref": "deal.v1.json#/$defs/order", "deprecated": true}
         }
       }
     },
