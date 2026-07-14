@@ -105,6 +105,24 @@ def test_v2_requires_direction(registry):
         _validator(TRADEPLAN_V2_ID, registry).validate(plan)
 
 
+@pytest.mark.parametrize("op", ["touch", "above", "below", "crossing", "breakout", "breakdown", None])
+def test_v2_condition_op_accepts_all_six_price_ops_and_omitted(op, registry):
+    condition = {"left": {"source": "price", "field": "last"}, "right": {"const": "100"}}
+    if op is not None:
+        condition["op"] = op
+        if op in ("breakout", "breakdown"):
+            condition["timeframe"] = "5min"
+    plan = {
+        "schema": "afb.tradeplan.v2",
+        "id": "tp1",
+        "ticker": "SBER",
+        "direction": "long",
+        "entries": [{"condition": condition}],
+        "sizing": {"mode": "lots", "value": "1"},
+    }
+    _validator(TRADEPLAN_V2_ID, registry).validate(plan)  # does not raise
+
+
 def test_v2_condition_left_right_pairing_is_not_enforced_here(registry):
     """tradeplan.v2 deliberately does NOT enforce the left/right pairing matrix
     (price/quote const-only, indicator/dataset const-or-same-kind) — that would
