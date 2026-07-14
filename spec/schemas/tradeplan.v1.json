@@ -22,6 +22,10 @@
     "take_profit": {"oneOf": [{"$ref": "#/$defs/condition"}, {"type": "null"}]},
     "stop_loss": {"oneOf": [{"$ref": "#/$defs/condition"}, {"type": "null"}]},
     "deal_id": {"type": "string"},
+    "delivery_at": {
+      "type": "string",
+      "description": "AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect."
+    },
     "created_at": {"type": "string"},
     "updated_at": {"type": "string"}
   },

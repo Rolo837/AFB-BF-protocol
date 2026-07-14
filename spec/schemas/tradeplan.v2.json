@@ -30,6 +30,10 @@
     "take_profit": {"$ref": "#/$defs/tpExitList"},
     "sizing": {"$ref": "deal.v1.json#/$defs/sizing"},
     "deal_id": {"type": "string"},
+    "delivery_at": {
+      "type": "string",
+      "description": "AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect."
+    },
     "created_at": {"type": "string"},
     "updated_at": {"type": "string"}
   },
