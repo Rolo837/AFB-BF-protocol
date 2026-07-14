@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/condition.v1.json",
   "title": "condition.v1 — unified condition node vocabulary",
-  "description": "Single source of truth for the condition-node vocabulary shared by afb.deal.v2, afb.tradeplan.v2 and afb.alarm.v1. Left/right pairing is enforced per source via oneOf: price without `op` is legacy touch (level between prev/cur); price with `op` above/below is an inclusive level check (cur >= level / cur <= level), optionally with `duration` (seconds, BF-only debounce); price with a candle op requires `timeframe`; deprecated tick crosses_* on price/quote remain accepted. `field` is required only on dataset expressions; price and indicator legs omit it on the wire (legacy `field` on read is ignored). indicator and dataset nodes use strict scalar ops (above/below/crosses_*/crossing).",
+  "description": "Single source of truth for the condition-node vocabulary shared by afb.deal.v2, afb.tradeplan.v2 and afb.alarm.v1. Left/right pairing is enforced per source via oneOf: price fully supports six operators, none deprecated — `touch` (op omitted, for wire back-compat, or op=\"touch\"): level between prev/cur; `above`/`below`: inclusive level check (cur >= level / cur <= level), optionally with `duration` (seconds, BF-only debounce); `breakout`/`breakdown`/`crossing`: candle op, requires `timeframe`. BF executes a fired `touch` as a LIMIT order and the other five as a MARKET order — see belphegor.plan_engine.order_policy. Deprecated tick crosses_* on price/quote remain accepted for backward compatibility only. `field` is required only on dataset expressions; price and indicator legs omit it on the wire (legacy `field` on read is ignored). indicator and dataset nodes use strict scalar ops (above/below/crosses_*/crossing).",
   "type": "object",
   "$ref": "#/$defs/conditionNode",
   "$defs": {
@@ -79,17 +79,18 @@
       },
       "oneOf": [
         {
-          "title": "price touch (legacy)",
-          "description": "Legacy-only: no `op`. Level touched when min(prev, cur) <= level <= max(prev, cur). New trade plans use op above/below instead.",
-          "not": {"required": ["op"]},
+          "title": "price touch",
+          "description": "Level touched when min(prev, cur) <= level <= max(prev, cur). `op` may be omitted (accepted on read for wire back-compat with pre-touch-op deals/plans) or given explicitly as \"touch\" (what AFB now always sends). Executed by BF as a LIMIT order.",
+          "not": {"required": ["timeframe"]},
           "properties": {
             "left": {"$ref": "#/$defs/priceExpr"},
-            "right": {"$ref": "#/$defs/rightConst"}
+            "right": {"$ref": "#/$defs/rightConst"},
+            "op": {"const": "touch"}
           }
         },
         {
           "title": "price candle operator",
-          "description": "breakout: last CLOSED candle of `timeframe` has open < level AND close > level. breakdown: open > level AND close < level. crossing: breakout OR breakdown. Evaluated only on candle close, never intra-bar.",
+          "description": "breakout: last CLOSED candle of `timeframe` has open < level AND close > level. breakdown: open > level AND close < level. crossing: breakout OR breakdown. Evaluated only on candle close, never intra-bar. Executed by BF as a MARKET order.",
           "required": ["op", "timeframe"],
           "properties": {
             "left": {"$ref": "#/$defs/priceExpr"},
@@ -100,7 +101,7 @@
         },
         {
           "title": "price level operator",
-          "description": "Inclusive price level: above = cur >= level, below = cur <= level. Optional `duration` (seconds) for BF protective-time debounce.",
+          "description": "Inclusive price level: above = cur >= level, below = cur <= level. Optional `duration` (seconds) for BF protective-time debounce. Executed by BF as a MARKET order.",
           "required": ["op"],
           "not": {"required": ["timeframe"]},
           "properties": {

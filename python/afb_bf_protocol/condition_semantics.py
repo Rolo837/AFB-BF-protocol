@@ -5,6 +5,17 @@ processor and dataset signal runner) must evaluate a condition — see that
 schema's ``$defs.conditionNode`` description for the operator vocabulary and
 ``docs/PROTOCOL.md`` for the worked examples.
 
+Price conditions support six fully-supported operators — none of them legacy
+or deprecated: ``touch`` (op omitted or ``"touch"``), ``above``/``below``
+(``PRICE_LEVEL_OPS``, inclusive level check, no timeframe) and
+``breakout``/``breakdown``/``crossing`` (``PRICE_CANDLE_OPS``, last CLOSED
+candle of the given timeframe). They also differ in how BF executes a fired
+condition: ``touch`` places a LIMIT order (bounded slippage via
+``limit_offset_steps``); the other five place a MARKET order (must fill
+regardless of slippage) — see ``belphegor.plan_engine.order_policy`` on the
+BF side. This module only evaluates *whether* a condition fired; the
+execution-type decision lives entirely in BF.
+
 Pure stdlib, no I/O: callers own sourcing ``cur``/``prev`` (and, for indicators
 and datasets, the same for the right-hand side) and the last CLOSED candle for
 price candle operators. A ``None`` input at any point means "no data available"
@@ -26,6 +37,7 @@ from typing import Optional, Union
 __all__ = [
     "TIMEFRAMES",
     "SCALAR_OPS",
+    "PRICE_TOUCH_OPS",
     "PRICE_LEVEL_OPS",
     "PRICE_CANDLE_OPS",
     "DEPRECATED_PRICE_TICK_OPS",
@@ -53,6 +65,11 @@ SCALAR_OPS: frozenset[str] = frozenset(
     {"above", "below", "crosses_above", "crosses_below", "crossing"}
 )
 
+# Explicit spelling of the price touch operator. `op` omitted entirely is the
+# same operator, kept for wire back-compat with pre-touch-op deals/plans —
+# see evaluate_touch. Both forms dispatch identically on every consumer.
+PRICE_TOUCH_OPS: frozenset[str] = frozenset({"touch"})
+
 # Inclusive price level checks (no timeframe).
 PRICE_LEVEL_OPS: frozenset[str] = frozenset({"above", "below"})
 
@@ -71,9 +88,9 @@ DEPRECATED_PRICE_OPS: frozenset[str] = PRICE_LEVEL_OPS | DEPRECATED_PRICE_TICK_O
 DEPRECATED_QUOTE_OPS: frozenset[str] = SCALAR_OPS
 
 # Valid explicit `op` values per left.source. `price` additionally allows
-# omitting `op` entirely (the legacy touch shape, see evaluate_touch).
+# omitting `op` entirely — equivalent to `op="touch"`, see evaluate_touch.
 OPS_BY_SOURCE: dict[str, frozenset[str]] = {
-    "price": PRICE_CANDLE_OPS | PRICE_LEVEL_OPS | DEPRECATED_PRICE_TICK_OPS,
+    "price": PRICE_TOUCH_OPS | PRICE_CANDLE_OPS | PRICE_LEVEL_OPS | DEPRECATED_PRICE_TICK_OPS,
     "quote": DEPRECATED_QUOTE_OPS,
     "indicator": SCALAR_OPS,
     "dataset": SCALAR_OPS,
@@ -89,9 +106,13 @@ def _dec(value: Optional[Number]) -> Optional[Decimal]:
 def evaluate_touch(
     cur: Optional[Number], prev: Optional[Number], level: Optional[Number]
 ) -> bool:
-    """Price touch (no `op`): the level lies between the previous and current
-    sample, i.e. ``min(prev, cur) <= level <= max(prev, cur)``. This is
-    afb.deal.v1's only condition shape."""
+    """Price touch (`op="touch"`, or `op` omitted for wire back-compat): the
+    level lies between the previous and current sample, i.e.
+    ``min(prev, cur) <= level <= max(prev, cur)``. Callers dispatch both
+    `op is None` and `op == "touch"` to this function — they are the same
+    operator. BF executes a fired touch as a LIMIT order (price ~= level,
+    bounded slippage); see order_policy on the BF side for the execution-type
+    decision, which this module does not make."""
     cur_d, prev_d, level_d = _dec(cur), _dec(prev), _dec(level)
     if cur_d is None or prev_d is None or level_d is None:
         return False
@@ -105,7 +126,9 @@ def evaluate_price_level_op(
     level: Optional[Number],
 ) -> bool:
     """Inclusive price level check: ``above`` = ``cur >= level``;
-    ``below`` = ``cur <= level``. Does not use ``prev``."""
+    ``below`` = ``cur <= level``. Does not use ``prev``. BF executes a fired
+    above/below as a MARKET order — it must fill regardless of how far price
+    has moved past ``level``."""
     cur_d, level_d = _dec(cur), _dec(level)
     if cur_d is None or level_d is None:
         return False
@@ -171,7 +194,9 @@ def evaluate_candle_op(
 
     ``breakout`` = ``open < level and close > level``;
     ``breakdown`` = ``open > level and close < level``;
-    ``crossing`` = either of the above.
+    ``crossing`` = either of the above. Like above/below, BF executes a fired
+    candle op as a MARKET order: by the time a full candle has closed past
+    ``level``, price has typically moved well beyond it.
     """
     open_d, close_d, level_d = _dec(open_), _dec(close), _dec(level)
     if open_d is None or close_d is None or level_d is None:

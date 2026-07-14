@@ -35,7 +35,8 @@ CONST_100 = {"const": "100"}
 @pytest.mark.parametrize(
     "node",
     [
-        {"left": PRICE, "right": CONST_100},  # touch, no op
+        {"left": PRICE, "right": CONST_100},  # touch, no op (wire back-compat)
+        {"left": PRICE, "right": CONST_100, "op": "touch"},  # touch, explicit op
         {"left": PRICE, "right": CONST_100, "op": "breakout", "timeframe": "5min"},
         {"left": PRICE, "right": CONST_100, "op": "breakdown", "timeframe": "1d"},
         {"left": PRICE, "right": CONST_100, "op": "crossing", "timeframe": "1h"},
@@ -52,6 +53,7 @@ CONST_100 = {"const": "100"}
     ],
     ids=[
         "price-touch-no-op",
+        "price-touch-explicit-op",
         "price-breakout-with-timeframe",
         "price-breakdown-with-timeframe",
         "price-crossing-candle-with-timeframe",
@@ -74,6 +76,7 @@ def test_valid_condition_nodes(node, registry):
 @pytest.mark.parametrize(
     "node",
     [
+        {"left": PRICE, "right": CONST_100, "op": "touch", "timeframe": "5min"},  # touch + timeframe rejected
         {"left": PRICE, "right": CONST_100, "op": "above", "timeframe": "5min"},  # level op + timeframe rejected
         {"left": PRICE, "right": CONST_100, "op": "above", "duration": 0},  # duration minimum 1
         {"left": PRICE, "right": CONST_100, "op": "breakout"},  # candle op without required timeframe
@@ -88,6 +91,7 @@ def test_valid_condition_nodes(node, registry):
         {"left": INDICATOR_WMA, "right": CONST_100, "op": "above", "timeframe": "1min"},  # not in enum
     ],
     ids=[
+        "price-touch-with-timeframe-rejected",
         "price-level-op-with-timeframe-rejected",
         "price-duration-below-minimum-rejected",
         "price-breakout-without-timeframe-rejected",

@@ -13,6 +13,7 @@ from afb_bf_protocol.condition_semantics import (
     OPS_BY_SOURCE,
     PRICE_CANDLE_OPS,
     PRICE_LEVEL_OPS,
+    PRICE_TOUCH_OPS,
     SCALAR_OPS,
     evaluate_candle_op,
     evaluate_price_level_op,
@@ -22,11 +23,12 @@ from afb_bf_protocol.condition_semantics import (
 
 
 def test_ops_by_source_matches_schema_vocabulary():
-    assert OPS_BY_SOURCE["price"] == PRICE_CANDLE_OPS | PRICE_LEVEL_OPS | DEPRECATED_PRICE_TICK_OPS
+    assert OPS_BY_SOURCE["price"] == PRICE_TOUCH_OPS | PRICE_CANDLE_OPS | PRICE_LEVEL_OPS | DEPRECATED_PRICE_TICK_OPS
     assert DEPRECATED_PRICE_OPS == PRICE_LEVEL_OPS | DEPRECATED_PRICE_TICK_OPS
     assert OPS_BY_SOURCE["quote"] == DEPRECATED_QUOTE_OPS
     assert OPS_BY_SOURCE["indicator"] == SCALAR_OPS
     assert OPS_BY_SOURCE["dataset"] == SCALAR_OPS
+    assert PRICE_TOUCH_OPS == {"touch"}
 
 
 # --- evaluate_touch --------------------------------------------------------

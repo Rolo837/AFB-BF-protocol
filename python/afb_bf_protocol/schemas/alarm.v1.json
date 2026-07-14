@@ -38,10 +38,11 @@
       "oneOf": [
         {
           "title": "price touch (level)",
-          "not": {"required": ["op"]},
+          "not": {"required": ["timeframe"]},
           "properties": {
             "left": {"$ref": "condition.v1.json#/$defs/priceExpr"},
-            "right": {"$ref": "condition.v1.json#/$defs/rightConst"}
+            "right": {"$ref": "condition.v1.json#/$defs/rightConst"},
+            "op": {"const": "touch"}
           }
         },
         {
@@ -55,13 +56,23 @@
           }
         },
         {
+          "title": "price level operator",
+          "required": ["op"],
+          "not": {"required": ["timeframe"]},
+          "properties": {
+            "left": {"$ref": "condition.v1.json#/$defs/priceExpr"},
+            "right": {"$ref": "condition.v1.json#/$defs/rightConst"},
+            "op": {"$ref": "condition.v1.json#/$defs/priceLevelOp"}
+          }
+        },
+        {
           "title": "price tick operator (deprecated)",
           "required": ["op"],
           "not": {"required": ["timeframe"]},
           "properties": {
             "left": {"$ref": "condition.v1.json#/$defs/priceExpr"},
             "right": {"$ref": "condition.v1.json#/$defs/rightConst"},
-            "op": {"$ref": "condition.v1.json#/$defs/scalarOp"}
+            "op": {"$ref": "condition.v1.json#/$defs/deprecatedTickScalarOp"}
           }
         },
         {

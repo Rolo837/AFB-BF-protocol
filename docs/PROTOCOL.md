@@ -496,15 +496,24 @@ Top-level `period` — общий таймфрейм вычисления ала
 
 **Источники (`left.source`) и допустимые операторы:**
 
-| `left.source` | `right` | Операторы | Семантика |
-|---|---|---|---|
-| `price` | `const` (или `primitiveRef` в ТП) | **`above`**, **`below`** | inclusive level: `above` = `cur >= level`, `below` = `cur <= level`; опциональный `duration` (секунды, только BF) |
-| `price` | `const` | **без `op`** — legacy touch | уровень пройден между prev и cur: `min(prev, cur) <= level <= max(prev, cur)` |
-| `price` | `const` | **`breakout`**, **`breakdown`**, **`crossing`** + обязательный `timeframe` | по последней **закрытой** свече `timeframe`: `breakout` = `open < level AND close > level`; `breakdown` = `open > level AND close < level`; `crossing` = любое из двух. Никогда не вычисляется внутри бара. |
-| `indicator` | `const` или `indicator` | `above`, `below`, `crosses_above`, `crosses_below`, `crossing` | скалярное сравнение (см. ниже); `field` на проводе не передаётся |
-| `dataset` (`positions`/`orders`/`hhi`/`trades`; `volume` — только в схеме) | `const` или `dataset` того же `dataset_id` | те же 5 скалярных | `field` **обязателен**; как индикаторы; `volume` временно не вычисляется |
-| *deprecated*: `price` + `crosses_above`/`crosses_below`/тиковый `crossing` (без `timeframe`) | `const` | принимается | удаление в v2.0.0 |
-| *deprecated*: `quote` (`bid`/`ask`) | `const` | принимается как раньше | из UI AFB убран; удаление в v2.0.0 |
+Для `price` полностью поддерживаются шесть операторов — ни один не
+устаревший: `touch`, `above`/`below`, `breakout`/`breakdown`/`crossing`. Они
+различаются и типом исполняемой BF заявки: `touch` → **лимитная** (цена от
+best bid/ask ± `limit_offset_steps`), остальные пять → **рыночная**
+(исполняется безусловно, без ограничения проскальзывания) — решение
+принимает исключительно `belphegor.plan_engine.order_policy`, на проводе
+никакого поля типа заявки не передаётся (deprecated с v1.11.0 блок `order`
+в `deal.v1.json`/`deal.v2.json`/`tradeplan.v2.json` больше не читается BF).
+
+| `left.source` | `right` | Операторы | Семантика | Исполнение BF |
+|---|---|---|---|---|
+| `price` | `const` | **`touch`** (или `op` опущен — совместимость со старыми сделками/планами) | уровень пройден между prev и cur: `min(prev, cur) <= level <= max(prev, cur)` | лимитная |
+| `price` | `const` (или `primitiveRef` в ТП) | **`above`**, **`below`** | inclusive level: `above` = `cur >= level`, `below` = `cur <= level`; опциональный `duration` (секунды, только BF) | рыночная |
+| `price` | `const` | **`breakout`**, **`breakdown`**, **`crossing`** + обязательный `timeframe` | по последней **закрытой** свече `timeframe`: `breakout` = `open < level AND close > level`; `breakdown` = `open > level AND close < level`; `crossing` = любое из двух. Никогда не вычисляется внутри бара. | рыночная |
+| `indicator` | `const` или `indicator` | `above`, `below`, `crosses_above`, `crosses_below`, `crossing` | скалярное сравнение (см. ниже); `field` на проводе не передаётся | — (не создаёт заявку напрямую) |
+| `dataset` (`positions`/`orders`/`hhi`/`trades`; `volume` — только в схеме) | `const` или `dataset` того же `dataset_id` | те же 5 скалярных | `field` **обязателен**; как индикаторы; `volume` временно не вычисляется | — |
+| *deprecated*: `price` + `crosses_above`/`crosses_below`/тиковый `crossing` (без `timeframe`) | `const` | принимается | удаление в v2.0.0 | лимитная (как touch) |
+| *deprecated*: `quote` (`bid`/`ask`) | `const` | принимается как раньше | из UI AFB убран; удаление в v2.0.0 | — |
 
 **Скалярная семантика (5 операторов, `indicator`/`dataset` и deprecated
 тиковые `price`/`quote`)** — с `cur`/`prev` слева и `ref_cur`/`ref_prev`
