@@ -1,7 +1,7 @@
 asyncapi: 3.1.0
 info:
   title: AFB <-> BF Execution Protocol
-  version: 1.11.0
+  version: 1.12.0
   description: >-
     Business protocol between AFB (OMS) and BF (executor daemon), wire version
     afb.execution.v1. Every message is a signed JSON envelope (Ed25519 over a
@@ -24,6 +24,12 @@ channels:
     messages:
       session_hello:
         $ref: '#/components/messages/session_hello'
+      session_enroll_request:
+        $ref: '#/components/messages/session_enroll_request'
+      session_enroll_response:
+        $ref: '#/components/messages/session_enroll_response'
+      session_reenroll_request:
+        $ref: '#/components/messages/session_reenroll_request'
       session_heartbeat:
         $ref: '#/components/messages/session_heartbeat'
       session_resync_request:
@@ -116,6 +122,8 @@ operations:
       $ref: '#/channels/afbBf'
     messages:
       - $ref: '#/channels/afbBf/messages/session_hello_ack'
+      - $ref: '#/channels/afbBf/messages/session_enroll_response'
+      - $ref: '#/channels/afbBf/messages/session_reenroll_request'
       - $ref: '#/channels/afbBf/messages/session_resync_response'
       - $ref: '#/channels/afbBf/messages/daemon_capabilities_query'
       - $ref: '#/channels/afbBf/messages/daemon_restart'
@@ -136,6 +144,7 @@ operations:
       $ref: '#/channels/afbBf'
     messages:
       - $ref: '#/channels/afbBf/messages/session_hello'
+      - $ref: '#/channels/afbBf/messages/session_enroll_request'
       - $ref: '#/channels/afbBf/messages/session_heartbeat'
       - $ref: '#/channels/afbBf/messages/session_resync_request'
       - $ref: '#/channels/afbBf/messages/daemon_status'
@@ -182,7 +191,58 @@ components:
                 const: session.hello
               payload:
                 $ref: './schemas/payloads/session.hello.json'
-      description: 'Example: examples/session.hello.json' 
+      description: 'Example: examples/session.hello.json'
+    session_enroll_request:
+      name: session.enroll_request
+      title: session.enroll_request
+      summary: 'system/bf2afb session.enroll_request'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:bf2afb'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: session.enroll_request
+              payload:
+                $ref: './schemas/payloads/session.enroll_request.json'
+      description: 'Self-signed pairing request (proof-of-possession of a freshly generated key); see docs/PROTOCOL.md#enrollment.'
+    session_enroll_response:
+      name: session.enroll_response
+      title: session.enroll_response
+      summary: 'system/afb2bf session.enroll_response'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: session.enroll_response
+              payload:
+                $ref: './schemas/payloads/session.enroll_response.json'
+      description: 'Signed by the AFB production key; confirms the pairing MAC and carries the AFB public key. See docs/PROTOCOL.md#enrollment.'
+    session_reenroll_request:
+      name: session.reenroll_request
+      title: session.reenroll_request
+      summary: 'system/afb2bf session.reenroll_request'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: session.reenroll_request
+              payload:
+                $ref: './schemas/payloads/session.reenroll_request.json'
+      description: 'AFB-initiated signal to raise the BF setup page for key rotation. See docs/PROTOCOL.md#enrollment.'
     session_heartbeat:
       name: session.heartbeat
       title: session.heartbeat

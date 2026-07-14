@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "properties": {
+    "bf_id": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "bf_id"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/session.reenroll_request.json",
+  "title": "payload: session.reenroll_request"
+}

@@ -48,6 +48,9 @@ def split_category_type(message_type: str) -> tuple[str, str]:
 
 MESSAGE_REGISTRY: dict[str, MessageMeta] = {
     "session.hello": MessageMeta("system", "bf2afb", "session", "hello"),
+    "session.enroll_request": MessageMeta("system", "bf2afb", "session", "enroll_request"),
+    "session.enroll_response": MessageMeta("system", "afb2bf", "session", "enroll_response"),
+    "session.reenroll_request": MessageMeta("system", "afb2bf", "session", "reenroll_request"),
     "session.heartbeat": MessageMeta("system", "bf2afb", "session", "heartbeat"),
     "session.resync_request": MessageMeta("system", "bf2afb", "session", "resync_request"),
     "session.hello_ack": MessageMeta("system", "afb2bf", "session", "hello_ack"),

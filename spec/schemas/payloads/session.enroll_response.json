@@ -1,0 +1,34 @@
+{
+  "type": "object",
+  "properties": {
+    "bf_id": {
+      "type": "string"
+    },
+    "server_nonce": {
+      "type": "string"
+    },
+    "afb_public_key": {
+      "type": "string"
+    },
+    "mac": {
+      "type": "string"
+    },
+    "protocol": {
+      "type": "string"
+    },
+    "bf_name": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "bf_id",
+    "server_nonce",
+    "afb_public_key",
+    "mac",
+    "protocol"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/session.enroll_response.json",
+  "title": "payload: session.enroll_response"
+}

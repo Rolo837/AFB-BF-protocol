@@ -8,6 +8,8 @@ Every message is a signed envelope (see `spec/schemas/envelope.json`).
 
 | type | class | persisted | payload schema | example |
 |------|-------|-----------|----------------|---------|
+| `session.enroll_response` | system |  | `spec/schemas/payloads/session.enroll_response.json` | — |
+| `session.reenroll_request` | system |  | `spec/schemas/payloads/session.reenroll_request.json` | — |
 | `session.hello_ack` | system |  | `spec/schemas/payloads/session.hello_ack.json` | `examples/session.hello_ack.json` |
 | `session.resync_response` | system |  | `spec/schemas/payloads/session.resync_response.json` | `examples/session.resync_response.json` |
 | `daemon.capabilities_query` | system |  | `spec/schemas/payloads/daemon.capabilities_query.json` | `examples/daemon.capabilities_query.json` |
@@ -28,6 +30,7 @@ Every message is a signed envelope (see `spec/schemas/envelope.json`).
 | type | class | persisted | payload schema | example |
 |------|-------|-----------|----------------|---------|
 | `session.hello` | system |  | `spec/schemas/payloads/session.hello.json` | `examples/session.hello.json` |
+| `session.enroll_request` | system |  | `spec/schemas/payloads/session.enroll_request.json` | — |
 | `session.heartbeat` | system |  | `spec/schemas/payloads/session.heartbeat.json` | `examples/session.heartbeat.json` |
 | `session.resync_request` | system |  | `spec/schemas/payloads/session.resync_request.json` | `examples/session.resync_request.json` |
 | `daemon.status` | system | yes | `spec/schemas/payloads/daemon.status.json` | `examples/daemon.status.json` |

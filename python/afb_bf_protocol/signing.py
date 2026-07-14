@@ -7,6 +7,7 @@ signature and ``payload_hash``.
 from __future__ import annotations
 
 import base64
+import hashlib
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
@@ -34,6 +35,7 @@ __all__ = [
     "export_private_key_pem",
     "export_public_key_pem",
     "ensure_dev_keypair",
+    "key_fingerprint",
 ]
 
 
@@ -118,6 +120,15 @@ def export_public_key_pem(public_key: Ed25519PublicKey) -> bytes:
         encoding=Encoding.PEM,
         format=PublicFormat.SubjectPublicKeyInfo,
     )
+
+
+def key_fingerprint(public_key: Ed25519PublicKey) -> str:
+    """First 12 hex chars of sha256(SPKI DER) — a diagnostic key_id, not a trust check."""
+    der = public_key.public_bytes(
+        encoding=Encoding.DER,
+        format=PublicFormat.SubjectPublicKeyInfo,
+    )
+    return hashlib.sha256(der).hexdigest()[:12]
 
 
 def ensure_dev_keypair(
