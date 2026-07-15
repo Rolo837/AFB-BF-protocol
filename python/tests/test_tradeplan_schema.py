@@ -74,6 +74,43 @@ def test_v1_direction_rejects_unknown_value(registry):
         _validator(TRADEPLAN_V1_ID, registry).validate(plan)
 
 
+def test_v1_stop_loss_accepts_duration(registry):
+    """Protective time on v1 stop_loss is an additionalProperty — accepted by the
+    loose tradeplan schema; AFB models/compile are the producer of truth."""
+    plan = {
+        "id": "tp1",
+        "ticker": "SBER",
+        "entry_condition": {"condition_type": "price", "price_value": 100},
+        "stop_loss": {
+            "condition_type": "price",
+            "price_value": 95,
+            "duration": 5,
+        },
+    }
+    _validator(TRADEPLAN_V1_ID, registry).validate(plan)
+
+
+def test_v2_condition_accepts_duration_on_price_level(registry):
+    plan = {
+        "id": "tp2",
+        "ticker": "SBER",
+        "direction": "long",
+        "schema": "afb.tradeplan.v2",
+        "entries": [
+            {
+                "condition": {
+                    "op": "above",
+                    "left": {"source": "price"},
+                    "right": {"const": "100"},
+                    "duration": 3,
+                }
+            }
+        ],
+        "sizing": {"mode": "lots", "value": "1"},
+    }
+    _validator(TRADEPLAN_V2_ID, registry).validate(plan)
+
+
 def test_v2_requires_non_empty_entries(registry):
     from jsonschema import ValidationError
 

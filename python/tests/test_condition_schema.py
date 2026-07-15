@@ -42,6 +42,7 @@ CONST_100 = {"const": "100"}
         {"left": PRICE, "right": CONST_100, "op": "crossing", "timeframe": "1h"},
         {"left": PRICE, "right": CONST_100, "op": "above"},  # price level op
         {"left": PRICE, "right": CONST_100, "op": "above", "duration": 3},
+        {"left": PRICE, "right": CONST_100, "op": "below", "duration": 1},
         {"left": PRICE, "right": CONST_100, "op": "crossing"},  # deprecated tick crossing (no timeframe)
         {"left": QUOTE_BID, "right": CONST_100, "op": "above"},  # deprecated quote
         {"left": INDICATOR_WMA, "right": CONST_100, "op": "above"},
@@ -59,6 +60,7 @@ CONST_100 = {"const": "100"}
         "price-crossing-candle-with-timeframe",
         "price-level-above",
         "price-level-above-with-duration",
+        "price-level-below-with-duration",
         "price-deprecated-crossing-no-timeframe",
         "quote-deprecated-above",
         "indicator-vs-const",

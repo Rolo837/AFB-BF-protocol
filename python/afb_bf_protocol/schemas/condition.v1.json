@@ -24,7 +24,7 @@
     "duration": {
       "type": "integer",
       "minimum": 1,
-      "description": "Optional protective time in seconds: condition must hold for this many consecutive BF monitor ticks (~1 s each) before firing. BF executor only; AFB draft emulation and alarms ignore it."
+      "description": "Optional protective time in seconds: the condition must remain continuously true for this many real seconds (BF monotonic clock) before firing. False, evaluate gaps, amend/pause/cancel and BF restart reset progress; progress is not persisted. AFB draft emulation and alarms ignore it. Only meaningful with price above/below (producer converts touch to above/below before wire); multi-leg plans may carry duration independently per leg."
     },
     "rightConst": {
       "type": "object",
@@ -101,7 +101,7 @@
         },
         {
           "title": "price level operator",
-          "description": "Inclusive price level: above = cur >= level, below = cur <= level. Optional `duration` (seconds) for BF protective-time debounce. Executed by BF as a MARKET order.",
+          "description": "Inclusive price level: above = cur >= level, below = cur <= level. Optional `duration` (real continuous seconds on BF's monotonic clock) for protective-time debounce. Executed by BF as a MARKET order.",
           "required": ["op"],
           "not": {"required": ["timeframe"]},
           "properties": {
