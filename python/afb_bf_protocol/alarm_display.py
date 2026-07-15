@@ -68,16 +68,14 @@ def condition_op_label(op: str | None) -> str:
     return OP_LABELS.get(op, op)
 
 
-def condition_description(
+def condition_subject(
     condition: Mapping[str, Any] | None,
     indicators: Sequence[Mapping[str, Any]] | None = None,
 ) -> str:
-    """Condition body: ``Цена 250.5`` / ``WMA (5) / KAMA (10)`` / ``Позиции/long 100``."""
+    """Left-hand label without the compared value: ``Цена`` / ``WMA (5)`` / ``Ордера/delta``."""
     c = condition or {}
     left = c.get("left") or {}
-    right = c.get("right") or {}
     source = left.get("source") or "price"
-    val_str = right.get("const") if right.get("const") is not None else "—"
     inds = indicators or []
 
     if source == "dataset":
@@ -86,28 +84,56 @@ def condition_description(
             return "Объём (временно не поддерживается)"
         label = DATASET_LABELS.get(dataset_id, dataset_id)
         field = str(left.get("field") or "")
-        return f"{label}/{field or '—'} {val_str}"
+        return f"{label}/{field or '—'}"
 
     if source == "indicator":
         ind = _find_indicator(inds, str(left.get("id") or "") or None)
-        label = chart_indicator_display_label(ind) if ind else str(left.get("id") or "—")
-        if right.get("source") == "indicator":
-            ref_ind = _find_indicator(inds, str(right.get("id") or "") or None)
-            ref_label = chart_indicator_display_label(ref_ind) if ref_ind else str(right.get("id") or "—")
-            return f"{label} / {ref_label}"
-        return f"{label} {val_str}"
+        return chart_indicator_display_label(ind) if ind else str(left.get("id") or "—")
 
-    return f"Цена {val_str}"
+    return "Цена"
+
+
+def condition_rhs(
+    condition: Mapping[str, Any] | None,
+    indicators: Sequence[Mapping[str, Any]] | None = None,
+) -> str:
+    """Right-hand side: constant or indicator label."""
+    c = condition or {}
+    right = c.get("right") or {}
+    inds = indicators or []
+    if right.get("source") == "indicator":
+        ref_ind = _find_indicator(inds, str(right.get("id") or "") or None)
+        return chart_indicator_display_label(ref_ind) if ref_ind else str(right.get("id") or "—")
+    return right.get("const") if right.get("const") is not None else "—"
+
+
+def condition_description(
+    condition: Mapping[str, Any] | None,
+    indicators: Sequence[Mapping[str, Any]] | None = None,
+) -> str:
+    """Condition body without op: ``Цена 250.5`` / ``WMA (5) / KAMA (10)`` / ``Позиции/long 100``."""
+    c = condition or {}
+    right = c.get("right") or {}
+    subject = condition_subject(c, indicators)
+    if subject.startswith("Объём"):
+        return subject
+    if right.get("source") == "indicator":
+        return f"{subject} / {condition_rhs(c, indicators)}"
+    return f"{subject} {condition_rhs(c, indicators)}"
 
 
 def condition_text(
     condition: Mapping[str, Any] | None,
     indicators: Sequence[Mapping[str, Any]] | None = None,
 ) -> str:
-    """``Оператор, описание`` — as on frontend alarm cards."""
+    """Natural phrase: ``Ордера/delta выше 10000`` / ``Цена касание 250.5``."""
     c = condition or {}
+    subject = condition_subject(c, indicators)
+    if subject.startswith("Объём"):
+        return subject
     op = c.get("op")
-    return f"{condition_op_label(op if isinstance(op, str) else None)}, {condition_description(c, indicators)}"
+    op_phrase = condition_op_label(op if isinstance(op, str) else None).lower()
+    return f"{subject} {op_phrase} {condition_rhs(c, indicators)}"
 
 
 def instrument_label(shortname: str | None, ticker: str) -> str:
@@ -135,5 +161,5 @@ def build_display(
         "instrument_label": instrument_label(shortname, ticker),
         "condition_op": op_label,
         "condition_description": desc,
-        "condition_text": f"{op_label}, {desc}",
+        "condition_text": condition_text(c, indicators),
     }

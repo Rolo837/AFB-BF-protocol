@@ -19,7 +19,7 @@
     "instrument_label": "Сбербанк (SBER)",
     "condition_op": "Выше",
     "condition_description": "Позиции/long 1000",
-    "condition_text": "Выше, Позиции/long 1000"
+    "condition_text": "Позиции/long выше 1000"
   },
   "context": {
     "dataset_type": "positions",

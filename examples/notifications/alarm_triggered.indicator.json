@@ -19,7 +19,7 @@
     "instrument_label": "Сбербанк (SBER)",
     "condition_op": "Пересечение вверх",
     "condition_description": "WMA (20) / KAMA (10)",
-    "condition_text": "Пересечение вверх, WMA (20) / KAMA (10)"
+    "condition_text": "WMA (20) пересечение вверх KAMA (10)"
   },
   "context": {
     "indicator_prev_value": "247.10",

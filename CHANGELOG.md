@@ -2,6 +2,14 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v1.13.2 — 2026-07-15
+
+Фикс отображения условия аларма в MQTT `display.condition_text`: вместо «Выше, Ордера/delta 10000» — естественная фраза «Ордера/delta выше 10000» (субъект + оператор + правая часть).
+
+- `alarm_display.condition_text` / `build_display`: шаблон `{subject} {op.lower()} {rhs}` для price / dataset / indicator.
+- Примеры `examples/notifications/alarm_triggered.*.json` обновлены.
+- PATCH: только текст `display`, схема и версия провода не меняются.
+
 ## v1.13.1 — 2026-07-14
 
 Фикс: `tradeplan.v2.json` — черновая схема торгового плана — не была обновлена вместе с v1.13.0 и держала собственный локальный enum оператора `op` (не через `condition.v1.json`), из-за чего `op: "touch"` отклонялся с `deal_id`/`entries/0/condition/op` ошибкой при сохранении плана с явным касанием.
