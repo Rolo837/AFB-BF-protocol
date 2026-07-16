@@ -2,6 +2,16 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v1.14.0 — 2026-07-16
+
+Уведомления о сделках в информер (MQTT `afb/deals/<user_id>`) + прокидывание времени события BF на провод.
+
+- **Новая схема** `notification.deal.v1.json` (`afb.notification.deal.v1`) — MQTT-уведомление о сделке (триггер условия, выставление/исполнение ордера, изменение позиции, закрытие с фин. результатом) для демона informer. Не входит в AsyncAPI, не пересекает канал AFB↔BF — как и alarm-уведомления.
+- **Переименование** `notification.alarm_triggered.v1.json` → `notification.alarm.v1.json` (`afb.notification.alarm_triggered.v1` → `afb.notification.alarm.v1`); состав полей не изменился. Это внутреннее переименование notification-схемы AFB (не пересекает канал AFB↔BF) — по новым правилам версионирования (см. `VERSIONING.md §2`) такие изменения относятся к PATCH-уровню.
+- **MINOR-часть релиза**: опциональное поле `at` (ISO-время события, из журнала BF) добавлено в wire-схемы `spec/schemas/payloads/` (`condition.triggered`, `order.created`, `order.filled`, `deal.accepted`, `deal.rejected`, `deal.status_changed`, `deal.archived`, `deal.positions_synced`, `position.opened`, `deal.report`) — обратносовместимое добавление для существующих BF.
+- **Правила версионирования ужесточены**: MAJOR запрещён без специальной команды пользователя; см. `CLAUDE.md`/`VERSIONING.md §2`.
+- Примеры `examples/notifications/alarm_triggered.*.json` переименованы в `alarm.*.json`; добавлены `deal.order_executed.json`, `deal.close.json`.
+
 ## v1.13.3 — 2026-07-15
 
 Уточнение семантики защитного времени (`duration`) для price `above`/`below`: BF измеряет реальные непрерывные секунды по monotonic clock (не счётчик monitor-тиков). Прогресс сбрасывается при `false`, gap'ах оценки, amend/pause/cancel и рестарте BF; не персистится. На проводе producer обязан отправлять `above`/`below` (UI `touch` преобразуется до компиляции); multi-leg с независимым `duration` на каждый leg разрешён протоколом.

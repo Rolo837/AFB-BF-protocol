@@ -1,6 +1,10 @@
 {
   "type": "object",
   "properties": {
+    "at": {
+      "type": "string",
+      "description": "ISO-8601 BF event-occurrence time (same value as the BF journal entry `at`)."
+    },
     "close_reason": {
       "type": "string"
     },
@@ -61,7 +65,8 @@
               "object",
               "array",
               "null"
-            ]
+            ],
+            "description": "ISO-8601 fill time (order's last status-transition time on BF); may be null for legacy BF versions predating this field."
           }
         },
         "additionalProperties": true,

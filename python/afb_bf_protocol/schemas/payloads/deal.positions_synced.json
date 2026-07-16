@@ -1,6 +1,10 @@
 {
   "type": "object",
   "properties": {
+    "at": {
+      "type": "string",
+      "description": "ISO-8601 BF event-occurrence time (same value as the BF journal entry `at`)."
+    },
     "changed": {
       "type": "array",
       "items": {

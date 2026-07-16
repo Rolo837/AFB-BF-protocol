@@ -1,0 +1,31 @@
+{
+  "schema": "afb.notification.deal.v1",
+  "event": "order.filled",
+  "category": "order_executed",
+  "deal_id": "deal-0001",
+  "bf_id": "bf-main",
+  "ticker": "SBER",
+  "instrument": {
+    "shortname": "Сбербанк",
+    "secname": "Сбербанк ао"
+  },
+  "direction": "long",
+  "side": "buy",
+  "price": "312.50",
+  "quantity": 5,
+  "filled_quantity": 5,
+  "at": "2026-07-16T10:15:03.500000+03:00",
+  "display": {
+    "instrument_label": "Сбербанк (SBER)",
+    "title": "Исполнен ордер: BUY 5 × 312.50",
+    "text": "Ордер на вход исполнен полностью."
+  },
+  "user": {
+    "name": "Trader",
+    "telegram": "@trader",
+    "email": "trader@test",
+    "notify_telegram": true,
+    "notify_email": false
+  },
+  "timestamp": "2026-07-16T10:15:03.612345"
+}

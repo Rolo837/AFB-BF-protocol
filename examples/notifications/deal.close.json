@@ -1,0 +1,30 @@
+{
+  "schema": "afb.notification.deal.v1",
+  "event": "position.closed",
+  "category": "close",
+  "deal_id": "deal-0001",
+  "bf_id": "bf-main",
+  "ticker": "SBER",
+  "instrument": {
+    "shortname": "Сбербанк",
+    "secname": "Сбербанк ао"
+  },
+  "direction": "long",
+  "realized_pnl": "1250.00",
+  "currency": "RUB",
+  "close_reason": "take_profit",
+  "at": "2026-07-16T11:42:10.000000+03:00",
+  "display": {
+    "instrument_label": "Сбербанк (SBER)",
+    "title": "Сделка закрыта: +1 250,00 ₽",
+    "text": "Закрыто по тейк-профиту."
+  },
+  "user": {
+    "name": "Trader",
+    "telegram": "@trader",
+    "email": "trader@test",
+    "notify_telegram": true,
+    "notify_email": false
+  },
+  "timestamp": "2026-07-16T11:42:10.114500"
+}

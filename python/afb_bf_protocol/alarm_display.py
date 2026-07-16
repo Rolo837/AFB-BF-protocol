@@ -152,7 +152,7 @@ def build_display(
     shortname: str | None = None,
     indicators: Sequence[Mapping[str, Any]] | None = None,
 ) -> dict[str, str]:
-    """Build the ``display`` block for afb.notification.alarm_triggered.v1."""
+    """Build the ``display`` block for afb.notification.alarm.v1."""
     c = condition or {}
     op = c.get("op")
     op_label = condition_op_label(op if isinstance(op, str) else None)

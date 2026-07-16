@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/notification.deal.v1.json",
+  "title": "Deal notification afb.notification.deal.v1",
+  "description": "AFB-side MQTT notification payload published to <topic_base>/deals/<user_id> for a deal lifecycle event the user opted into (Настройки → Торговля). Consumed by the AFB informer daemon (Telegram/email). NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time; `at` (when present) is the BF event-occurrence time carried through from the underlying order.*/position.*/deal.* payload. `display` carries human-readable strings pre-rendered by AFB backend, mirroring the alarm notification design.",
+  "type": "object",
+  "required": ["schema", "event", "category", "deal_id", "display", "user"],
+  "properties": {
+    "schema": {"const": "afb.notification.deal.v1"},
+    "event": {
+      "description": "Raw BF/AFB wire event type this notification was built from (traceability/debugging).",
+      "enum": [
+        "condition.triggered",
+        "order.created",
+        "order.filled",
+        "order.partially_filled",
+        "position.opened",
+        "position.changed",
+        "position.closed",
+        "deal.report"
+      ]
+    },
+    "category": {
+      "description": "Notification category matching the user-facing toggles in Настройки → Торговля.",
+      "enum": ["trigger", "order_placed", "order_executed", "position", "close"]
+    },
+    "deal_id": {"type": "string", "minLength": 1},
+    "bf_id": {"type": "string"},
+    "ticker": {"type": "string", "minLength": 1},
+    "instrument": {
+      "type": "object",
+      "properties": {
+        "shortname": {"type": "string"},
+        "secname": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "direction": {"enum": ["long", "short"]},
+    "side": {"enum": ["buy", "sell"]},
+    "price": {
+      "description": "Order/fill price (decimal string on the wire).",
+      "oneOf": [{"type": "number"}, {"type": "string"}]
+    },
+    "quantity": {"type": "integer"},
+    "filled_quantity": {"type": "integer"},
+    "realized_pnl": {
+      "description": "Financial result on deal/position close (decimal string on the wire).",
+      "oneOf": [{"type": "number"}, {"type": "string"}]
+    },
+    "currency": {"type": "string"},
+    "close_reason": {"type": "string"},
+    "at": {
+      "type": "string",
+      "description": "ISO-8601 BF event-occurrence time, carried through from the source order.*/position.*/deal.* payload's `at` field, when present."
+    },
+    "display": {
+      "type": "object",
+      "required": ["instrument_label", "title"],
+      "properties": {
+        "instrument_label": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "text": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "user": {
+      "type": "object",
+      "required": ["name", "telegram", "email", "notify_telegram", "notify_email"],
+      "properties": {
+        "name": {"type": "string"},
+        "telegram": {"type": "string"},
+        "email": {"type": "string"},
+        "notify_telegram": {"type": "boolean"},
+        "notify_email": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO-8601 publish time; added by MQTTPublisher, not by build_deal_notification."
+    }
+  },
+  "additionalProperties": false
+}

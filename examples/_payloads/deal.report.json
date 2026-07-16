@@ -1,4 +1,5 @@
 {
+  "at": "2026-06-19T14:02:11.000000+03:00",
   "close_reason": "stop_loss",
   "deal_id": "deal-1c24-4c49-9da6:finam-arena-316",
   "revision": 1,
@@ -11,7 +12,7 @@
       "quantity": 3,
       "role": "entry",
       "side": "buy",
-      "timestamp": null
+      "timestamp": "2026-06-19T10:15:03.612000+03:00"
     },
     {
       "commission": null,
@@ -20,7 +21,7 @@
       "quantity": 3,
       "role": "stop_loss",
       "side": "sell",
-      "timestamp": null
+      "timestamp": "2026-06-19T14:02:11.000000+03:00"
     }
   ],
   "summary": {

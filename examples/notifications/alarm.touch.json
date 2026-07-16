@@ -1,5 +1,5 @@
 {
-  "schema": "afb.notification.alarm_triggered.v1",
+  "schema": "afb.notification.alarm.v1",
   "alarm_id": "alarm-touch-0001",
   "ticker": "SBER",
   "instrument": {

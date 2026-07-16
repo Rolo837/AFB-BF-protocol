@@ -168,12 +168,27 @@ def test_validate_alarm_rejects_candle_op_without_timeframe():
 
 
 def test_validate_notification_accepts_touch_example():
-    data = json.loads((EXAMPLES / "notifications" / "alarm_triggered.touch.json").read_text())
-    assert validate_notification(data) == "afb.notification.alarm_triggered.v1"
+    data = json.loads((EXAMPLES / "notifications" / "alarm.touch.json").read_text())
+    assert validate_notification(data) == "afb.notification.alarm.v1"
 
 
 def test_validate_notification_rejects_missing_display():
-    data = json.loads((EXAMPLES / "notifications" / "alarm_triggered.touch.json").read_text())
+    data = json.loads((EXAMPLES / "notifications" / "alarm.touch.json").read_text())
     del data["display"]
     with pytest.raises(PayloadValidationError):
         validate_notification(data)
+
+
+def test_validate_notification_accepts_deal_example():
+    data = json.loads((EXAMPLES / "notifications" / "deal.order_executed.json").read_text())
+    assert validate_notification(data) == "afb.notification.deal.v1"
+
+
+def test_validate_notification_accepts_deal_close_example():
+    data = json.loads((EXAMPLES / "notifications" / "deal.close.json").read_text())
+    assert validate_notification(data) == "afb.notification.deal.v1"
+
+
+def test_validate_notification_rejects_unknown_schema():
+    with pytest.raises(PayloadValidationError):
+        validate_notification({"schema": "afb.notification.unknown.v1"})

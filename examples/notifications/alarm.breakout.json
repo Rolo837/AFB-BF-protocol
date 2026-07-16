@@ -1,5 +1,5 @@
 {
-  "schema": "afb.notification.alarm_triggered.v1",
+  "schema": "afb.notification.alarm.v1",
   "alarm_id": "alarm-breakout-0001",
   "ticker": "GDU6",
   "instrument": {

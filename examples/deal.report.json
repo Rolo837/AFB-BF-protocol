@@ -9,8 +9,9 @@
   "created_at": "2026-06-26T12:00:00+03:00",
   "expires_at": "2026-06-26T12:05:00+03:00",
   "idempotency_key": "finam-arena-316:deal.report:fixture-0001",
-  "payload_hash": "dec6881102399572ec77fbaab9e467b574d1d281c4b89d3f4c2545cd5b3b7aeb",
+  "payload_hash": "2c619984dc5d4c1465691825568e4561e9619c0372fa11eeb7325d482eb4a6cb",
   "payload": {
+    "at": "2026-06-19T14:02:11.000000+03:00",
     "close_reason": "stop_loss",
     "deal_id": "deal-1c24-4c49-9da6:finam-arena-316",
     "revision": 1,
@@ -23,7 +24,7 @@
         "quantity": 3,
         "role": "entry",
         "side": "buy",
-        "timestamp": null
+        "timestamp": "2026-06-19T10:15:03.612000+03:00"
       },
       {
         "commission": null,
@@ -32,7 +33,7 @@
         "quantity": 3,
         "role": "stop_loss",
         "side": "sell",
-        "timestamp": null
+        "timestamp": "2026-06-19T14:02:11.000000+03:00"
       }
     ],
     "summary": {
@@ -45,6 +46,6 @@
   "signature": {
     "alg": "Ed25519",
     "key_id": "belphegor-test-1",
-    "value": "GHtrs0GON771rBOVKG19sx50ukTM3cL0khsXQ3fv8jft6fbPzlt5aVud7IETXY2fsRE_pCc8HRw91lyu4HBKBg"
+    "value": "i6AjhRSMmI6zO2SfzHD82CLYO2V_yHWJ7iORjIqBnKLTFaNMBND2Y9OcuStf0BwMD6Q4nue34ZKln-0SxrWoCA"
   }
 }

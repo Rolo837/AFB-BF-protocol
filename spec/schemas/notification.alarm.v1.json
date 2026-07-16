@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/notification.alarm_triggered.v1.json",
-  "title": "Alarm notification afb.notification.alarm_triggered.v1",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/notification.alarm.v1.json",
+  "title": "Alarm notification afb.notification.alarm.v1",
   "description": "AFB-side MQTT notification payload published to <topic_base>/alarms/<user_id> when a user alarm triggers. Consumed by the AFB informer daemon (Telegram/email). NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time. `display` carries human-readable strings pre-rendered by AFB backend (mirrors frontend alarm cards).",
   "type": "object",
   "required": [
@@ -13,7 +13,7 @@
     "user"
   ],
   "properties": {
-    "schema": {"const": "afb.notification.alarm_triggered.v1"},
+    "schema": {"const": "afb.notification.alarm.v1"},
     "alarm_id": {"type": "string", "minLength": 1},
     "ticker": {"type": "string", "minLength": 1},
     "instrument": {

@@ -9,8 +9,9 @@
   "created_at": "2026-06-26T12:00:00+03:00",
   "expires_at": "2026-06-26T12:05:00+03:00",
   "idempotency_key": "finam-arena-316:deal.status_changed:fixture-0001",
-  "payload_hash": "919e719d1c9d67a0a2fa0fcd29125a3812410c4ed5e66c9c9d1b1aa2b506767e",
+  "payload_hash": "e1298880920ac35a4179c300d1f2a183ccaaf87cd1b2d9824c471e37bffd82b7",
   "payload": {
+    "at": "2026-06-26T05:59:40.500000+03:00",
     "deal_id": "deal-1cb4-4fe0-9c41:finam-arena-316",
     "execution_phase": "awaiting_entry",
     "last_price": "67.74",
@@ -20,6 +21,6 @@
   "signature": {
     "alg": "Ed25519",
     "key_id": "belphegor-test-1",
-    "value": "uaXq_x05q67UWyxzgixt01NqjwrM649IPqSyim2vdnDvwLufYhBYxzHQgapgJ0jD0jJzSBxsENbSm0Ysa8zGAw"
+    "value": "E70GgD5JSBUnc9c2D3OqRLhTdb8ztf9O0J-u-2_ruDmdocUtreJu4I56FTwTz-INV7AlDi2flR2oM5-AfM2fAw"
   }
 }

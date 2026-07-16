@@ -9,8 +9,9 @@
   "created_at": "2026-06-26T12:00:00+03:00",
   "expires_at": "2026-06-26T12:05:00+03:00",
   "idempotency_key": "finam-arena-316:deal.accepted:fixture-0001",
-  "payload_hash": "1d40b512fbd810ee12464f16d8cdf7627c1ccf9ad65dc7bc699adb53a9f10cae",
+  "payload_hash": "176b5ab11b137b8af92907031af66d6414b2f98e83d130001b3d9b0dfb76aaed",
   "payload": {
+    "at": "2026-06-19T05:50:22.100000+03:00",
     "binding": {
       "account_id": "1918978",
       "symbol": "ALRS@MISX"
@@ -65,6 +66,6 @@
   "signature": {
     "alg": "Ed25519",
     "key_id": "belphegor-test-1",
-    "value": "fI9Sns2MQ77MnrkzziKXdlqRiNea1epuwKS6hfe8U8sPHGmI6GHJJ76JpHil7fXaK0B31ATzKXgSlgCekKIaCA"
+    "value": "Mf6Mk85ocpEzuatbA1Lg8XBOBifFPBKyc_SbA0z36ud-mrvDIypOIbaCxEM5EwgI9jKogvP-sk_K9ApxTnRADA"
   }
 }
