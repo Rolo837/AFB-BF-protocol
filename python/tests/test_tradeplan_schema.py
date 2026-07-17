@@ -203,3 +203,43 @@ def test_v2_primitive_ref_rejects_extra_keys(registry):
     }
     with pytest.raises(ValidationError):
         _validator(TRADEPLAN_V2_ID, registry).validate(plan)
+
+
+def test_v1_and_v2_accept_optional_connector(registry):
+    v1 = {
+        "id": "tp1",
+        "ticker": "SBER",
+        "entry_condition": {"condition_type": "price", "price_value": 100},
+        "connector": "virtual",
+    }
+    _validator(TRADEPLAN_V1_ID, registry).validate(v1)
+    v2 = {
+        "schema": "afb.tradeplan.v2",
+        "id": "tp1",
+        "ticker": "SBER",
+        "direction": "long",
+        "entries": [
+            {"condition": {"left": {"source": "price"}, "op": "touch", "right": {"const": "100"}}}
+        ],
+        "sizing": {"mode": "lots", "value": "1"},
+        "connector": "bf-a",
+    }
+    _validator(TRADEPLAN_V2_ID, registry).validate(v2)
+
+
+def test_connector_rejects_empty_string(registry):
+    from jsonschema import ValidationError
+
+    v2 = {
+        "schema": "afb.tradeplan.v2",
+        "id": "tp1",
+        "ticker": "SBER",
+        "direction": "long",
+        "entries": [
+            {"condition": {"left": {"source": "price"}, "op": "touch", "right": {"const": "100"}}}
+        ],
+        "sizing": {"mode": "lots", "value": "1"},
+        "connector": "",
+    }
+    with pytest.raises(ValidationError):
+        _validator(TRADEPLAN_V2_ID, registry).validate(v2)

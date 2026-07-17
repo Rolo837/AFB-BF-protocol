@@ -30,6 +30,11 @@
     "take_profit": {"$ref": "#/$defs/tpExitList"},
     "sizing": {"$ref": "deal.v1.json#/$defs/sizing"},
     "deal_id": {"type": "string"},
+    "connector": {
+      "type": "string",
+      "minLength": 1,
+      "description": "AFB bf_id (real connector or virtual) used when publishing this plan. Omitted when user has neither trade nor virtual capability."
+    },
     "delivery_at": {
       "type": "string",
       "description": "AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect."
