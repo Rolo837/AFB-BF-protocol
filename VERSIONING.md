@@ -63,10 +63,14 @@ afb-bf-protocol @ git+https://github.com/Rolo837/AFB-BF-protocol.git@v1.0.0
 ## 5. Процедура релиза
 
 1. Изменить `spec/asyncapi.yaml` и/или `spec/schemas/*` (канон).
-2. `afb-bf-protocol-generate` — перегенерировать `taxonomy.py` и `docs/`.
+2. `afb-bf-protocol-generate` — перегенерировать `taxonomy.py`, `docs/` и
+   `ts/src/taxonomy.ts` + `ts/src/index.ts` (и `ts/src/models.ts`, если есть
+   Node-генерация моделей — см. `ts/tools/generate-models.mjs`).
 3. `python -m afb_bf_protocol.tools.make_fixtures` — обновить примеры при
    изменении формата.
 4. `pytest` (схемы, подписи, эквивалентность) + `npx @asyncapi/cli validate
-   spec/asyncapi.yaml` — зелёные.
-5. Поднять версию в `pyproject.toml`, `version.py`, `info.version` спеки.
-6. Тег `vX.Y.Z`, push. Потребители пинят новый тег.
+   spec/asyncapi.yaml` + `npm run typecheck` — зелёные.
+5. Поднять версию в `pyproject.toml`, `version.py`, `info.version` спеки и
+   `package.json`.
+6. Тег `vX.Y.Z`, push. Потребители пинят новый тег (включая
+   `AFB/frontend/package.json`, если он уже переведён на пакет).
