@@ -2,6 +2,18 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v1.16.0 — 2026-07-18
+
+Подготовительная чистка перед v2.0.0 (TypeScript-пакет): удаление deprecated-словаря условий и legacy-полей, исполняющее пометки «removal planned for v2.0.0», проставленные с v1.4.0/v1.11.0.
+
+- **`condition.v1.json`**: удалены `quoteExpr` (`source: "quote"`) и `deprecatedTickScalarOp` (тиковые `crosses_above`/`crosses_below`/`crossing` на price без `timeframe`). Price-условия теперь поддерживают четыре оператора: `touch`, `above`/`below` (уровень), `breakout`/`breakdown`/`crossing` (свеча, требует `timeframe`). Indicator/dataset `scalarOp` (включая `crosses_above`/`crosses_below`/`crossing`) не затронут.
+- **`deal.v1.json` / `deal.v2.json` / `tradeplan.v2.json`**: удалено `entry.order` (deprecated с v1.11.0, BF всегда игнорировал) и связанный `$defs.order`.
+- **`deal.v1.json`**: удалены legacy `entry.side` (buy/sell) и корневой `anyOf`, допускавший `direction` опциональным — `direction` (long/short) теперь обязателен, единственный источник истины позиции.
+- **`tradeplan.v1.json`**: `direction` сужен с переходного `["buy","long","sell","short"]` до `["long","short"]`.
+- **`payloads/deal.accepted.json`**: удалено `entry_order_type` (deprecated с v1.11.0).
+- `condition_semantics.py`, `amend_rules.py` — синхронизированы с канoном; убраны константы `DEPRECATED_PRICE_TICK_OPS`, `DEPRECATED_PRICE_OPS`, `DEPRECATED_QUOTE_OPS`.
+- PATCH: только удаление уже помеченных deprecated-веток на согласованных с BF/AFB потребителях; версия провода не меняется. Формально удаление принимаемых полей несовместимо, но релиз выпускается как промежуточный шаг перед v2.0.0 осознанно (решение пользователя) — AFB и BF деплоятся согласованно.
+
 ## v1.14.1 — 2026-07-17
 
 Опциональное поле `connector` на шаблонах торгового плана (AFB-side, не пересекает канал AFB↔BF).
