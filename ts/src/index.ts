@@ -2,3 +2,4 @@
 // Edit the spec, then run `afb-bf-protocol-generate`.
 
 export * from './taxonomy';
+export * from './models';

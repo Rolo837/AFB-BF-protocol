@@ -198,7 +198,33 @@ def render_ts_index() -> str:
         "// Edit the spec, then run `afb-bf-protocol-generate`.\n"
         "\n"
         "export * from './taxonomy';\n"
+        "export * from './models';\n"
     )
+
+
+def generate_ts_models(root: Path | None = None) -> bool:
+    """Run ts/tools/generate-models.mjs (Node) to render ts/src/models.ts.
+
+    Returns True if it ran, False if skipped (no node/node_modules — the repo
+    still works without Node for anything except regenerating models.ts).
+    """
+    import shutil as _shutil
+    import subprocess
+
+    root = root or _repo_root()
+    node = _shutil.which("node")
+    if node is None or not (root / "node_modules").exists():
+        print(
+            "skipping ts/src/models.ts generation: run `npm ci` at the repo root "
+            "and ensure `node` is on PATH, then re-run `afb-bf-protocol-generate`."
+        )
+        return False
+    subprocess.run(
+        [node, str(root / "ts" / "tools" / "generate-models.mjs")],
+        cwd=root,
+        check=True,
+    )
+    return True
 
 
 def render_messages_doc(registry: dict[str, MessageMeta]) -> str:
@@ -268,10 +294,13 @@ def main() -> int:
     ts_taxonomy.write_text(render_taxonomy_ts(registry))
     ts_index = ts_dir / "index.ts"
     ts_index.write_text(render_ts_index())
+    models_written = generate_ts_models(root)
 
     print(f"wrote {target} and {docs} ({len(registry)} message types from spec)")
     print(f"synced {schema_count} schema files to {schemas_dir}")
     print(f"wrote {ts_taxonomy} and {ts_index}")
+    if models_written:
+        print(f"wrote {ts_dir / 'models.ts'}")
     return 0
 
 

@@ -6,7 +6,8 @@
   "description": "Shared wire protocol (afb.execution.v1) for AFB OMS and BF executor: generated TypeScript taxonomy and models",
   "exports": {
     ".": "./ts/src/index.ts",
-    "./taxonomy": "./ts/src/taxonomy.ts"
+    "./taxonomy": "./ts/src/taxonomy.ts",
+    "./models": "./ts/src/models.ts"
   },
   "files": [
     "ts/src",
@@ -14,9 +15,12 @@
     "README.md"
   ],
   "scripts": {
+    "generate:models": "node ts/tools/generate-models.mjs",
     "typecheck": "tsc --noEmit -p ts/tsconfig.json"
   },
   "devDependencies": {
+    "@apidevtools/json-schema-ref-parser": "^11.7.0",
+    "json-schema-to-typescript": "^15.0.0",
     "typescript": "^5.5.0"
   }
 }
