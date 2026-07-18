@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/account.events.v1.json",
+  "title": "account/get_events response (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "Journal of incoming BF events (JSONL direction=in) for one bf_id/day. See ExecutionService.get_account_events_for_user and event_translator.envelope_to_event_record (AFB/backend/trade/).",
+  "$defs": {
+    "record": {
+      "type": "object",
+      "required": ["logged_at", "bf_id", "category", "event"],
+      "additionalProperties": false,
+      "properties": {
+        "logged_at": { "type": "string" },
+        "bf_id": { "type": "string" },
+        "deal_id": { "type": ["string", "null"] },
+        "category": { "type": "string", "enum": ["deal", "order", "position", "condition"] },
+        "event": { "type": "string" },
+        "data": { "type": ["object", "null"] }
+      }
+    }
+  },
+  "type": "object",
+  "required": ["type", "bf_id", "date", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "type": { "const": "events" },
+    "bf_id": { "type": "string" },
+    "date": { "type": "string" },
+    "data": { "type": "array", "items": { "$ref": "#/$defs/record" } }
+  }
+}

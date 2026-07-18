@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/account.orders.v1.json",
+  "title": "account/get_orders response + orders push (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "Pure proxy of BF's `broker.orders` payload (see belphegor/proxy.py). `data` untyped for the same reason as account.snapshot.v1.json — BF owns the shape, unschematized on the wire.",
+  "type": "object",
+  "required": ["type", "bf_id", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "type": { "const": "orders" },
+    "bf_id": { "type": "string" },
+    "data": { "type": "object", "additionalProperties": true },
+    "revision": { "type": "integer", "description": "Merged in by event_translator._merge_snapshot_meta when present on the BF payload." },
+    "as_of": { "type": "string" },
+    "source": { "type": "string" }
+  }
+}

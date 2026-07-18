@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/bfs.registry.v1.json",
+  "title": "bfs/registry push (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "See AFB/docs/WS_EXECUTION_CHANNELS.md#bfs--registry and ExecutionService.accessible_bfs_map (AFB/backend/trade/service.py) — extends the public registry-entry minimum with runtime keys.",
+  "$defs": {
+    "entry": {
+      "allOf": [
+        { "$ref": "bf_registry_entry.v1.json" },
+        {
+          "type": "object",
+          "required": ["connected", "dry_run"],
+          "properties": {
+            "connected": { "type": "boolean" },
+            "dry_run": { "type": "boolean" },
+            "dry_run_afb": { "type": "boolean" },
+            "dry_run_bf": { "type": "boolean" },
+            "account_id": { "type": "string", "description": "From connected BF's session.hello capabilities; display-only." },
+            "capabilities": { "type": "object", "additionalProperties": true },
+            "daemon": { "type": "object", "additionalProperties": true }
+          }
+        }
+      ]
+    }
+  },
+  "type": "object",
+  "required": ["type", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "type": { "const": "registry" },
+    "data": {
+      "type": "object",
+      "required": ["bfs"],
+      "additionalProperties": false,
+      "properties": {
+        "bfs": { "type": "array", "items": { "$ref": "#/$defs/entry" } }
+      }
+    }
+  }
+}

@@ -65,7 +65,10 @@ afb-bf-protocol @ git+https://github.com/Rolo837/AFB-BF-protocol.git@v1.0.0
 1. Изменить `spec/asyncapi.yaml` и/или `spec/schemas/*` (канон).
 2. `afb-bf-protocol-generate` — перегенерировать `taxonomy.py`, `docs/` и
    `ts/src/taxonomy.ts` + `ts/src/index.ts` (и `ts/src/models.ts`, если есть
-   Node-генерация моделей — см. `ts/tools/generate-models.mjs`).
+   Node-генерация моделей — см. `ts/tools/generate-models.mjs`; и
+   `python/afb_bf_protocol/models_generated.py`, если установлен
+   `datamodel-code-generator` — dev-зависимость, требует, чтобы Node-шаг уже
+   отработал, см. `generate_pymodels()` в `tools/generate.py`).
 3. `python -m afb_bf_protocol.tools.make_fixtures` — обновить примеры при
    изменении формата.
 4. `pytest` (схемы, подписи, эквивалентность) + `npx @asyncapi/cli validate

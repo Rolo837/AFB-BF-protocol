@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/bf_registry_entry.v1.json",
+  "title": "Public BF registry entry minimum (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "Shared public-view basis for `bfs` (registry push) and `connector` (record CRUD) — see BFRegistryEntry.to_public_dict() in AFB/backend/trade/models.py.",
+  "type": "object",
+  "required": ["bf_id", "name", "enabled", "display_name", "broker", "protocol"],
+  "$comment": "additionalProperties intentionally left open (default true) — this schema is a composable base, extended via allOf by connector.record.v1.json and bfs.registry.v1.json.",
+  "properties": {
+    "bf_id": { "type": "string" },
+    "name": { "type": "string" },
+    "enabled": { "type": "boolean" },
+    "display_name": { "type": "string" },
+    "broker": { "type": "string" },
+    "protocol": { "type": "string" }
+  }
+}

@@ -2,6 +2,21 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.0.1 — 2026-07-19
+
+PATCH: типизация четырёх каналов исполнения AFB↔фронтенд (`deal`, `connector`, `bfs`, `account`) — расширение вне `asyncapi.yaml`, wire `afb.execution.v1` не тронут, BF не затронут.
+
+- **Python-типы**: новый генератор `models_generated.py` (TypedDict, `datamodel-code-generator`) — Python-зеркало `models.ts`, из того же сбандленного `spec/.generated/bundled-schema.json` (эфемерный, не коммитится), который пишет `ts/tools/generate-models.mjs`. Общие имена $defs совпадают между TS и Python. Гейтится наличием `datamodel-code-generator` (dev-dep) — при отсутствии тулзы или Node генерация тихо пропускается.
+- **`spec/schemas/afbws/`** — новая конвенция (как `notification.*.v1.json`): схемы AFB-бэкенд↔AFB-фронтенд, никогда не пересекающие AFB↔BF:
+  - `deal.event.v1.json`, `deal.pnl.v1.json`, `deal.record.v1.json` — три push-формата канала `deal`.
+  - `bf_registry_entry.v1.json` — общий публичный минимум записи BF-коннектора (основа для `connector`/`bfs`).
+  - `connector.record.v1.json`, `connector.list.v1.json` — записи канала `connector` (owner/manager-поля — опциональные, различаются по фактическому наполнению, не по дискриминанту).
+  - `bfs.registry.v1.json` — push `registry` канала `bfs` (расширяет `bf_registry_entry.v1.json` рантайм-полями).
+  - `account.snapshot.v1.json`, `account.orders.v1.json`, `account.catalog.v1.json`, `account.instrument.v1.json`, `account.events.v1.json` — фронтенд-вид канала `account`; `data` в первых четырёх намеренно оставлен как открытый объект (`additionalProperties: true`) — BF-payload там не схематизирован ни в одном другом месте, конвертировать в строгую форму значило бы придумывать несуществующий контракт.
+- `ts/tools/generate-models.mjs`: `namedRootSchemas()`/`NAMED_DEF_SCHEMAS` расширены записями `afbws/*` для чистых имён экспортов (`DealEventPush`, `ConnectorRecord`, `BfsRegistryEntry`, `AccountSnapshotPush` и т.д.).
+- `AFB/docs/API_TYPES_REGISTRY.md` — реестр типизации обновлён, все 4 канала помечены ✅/🚧 по факту миграции.
+- PATCH: только новые `afbws/`-схемы и генератор, ничего в `spec/asyncapi.yaml`/`spec/schemas/*.json` (канон) не менялось.
+
 ## v2.0.0 — 2026-07-18
 
 MAJOR (разрешение пользователя получено): репозиторий начинает поставлять сгенерированный TypeScript-пакет наравне с Python — `npm i github:Rolo837/AFB-BF-protocol#v2.0.0`, никакой публикации в npm registry. Версия провода `afb.execution.v1` не меняется — AFB и BF обновляются согласованно (правило «одна MAJOR»).

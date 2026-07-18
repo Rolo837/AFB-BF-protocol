@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/account.instrument.v1.json",
+  "title": "account/get_instrument response (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "Pure proxy of BF's `broker.instrument` payload (see belphegor/proxy.py). `data` untyped — BF owns the shape, unschematized on the wire.",
+  "type": "object",
+  "required": ["type", "bf_id", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "type": { "const": "instrument" },
+    "bf_id": { "type": "string" },
+    "data": { "type": "object", "additionalProperties": true }
+  }
+}

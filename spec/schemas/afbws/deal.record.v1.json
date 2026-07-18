@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/deal.record.v1.json",
+  "title": "deal/deal_record push (AFB backend -> AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Full authoritative deal snapshot, pushed so the frontend replaces its cached copy instead of merging partial fields from thin `event` pushes. `data` is the same shape as DealState.to_dict() (deal_state.v2.json).",
+  "type": "object",
+  "required": ["type", "deal_id", "bf_id", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "type": { "const": "deal_record" },
+    "deal_id": { "type": "string" },
+    "bf_id": { "type": "string" },
+    "data": { "$ref": "../deal_state.v2.json" }
+  }
+}

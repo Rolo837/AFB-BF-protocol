@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/connector.record.v1.json",
+  "title": "connector record (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "One entry of the `connector` channel (list/get/create/update responses). Owner view (capability trade, user_id in allowed_users) gets everything except the manager-only block; manager gets all fields. See BFRegistryEntry.to_owner_dict()/to_manager_dict() (AFB/backend/trade/models.py) and connector_policy.py for execution_policy validation.",
+  "$defs": {
+    "backstop": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "offset_steps": { "type": "integer", "minimum": 0 },
+        "max_loss_steps": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "executionPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_spread_steps": { "type": "integer", "minimum": 0 },
+        "execution_mode": { "type": "string", "enum": ["client", "hybrid"] },
+        "backstop": { "$ref": "#/$defs/backstop" }
+      }
+    }
+  },
+  "allOf": [
+    { "$ref": "bf_registry_entry.v1.json" },
+    {
+      "type": "object",
+      "required": ["dry_run", "margin_trading", "execution_policy", "paired", "pairing_pending", "pairing_expires_at"],
+      "properties": {
+        "dry_run": { "type": ["boolean", "null"] },
+        "margin_trading": { "type": ["boolean", "null"] },
+        "execution_policy": { "$ref": "#/$defs/executionPolicy" },
+        "paired": { "type": "boolean" },
+        "pairing_pending": { "type": "boolean" },
+        "pairing_expires_at": { "type": ["string", "null"] },
+        "connected": { "type": "boolean", "description": "Merged in by list_connectors_for_user/get_connector_for_user, not part of BFRegistryEntry itself." },
+        "public_key_id": { "type": "string", "description": "Manager-only." },
+        "public_key_file": { "type": "string", "description": "Manager-only." },
+        "allowed_roles": { "type": "array", "items": { "type": "string" }, "description": "Manager-only." },
+        "allowed_users": { "type": "array", "items": { "type": "string" }, "description": "Manager-only." }
+      }
+    }
+  ]
+}

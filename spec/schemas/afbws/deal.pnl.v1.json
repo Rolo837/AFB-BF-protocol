@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/deal.pnl.v1.json",
+  "title": "deal/pnl push (AFB backend -> AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "See AFB/docs/WS_EXECUTION_CHANNELS.md#deal--pnl. Periodic unrealized-P&L push, not persisted.",
+  "type": "object",
+  "required": ["type", "deal_id", "bf_id", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "type": { "const": "pnl" },
+    "deal_id": { "type": "string" },
+    "bf_id": { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["unrealized", "currency", "qty", "avg_price", "last_price", "as_of"],
+      "additionalProperties": false,
+      "properties": {
+        "unrealized": { "type": "string", "description": "Decimal string" },
+        "currency": { "type": "string" },
+        "qty": { "type": "integer" },
+        "avg_price": { "type": "string", "description": "Decimal string" },
+        "last_price": { "type": "string", "description": "Decimal string" },
+        "as_of": { "type": "string" }
+      }
+    }
+  }
+}

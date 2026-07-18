@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/deal.event.v1.json",
+  "title": "deal/event push (AFB backend -> AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "See AFB/docs/WS_EXECUTION_CHANNELS.md#deal--event. `data` shape depends on category/event (status_changed, created, archived-as-status_changed, or a raw BF envelope payload) — deliberately untyped here.",
+  "type": "object",
+  "required": ["type", "deal_id", "bf_id", "category", "event", "logged_at", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "type": { "const": "event" },
+    "deal_id": { "type": "string" },
+    "bf_id": { "type": "string" },
+    "category": {
+      "type": "string",
+      "enum": ["deal", "order", "position", "condition"]
+    },
+    "event": { "type": "string" },
+    "logged_at": { "type": "string" },
+    "data": { "type": "object", "additionalProperties": true }
+  }
+}

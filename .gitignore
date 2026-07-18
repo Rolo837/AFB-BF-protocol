@@ -14,3 +14,4 @@ CLAUDE.md
 .gitignore
 .python-version
 node_modules/
+spec/.generated/

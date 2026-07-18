@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/connector.list.v1.json",
+  "title": "connector/list response data (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "See ExecutionService.list_connectors_for_user (AFB/backend/trade/service.py).",
+  "type": "object",
+  "required": ["connectors", "meta"],
+  "additionalProperties": false,
+  "properties": {
+    "connectors": {
+      "type": "array",
+      "items": { "$ref": "connector.record.v1.json" }
+    },
+    "meta": {
+      "type": "object",
+      "required": ["brokers"],
+      "additionalProperties": false,
+      "properties": {
+        "brokers": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

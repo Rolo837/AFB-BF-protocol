@@ -18,7 +18,7 @@
 // Run via `afb-bf-protocol-generate` (python calls this as a subprocess) or
 // directly: `node ts/tools/generate-models.mjs`.
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, normalize, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -29,6 +29,10 @@ const repoRoot = resolve(__dirname, "..", "..");
 const schemasDir = join(repoRoot, "spec", "schemas");
 const payloadsDir = join(schemasDir, "payloads");
 const outFile = join(repoRoot, "ts", "src", "models.ts");
+// Ephemeral hand-off to the Python side (datamodel-codegen), so Python
+// TypedDicts and TS interfaces share the exact same $defs bundling/naming.
+// Not committed — see .gitignore.
+const bundledSchemaFile = join(repoRoot, "spec", ".generated", "bundled-schema.json");
 
 function pascalCase(stem) {
   return stem
@@ -50,6 +54,18 @@ function namedRootSchemas() {
     "alarm.v1.json": "AlarmV1",
     "notification.deal.v1.json": "NotificationDealV1",
     "notification.alarm.v1.json": "NotificationAlarmV1",
+    "afbws/deal.event.v1.json": "DealEventPush",
+    "afbws/deal.pnl.v1.json": "DealPnlPush",
+    "afbws/deal.record.v1.json": "DealRecordPush",
+    "afbws/bf_registry_entry.v1.json": "BfRegistryEntry",
+    "afbws/connector.record.v1.json": "ConnectorRecord",
+    "afbws/connector.list.v1.json": "ConnectorListData",
+    "afbws/bfs.registry.v1.json": "BfsRegistryPush",
+    "afbws/account.snapshot.v1.json": "AccountSnapshotPush",
+    "afbws/account.orders.v1.json": "AccountOrdersPush",
+    "afbws/account.catalog.v1.json": "AccountCatalogPush",
+    "afbws/account.instrument.v1.json": "AccountInstrumentPush",
+    "afbws/account.events.v1.json": "AccountEventsPush",
   };
   for (const file of readdirSync(payloadsDir).sort()) {
     if (!file.endsWith(".json")) continue;
@@ -63,6 +79,12 @@ function namedRootSchemas() {
 // members (as opposed to named file roots).
 const NAMED_DEF_SCHEMAS = {
   "condition.v1.json": { conditionNode: "ConditionNode" },
+  "afbws/bfs.registry.v1.json": { entry: "BfsRegistryEntry" },
+  "afbws/account.events.v1.json": { record: "AccountEventRecord" },
+  "afbws/connector.record.v1.json": {
+    backstop: "ConnectorBackstop",
+    executionPolicy: "ConnectorExecutionPolicy",
+  },
 };
 
 function loadSchemas() {
@@ -213,6 +235,9 @@ const ROOT_TYPE_NAME = "_GeneratedRoot";
 
 async function run() {
   const { bundledRoot, fileCount, defCount } = main();
+
+  mkdirSync(dirname(bundledSchemaFile), { recursive: true });
+  writeFileSync(bundledSchemaFile, JSON.stringify(bundledRoot, null, 2));
 
   const ts = await compile(bundledRoot, ROOT_TYPE_NAME, {
     bannerComment: "",

@@ -1,9 +1,63 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 124f84592503c48e5c18d26cf60d1c1a2e884f99e7199a68857d9d1494ab34ad
+ * source-hash: f4817e2abd7ece0146336c7e6aa1a9a69d40d16d380e929d317e390aec242399
  */
 
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BfsRegistryEntry".
+ */
+export type BfsRegistryEntry = BfRegistryEntry & {
+  connected: boolean;
+  dry_run: boolean;
+  dry_run_afb?: boolean;
+  dry_run_bf?: boolean;
+  /**
+   * From connected BF's session.hello capabilities; display-only.
+   */
+  account_id?: string;
+  capabilities?: {
+    [k: string]: unknown;
+  };
+  daemon?: {
+    [k: string]: unknown;
+  };
+};
+/**
+ * One entry of the `connector` channel (list/get/create/update responses). Owner view (capability trade, user_id in allowed_users) gets everything except the manager-only block; manager gets all fields. See BFRegistryEntry.to_owner_dict()/to_manager_dict() (AFB/backend/trade/models.py) and connector_policy.py for execution_policy validation.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConnectorRecord".
+ */
+export type ConnectorRecord = BfRegistryEntry & {
+  dry_run: boolean | null;
+  margin_trading: boolean | null;
+  execution_policy: ConnectorExecutionPolicy;
+  paired: boolean;
+  pairing_pending: boolean;
+  pairing_expires_at: string | null;
+  /**
+   * Merged in by list_connectors_for_user/get_connector_for_user, not part of BFRegistryEntry itself.
+   */
+  connected?: boolean;
+  /**
+   * Manager-only.
+   */
+  public_key_id?: string;
+  /**
+   * Manager-only.
+   */
+  public_key_file?: string;
+  /**
+   * Manager-only.
+   */
+  allowed_roles?: string[];
+  /**
+   * Manager-only.
+   */
+  allowed_users?: string[];
+};
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AlarmV1_AlarmConditionNode".
@@ -141,6 +195,263 @@ export type TradeplanV2_TpExitList = {
   condition: TradeplanV2_TpConditionNode;
 }[];
 
+/**
+ * Pure proxy of BF's `broker.catalog` payload (see belphegor/proxy.py). `data` untyped — BF owns the shape, unschematized on the wire.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountCatalogPush".
+ */
+export interface AccountCatalogPush {
+  type: 'catalog';
+  bf_id: string;
+  data: {
+    [k: string]: unknown;
+  };
+}
+/**
+ * Journal of incoming BF events (JSONL direction=in) for one bf_id/day. See ExecutionService.get_account_events_for_user and event_translator.envelope_to_event_record (AFB/backend/trade/).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountEventsPush".
+ */
+export interface AccountEventsPush {
+  type: 'events';
+  bf_id: string;
+  date: string;
+  data: AccountEventRecord[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountEventRecord".
+ */
+export interface AccountEventRecord {
+  logged_at: string;
+  bf_id: string;
+  deal_id?: string | null;
+  category: 'deal' | 'order' | 'position' | 'condition';
+  event: string;
+  data?: {} | null;
+}
+/**
+ * Pure proxy of BF's `broker.instrument` payload (see belphegor/proxy.py). `data` untyped — BF owns the shape, unschematized on the wire.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountInstrumentPush".
+ */
+export interface AccountInstrumentPush {
+  type: 'instrument';
+  bf_id: string;
+  data: {
+    [k: string]: unknown;
+  };
+}
+/**
+ * Pure proxy of BF's `broker.orders` payload (see belphegor/proxy.py). `data` untyped for the same reason as account.snapshot.v1.json — BF owns the shape, unschematized on the wire.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountOrdersPush".
+ */
+export interface AccountOrdersPush {
+  type: 'orders';
+  bf_id: string;
+  data: {
+    [k: string]: unknown;
+  };
+  /**
+   * Merged in by event_translator._merge_snapshot_meta when present on the BF payload.
+   */
+  revision?: number;
+  as_of?: string;
+  source?: string;
+}
+/**
+ * Pure proxy of BF's `broker.account` payload (see belphegor/proxy.py: `dict(envelope.payload)`) plus the AFB envelope wrapper. `data` is intentionally untyped — BF owns that shape and it isn't schematized anywhere (no afb.execution.v1 schema for broker.account); the frontend normalizes it defensively (see belphegor.ts normalizeCashBalances/normalizePositions) rather than trusting a strict shape.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountSnapshotPush".
+ */
+export interface AccountSnapshotPush {
+  type: 'account';
+  bf_id: string;
+  data: {
+    [k: string]: unknown;
+  };
+  /**
+   * Merged in by event_translator._merge_snapshot_meta when present on the BF payload.
+   */
+  revision?: number;
+  as_of?: string;
+  source?: string;
+}
+/**
+ * Shared public-view basis for `bfs` (registry push) and `connector` (record CRUD) — see BFRegistryEntry.to_public_dict() in AFB/backend/trade/models.py.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BfRegistryEntry".
+ */
+export interface BfRegistryEntry {
+  bf_id: string;
+  name: string;
+  enabled: boolean;
+  display_name: string;
+  broker: string;
+  protocol: string;
+}
+/**
+ * See AFB/docs/WS_EXECUTION_CHANNELS.md#bfs--registry and ExecutionService.accessible_bfs_map (AFB/backend/trade/service.py) — extends the public registry-entry minimum with runtime keys.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BfsRegistryPush".
+ */
+export interface BfsRegistryPush {
+  type: 'registry';
+  data: {
+    bfs: BfsRegistryEntry[];
+  };
+}
+/**
+ * See ExecutionService.list_connectors_for_user (AFB/backend/trade/service.py).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConnectorListData".
+ */
+export interface ConnectorListData {
+  connectors: ConnectorRecord[];
+  meta: {
+    brokers: string[];
+  };
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConnectorExecutionPolicy".
+ */
+export interface ConnectorExecutionPolicy {
+  max_spread_steps?: number;
+  execution_mode?: 'client' | 'hybrid';
+  backstop?: ConnectorBackstop;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConnectorBackstop".
+ */
+export interface ConnectorBackstop {
+  offset_steps?: number;
+  max_loss_steps?: number;
+}
+/**
+ * See AFB/docs/WS_EXECUTION_CHANNELS.md#deal--event. `data` shape depends on category/event (status_changed, created, archived-as-status_changed, or a raw BF envelope payload) — deliberately untyped here.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealEventPush".
+ */
+export interface DealEventPush {
+  type: 'event';
+  deal_id: string;
+  bf_id: string;
+  category: 'deal' | 'order' | 'position' | 'condition';
+  event: string;
+  logged_at: string;
+  data: {
+    [k: string]: unknown;
+  };
+}
+/**
+ * See AFB/docs/WS_EXECUTION_CHANNELS.md#deal--pnl. Periodic unrealized-P&L push, not persisted.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealPnlPush".
+ */
+export interface DealPnlPush {
+  type: 'pnl';
+  deal_id: string;
+  bf_id: string;
+  data: {
+    /**
+     * Decimal string
+     */
+    unrealized: string;
+    currency: string;
+    qty: number;
+    /**
+     * Decimal string
+     */
+    avg_price: string;
+    /**
+     * Decimal string
+     */
+    last_price: string;
+    as_of: string;
+  };
+}
+/**
+ * Full authoritative deal snapshot, pushed so the frontend replaces its cached copy instead of merging partial fields from thin `event` pushes. `data` is the same shape as DealState.to_dict() (deal_state.v2.json).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealRecordPush".
+ */
+export interface DealRecordPush {
+  type: 'deal_record';
+  deal_id: string;
+  bf_id: string;
+  data: DealStateV2;
+}
+/**
+ * Shared per-deal YAML/JSON state, identical on AFB and BF. orders[]/positions[] are the authoritative observed facts; observed{} and execution_phase are derived.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealStateV2".
+ */
+export interface DealStateV2 {
+  deal_id: string;
+  revision: number;
+  owner_user_id?: string;
+  status: 'draft' | 'publishing' | 'published' | 'active' | 'paused' | 'closed' | 'cancelled' | 'orphaned';
+  execution_phase?: 'idle' | 'awaiting_entry' | 'entry_working' | 'holding' | 'exit_working';
+  deal: {};
+  orders?: DealStateV2_Order[];
+  positions?: DealStateV2_Position[];
+  observed?: {};
+  source_refs?: {};
+  status_history?: {}[];
+  event_journal?: unknown[];
+  created_at?: string;
+  updated_at?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealStateV2_Order".
+ */
+export interface DealStateV2_Order {
+  order_id?: string;
+  side?: 'buy' | 'sell';
+  role?: 'entry' | 'stop_loss' | 'take_profit' | 'cancel_close' | 'backstop';
+  status?: 'new' | 'partially_filled' | 'filled' | 'cancelled' | 'rejected' | 'watching' | 'expired';
+  quantity?: number;
+  filled_quantity?: number;
+  leg_index?: number;
+  limit_price?: string | null;
+  average_price?: string | null;
+  /**
+   * Server-side SLTP backstop trigger price (Фаза 3, этап E) — set only for role=backstop orders.
+   */
+  stop_price?: string | null;
+  /**
+   * Exchange-assigned order id from the broker's own snapshot, distinct from order_id (BF's client_order_id) — see RESILIENCE.md, этап C.
+   */
+  broker_order_id?: string;
+  updated_at?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealStateV2_Position".
+ */
+export interface DealStateV2_Position {
+  instrument?: {};
+  symbol?: string;
+  quantity?: number;
+  average_price?: string | null;
+  broker_ref?: {};
+}
 /**
  * AFB-side user alarm — like afb.tradeplan.v2, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel; it is documented here (rather than only in AFB) because it shares condition.v1.json's operator vocabulary with deal.v2 and tradeplan.v2. Replaces the legacy YAML shape (condition_type/trigger_type/value_type/value/value_ref flat fields, break_up/break_down operator names) with a conditionNode. Legacy alarms are read via a lazy converter (see docs/PROTOCOL.md 'Алармы' mapping table) and rewritten in this format on next save/reactivation; the API layer only accepts/emits this format going forward. `period` is the alarm's overall computation timeframe (legacy default '10min'); when `condition` is a price candle operator, `condition.timeframe` carries the candle timeframe and by construction equals `period`.
  *
@@ -358,63 +669,6 @@ export interface DealV2 {
   sizing: DealV1_Sizing;
   execution_policy?: DealV1_ExecutionPolicy;
   archive_reason?: string;
-}
-/**
- * Shared per-deal YAML/JSON state, identical on AFB and BF. orders[]/positions[] are the authoritative observed facts; observed{} and execution_phase are derived.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealStateV2".
- */
-export interface DealStateV2 {
-  deal_id: string;
-  revision: number;
-  owner_user_id?: string;
-  status: 'draft' | 'publishing' | 'published' | 'active' | 'paused' | 'closed' | 'cancelled' | 'orphaned';
-  execution_phase?: 'idle' | 'awaiting_entry' | 'entry_working' | 'holding' | 'exit_working';
-  deal: {};
-  orders?: DealStateV2_Order[];
-  positions?: DealStateV2_Position[];
-  observed?: {};
-  source_refs?: {};
-  status_history?: {}[];
-  event_journal?: unknown[];
-  created_at?: string;
-  updated_at?: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealStateV2_Order".
- */
-export interface DealStateV2_Order {
-  order_id?: string;
-  side?: 'buy' | 'sell';
-  role?: 'entry' | 'stop_loss' | 'take_profit' | 'cancel_close' | 'backstop';
-  status?: 'new' | 'partially_filled' | 'filled' | 'cancelled' | 'rejected' | 'watching' | 'expired';
-  quantity?: number;
-  filled_quantity?: number;
-  leg_index?: number;
-  limit_price?: string | null;
-  average_price?: string | null;
-  /**
-   * Server-side SLTP backstop trigger price (Фаза 3, этап E) — set only for role=backstop orders.
-   */
-  stop_price?: string | null;
-  /**
-   * Exchange-assigned order id from the broker's own snapshot, distinct from order_id (BF's client_order_id) — see RESILIENCE.md, этап C.
-   */
-  broker_order_id?: string;
-  updated_at?: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealStateV2_Position".
- */
-export interface DealStateV2_Position {
-  instrument?: {};
-  symbol?: string;
-  quantity?: number;
-  average_price?: string | null;
-  broker_ref?: {};
 }
 /**
  * Signed transport envelope for afb.execution.v1. Every wire message is one of these. payload_hash and signature are computed over canonical JSON (sort_keys, separators=(',',':'), UTF-8); signing string is '{protocol}|{type}|{message_id}|{created_at}|{payload_hash}'.
