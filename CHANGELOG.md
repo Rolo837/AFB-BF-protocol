@@ -2,6 +2,14 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.0.0 — 2026-07-18
+
+MAJOR (разрешение пользователя получено): репозиторий начинает поставлять сгенерированный TypeScript-пакет наравне с Python — `npm i github:Rolo837/AFB-BF-protocol#v2.0.0`, никакой публикации в npm registry. Версия провода `afb.execution.v1` не меняется — AFB и BF обновляются согласованно (правило «одна MAJOR»).
+
+- **`ts/`** — новый TS-пакет: корневой `package.json` (`exports: ".", "./taxonomy", "./models"`), сгенерированные `ts/src/taxonomy.ts` (зеркало `taxonomy.py`) и `ts/src/models.ts` (домейн-модели из `spec/schemas/**/*.json` — `ts/tools/generate-models.mjs` бандлит все схемы в один граф `$defs` с детерминированными именами, так что общий поддефайн вроде `condition.v1.json`'s `priceExpr` объявляется один раз и переиспользуется во всех потребителях, а не дублируется). Всё генерируется через `afb-bf-protocol-generate` (Node — опциональная зависимость только для `models.ts`).
+- MAJOR-содержимое — breaking-чистка из v1.16.0 (см. ниже): удалены `quoteExpr`, deprecated tick-операторы, `entry.order`, legacy `entry.side`, расширенный словарь `tradeplan.v1.direction`.
+- Версия в **четырёх** файлах репозитория: `python/pyproject.toml`, `version.py`, `spec/asyncapi.yaml`, `package.json`. Пины потребителей — **пять** мест (+ `AFB/frontend/package.json`).
+
 ## v1.16.0 — 2026-07-18
 
 Подготовительная чистка перед v2.0.0 (TypeScript-пакет): удаление deprecated-словаря условий и legacy-полей, исполняющее пометки «removal planned for v2.0.0», проставленные с v1.4.0/v1.11.0.
