@@ -9,7 +9,7 @@
   "created_at": "2026-06-26T12:00:00+03:00",
   "expires_at": "2026-06-26T12:05:00+03:00",
   "idempotency_key": "afb:deal.publish:fixture-0001",
-  "payload_hash": "8b2102b6450dc83902df6e90f6b18c7f2abfcdac559d1f54b63579e25adf9a24",
+  "payload_hash": "5ff5b047e5e1d7082f4bf5138928da1ed09a4f40441c228bb700d806b884c7f1",
   "payload": {
     "deal": {
       "schema": "afb.deal.v1",
@@ -30,8 +30,8 @@
           "step_price": "7.3439"
         }
       },
+      "direction": "long",
       "entry": {
-        "side": "buy",
         "condition": {
           "node_type": "event",
           "id": "entry_1",
@@ -75,6 +75,6 @@
   "signature": {
     "alg": "Ed25519",
     "key_id": "afb-test-1",
-    "value": "nXaam2IlWryD573QCDHIM7wihRpPzaX8sZpOk1oe3b629T8BONajT7Xr5TauIdUQ-701g4Adv3W_t2-zQAdlCg"
+    "value": "1ytoJb-6tY76IG9oOqN1iPRQoweUPEzYutHFomVHtCbq8Rk6KhTw4u-e63u9_QRN0OX1WJoenzGDrKd7zft8Bw"
   }
 }

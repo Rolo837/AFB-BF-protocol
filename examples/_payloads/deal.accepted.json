@@ -41,7 +41,6 @@
   "target_instrument_patch": {},
   "validation": {
     "account_id": "1918978",
-    "entry_order_type": "market",
     "side": "buy",
     "sizing_mode": "risk_factor",
     "sizing_value": "0.2",

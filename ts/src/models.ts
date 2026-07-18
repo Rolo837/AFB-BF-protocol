@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 29950be512a4928427b19eb018dc6899d190314f8d489688d9acd79246e000da
+ * source-hash: 124f84592503c48e5c18d26cf60d1c1a2e884f99e7199a68857d9d1494ab34ad
  */
 
 /**
@@ -24,16 +24,6 @@ export type AlarmV1_AlarmConditionNode =
       left?: ConditionV1_PriceExpr;
       right?: ConditionV1_RightConst;
       op: ConditionV1_PriceLevelOp;
-    }
-  | {
-      left?: ConditionV1_PriceExpr;
-      right?: ConditionV1_RightConst;
-      op: ConditionV1_DeprecatedTickScalarOp;
-    }
-  | {
-      left?: ConditionV1_QuoteExpr;
-      right?: ConditionV1_RightConst;
-      op: ConditionV1_ScalarOp;
     }
   | {
       left?: AlarmV1_AlarmIndicatorExpr;
@@ -62,13 +52,6 @@ export type ConditionV1_Timeframe = '5min' | '10min' | '15min' | '30min' | '1h' 
  * via the `definition` "ConditionV1_PriceLevelOp".
  */
 export type ConditionV1_PriceLevelOp = 'above' | 'below';
-/**
- * deprecated (v1.4.0) tick-by-tick price/quote ops without timeframe. Removal planned for v2.0.0.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "ConditionV1_DeprecatedTickScalarOp".
- */
-export type ConditionV1_DeprecatedTickScalarOp = 'crosses_above' | 'crosses_below' | 'crossing';
 /**
  * indicator/dataset: above cur > thr, below cur < thr. crosses_above: prev <= prev_thr AND cur > thr. crosses_below: prev >= prev_thr AND cur < thr. crossing: crosses_above OR crosses_below. Price above/below use evaluate_price_level_op (inclusive >= / <=) — see the price level operator branch.
  *
@@ -110,16 +93,6 @@ export type ConditionNode1 =
       duration?: ConditionV1_Duration;
     }
   | {
-      left?: ConditionV1_PriceExpr;
-      right?: ConditionV1_RightConst;
-      op: ConditionV1_DeprecatedTickScalarOp;
-    }
-  | {
-      left?: ConditionV1_QuoteExpr;
-      right?: ConditionV1_RightConst;
-      op: ConditionV1_ScalarOp;
-    }
-  | {
       left?: ConditionV1_IndicatorExpr;
       right?: ConditionV1_RightConst | ConditionV1_IndicatorExpr;
       op: ConditionV1_ScalarOp;
@@ -129,39 +102,6 @@ export type ConditionNode1 =
       left?: ConditionV1_DatasetExpr;
       right?: ConditionV1_RightConst | ConditionV1_DatasetExpr;
       op: ConditionV1_ScalarOp;
-    };
-/**
- * Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. Position bias may be expressed as legacy `entry.side` (buy/sell) or as the deal-level `direction` (long/short, same vocabulary as afb.deal.v2) — at least one must be present; producers are encouraged to set both during the buy/sell -> long/short migration so older and newer consumers both work.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1".
- */
-export type DealV1 = DealV11 & {
-  schema: 'afb.deal.v1';
-  deal_id: string;
-  revision: number;
-  owner?: {
-    user_id?: string;
-  };
-  target: DealV1_Target;
-  direction?: 'long' | 'short';
-  entry: DealV1_Entry;
-  sizing: DealV1_Sizing;
-  risk?: {
-    take_profit?: DealV1_ExitBlock;
-    stop_loss?: DealV1_ExitBlock;
-  };
-  execution_policy?: DealV1_ExecutionPolicy;
-  archive_reason?: string;
-};
-export type DealV11 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      entry?: {
-        [k: string]: unknown;
-      };
     };
 /**
  * Wire-level condition node: same vocabulary as condition.v1.json#/$defs/conditionNode, plus the mandatory `node_type` envelope marker used on the AFB<->BF wire (trade-plan conditions, which never cross the wire, don't carry it).
@@ -236,16 +176,6 @@ export interface ConditionV1_RightConst {
   const: DealV1_DecimalString;
 }
 /**
- * deprecated (v1.4.0): quote (bid/ask) conditions are still accepted and evaluated, but are no longer offered by the AFB UI and will be removed in v2.0.0.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "ConditionV1_QuoteExpr".
- */
-export interface ConditionV1_QuoteExpr {
-  source: 'quote';
-  field: 'bid' | 'ask';
-}
-/**
  * Unlike condition.v1.json#/$defs/indicatorExpr, only `source`+`id` are required: AFB resolves `type`/`field`/`params` from the user's saved indicator settings by `id` rather than carrying them inline.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -271,7 +201,7 @@ export interface ConditionV1_DatasetExpr {
   params?: {};
 }
 /**
- * `field` is optional and should not be sent on the wire; AFB resolves alarm indicators by `id`, BF by `type`+`params`.
+ * AFB resolves alarm indicators by `id`, BF by `type`+`params`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "ConditionV1_IndicatorExpr".
@@ -279,9 +209,32 @@ export interface ConditionV1_DatasetExpr {
 export interface ConditionV1_IndicatorExpr {
   source: 'indicator';
   type: 'wma' | 'kama' | 'psar';
-  field?: string;
   params?: {};
   id?: string;
+}
+/**
+ * Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. The deal-level `direction` (long/short, same vocabulary as afb.deal.v2) is the single source of truth for position bias.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV1".
+ */
+export interface DealV1 {
+  schema: 'afb.deal.v1';
+  deal_id: string;
+  revision: number;
+  owner?: {
+    user_id?: string;
+  };
+  target: DealV1_Target;
+  direction: 'long' | 'short';
+  entry: DealV1_Entry;
+  sizing: DealV1_Sizing;
+  risk?: {
+    take_profit?: DealV1_ExitBlock;
+    stop_loss?: DealV1_ExitBlock;
+  };
+  execution_policy?: DealV1_ExecutionPolicy;
+  archive_reason?: string;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -309,15 +262,11 @@ export interface DealV1_Instrument {
   step_price?: DealV1_DecimalString;
 }
 /**
- * `side` is optional here iff the deal-level `direction` is set (see root anyOf).
- *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV1_Entry".
  */
 export interface DealV1_Entry {
-  side?: 'buy' | 'sell';
   condition: DealV1_ConditionNode;
-  order?: DealV1_Order;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -337,15 +286,6 @@ export interface DealV1_ConditionNode {
   right: {
     const: DealV1_DecimalString;
   };
-}
-/**
- * @deprecated
- * Deprecated (since 1.11.0): BF ignores this block. BF alone decides order type, time_in_force and limit offset from its own broker-adapter capabilities, config and execution mode — see daemon.capabilities.
- */
-export interface DealV1_Order {
-  type?: 'market' | 'limit';
-  limit_offset_steps?: number;
-  time_in_force?: string;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -388,19 +328,7 @@ export interface DealV1_ExecutionPolicy {
   };
 }
 /**
- * @deprecated
- * Deprecated (since 1.11.0): BF ignores this block. BF alone decides order type, time_in_force and limit offset from its own broker-adapter capabilities, config and execution mode — see daemon.capabilities.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1_Order".
- */
-export interface DealV1_Order1 {
-  type?: 'market' | 'limit';
-  limit_offset_steps?: number;
-  time_in_force?: string;
-}
-/**
- * Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string). Sum of percents per role resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from deal.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_* /crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full six-operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.
+ * Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string). Sum of percents per role resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from deal.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_* /crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2".
@@ -419,12 +347,10 @@ export interface DealV2 {
     {
       percent?: DealV1_DecimalString;
       condition: DealV2_ConditionNode;
-      order?: DealV1_Order2;
     },
     ...{
       percent?: DealV1_DecimalString;
       condition: DealV2_ConditionNode;
-      order?: DealV1_Order2;
     }[]
   ];
   stop_loss?: DealV2_ExitList;
@@ -432,15 +358,6 @@ export interface DealV2 {
   sizing: DealV1_Sizing;
   execution_policy?: DealV1_ExecutionPolicy;
   archive_reason?: string;
-}
-/**
- * @deprecated
- * Deprecated (since 1.11.0): BF ignores this block. BF alone decides order type, time_in_force and limit offset from its own broker-adapter capabilities, config and execution mode — see daemon.capabilities.
- */
-export interface DealV1_Order2 {
-  type?: 'market' | 'limit';
-  limit_offset_steps?: number;
-  time_in_force?: string;
 }
 /**
  * Shared per-deal YAML/JSON state, identical on AFB and BF. orders[]/positions[] are the authoritative observed facts; observed{} and execution_phase are derived.
@@ -845,11 +762,6 @@ export interface DealAcceptedPayload {
   };
   validation?: {
     account_id?: string;
-    /**
-     * @deprecated
-     * Deprecated (since 1.11.0): BF no longer echoes the requested order type; it decides order params itself, see daemon.capabilities.
-     */
-    entry_order_type?: string;
     side: string;
     sizing_mode?: string;
     sizing_value?: string;
@@ -1198,10 +1110,7 @@ export interface TradePlanV1 {
   id: string;
   ticker: string;
   status?: 'new' | 'active' | 'published' | 'closed' | 'expired';
-  /**
-   * Transitional vocabulary: 'buy'/'sell' is the legacy value, 'long'/'short' is the target one (matches afb.deal.v1's optional root `direction` and afb.deal.v2/afb.tradeplan.v2). Both are accepted while the frontend migrates; a single tradeplan uses one or the other, not both.
-   */
-  direction?: 'buy' | 'long' | 'sell' | 'short';
+  direction?: 'long' | 'short';
   schema?: 'afb.tradeplan.v1';
   activated_at?: string;
   closed_at?: string;
@@ -1268,12 +1177,10 @@ export interface TradePlanV2 {
     {
       percent?: DealV1_DecimalString;
       condition: TradeplanV2_TpConditionNode;
-      order?: DealV1_Order3;
     },
     ...{
       percent?: DealV1_DecimalString;
       condition: TradeplanV2_TpConditionNode;
-      order?: DealV1_Order3;
     }[]
   ];
   stop_loss?: TradeplanV2_TpExitList;
@@ -1302,7 +1209,7 @@ export interface TradeplanV2_TpConditionNode {
    * Required (enforced after compilation, not here) when op is a price candle operator (breakout/breakdown/crossing).
    */
   timeframe?: '5min' | '10min' | '15min' | '30min' | '1h' | '2h' | '4h' | '1d';
-  left: ConditionV1_PriceExpr | ConditionV1_QuoteExpr | ConditionV1_IndicatorExpr | ConditionV1_DatasetExpr;
+  left: ConditionV1_PriceExpr | ConditionV1_IndicatorExpr | ConditionV1_DatasetExpr;
   right: ConditionV1_RightConst | ConditionV1_IndicatorExpr | ConditionV1_DatasetExpr | TradeplanV2_PrimitiveRef;
 }
 /**
@@ -1311,13 +1218,4 @@ export interface TradeplanV2_TpConditionNode {
  */
 export interface TradeplanV2_PrimitiveRef {
   primitive_id: string;
-}
-/**
- * @deprecated
- * Deprecated (since 1.11.0): BF ignores this block. BF alone decides order type, time_in_force and limit offset from its own broker-adapter capabilities, config and execution mode — see daemon.capabilities.
- */
-export interface DealV1_Order3 {
-  type?: 'market' | 'limit';
-  limit_offset_steps?: number;
-  time_in_force?: string;
 }

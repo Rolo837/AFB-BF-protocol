@@ -9,7 +9,7 @@
   "created_at": "2026-06-26T12:00:00+03:00",
   "expires_at": "2026-06-26T12:05:00+03:00",
   "idempotency_key": "finam-arena-316:deal.accepted:fixture-0001",
-  "payload_hash": "176b5ab11b137b8af92907031af66d6414b2f98e83d130001b3d9b0dfb76aaed",
+  "payload_hash": "35e881407ef675c8b2a21bd60c44e16a86ae65907098a3a9f252ee6fdd6ae70b",
   "payload": {
     "at": "2026-06-19T05:50:22.100000+03:00",
     "binding": {
@@ -53,7 +53,6 @@
     "target_instrument_patch": {},
     "validation": {
       "account_id": "1918978",
-      "entry_order_type": "market",
       "side": "buy",
       "sizing_mode": "risk_factor",
       "sizing_value": "0.2",
@@ -66,6 +65,6 @@
   "signature": {
     "alg": "Ed25519",
     "key_id": "belphegor-test-1",
-    "value": "Mf6Mk85ocpEzuatbA1Lg8XBOBifFPBKyc_SbA0z36ud-mrvDIypOIbaCxEM5EwgI9jKogvP-sk_K9ApxTnRADA"
+    "value": "G6jYpivwtcF0KuqgYyhMJNpJWw_b4HFApwMVarSF3UfhliRM8Th_dHk0mdQKWhDs7x1xoqSlGzVkpTnOCpOKAg"
   }
 }

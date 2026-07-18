@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/condition.v1.json",
   "title": "condition.v1 — unified condition node vocabulary",
-  "description": "Single source of truth for the condition-node vocabulary shared by afb.deal.v2, afb.tradeplan.v2 and afb.alarm.v1. Left/right pairing is enforced per source via oneOf: price fully supports six operators, none deprecated — `touch` (op omitted, for wire back-compat, or op=\"touch\"): level between prev/cur; `above`/`below`: inclusive level check (cur >= level / cur <= level), optionally with `duration` (seconds, BF-only debounce); `breakout`/`breakdown`/`crossing`: candle op, requires `timeframe`. BF executes a fired `touch` as a LIMIT order and the other five as a MARKET order — see belphegor.plan_engine.order_policy. Deprecated tick crosses_* on price/quote remain accepted for backward compatibility only. `field` is required only on dataset expressions; price and indicator legs omit it on the wire (legacy `field` on read is ignored). indicator and dataset nodes use strict scalar ops (above/below/crosses_*/crossing).",
+  "description": "Single source of truth for the condition-node vocabulary shared by afb.deal.v2, afb.tradeplan.v2 and afb.alarm.v1. Left/right pairing is enforced per source via oneOf: price supports four operators — `touch` (op omitted, for wire back-compat, or op=\"touch\"): level between prev/cur; `above`/`below`: inclusive level check (cur >= level / cur <= level), optionally with `duration` (seconds, BF-only debounce); `breakout`/`breakdown`/`crossing`: candle op, requires `timeframe`. BF executes a fired `touch` as a LIMIT order and the other three as a MARKET order — see belphegor.plan_engine.order_policy. `field` is required only on dataset expressions; price and indicator legs omit it on the wire. indicator and dataset nodes use strict scalar ops (above/below/crosses_*/crossing).",
   "type": "object",
   "$ref": "#/$defs/conditionNode",
   "$defs": {
@@ -16,10 +16,6 @@
     "priceLevelOp": {
       "enum": ["above", "below"],
       "description": "Price level check (inclusive): above fires when cur >= level; below when cur <= level."
-    },
-    "deprecatedTickScalarOp": {
-      "enum": ["crosses_above", "crosses_below", "crossing"],
-      "description": "deprecated (v1.4.0) tick-by-tick price/quote ops without timeframe. Removal planned for v2.0.0."
     },
     "duration": {
       "type": "integer",
@@ -38,23 +34,13 @@
         "source": {"const": "price"}
       }
     },
-    "quoteExpr": {
-      "type": "object",
-      "required": ["source", "field"],
-      "description": "deprecated (v1.4.0): quote (bid/ask) conditions are still accepted and evaluated, but are no longer offered by the AFB UI and will be removed in v2.0.0.",
-      "properties": {
-        "source": {"const": "quote"},
-        "field": {"enum": ["bid", "ask"]}
-      }
-    },
     "indicatorExpr": {
       "type": "object",
       "required": ["source", "type"],
-      "description": "`field` is optional and should not be sent on the wire; AFB resolves alarm indicators by `id`, BF by `type`+`params`.",
+      "description": "AFB resolves alarm indicators by `id`, BF by `type`+`params`.",
       "properties": {
         "source": {"const": "indicator"},
         "type": {"enum": ["wma", "kama", "psar"]},
-        "field": {"type": "string"},
         "params": {"type": "object"},
         "id": {"type": "string"}
       }
@@ -109,27 +95,6 @@
             "right": {"$ref": "#/$defs/rightConst"},
             "op": {"$ref": "#/$defs/priceLevelOp"},
             "duration": {"$ref": "#/$defs/duration"}
-          }
-        },
-        {
-          "title": "price tick operator (deprecated)",
-          "description": "deprecated (v1.4.0): tick-by-tick crosses_* / crossing without timeframe. Removal planned for v2.0.0.",
-          "required": ["op"],
-          "not": {"required": ["timeframe"]},
-          "properties": {
-            "left": {"$ref": "#/$defs/priceExpr"},
-            "right": {"$ref": "#/$defs/rightConst"},
-            "op": {"$ref": "#/$defs/deprecatedTickScalarOp"}
-          }
-        },
-        {
-          "title": "quote operator (deprecated)",
-          "description": "deprecated (v1.4.0): bid/ask conditions using the scalar vocabulary. Removal planned for v2.0.0.",
-          "required": ["op"],
-          "properties": {
-            "left": {"$ref": "#/$defs/quoteExpr"},
-            "right": {"$ref": "#/$defs/rightConst"},
-            "op": {"$ref": "#/$defs/scalarOp"}
           }
         },
         {

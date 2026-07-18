@@ -50,18 +50,11 @@ def test_validate_deal_rejects_unknown_schema():
         validate_deal({"schema": "afb.deal.v3"})
 
 
-def test_validate_deal_v1_accepts_direction_only_no_entry_side():
-    """Transitional: afb.deal.v1 accepts a deal-level `direction` (long/short)
-    in place of the legacy `entry.side` (buy/sell)."""
+def test_validate_deal_v1_rejects_missing_direction():
+    """afb.deal.v1 requires the deal-level `direction` (long/short) since
+    v2.0.0 — the legacy `entry.side` (buy/sell) no longer exists."""
     deal = copy.deepcopy(_fixture_deal("deal.publish"))
-    del deal["entry"]["side"]
-    deal["direction"] = "long"
-    assert validate_deal(deal) == "afb.deal.v1"
-
-
-def test_validate_deal_v1_rejects_neither_side_nor_direction():
-    deal = copy.deepcopy(_fixture_deal("deal.publish"))
-    del deal["entry"]["side"]
+    del deal["direction"]
     with pytest.raises(PayloadValidationError):
         validate_deal(deal)
 

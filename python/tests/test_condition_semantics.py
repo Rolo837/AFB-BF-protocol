@@ -7,9 +7,6 @@ from __future__ import annotations
 import pytest
 
 from afb_bf_protocol.condition_semantics import (
-    DEPRECATED_PRICE_OPS,
-    DEPRECATED_PRICE_TICK_OPS,
-    DEPRECATED_QUOTE_OPS,
     OPS_BY_SOURCE,
     PRICE_CANDLE_OPS,
     PRICE_LEVEL_OPS,
@@ -23,11 +20,10 @@ from afb_bf_protocol.condition_semantics import (
 
 
 def test_ops_by_source_matches_schema_vocabulary():
-    assert OPS_BY_SOURCE["price"] == PRICE_TOUCH_OPS | PRICE_CANDLE_OPS | PRICE_LEVEL_OPS | DEPRECATED_PRICE_TICK_OPS
-    assert DEPRECATED_PRICE_OPS == PRICE_LEVEL_OPS | DEPRECATED_PRICE_TICK_OPS
-    assert OPS_BY_SOURCE["quote"] == DEPRECATED_QUOTE_OPS
+    assert OPS_BY_SOURCE["price"] == PRICE_TOUCH_OPS | PRICE_CANDLE_OPS | PRICE_LEVEL_OPS
     assert OPS_BY_SOURCE["indicator"] == SCALAR_OPS
     assert OPS_BY_SOURCE["dataset"] == SCALAR_OPS
+    assert "quote" not in OPS_BY_SOURCE
     assert PRICE_TOUCH_OPS == {"touch"}
 
 

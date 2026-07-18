@@ -2,7 +2,7 @@
   "id": "tradeplan-legacy-3f90",
   "ticker": "GAZP",
   "status": "new",
-  "direction": "sell",
+  "direction": "short",
   "activated_at": "",
   "closed_at": "",
   "entry_condition": {

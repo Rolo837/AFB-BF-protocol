@@ -22,8 +22,8 @@ def _deal_v1(**over):
                 "market": "stock", "price_step": "0.01",
             },
         },
+        "direction": "long",
         "entry": {
-            "side": "buy",
             "condition": {
                 "node_type": "event", "id": "entry_1", "op": "above",
                 "left": {"source": "price", "field": "last"},
@@ -97,16 +97,12 @@ def test_entry_level_by_phase(phase, allowed):
 ])
 def test_side_by_phase(phase, allowed):
     d = _deal_v1()
-    new = _mutate(d, ["entry", "side"], "sell")
+    new = _mutate(d, ["direction"], "short")
     assert is_amend_allowed(d, new, _ctx("active", phase)) is allowed
 
 
-def test_v1_direction_change_detected_when_entry_side_absent():
-    """Transitional afb.deal.v1: entry.side is optional when the deal-level
-    `direction` is set — the "side" amend field must fall back to it."""
+def test_v1_direction_change_detected():
     d = _deal_v1()
-    del d["entry"]["side"]
-    d["direction"] = "long"
     new = copy.deepcopy(d)
     new["direction"] = "short"
     dec = evaluate_amend(d, new, _ctx("active", "holding"))
@@ -114,19 +110,9 @@ def test_v1_direction_change_detected_when_entry_side_absent():
     assert "side" in {v.field for v in dec.rejected()}
 
 
-def test_v1_entry_side_wins_over_direction_when_both_present():
-    d = _deal_v1()
-    d["direction"] = "long"
-    new = copy.deepcopy(d)
-    new["direction"] = "short"  # direction changes, but entry.side (governing) does not
-    dec = evaluate_amend(d, new, _ctx("active", "holding"))
-    assert dec.allowed is True
-    assert dec.changed() == []
-
-
 def test_legacy_order_block_ignored_by_entry_field():
-    """Deprecated `entry.order` (order type/time_in_force/offset — now decided
-    solely by BF) must not trigger a spurious "entry changed" when an old
+    """An unknown/leftover `entry.order` key (pre-v2.0.0 wire, no longer part
+    of the schema) must not trigger a spurious "entry changed" when an old
     stored deal still carries it but the amend payload does not."""
     d = _deal_v1()
     d["entry"]["order"] = {"type": "market", "limit_offset_steps": 1, "time_in_force": "day"}

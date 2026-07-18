@@ -43,8 +43,6 @@ CONST_100 = {"const": "100"}
         {"left": PRICE, "right": CONST_100, "op": "above"},  # price level op
         {"left": PRICE, "right": CONST_100, "op": "above", "duration": 3},
         {"left": PRICE, "right": CONST_100, "op": "below", "duration": 1},
-        {"left": PRICE, "right": CONST_100, "op": "crossing"},  # deprecated tick crossing (no timeframe)
-        {"left": QUOTE_BID, "right": CONST_100, "op": "above"},  # deprecated quote
         {"left": INDICATOR_WMA, "right": CONST_100, "op": "above"},
         {"left": INDICATOR_WMA, "right": INDICATOR_WMA, "op": "crosses_above"},
         {"left": INDICATOR_WMA, "right": CONST_100, "op": "above", "timeframe": "30min"},
@@ -61,8 +59,6 @@ CONST_100 = {"const": "100"}
         "price-level-above",
         "price-level-above-with-duration",
         "price-level-below-with-duration",
-        "price-deprecated-crossing-no-timeframe",
-        "quote-deprecated-above",
         "indicator-vs-const",
         "indicator-vs-indicator",
         "indicator-vs-const-with-timeframe",
@@ -84,10 +80,12 @@ def test_valid_condition_nodes(node, registry):
         {"left": PRICE, "right": CONST_100, "op": "breakout"},  # candle op without required timeframe
         {"left": INDICATOR_WMA, "right": CONST_100, "op": "breakout"},  # candle op not valid for indicator
         {"left": DATASET_POS, "right": CONST_100, "op": "sideways"},  # unknown op
-        {"left": PRICE, "right": CONST_100, "op": "crosses_above", "timeframe": "5min"},  # mixes deprecated op with timeframe
+        {"left": PRICE, "right": CONST_100, "op": "crosses_above", "timeframe": "5min"},  # op not in the candle enum
+        {"left": PRICE, "right": CONST_100, "op": "crossing"},  # candle crossing without required timeframe (removed v2.0.0: deprecated tick path)
         {"left": INDICATOR_WMA, "right": DATASET_POS, "op": "above"},  # cross-kind right not allowed
         {"left": {"source": "dataset", "dataset_id": "positions.long"}, "right": CONST_100, "op": "above"},  # missing field
-        {"left": QUOTE_BID, "right": CONST_100},  # quote requires an op (no touch shape for quote)
+        {"left": QUOTE_BID, "right": CONST_100},  # quote source no longer accepted (removed v2.0.0)
+        {"left": QUOTE_BID, "right": CONST_100, "op": "above"},  # quote source no longer accepted (removed v2.0.0)
         {"right": CONST_100},  # missing left
         {"left": PRICE},  # missing right
         {"left": INDICATOR_WMA, "right": CONST_100, "op": "above", "timeframe": "1min"},  # not in enum
@@ -99,10 +97,12 @@ def test_valid_condition_nodes(node, registry):
         "price-breakout-without-timeframe-rejected",
         "indicator-with-candle-op-rejected",
         "dataset-unknown-op-rejected",
-        "price-crosses-above-with-timeframe-rejected",
+        "price-crosses-above-not-a-candle-op-rejected",
+        "price-crossing-without-timeframe-rejected",
         "indicator-vs-dataset-cross-kind-rejected",
         "dataset-missing-field-rejected",
-        "quote-without-op-rejected",
+        "quote-source-rejected-no-op",
+        "quote-source-rejected-with-op",
         "missing-left-rejected",
         "missing-right-rejected",
         "indicator-timeframe-not-in-enum-rejected",

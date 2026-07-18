@@ -18,8 +18,8 @@
         "step_price": "7.3439"
       }
     },
+    "direction": "long",
     "entry": {
-      "side": "buy",
       "condition": {
         "node_type": "event",
         "id": "entry_1",

@@ -66,25 +66,6 @@
           }
         },
         {
-          "title": "price tick operator (deprecated)",
-          "required": ["op"],
-          "not": {"required": ["timeframe"]},
-          "properties": {
-            "left": {"$ref": "condition.v1.json#/$defs/priceExpr"},
-            "right": {"$ref": "condition.v1.json#/$defs/rightConst"},
-            "op": {"$ref": "condition.v1.json#/$defs/deprecatedTickScalarOp"}
-          }
-        },
-        {
-          "title": "quote operator (deprecated)",
-          "required": ["op"],
-          "properties": {
-            "left": {"$ref": "condition.v1.json#/$defs/quoteExpr"},
-            "right": {"$ref": "condition.v1.json#/$defs/rightConst"},
-            "op": {"$ref": "condition.v1.json#/$defs/scalarOp"}
-          }
-        },
-        {
           "title": "indicator operator",
           "required": ["op"],
           "properties": {

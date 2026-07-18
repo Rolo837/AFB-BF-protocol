@@ -21,8 +21,7 @@
         "required": ["condition"],
         "properties": {
           "percent": {"$ref": "deal.v1.json#/$defs/decimalString"},
-          "condition": {"$ref": "#/$defs/tpConditionNode"},
-          "order": {"$ref": "deal.v1.json#/$defs/order", "deprecated": true}
+          "condition": {"$ref": "#/$defs/tpConditionNode"}
         }
       }
     },
@@ -67,7 +66,6 @@
         "left": {
           "oneOf": [
             {"$ref": "deal.v2.json#/$defs/priceExpr"},
-            {"$ref": "deal.v2.json#/$defs/quoteExpr"},
             {"$ref": "deal.v2.json#/$defs/indicatorExpr"},
             {"$ref": "deal.v2.json#/$defs/datasetExpr"}
           ]

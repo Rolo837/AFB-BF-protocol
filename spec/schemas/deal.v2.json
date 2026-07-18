@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/deal.v2.json",
   "title": "ExecutionDeal afb.deal.v2",
-  "description": "Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string). Sum of percents per role resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from deal.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_*/crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full six-operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.",
+  "description": "Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string). Sum of percents per role resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from deal.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_*/crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.",
   "type": "object",
   "required": ["schema", "deal_id", "revision", "target", "direction", "entry", "sizing"],
   "properties": {
@@ -20,8 +20,7 @@
         "required": ["condition"],
         "properties": {
           "percent": {"$ref": "deal.v1.json#/$defs/decimalString"},
-          "condition": {"$ref": "#/$defs/conditionNode"},
-          "order": {"$ref": "deal.v1.json#/$defs/order", "deprecated": true}
+          "condition": {"$ref": "#/$defs/conditionNode"}
         }
       }
     },
@@ -34,7 +33,6 @@
   "$defs": {
     "rightConst": {"$ref": "condition.v1.json#/$defs/rightConst"},
     "priceExpr": {"$ref": "condition.v1.json#/$defs/priceExpr"},
-    "quoteExpr": {"$ref": "condition.v1.json#/$defs/quoteExpr"},
     "indicatorExpr": {"$ref": "condition.v1.json#/$defs/indicatorExpr"},
     "datasetExpr": {"$ref": "condition.v1.json#/$defs/datasetExpr"},
     "conditionNode": {

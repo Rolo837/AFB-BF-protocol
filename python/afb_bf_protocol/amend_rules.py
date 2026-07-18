@@ -27,13 +27,13 @@ Invariants encoded here:
   moment a position exists. ``entry_working`` means a live entry order with **no**
   fill yet (``infer_execution_stage`` returns ``holding`` as soon as there is any
   position), so it is still safe to cancel+replace the entry there.
-  ``entry``'s deprecated ``order`` sub-block (order type/time_in_force/offset —
-  now decided solely by BF, not part of the deal) is ignored here even if still
-  present on old stored deals, so it never causes a spurious "entry changed".
-  "side" reads ``entry.side`` (legacy buy/sell) or the deal-level ``direction``
-  (long/short) on afb.deal.v1 — at least one is present, entry.side wins when
-  both are — and only the deal-level ``direction`` on afb.deal.v2, which has
-  no per-leg side at all (see amend_rules._sides).
+  Any unknown/leftover keys on old stored deals (e.g. a pre-v2.0.0 ``entry.order``
+  block, order type/time_in_force/offset — always decided solely by BF, never
+  part of the deal) are ignored here, so they never cause a spurious "entry
+  changed".
+  "side" reads the deal-level ``direction`` (long/short) — the single source of
+  truth for position bias on both afb.deal.v1 and afb.deal.v2 (see
+  amend_rules._sides).
 - Sizing is editable only before a position is taken; once holding (or exiting) it
   is frozen. Changing a held position's size is a *reduce/add* flow, not an amend.
 - Protective levels (stop_loss / take_profit) stay editable for almost the whole
@@ -147,17 +147,10 @@ def _instrument_identity(deal: dict[str, Any]) -> tuple[str, str, str, str]:
 
 
 def _sides(deal: dict[str, Any]) -> tuple[str, ...]:
-    if _is_v2(deal):
-        return (str(deal.get("direction") or ""),)
-    # afb.deal.v1: position bias is entry.side (legacy) or the root `direction`
-    # (target vocabulary) — at least one is present per the deal.v1 schema;
-    # producers are moving to setting both, so prefer entry.side when present.
-    entry = deal.get("entry")
-    if isinstance(entry, dict) and entry.get("side"):
-        return (str(entry.get("side") or ""),)
-    if deal.get("direction"):
-        return (str(deal.get("direction") or ""),)
-    return ()
+    # Both afb.deal.v1 and afb.deal.v2 require the root `direction`
+    # (long/short) as of protocol v2.0.0 — entry.side (legacy buy/sell) is no
+    # longer part of the wire schema.
+    return (str(deal.get("direction") or ""),)
 
 
 def _entry_triggers(deal: dict[str, Any]) -> Any:

@@ -48,10 +48,8 @@ def test_v1_rejects_missing_required_fields(registry):
         _validator(TRADEPLAN_V1_ID, registry).validate({"id": "x"})  # no ticker/entry_condition
 
 
-@pytest.mark.parametrize("value", ["buy", "sell", "long", "short"])
-def test_v1_direction_accepts_legacy_and_target_vocabulary(value, registry):
-    """Transitional: afb.tradeplan.v1.direction accepts both buy/sell (legacy)
-    and long/short (target) while the frontend migrates."""
+@pytest.mark.parametrize("value", ["long", "short"])
+def test_v1_direction_accepts_target_vocabulary(value, registry):
     plan = {
         "id": "tp1",
         "ticker": "SBER",
@@ -59,6 +57,20 @@ def test_v1_direction_accepts_legacy_and_target_vocabulary(value, registry):
         "entry_condition": {"condition_type": "price", "price_value": 100},
     }
     _validator(TRADEPLAN_V1_ID, registry).validate(plan)  # does not raise
+
+
+@pytest.mark.parametrize("value", ["buy", "sell"])
+def test_v1_direction_rejects_legacy_vocabulary_since_v2_0_0(value, registry):
+    from jsonschema import ValidationError
+
+    plan = {
+        "id": "tp1",
+        "ticker": "SBER",
+        "direction": value,
+        "entry_condition": {"condition_type": "price", "price_value": 100},
+    }
+    with pytest.raises(ValidationError):
+        _validator(TRADEPLAN_V1_ID, registry).validate(plan)
 
 
 def test_v1_direction_rejects_unknown_value(registry):

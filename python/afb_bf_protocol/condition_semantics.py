@@ -5,16 +5,16 @@ processor and dataset signal runner) must evaluate a condition — see that
 schema's ``$defs.conditionNode`` description for the operator vocabulary and
 ``docs/PROTOCOL.md`` for the worked examples.
 
-Price conditions support six fully-supported operators — none of them legacy
-or deprecated: ``touch`` (op omitted or ``"touch"``), ``above``/``below``
-(``PRICE_LEVEL_OPS``, inclusive level check, no timeframe) and
-``breakout``/``breakdown``/``crossing`` (``PRICE_CANDLE_OPS``, last CLOSED
-candle of the given timeframe). They also differ in how BF executes a fired
-condition: ``touch`` places a LIMIT order (bounded slippage via
-``limit_offset_steps``); the other five place a MARKET order (must fill
-regardless of slippage) — see ``belphegor.plan_engine.order_policy`` on the
-BF side. This module only evaluates *whether* a condition fired; the
-execution-type decision lives entirely in BF.
+Price conditions support four operators: ``touch`` (op omitted or
+``"touch"``), ``above``/``below`` (``PRICE_LEVEL_OPS``, inclusive level
+check, no timeframe) and ``breakout``/``breakdown``/``crossing``
+(``PRICE_CANDLE_OPS``, last CLOSED candle of the given timeframe). They also
+differ in how BF executes a fired condition: ``touch`` places a LIMIT order
+(bounded slippage via ``limit_offset_steps``); the other three place a
+MARKET order (must fill regardless of slippage) — see
+``belphegor.plan_engine.order_policy`` on the BF side. This module only
+evaluates *whether* a condition fired; the execution-type decision lives
+entirely in BF.
 
 Pure stdlib, no I/O: callers own sourcing ``cur``/``prev`` (and, for indicators
 and datasets, the same for the right-hand side) and the last CLOSED candle for
@@ -40,9 +40,6 @@ __all__ = [
     "PRICE_TOUCH_OPS",
     "PRICE_LEVEL_OPS",
     "PRICE_CANDLE_OPS",
-    "DEPRECATED_PRICE_TICK_OPS",
-    "DEPRECATED_PRICE_OPS",
-    "DEPRECATED_QUOTE_OPS",
     "OPS_BY_SOURCE",
     "evaluate_touch",
     "evaluate_price_level_op",
@@ -60,7 +57,7 @@ TIMEFRAMES: tuple[str, ...] = (
     "5min", "10min", "15min", "30min", "1h", "2h", "4h", "1d",
 )
 
-# indicator/dataset conditions, and the deprecated tick-based price/quote ops.
+# indicator/dataset conditions.
 SCALAR_OPS: frozenset[str] = frozenset(
     {"above", "below", "crosses_above", "crosses_below", "crossing"}
 )
@@ -76,22 +73,10 @@ PRICE_LEVEL_OPS: frozenset[str] = frozenset({"above", "below"})
 # price conditions with a `timeframe`, evaluated on the last CLOSED candle only.
 PRICE_CANDLE_OPS: frozenset[str] = frozenset({"breakout", "breakdown", "crossing"})
 
-# Deprecated tick crosses_* / crossing on price without timeframe.
-DEPRECATED_PRICE_TICK_OPS: frozenset[str] = frozenset(
-    {"crosses_above", "crosses_below", "crossing"}
-)
-
-# Back-compat alias: all non-candle tick ops on price (level + deprecated).
-DEPRECATED_PRICE_OPS: frozenset[str] = PRICE_LEVEL_OPS | DEPRECATED_PRICE_TICK_OPS
-
-# quote conditions — full scalar vocabulary, deprecated in v1.4.0.
-DEPRECATED_QUOTE_OPS: frozenset[str] = SCALAR_OPS
-
 # Valid explicit `op` values per left.source. `price` additionally allows
 # omitting `op` entirely — equivalent to `op="touch"`, see evaluate_touch.
 OPS_BY_SOURCE: dict[str, frozenset[str]] = {
-    "price": PRICE_TOUCH_OPS | PRICE_CANDLE_OPS | PRICE_LEVEL_OPS | DEPRECATED_PRICE_TICK_OPS,
-    "quote": DEPRECATED_QUOTE_OPS,
+    "price": PRICE_TOUCH_OPS | PRICE_CANDLE_OPS | PRICE_LEVEL_OPS,
     "indicator": SCALAR_OPS,
     "dataset": SCALAR_OPS,
 }
@@ -146,8 +131,7 @@ def evaluate_scalar_op(
     ref_cur: Optional[Number],
     ref_prev: Optional[Number] = None,
 ) -> bool:
-    """The 5-operator scalar vocabulary shared by indicator/dataset conditions
-    and the deprecated tick-based price/quote conditions.
+    """The 5-operator scalar vocabulary used by indicator/dataset conditions.
 
     ``ref_prev`` defaults to ``ref_cur`` — a constant right-hand side has no
     history of its own, which is exactly what makes the boundary semantics

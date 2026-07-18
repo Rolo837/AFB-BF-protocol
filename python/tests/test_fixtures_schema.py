@@ -34,10 +34,11 @@ def test_example_validates(path: Path, registry):
     Draft202012Validator(payload_schema, registry=registry).validate(env["payload"])
 
 
-def test_legacy_entry_order_still_validates(registry):
-    """`entry.order` (deprecated since 1.11.0) must remain schema-valid so
-    deals published/stored before the deprecation keep validating."""
-    from jsonschema import Draft202012Validator
+def test_legacy_entry_side_and_order_rejected_since_v2_0_0(registry):
+    """v2.0.0 removed `entry.side` (legacy buy/sell — superseded by the
+    deal-level `direction`) and `entry.order` (deprecated since 1.11.0, BF
+    always ignored it) from afb.deal.v1. `direction` is now required."""
+    from jsonschema import Draft202012Validator, ValidationError
 
     deal_schema = json.loads((SPEC_SCHEMAS / "deal.v1.json").read_text())
     deal = {
@@ -60,4 +61,10 @@ def test_legacy_entry_order_still_validates(registry):
         },
         "sizing": {"mode": "lots", "value": "1"},
     }
-    Draft202012Validator(deal_schema, registry=registry).validate(deal)
+    with pytest.raises(ValidationError):
+        Draft202012Validator(deal_schema, registry=registry).validate(deal)
+
+    deal["direction"] = "long"
+    del deal["entry"]["side"]
+    del deal["entry"]["order"]
+    Draft202012Validator(deal_schema, registry=registry).validate(deal)  # does not raise

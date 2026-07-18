@@ -155,11 +155,6 @@
         "account_id": {
           "type": "string"
         },
-        "entry_order_type": {
-          "type": "string",
-          "deprecated": true,
-          "description": "Deprecated (since 1.11.0): BF no longer echoes the requested order type; it decides order params itself, see daemon.capabilities."
-        },
         "side": {
           "type": "string"
         },

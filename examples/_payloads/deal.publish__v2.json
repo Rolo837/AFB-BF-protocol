@@ -41,14 +41,15 @@
         "condition": {
           "node_type": "event",
           "id": "entry_2",
-          "op": "crosses_above",
+          "op": "breakout",
           "left": {
             "source": "price",
             "field": "last"
           },
           "right": {
             "const": "4215.0"
-          }
+          },
+          "timeframe": "15min"
         }
       }
     ],

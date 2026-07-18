@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/deal.v1.json",
   "title": "ExecutionDeal afb.deal.v1",
-  "description": "Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. Position bias may be expressed as legacy `entry.side` (buy/sell) or as the deal-level `direction` (long/short, same vocabulary as afb.deal.v2) — at least one must be present; producers are encouraged to set both during the buy/sell -> long/short migration so older and newer consumers both work.",
+  "description": "Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. The deal-level `direction` (long/short, same vocabulary as afb.deal.v2) is the single source of truth for position bias.",
   "type": "object",
-  "required": ["schema", "deal_id", "revision", "target", "entry", "sizing"],
+  "required": ["schema", "deal_id", "revision", "target", "direction", "entry", "sizing"],
   "properties": {
     "schema": {"const": "afb.deal.v1"},
     "deal_id": {"type": "string", "minLength": 1},
@@ -24,10 +24,6 @@
     "execution_policy": {"$ref": "#/$defs/executionPolicy"},
     "archive_reason": {"type": "string"}
   },
-  "anyOf": [
-    {"required": ["direction"]},
-    {"properties": {"entry": {"required": ["side"]}}}
-  ],
   "$defs": {
     "decimalString": {"type": "string", "pattern": "^-?[0-9]+(\\.[0-9]+)?$"},
     "instrument": {
@@ -75,24 +71,11 @@
         }
       }
     },
-    "order": {
-      "type": "object",
-      "deprecated": true,
-      "description": "Deprecated (since 1.11.0): BF ignores this block. BF alone decides order type, time_in_force and limit offset from its own broker-adapter capabilities, config and execution mode — see daemon.capabilities.",
-      "properties": {
-        "type": {"enum": ["market", "limit"]},
-        "limit_offset_steps": {"type": "integer"},
-        "time_in_force": {"type": "string"}
-      }
-    },
     "entry": {
       "type": "object",
       "required": ["condition"],
-      "description": "`side` is optional here iff the deal-level `direction` is set (see root anyOf).",
       "properties": {
-        "side": {"enum": ["buy", "sell"]},
-        "condition": {"$ref": "#/$defs/conditionNode"},
-        "order": {"$ref": "#/$defs/order", "deprecated": true}
+        "condition": {"$ref": "#/$defs/conditionNode"}
       }
     },
     "exitBlock": {

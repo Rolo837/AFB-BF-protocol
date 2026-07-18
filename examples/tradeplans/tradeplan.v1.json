@@ -2,7 +2,7 @@
   "id": "tradeplan-7a1c-4e2b",
   "ticker": "SBER",
   "status": "new",
-  "direction": "buy",
+  "direction": "long",
   "schema": "afb.tradeplan.v1",
   "activated_at": "",
   "closed_at": "",
