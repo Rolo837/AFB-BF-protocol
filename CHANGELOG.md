@@ -2,6 +2,18 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.0.2 — 2026-07-19
+
+PATCH: типизация WS-канала `settings` AFB и файлов `config/users/*.yaml` — расширение вне `asyncapi.yaml`, wire `afb.execution.v1` не тронут, BF не затронут.
+
+- **`spec/schemas/settings/`** (новый каталог, отдельно от `afbws/` по решению пользователя) — 13 схем:
+  - домены: `me`, `interface` (+ `$defs` `chartToolbar`, `servicesFilters`), `service`, `dashboard` (+ `$defs` `layoutItem`), `dataset`, `indicator`, `primitive` (+ `$defs` `point`; `kind` — 7 значений), `trade` (+ `$defs` `notify`), `limits`, `security_instrument`;
+  - композиции: `user_file.v1.json` — дисковый вид `config/users/*.yaml` (favorites — `string[]`, alarms/tradeplans через `$ref` на существующие `alarm.v1.json`/`tradeplan.v1/v2.json`, все поля optional); `settings_payload.v1.json` — wire-вид блоба `type:"settings"` (без alarms/tradeplans/primitives, с hydrated favorites `[{secid: SecurityInstrument}]`, `limits`, `name`);
+  - `messages.v1.json` — 27 именованных `$defs` на все 14 запросов канала `settings` и все ответы/пуши (включая незатребованные `default`+`settings` при авторизации, manager-only `set_default`, общий `rejectedEnvelope` для композиции с любым успешным типом через `allOf`); редирект-only root (без собственного экспорта), как у `condition.v1.json`.
+- `python/afb_bf_protocol/payload_validation.py`: `validate_user_settings_file(obj) -> list[str]` — диагностическая структурная проверка (список ошибок, не исключение) `config/users/*.yaml` против `settings/user_file.v1.json`.
+- `ts/tools/generate-models.mjs`: `namedRootSchemas()`/`NAMED_DEF_SCHEMAS` расширены записями `settings/*`.
+- `additionalProperties: true` во всех схемах `settings/` — до подтверждённой чистки дрейфа на всех деплойментах (см. `AFB/docs/API_TYPES_REGISTRY.md`).
+
 ## v2.0.1 — 2026-07-19
 
 PATCH: типизация четырёх каналов исполнения AFB↔фронтенд (`deal`, `connector`, `bfs`, `account`) — расширение вне `asyncapi.yaml`, wire `afb.execution.v1` не тронут, BF не затронут.

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/settings/security_instrument.v1.json",
+  "title": "SecurityInstrument — hydrated instrument metadata (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "Mirrors backend/config/securities_models.py SecurityInstrument (pydantic). Used to hydrate favorites on the wire (settings/favorites) — see AFB/docs/API_REGISTRY.md §3.10.",
+  "type": "object",
+  "required": ["market", "exchange"],
+  "additionalProperties": true,
+  "properties": {
+    "market": { "type": "string" },
+    "exchange": { "type": "string" },
+    "shortname": { "type": ["string", "null"] },
+    "decimals": { "type": ["integer", "null"] },
+    "name": { "type": ["string", "null"] },
+    "expiration": { "type": ["string", "null"], "description": "Futures expiration date." },
+    "asset": { "type": ["string", "null"], "description": "Underlying asset code, futures only." },
+    "margin": { "type": ["number", "null"], "description": "Margin requirement, futures only." },
+    "lotsize": { "type": ["integer", "null"] },
+    "step": { "type": ["number", "null"] },
+    "stepprice": { "type": ["number", "null"] },
+    "price": { "type": ["number", "null"] },
+    "currency": { "type": ["string", "null"] },
+    "isin": { "type": ["string", "null"] }
+  }
+}

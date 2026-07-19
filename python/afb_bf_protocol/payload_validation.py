@@ -30,6 +30,7 @@ __all__ = [
     "resolve_tradeplan_schema",
     "validate_alarm",
     "validate_notification",
+    "validate_user_settings_file",
 ]
 
 _DEAL_SCHEMAS = {"afb.deal.v1", "afb.deal.v2"}
@@ -37,6 +38,7 @@ _TRADEPLAN_SCHEMAS = {"afb.tradeplan.v1", "afb.tradeplan.v2"}
 _DEFAULT_TRADEPLAN_SCHEMA = "afb.tradeplan.v1"
 _ALARM_SCHEMAS = {"afb.alarm.v1"}
 _NOTIFICATION_SCHEMAS = {"afb.notification.alarm.v1", "afb.notification.deal.v1"}
+_USER_SETTINGS_FILE_SCHEMA = "settings/user_file.v1.json"
 
 
 def _schema_filename(schema_id: str) -> str:
@@ -161,3 +163,25 @@ def validate_notification(obj: dict[str, Any]) -> str:
         raise PayloadValidationError("invalid_schema", f"unknown notification schema: {schema!r}")
     _validate(obj, schema_filename=_schema_filename(schema), what="notification")
     return schema
+
+
+def validate_user_settings_file(obj: dict[str, Any]) -> list[str]:
+    """Structurally validate a user settings file (config/users/*.yaml,
+    on-disk shape) against settings/user_file.v1.json. Returns a list of
+    human-readable error strings (empty if valid) instead of raising — this
+    is a diagnostic check (AFB logs warnings on load, does not block reads),
+    unlike validate_deal/validate_tradeplan/validate_alarm which validate
+    wire-bound payloads and raise on the first mismatch. additionalProperties
+    is permissive (true) on this schema in v1, so drift shows up as type/enum
+    mismatches on known fields (e.g. legacy flat alarm condition), not as
+    unknown-key noise."""
+    if not isinstance(obj, dict):
+        return ["user settings file must be an object"]
+    Draft202012Validator = _import_jsonschema()
+    schema = _schema_doc(_USER_SETTINGS_FILE_SCHEMA)
+    validator = Draft202012Validator(schema, registry=_registry())
+    errors: list[str] = []
+    for exc in validator.iter_errors(obj):
+        path = "/".join(str(p) for p in exc.absolute_path)
+        errors.append(f"{exc.message} (at {path or '<root>'})")
+    return errors

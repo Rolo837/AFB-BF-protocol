@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/settings/me.v1.json",
+  "title": "settings.me — contact/notification prefs (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "Every property optional — the on-disk file only stores what the user overrode, and settings/set accepts partial updates. `sound` is canon (notification sound id, e.g. 'game/coin').",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "email": { "type": "string" },
+    "telegram": { "type": "string" },
+    "notify_telegram": { "type": "boolean" },
+    "notify_email": { "type": "boolean" },
+    "sound": { "type": "string" }
+  }
+}

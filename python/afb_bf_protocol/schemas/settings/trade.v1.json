@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/settings/trade.v1.json",
+  "title": "settings.trade — user trading prefs (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "Every property optional. `real_trade` is stored but the frontend forces it to false on read (publish target is tradeplan.connector / default_connector, not this flag) — deliberate, not drift.",
+  "$defs": {
+    "notify": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "trigger": { "type": "boolean" },
+        "order_placed": { "type": "boolean" },
+        "order_executed": { "type": "boolean" },
+        "position": { "type": "boolean" },
+        "close": { "type": "boolean" }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "real_trade": { "type": "boolean" },
+    "auto_execute": { "type": "boolean" },
+    "default_connector": { "type": "string" },
+    "default_capital": { "type": "number" },
+    "notify": { "$ref": "#/$defs/notify" },
+    "chart_deal_markers": { "type": "boolean" }
+  }
+}

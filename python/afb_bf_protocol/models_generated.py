@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: f4817e2abd7ece0146336c7e6aa1a9a69d40d16d380e929d317e390aec242399
+# source-hash: 23fb47b86b610717175f8b22d834a3b10124023dc636d1955a547b6fc9c0c357
 
 from __future__ import annotations
 
@@ -145,6 +145,10 @@ class AlarmV1AlarmIndicatorExpr(TypedDict):
     params: NotRequired[dict[str, Any]]
 
 
+class Alarms(TypedDict):
+    statuses: NotRequired[list[str]]
+
+
 class Backstop(TypedDict):
     """
     Per-deal overrides for the hybrid-mode server-side backstop order; unset fields fall back to the executing BF's own config defaults. Meaningful only when execution_mode is `hybrid`.
@@ -191,6 +195,11 @@ class BfsRegistryPush(TypedDict):
 class Binding(TypedDict):
     account_id: NotRequired[str]
     symbol: NotRequired[str]
+
+
+class Breakpoints(TypedDict):
+    lg: NotRequired[int]
+    xl: NotRequired[int]
 
 
 class BrokerInstrument(TypedDict):
@@ -252,6 +261,21 @@ class ChangedItem(TypedDict):
     average_price: NotRequired[str]
     quantity: NotRequired[int]
     symbol: NotRequired[str]
+
+
+class ChartPrimitive(TypedDict):
+    """
+    Client-only PrimitiveInstrumentRubMeta (ruler ruble-label metadata, computed from instrument step/lotsize) is NOT part of this schema — never persisted.
+    """
+
+    id: NotRequired[str]
+    kind: NotRequired[
+        Literal["line", "line_enter", "line_sl", "line_tp", "note", "zone", "ruler"]
+    ]
+    start: NotRequired[PrimitivePoint]
+    stop: NotRequired[PrimitivePoint]
+    text: NotRequired[str]
+    used_in_tradeplans: NotRequired[bool]
 
 
 class ConditionNode1(TypedDict):
@@ -446,6 +470,30 @@ class DaemonStatusPayload(TypedDict):
     changes: NotRequired[list[Change]]
 
 
+class DashboardLayoutItem(TypedDict):
+    """
+    Canonical field is `widget`; `i` is an accepted wire synonym for the same value (frontend tolerates either — see normalizeDashboardSettings).
+    """
+
+    widget: NotRequired[str]
+    i: NotRequired[str]
+    x: NotRequired[int]
+    y: NotRequired[int]
+    w: NotRequired[int]
+    h: NotRequired[int]
+
+
+class DashboardSettings(TypedDict):
+    """
+    Every property optional. `cols` is clamped 8-24 by the frontend normalizer (normalizeDashboardSettings) rather than enforced here — this schema stays permissive since it's diagnostic-only.
+    """
+
+    cols: NotRequired[int]
+    breakpoints: NotRequired[Breakpoints]
+    layouts: NotRequired[Layouts]
+    widgets: NotRequired[dict[str, Widgets]]
+
+
 class Data(TypedDict):
     bfs: list[BfsRegistryEntry]
 
@@ -457,6 +505,25 @@ class Data1(TypedDict):
     avg_price: str
     last_price: str
     as_of: str
+
+
+class Data2(TypedDict):
+    dataset: DatasetSettings
+    interface: NotRequired[InterfaceSettings]
+    indicators: NotRequired[list[IndicatorSettings]]
+    service: NotRequired[ServiceSettings]
+    favorites: NotRequired[list[str]]
+
+
+class DatasetSettings(TypedDict):
+    """
+    Freeform per-series style config (color/style/panel triplets, e.g. positions.longColor, trades.tradesBColor, hhi.hhiAgressiveBuyColor). Keys vary per series and grow as new series/indicators are added — deliberately left as open string/number maps rather than enumerating every *Color/*Style/*Panel key (dozens per section, purely presentational, not consumed structurally by any code path).
+    """
+
+    positions: NotRequired[dict[str, str | float]]
+    trades: NotRequired[dict[str, str | float]]
+    hhi: NotRequired[dict[str, str | float]]
+    orders: NotRequired[dict[str, str | float]]
 
 
 class DealAcceptedPayload(TypedDict):
@@ -938,9 +1005,54 @@ class Health(TypedDict):
     points: NotRequired[dict[str, Any]]
 
 
+class IndicatorSettings(TypedDict):
+    """
+    `scope` deliberately excluded — observed as garbage on live user files, removed by AFB/scripts/migrate_user_settings_canon.sh and not part of canon.
+    """
+
+    id: NotRequired[str]
+    type: NotRequired[str]
+    enabled: NotRequired[bool]
+    settings: NotRequired[dict[str, Any]]
+
+
 class Instrument(TypedDict):
     shortname: NotRequired[str]
     secname: NotRequired[str]
+
+
+class Instruments(TypedDict):
+    markets: NotRequired[list[str]]
+
+
+class InterfaceChartToolbar(TypedDict):
+    favorite_timeframes: NotRequired[list[str]]
+    favorite_datasets: NotRequired[list[str]]
+    favorite_primitives: NotRequired[list[str]]
+
+
+class InterfaceServicesFilters(TypedDict):
+    instruments: NotRequired[Instruments]
+    alarms: NotRequired[Alarms]
+    plans: NotRequired[Plans]
+
+
+class InterfaceSettings(TypedDict):
+    """
+    Every property optional (partial-update / overrides-only semantics). offset_right/offset_top/debug_mode are NOT here — canon location is service.v1.json (historical drift: these used to also appear under interface/root, cleaned up by AFB/scripts/migrate_user_settings_canon.sh).
+    """
+
+    snow_mode: NotRequired[bool]
+    confirm_delete: NotRequired[bool]
+    smart_alarms: NotRequired[bool]
+    preset_timeframes: NotRequired[PresetTimeframes]
+    chart_toolbar: NotRequired[InterfaceChartToolbar]
+    services_filters: NotRequired[InterfaceServicesFilters]
+    trade_plan_default_capital_rub: NotRequired[float]
+
+
+class Layouts(TypedDict):
+    lg: NotRequired[list[DashboardLayoutItem]]
 
 
 class Left(TypedDict):
@@ -1059,6 +1171,10 @@ class Owner(TypedDict):
     user_id: NotRequired[str]
 
 
+class Plans(TypedDict):
+    statuses: NotRequired[list[str]]
+
+
 class PositionOpenedPayload(TypedDict):
     at: NotRequired[str]
     average_price: NotRequired[str]
@@ -1070,6 +1186,18 @@ class PositionOpenedPayload(TypedDict):
     symbol: NotRequired[str]
 
 
+class PresetTimeframes(TypedDict):
+    positions: NotRequired[str]
+    trades: NotRequired[str]
+    hhi: NotRequired[str]
+    orders: NotRequired[str]
+
+
+class PrimitivePoint(TypedDict):
+    time: NotRequired[int]
+    price: NotRequired[float]
+
+
 class Right(TypedDict):
     const: DealV1DecimalString
 
@@ -1077,6 +1205,37 @@ class Right(TypedDict):
 class Risk(TypedDict):
     take_profit: NotRequired[DealV1ExitBlock]
     stop_loss: NotRequired[DealV1ExitBlock]
+
+
+class SecurityInstrument(TypedDict):
+    """
+    Mirrors backend/config/securities_models.py SecurityInstrument (pydantic). Used to hydrate favorites on the wire (settings/favorites) — see AFB/docs/API_REGISTRY.md §3.10.
+    """
+
+    market: str
+    exchange: str
+    shortname: NotRequired[str | None]
+    decimals: NotRequired[int | None]
+    name: NotRequired[str | None]
+    expiration: NotRequired[str | None]
+    asset: NotRequired[str | None]
+    margin: NotRequired[float | None]
+    lotsize: NotRequired[int | None]
+    step: NotRequired[float | None]
+    stepprice: NotRequired[float | None]
+    price: NotRequired[float | None]
+    currency: NotRequired[str | None]
+    isin: NotRequired[str | None]
+
+
+class ServiceSettings(TypedDict):
+    """
+    Canonical home of offset_right/offset_top/debug_mode (historically also read from interface.*/root — see AFB/docs/API_TYPES_REGISTRY.md drift notes). Every property optional.
+    """
+
+    offset_right: NotRequired[int]
+    offset_top: NotRequired[int]
+    debug_mode: NotRequired[bool]
 
 
 class SessionEnrollRequestPayload(TypedDict):
@@ -1143,6 +1302,183 @@ class SessionResyncResponsePayload(TypedDict):
     deal_statuses: NotRequired[dict[str, str]]
 
 
+class SettingsAlarmUpdatedPush(TypedDict):
+    type: Literal["alarm_updated"]
+    data: AlarmV1
+
+
+class SettingsAlarmsPush(TypedDict):
+    type: Literal["alarms"]
+    data: list[AlarmV1]
+
+
+class SettingsDefaultPayload(TypedDict):
+    """
+    Platform defaults (config/_default_.yaml); dashboard/favorites fall back to code defaults if absent from the file.
+    """
+
+    interface: NotRequired[InterfaceSettings]
+    service: NotRequired[ServiceSettings]
+    dashboard: NotRequired[DashboardSettings]
+    dataset: NotRequired[DatasetSettings]
+    indicators: NotRequired[list[IndicatorSettings]]
+    favorites: NotRequired[list[str]]
+
+
+class SettingsDefaultPush(TypedDict):
+    type: Literal["default"]
+    data: SettingsDefaultPayload
+
+
+class SettingsErrorPush(TypedDict):
+    type: Literal["error"]
+    message: str
+
+
+class SettingsFavoritesPush(TypedDict):
+    type: Literal["favorites"]
+    data: list[dict[str, SecurityInstrument]]
+
+
+class SettingsGetAlarmsRequest(TypedDict):
+    type: NotRequired[Literal["get_alarms"]]
+
+
+class SettingsGetDefaultRequest(TypedDict):
+    type: NotRequired[Literal["get_default"]]
+
+
+class SettingsGetFavoritesRequest(TypedDict):
+    type: NotRequired[Literal["get_favorites"]]
+
+
+class SettingsGetPlansRequest(TypedDict):
+    type: NotRequired[Literal["get_plans"]]
+
+
+class SettingsGetPrimitivesRequest(TypedDict):
+    type: NotRequired[Literal["get_primitives"]]
+
+
+class SettingsGetRequest(TypedDict):
+    type: NotRequired[Literal["get"]]
+
+
+class SettingsLimits(TypedDict):
+    """
+    From config/roles.yaml per the connection's tier. Never persisted to config/users/*.yaml — absent from user_file.v1.json, present only in settings_payload.v1.json (the `settings` WS response). settings/set silently drops a client-supplied `limits` key.
+    """
+
+    max_favorites_tickers: NotRequired[int]
+    max_primitives_per_user: NotRequired[int]
+
+
+class SettingsMe(TypedDict):
+    """
+    Every property optional — the on-disk file only stores what the user overrode, and settings/set accepts partial updates. `sound` is canon (notification sound id, e.g. 'game/coin').
+    """
+
+    email: NotRequired[str]
+    telegram: NotRequired[str]
+    notify_telegram: NotRequired[bool]
+    notify_email: NotRequired[bool]
+    sound: NotRequired[str]
+
+
+class SettingsPlanAmendResult(TypedDict):
+    deal_id: NotRequired[str]
+    accepted: NotRequired[bool]
+    message: NotRequired[str]
+
+
+class SettingsPlanUpdatedPush(TypedDict):
+    """
+    `amend` present when the plan is linked to a live deal (status in published/active/paused/orphaned) — backend translates the edit to deal.amend on BF.
+    """
+
+    type: Literal["plan_updated"]
+    data: SettingsTradeplanListItem
+    amend: NotRequired[list[SettingsPlanAmendResult]]
+
+
+class SettingsPlansPush(TypedDict):
+    type: Literal["plans"]
+    data: list[SettingsTradeplanListItem]
+
+
+SettingsPrimitivesBySecid: TypeAlias = dict[str, list[ChartPrimitive]]
+
+
+class SettingsPrimitivesPush(TypedDict):
+    """
+    `warning` present when a rollback happened during deal-amend reconciliation — data stays authoritative either way.
+    """
+
+    type: Literal["primitives"]
+    data: SettingsPrimitivesBySecid
+    warning: NotRequired[str]
+
+
+class SettingsPush(TypedDict):
+    type: Literal["settings"]
+    data: UserSettingsPayload
+
+
+class SettingsRejectedEnvelope(TypedDict):
+    rejected: Literal[True]
+    message: str
+
+
+class SettingsSetAlarmsRequest(TypedDict):
+    type: Literal["set_alarms"]
+    data: list[AlarmV1]
+
+
+class SettingsSetDefaultRequest(TypedDict):
+    """
+    Manager-only. data.dataset is required by the backend ("Поле 'data.dataset' обязательно").
+    """
+
+    type: Literal["set_default"]
+    data: Data2
+
+
+class SettingsSetFavoritesRequest(TypedDict):
+    type: Literal["set_favorites"]
+    tickers: list[str]
+
+
+class SettingsSetPlansRequest(TypedDict):
+    type: Literal["set_plans"]
+    data: list[SettingsTradeplanListItem]
+
+
+class SettingsSetPrimitivesRequest(TypedDict):
+    type: Literal["set_primitives"]
+    data: SettingsPrimitivesBySecid
+
+
+class SettingsSetRequest(TypedDict):
+    """
+    `role` in data is ignored. `tradeplans`/`primitives` in data are ignored (set_plans/set_primitives own those). `name`/`limits` are stripped server-side even if present.
+    """
+
+    type: Literal["set"]
+    data: UserSettingsFile
+
+
+class SettingsUpdateAlarmRequest(TypedDict):
+    type: Literal["update_alarm"]
+    alarm_id: str
+    data: AlarmV1
+
+
+class SettingsUpdatePlanRequest(TypedDict):
+    type: Literal["update_plan"]
+    plan_id: str
+    data: SettingsTradeplanListItem
+
+
 class Summary(TypedDict):
     entry_avg_price: NotRequired[
         str | float | int | bool | dict[str, Any] | list[Any] | None
@@ -1156,6 +1492,14 @@ class Summary(TypedDict):
     total_commission: NotRequired[
         str | float | int | bool | dict[str, Any] | list[Any] | None
     ]
+
+
+class TradeNotifySettings(TypedDict):
+    trigger: NotRequired[bool]
+    order_placed: NotRequired[bool]
+    order_executed: NotRequired[bool]
+    position: NotRequired[bool]
+    close: NotRequired[bool]
 
 
 class TradePlanV1(TypedDict):
@@ -1205,6 +1549,22 @@ class TradePlanV2(TypedDict):
     delivery_at: NotRequired[str]
     created_at: NotRequired[str]
     updated_at: NotRequired[str]
+
+
+SettingsTradeplanListItem: TypeAlias = TradePlanV1 | TradePlanV2
+
+
+class TradeSettings(TypedDict):
+    """
+    Every property optional. `real_trade` is stored but the frontend forces it to false on read (publish target is tradeplan.connector / default_connector, not this flag) — deliberate, not drift.
+    """
+
+    real_trade: NotRequired[bool]
+    auto_execute: NotRequired[bool]
+    default_connector: NotRequired[str]
+    default_capital: NotRequired[float]
+    notify: NotRequired[TradeNotifySettings]
+    chart_deal_markers: NotRequired[bool]
 
 
 class TradeplanV1MarketOrPriceCondition(TypedDict):
@@ -1277,6 +1637,42 @@ class User(TypedDict):
     notify_email: bool
 
 
+class UserSettingsFile(TypedDict):
+    """
+    Disk shape differs from the wire `settings` payload (settings_payload.v1.json): this file holds alarms/tradeplans/primitives (stripped from the wire `settings` response — separate get_alarms/get_plans/get_primitives calls), favorites as a plain secid string[] (hydrated to SecurityInstrument objects on the wire), and has no `limits` (ephemeral, tier-derived, never persisted). Every key is an override: the file only stores what the user changed from platform defaults (interface/service/dataset/dashboard/favorites/indicators) — AFB backend's merge_user_settings layers this over config/_default_.yaml. additionalProperties stays true (v1) until a confirmed clean migration on every deployment — see AFB/scripts/migrate_user_settings_canon.sh.
+    """
+
+    me: NotRequired[SettingsMe]
+    interface: NotRequired[InterfaceSettings]
+    service: NotRequired[ServiceSettings]
+    dashboard: NotRequired[DashboardSettings]
+    dataset: NotRequired[DatasetSettings]
+    indicators: NotRequired[list[IndicatorSettings]]
+    favorites: NotRequired[list[str]]
+    alarms: NotRequired[list[AlarmV1]]
+    tradeplans: NotRequired[list[TradePlanV1 | TradePlanV2]]
+    primitives: NotRequired[dict[str, list[ChartPrimitive]]]
+    trade: NotRequired[TradeSettings]
+    name: NotRequired[str]
+
+
+class UserSettingsPayload(TypedDict):
+    """
+    What `type:"settings"` actually sends: platform defaults merged with the user's overrides (merge_user_settings + settings_payload_filtered in AFB backend), MINUS alarms/tradeplans/primitives (separate get_alarms/get_plans/get_primitives calls), PLUS the ephemeral `limits` (tier-derived, never persisted) and `name`. `favorites` here is hydrated ([{<secid>: SecurityInstrument}]) — unlike the plain secid list on disk (user_file.v1.json).
+    """
+
+    me: NotRequired[SettingsMe]
+    interface: NotRequired[InterfaceSettings]
+    service: NotRequired[ServiceSettings]
+    dashboard: NotRequired[DashboardSettings]
+    dataset: NotRequired[DatasetSettings]
+    indicators: NotRequired[list[IndicatorSettings]]
+    favorites: NotRequired[list[dict[str, SecurityInstrument]]]
+    trade: NotRequired[TradeSettings]
+    limits: NotRequired[SettingsLimits]
+    name: NotRequired[str]
+
+
 class Validation(TypedDict):
     account_id: NotRequired[str]
     side: str
@@ -1286,3 +1682,12 @@ class Validation(TypedDict):
     quantity_lots: NotRequired[int]
     entry_price: NotRequired[str]
     required_cash: NotRequired[str]
+
+
+class Widgets(TypedDict):
+    bf_id: NotRequired[str]
+    order_filter: NotRequired[str]
+    deal_status_filters: NotRequired[list[str]]
+    exchange: NotRequired[str]
+    market: NotRequired[str]
+    events_date: NotRequired[str]

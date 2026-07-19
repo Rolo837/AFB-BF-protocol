@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/settings/user_file.v1.json",
+  "title": "config/users/*.yaml — on-disk user settings file (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "Disk shape differs from the wire `settings` payload (settings_payload.v1.json): this file holds alarms/tradeplans/primitives (stripped from the wire `settings` response — separate get_alarms/get_plans/get_primitives calls), favorites as a plain secid string[] (hydrated to SecurityInstrument objects on the wire), and has no `limits` (ephemeral, tier-derived, never persisted). Every key is an override: the file only stores what the user changed from platform defaults (interface/service/dataset/dashboard/favorites/indicators) — AFB backend's merge_user_settings layers this over config/_default_.yaml. additionalProperties stays true (v1) until a confirmed clean migration on every deployment — see AFB/scripts/migrate_user_settings_canon.sh.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "me": { "$ref": "me.v1.json" },
+    "interface": { "$ref": "interface.v1.json" },
+    "service": { "$ref": "service.v1.json" },
+    "dashboard": { "$ref": "dashboard.v1.json" },
+    "dataset": { "$ref": "dataset.v1.json" },
+    "indicators": { "type": "array", "items": { "$ref": "indicator.v1.json" } },
+    "favorites": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "secid strings; hydrated to SecurityInstrument objects on the wire (settings_payload.v1.json)."
+    },
+    "alarms": { "type": "array", "items": { "$ref": "../alarm.v1.json" } },
+    "tradeplans": {
+      "type": "array",
+      "items": { "oneOf": [{ "$ref": "../tradeplan.v1.json" }, { "$ref": "../tradeplan.v2.json" }] }
+    },
+    "primitives": {
+      "type": "object",
+      "additionalProperties": { "type": "array", "items": { "$ref": "primitive.v1.json" } },
+      "description": "Keyed by secid (uppercased on save)."
+    },
+    "trade": { "$ref": "trade.v1.json" },
+    "name": { "type": "string", "description": "Display name, mirrored from config/users.yaml." }
+  }
+}

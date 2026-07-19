@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/settings/settings_payload.v1.json",
+  "title": "settings WS payload — wire view of the merged settings blob (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "What `type:\"settings\"` actually sends: platform defaults merged with the user's overrides (merge_user_settings + settings_payload_filtered in AFB backend), MINUS alarms/tradeplans/primitives (separate get_alarms/get_plans/get_primitives calls), PLUS the ephemeral `limits` (tier-derived, never persisted) and `name`. `favorites` here is hydrated ([{<secid>: SecurityInstrument}]) — unlike the plain secid list on disk (user_file.v1.json).",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "me": { "$ref": "me.v1.json" },
+    "interface": { "$ref": "interface.v1.json" },
+    "service": { "$ref": "service.v1.json" },
+    "dashboard": { "$ref": "dashboard.v1.json" },
+    "dataset": { "$ref": "dataset.v1.json" },
+    "indicators": { "type": "array", "items": { "$ref": "indicator.v1.json" } },
+    "favorites": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": { "$ref": "security_instrument.v1.json" },
+        "description": "Single-key map {<secid>: SecurityInstrument}."
+      }
+    },
+    "trade": { "$ref": "trade.v1.json" },
+    "limits": { "$ref": "limits.v1.json" },
+    "name": { "type": "string" }
+  }
+}

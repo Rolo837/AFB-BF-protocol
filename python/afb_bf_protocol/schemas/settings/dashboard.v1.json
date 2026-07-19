@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/settings/dashboard.v1.json",
+  "title": "settings.dashboard (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "Every property optional. `cols` is clamped 8-24 by the frontend normalizer (normalizeDashboardSettings) rather than enforced here — this schema stays permissive since it's diagnostic-only.",
+  "$defs": {
+    "layoutItem": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Canonical field is `widget`; `i` is an accepted wire synonym for the same value (frontend tolerates either — see normalizeDashboardSettings).",
+      "properties": {
+        "widget": { "type": "string" },
+        "i": { "type": "string" },
+        "x": { "type": "integer" },
+        "y": { "type": "integer" },
+        "w": { "type": "integer" },
+        "h": { "type": "integer" }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "cols": { "type": "integer" },
+    "breakpoints": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": { "lg": { "type": "integer" }, "xl": { "type": "integer" } }
+    },
+    "layouts": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": { "lg": { "type": "array", "items": { "$ref": "#/$defs/layoutItem" } } }
+    },
+    "widgets": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "bf_id": { "type": "string" },
+          "order_filter": { "type": "string" },
+          "deal_status_filters": { "type": "array", "items": { "type": "string" } },
+          "exchange": { "type": "string" },
+          "market": { "type": "string" },
+          "events_date": { "type": "string" }
+        }
+      }
+    }
+  }
+}

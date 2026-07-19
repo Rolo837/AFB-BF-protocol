@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/settings/indicator.v1.json",
+  "title": "settings.indicators[] element (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "`scope` deliberately excluded — observed as garbage on live user files, removed by AFB/scripts/migrate_user_settings_canon.sh and not part of canon.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "id": { "type": "string" },
+    "type": { "type": "string" },
+    "enabled": { "type": "boolean" },
+    "settings": { "type": "object", "additionalProperties": true }
+  }
+}
