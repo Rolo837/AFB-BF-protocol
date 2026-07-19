@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/settings/security_instrument.v1.json",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/draft/security_instrument.v1.json",
   "title": "SecurityInstrument — hydrated instrument metadata (AFB-only; not part of afb.execution.v1 wire)",
   "description": "Mirrors backend/config/securities_models.py SecurityInstrument (pydantic). Used to hydrate favorites on the wire (settings/favorites) — see AFB/docs/API_REGISTRY.md §3.10.",
   "type": "object",

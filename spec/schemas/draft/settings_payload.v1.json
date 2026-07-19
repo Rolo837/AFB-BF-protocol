@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/settings/settings_payload.v1.json",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/draft/settings_payload.v1.json",
   "title": "settings WS payload — wire view of the merged settings blob (AFB-only; not part of afb.execution.v1 wire)",
   "description": "What `type:\"settings\"` actually sends: platform defaults merged with the user's overrides (merge_user_settings + settings_payload_filtered in AFB backend), MINUS alarms/tradeplans/primitives (separate get_alarms/get_plans/get_primitives calls), PLUS the ephemeral `limits` (tier-derived, never persisted) and `name`. `favorites` here is hydrated ([{<secid>: SecurityInstrument}]) — unlike the plain secid list on disk (user_file.v1.json).",
   "type": "object",

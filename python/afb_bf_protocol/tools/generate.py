@@ -234,7 +234,14 @@ def _schemas_source_hash(root: Path) -> str:
     ts/tools/generate-models.mjs's sourceHash(), so models.ts and
     models_generated.py carry an identical banner hash when in sync."""
     schemas_dir = root / "spec" / "schemas"
-    files = sorted(schemas_dir.rglob("*.json"), key=lambda p: p.relative_to(schemas_dir).as_posix())
+    files = sorted(
+        (
+            p
+            for p in schemas_dir.rglob("*.json")
+            if p.relative_to(schemas_dir).parts[0] != "draft"
+        ),
+        key=lambda p: p.relative_to(schemas_dir).as_posix(),
+    )
     digest = hashlib.sha256()
     for path in files:
         digest.update(path.read_bytes())
@@ -349,6 +356,9 @@ def sync_packaged_schemas(root: Path | None = None) -> tuple[Path, int]:
     count = 0
     for path in src.rglob("*.json"):
         rel = path.relative_to(src)
+        # Parked drafts stay in spec/ only — not part of the package surface.
+        if rel.parts and rel.parts[0] == "draft":
+            continue
         target = dst / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(path.read_text())

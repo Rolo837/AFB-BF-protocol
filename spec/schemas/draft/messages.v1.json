@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/settings/messages.v1.json",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/draft/messages.v1.json",
   "title": "`settings` WS channel messages (AFB-only; not part of afb.execution.v1 wire)",
   "description": "Pure $defs bag, no meaningful root shape (mirrors condition.v1.json's redirect-only-root convention) — each $def is one request or response/push body (channel wrapper added at runtime by send_channel, not part of these schemas). `default`+`settings` also arrive unsolicited right after auth (see AFB/backend/api/websocket_handler.py). `set_default` is manager-only. Any success response can be intersected with `rejectedEnvelope` to get its rejected form — see AFB/backend/api/ws_response.py (rejected_msg): rejections reuse the success `type` and carry the authoritative current `data`, plus `rejected:true` and `message`.",
   "$defs": {

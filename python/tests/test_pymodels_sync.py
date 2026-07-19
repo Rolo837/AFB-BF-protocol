@@ -31,7 +31,14 @@ def _models_generated_path() -> Path:
 
 def _source_hash() -> str:
     schemas_dir = _repo_root() / "spec" / "schemas"
-    files = sorted(schemas_dir.rglob("*.json"), key=lambda p: p.relative_to(schemas_dir).as_posix())
+    files = sorted(
+        (
+            p
+            for p in schemas_dir.rglob("*.json")
+            if p.relative_to(schemas_dir).parts[0] != "draft"
+        ),
+        key=lambda p: p.relative_to(schemas_dir).as_posix(),
+    )
     digest = hashlib.sha256()
     for path in files:
         digest.update(path.read_bytes())

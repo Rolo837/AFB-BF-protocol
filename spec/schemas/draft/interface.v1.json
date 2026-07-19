@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/settings/interface.v1.json",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/draft/interface.v1.json",
   "title": "settings.interface — UI prefs (AFB-only; not part of afb.execution.v1 wire)",
   "description": "Every property optional (partial-update / overrides-only semantics). offset_right/offset_top/debug_mode are NOT here — canon location is service.v1.json (historical drift: these used to also appear under interface/root, cleaned up by AFB/scripts/migrate_user_settings_canon.sh).",
   "$defs": {
@@ -17,7 +17,7 @@
         "favorite_primitives": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "ChartPrimitive kind values (settings/primitive.v1.json#kind)."
+          "description": "ChartPrimitive kind values (draft/primitive.v1.json#kind)."
         }
       }
     },

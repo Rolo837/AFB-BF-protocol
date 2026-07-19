@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/settings/limits.v1.json",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/draft/limits.v1.json",
   "title": "settings.limits — ephemeral, tier-derived (AFB-only; not part of afb.execution.v1 wire)",
   "description": "From config/roles.yaml per the connection's tier. Never persisted to config/users/*.yaml — absent from user_file.v1.json, present only in settings_payload.v1.json (the `settings` WS response). settings/set silently drops a client-supplied `limits` key.",
   "type": "object",

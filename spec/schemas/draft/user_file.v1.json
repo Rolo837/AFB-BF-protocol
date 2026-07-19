@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/settings/user_file.v1.json",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/draft/user_file.v1.json",
   "title": "config/users/*.yaml — on-disk user settings file (AFB-only; not part of afb.execution.v1 wire)",
   "description": "Disk shape differs from the wire `settings` payload (settings_payload.v1.json): this file holds alarms/tradeplans/primitives (stripped from the wire `settings` response — separate get_alarms/get_plans/get_primitives calls), favorites as a plain secid string[] (hydrated to SecurityInstrument objects on the wire), and has no `limits` (ephemeral, tier-derived, never persisted). Every key is an override: the file only stores what the user changed from platform defaults (interface/service/dataset/dashboard/favorites/indicators) — AFB backend's merge_user_settings layers this over config/_default_.yaml. additionalProperties stays true (v1) until a confirmed clean migration on every deployment — see AFB/scripts/migrate_user_settings_canon.sh.",
   "type": "object",

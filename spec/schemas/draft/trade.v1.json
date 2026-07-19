@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/settings/trade.v1.json",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/draft/trade.v1.json",
   "title": "settings.trade — user trading prefs (AFB-only; not part of afb.execution.v1 wire)",
   "description": "Every property optional. `real_trade` is stored but the frontend forces it to false on read (publish target is tradeplan.connector / default_connector, not this flag) — deliberate, not drift.",
   "$defs": {

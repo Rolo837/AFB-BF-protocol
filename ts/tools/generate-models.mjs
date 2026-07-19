@@ -66,20 +66,6 @@ function namedRootSchemas() {
     "afbws/account.catalog.v1.json": "AccountCatalogPush",
     "afbws/account.instrument.v1.json": "AccountInstrumentPush",
     "afbws/account.events.v1.json": "AccountEventsPush",
-    "settings/me.v1.json": "SettingsMe",
-    "settings/interface.v1.json": "InterfaceSettings",
-    "settings/service.v1.json": "ServiceSettings",
-    "settings/dashboard.v1.json": "DashboardSettings",
-    "settings/dataset.v1.json": "DatasetSettings",
-    "settings/indicator.v1.json": "IndicatorSettings",
-    "settings/primitive.v1.json": "ChartPrimitive",
-    "settings/trade.v1.json": "TradeSettings",
-    "settings/limits.v1.json": "SettingsLimits",
-    "settings/security_instrument.v1.json": "SecurityInstrument",
-    "settings/user_file.v1.json": "UserSettingsFile",
-    "settings/settings_payload.v1.json": "UserSettingsPayload",
-    // settings/messages.v1.json intentionally absent — redirect-only root
-    // (mirrors condition.v1.json), see NAMED_DEF_SCHEMAS below for its $defs.
   };
   for (const file of readdirSync(payloadsDir).sort()) {
     if (!file.endsWith(".json")) continue;
@@ -99,43 +85,6 @@ const NAMED_DEF_SCHEMAS = {
     backstop: "ConnectorBackstop",
     executionPolicy: "ConnectorExecutionPolicy",
   },
-  "settings/interface.v1.json": {
-    chartToolbar: "InterfaceChartToolbar",
-    servicesFilters: "InterfaceServicesFilters",
-  },
-  "settings/dashboard.v1.json": { layoutItem: "DashboardLayoutItem" },
-  "settings/primitive.v1.json": { point: "PrimitivePoint" },
-  "settings/trade.v1.json": { notify: "TradeNotifySettings" },
-  "settings/messages.v1.json": {
-    rejectedEnvelope: "SettingsRejectedEnvelope",
-    getDefaultRequest: "SettingsGetDefaultRequest",
-    defaultPayload: "SettingsDefaultPayload",
-    defaultPush: "SettingsDefaultPush",
-    getRequest: "SettingsGetRequest",
-    setRequest: "SettingsSetRequest",
-    settingsPush: "SettingsPush",
-    setDefaultRequest: "SettingsSetDefaultRequest",
-    getAlarmsRequest: "SettingsGetAlarmsRequest",
-    setAlarmsRequest: "SettingsSetAlarmsRequest",
-    alarmsPush: "SettingsAlarmsPush",
-    updateAlarmRequest: "SettingsUpdateAlarmRequest",
-    alarmUpdatedPush: "SettingsAlarmUpdatedPush",
-    getPlansRequest: "SettingsGetPlansRequest",
-    tradeplanListItem: "SettingsTradeplanListItem",
-    setPlansRequest: "SettingsSetPlansRequest",
-    plansPush: "SettingsPlansPush",
-    updatePlanRequest: "SettingsUpdatePlanRequest",
-    planAmendResult: "SettingsPlanAmendResult",
-    planUpdatedPush: "SettingsPlanUpdatedPush",
-    getFavoritesRequest: "SettingsGetFavoritesRequest",
-    setFavoritesRequest: "SettingsSetFavoritesRequest",
-    favoritesPush: "SettingsFavoritesPush",
-    getPrimitivesRequest: "SettingsGetPrimitivesRequest",
-    primitivesBySecid: "SettingsPrimitivesBySecid",
-    setPrimitivesRequest: "SettingsSetPrimitivesRequest",
-    primitivesPush: "SettingsPrimitivesPush",
-    errorPush: "SettingsErrorPush",
-  },
 };
 
 function loadSchemas() {
@@ -143,8 +92,11 @@ function loadSchemas() {
   const walk = (dir) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const full = join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (entry.name.endsWith(".json")) {
+      // Parked drafts (spec/schemas/draft/) stay out of models.ts.
+      if (entry.isDirectory()) {
+        if (entry.name === "draft") continue;
+        walk(full);
+      } else if (entry.name.endsWith(".json")) {
         const rel = relative(schemasDir, full).split("\\").join("/");
         files.set(rel, JSON.parse(readFileSync(full, "utf8")));
       }
@@ -272,8 +224,10 @@ function sourceHash() {
   const walk = (dir) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const full = join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (entry.name.endsWith(".json")) files.push(full);
+      if (entry.isDirectory()) {
+        if (entry.name === "draft") continue;
+        walk(full);
+      } else if (entry.name.endsWith(".json")) files.push(full);
     }
   };
   walk(schemasDir);

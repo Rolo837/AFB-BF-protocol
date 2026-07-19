@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/settings/dashboard.v1.json",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/draft/dashboard.v1.json",
   "title": "settings.dashboard (AFB-only; not part of afb.execution.v1 wire)",
   "description": "Every property optional. `cols` is clamped 8-24 by the frontend normalizer (normalizeDashboardSettings) rather than enforced here — this schema stays permissive since it's diagnostic-only.",
   "$defs": {
