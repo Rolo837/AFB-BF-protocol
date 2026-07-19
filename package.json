@@ -1,13 +1,14 @@
 {
   "name": "afb-bf-protocol",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "private": false,
   "type": "module",
   "description": "Shared wire protocol (afb.execution.v1) for AFB OMS and BF executor: generated TypeScript taxonomy and models",
   "exports": {
     ".": "./ts/src/index.ts",
     "./taxonomy": "./ts/src/taxonomy.ts",
-    "./models": "./ts/src/models.ts"
+    "./models": "./ts/src/models.ts",
+    "./capabilities": "./ts/src/capabilities.ts"
   },
   "files": [
     "ts/src",

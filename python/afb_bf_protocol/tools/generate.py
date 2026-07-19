@@ -14,6 +14,7 @@ Run:  ``python -m afb_bf_protocol.tools.generate``  (or ``afb-bf-protocol-genera
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import shutil
 from pathlib import Path
@@ -201,7 +202,85 @@ def render_ts_index() -> str:
         "\n"
         "export * from './taxonomy';\n"
         "export * from './models';\n"
+        "export * from './capabilities';\n"
     )
+
+
+def collect_afbws_capability_ids(root: Path | None = None) -> dict[str, str]:
+    """{capability_id: CONST_NAME} from the top-level "x-afbws-support-id" of
+    every spec/schemas/afbws/*.json file, sorted by capability id.
+
+    A channel schema advertises its negotiable capability via this extension
+    keyword (see alarm.channel.v1.json / tradeplan.channel.v1.json) — these
+    ids are exchanged in the AFB WS handshake (auth.support/auth_ok.support),
+    NOT part of the afb.execution.v1 AFB<->BF taxonomy (see taxonomy.py).
+    """
+    root = root or _repo_root()
+    afbws_dir = root / "spec" / "schemas" / "afbws"
+    ids: dict[str, str] = {}
+    for path in sorted(afbws_dir.glob("*.json")):
+        doc = json.loads(path.read_text())
+        support_id = doc.get("x-afbws-support-id")
+        if not support_id:
+            continue
+        name = str(support_id)
+        if name.startswith("afbws."):
+            name = name[len("afbws."):]
+        const_name = re.sub(r"[.\-]+", "_", name).upper()
+        ids[str(support_id)] = const_name
+    return ids
+
+
+def render_capabilities(capability_ids: dict[str, str]) -> str:
+    """Render python/afb_bf_protocol/capabilities.py."""
+    lines: list[str] = []
+    w = lines.append
+    w('"""Capability IDs for schema-first afbws channels (x-afbws-support-id).')
+    w("")
+    w("DO NOT EDIT BY HAND — regenerated from spec/schemas/afbws/*.json by")
+    w('``tools/generate.py`` (scans each schema\'s top-level "x-afbws-support-id").')
+    w("Edit the schema's x-afbws-support-id, then run ``afb-bf-protocol-generate``.")
+    w("")
+    w("These ids are negotiated in the AFB WS handshake (auth.support /")
+    w("auth_ok.support) between AFB backend and AFB frontend — they are NOT part")
+    w('of the afb.execution.v1 AFB<->BF taxonomy (see taxonomy.py).')
+    w('"""')
+    w("from __future__ import annotations")
+    w("")
+    entries = sorted(capability_ids.items(), key=lambda kv: kv[1])
+    w("__all__ = [")
+    for _cap_id, const_name in entries:
+        w(f'    "{const_name}",')
+    w('    "ALL_CAPABILITY_IDS",')
+    w("]")
+    w("")
+    for cap_id, const_name in entries:
+        w(f'{const_name} = "{cap_id}"')
+    w("")
+    w("ALL_CAPABILITY_IDS: frozenset[str] = frozenset({")
+    for _cap_id, const_name in entries:
+        w(f"    {const_name},")
+    w("})")
+    return "\n".join(lines) + "\n"
+
+
+def render_capabilities_ts(capability_ids: dict[str, str]) -> str:
+    """Render ts/src/capabilities.ts — TypeScript mirror of capabilities.py."""
+    lines: list[str] = []
+    w = lines.append
+    w("// DO NOT EDIT BY HAND — regenerated from spec/schemas/afbws/*.json")
+    w('// (top-level "x-afbws-support-id") by `tools/generate.py`.')
+    w("// Edit the schema's x-afbws-support-id, then run `afb-bf-protocol-generate`.")
+    w("")
+    entries = sorted(capability_ids.items(), key=lambda kv: kv[1])
+    for cap_id, const_name in entries:
+        w(f'export const {const_name} = "{cap_id}";')
+    w("")
+    w("export const ALL_CAPABILITY_IDS: ReadonlySet<string> = new Set([")
+    for _cap_id, const_name in entries:
+        w(f"  {const_name},")
+    w("]);")
+    return "\n".join(lines) + "\n"
 
 
 def generate_ts_models(root: Path | None = None) -> bool:
@@ -380,6 +459,11 @@ def main() -> int:
     ts_dir.mkdir(parents=True, exist_ok=True)
     ts_taxonomy = ts_dir / "taxonomy.ts"
     ts_taxonomy.write_text(render_taxonomy_ts(registry))
+    capability_ids = collect_afbws_capability_ids(root)
+    capabilities_py = root / "python" / "afb_bf_protocol" / "capabilities.py"
+    capabilities_py.write_text(render_capabilities(capability_ids))
+    capabilities_ts = ts_dir / "capabilities.ts"
+    capabilities_ts.write_text(render_capabilities_ts(capability_ids))
     ts_index = ts_dir / "index.ts"
     ts_index.write_text(render_ts_index())
     models_written = generate_ts_models(root)
@@ -387,6 +471,7 @@ def main() -> int:
 
     print(f"wrote {target} and {docs} ({len(registry)} message types from spec)")
     print(f"synced {schema_count} schema files to {schemas_dir}")
+    print(f"wrote {capabilities_py} and {capabilities_ts} ({len(capability_ids)} capability ids)")
     print(f"wrote {ts_taxonomy} and {ts_index}")
     if models_written:
         print(f"wrote {ts_dir / 'models.ts'}")

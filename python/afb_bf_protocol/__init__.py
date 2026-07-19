@@ -63,6 +63,11 @@ from .taxonomy import (
     split_category_type,
     SUPPORTED_MARKETS,
 )
+from .capabilities import (
+    ALARM_CHANNEL_V1,
+    TRADEPLAN_CHANNEL_V1,
+    ALL_CAPABILITY_IDS,
+)
 from .deal_state import (
     DealState,
     DealStatus,
@@ -140,6 +145,9 @@ __all__ = [
     "PERSISTED_BF_EVENT_TYPES",
     "split_category_type",
     "SUPPORTED_MARKETS",
+    "ALARM_CHANNEL_V1",
+    "TRADEPLAN_CHANNEL_V1",
+    "ALL_CAPABILITY_IDS",
     "DealState",
     "DealStatus",
     "safe_deal_filename",

@@ -3,3 +3,4 @@
 
 export * from './taxonomy';
 export * from './models';
+export * from './capabilities';

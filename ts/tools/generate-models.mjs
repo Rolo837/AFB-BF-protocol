@@ -66,6 +66,8 @@ function namedRootSchemas() {
     "afbws/account.catalog.v1.json": "AccountCatalogPush",
     "afbws/account.instrument.v1.json": "AccountInstrumentPush",
     "afbws/account.events.v1.json": "AccountEventsPush",
+    "afbws/alarm.channel.v1.json": "AlarmChannelV1Message",
+    "afbws/tradeplan.channel.v1.json": "TradeplanChannelV1Message",
   };
   for (const file of readdirSync(payloadsDir).sort()) {
     if (!file.endsWith(".json")) continue;
@@ -84,6 +86,38 @@ const NAMED_DEF_SCHEMAS = {
   "afbws/connector.record.v1.json": {
     backstop: "ConnectorBackstop",
     executionPolicy: "ConnectorExecutionPolicy",
+  },
+  "afbws/alarm.channel.v1.json": {
+    getRequest: "AlarmGetRequest",
+    getResponse: "AlarmGetResponse",
+    listRequest: "AlarmListRequest",
+    listResponse: "AlarmListResponse",
+    setRequest: "AlarmSetRequest",
+    setResponse: "AlarmSetResponse",
+    deleteRequest: "AlarmDeleteRequest",
+    deleteResponse: "AlarmDeleteResponse",
+    errorResponse: "AlarmErrorResponse",
+    triggerEvent: "AlarmTriggerEvent",
+    triggeredPush: "AlarmTriggeredPush",
+    ackEvent: "AlarmAckEvent",
+    ackRequest: "AlarmAckRequest",
+    ackResultItem: "AlarmAckResultItem",
+    ackResponse: "AlarmAckResponse",
+  },
+  "afbws/tradeplan.channel.v1.json": {
+    entityV1: "TradeplanEntityV1",
+    entity: "TradeplanEntity",
+    amendResultItem: "TradeplanAmendResultItem",
+    getRequest: "TradeplanGetRequest",
+    getResponse: "TradeplanGetResponse",
+    listRequest: "TradeplanListRequest",
+    listResponse: "TradeplanListResponse",
+    setRequest: "TradeplanSetRequest",
+    setResponse: "TradeplanSetResponse",
+    deleteRequest: "TradeplanDeleteRequest",
+    deleteResponse: "TradeplanDeleteResponse",
+    errorResponse: "TradeplanErrorResponse",
+    syncPush: "TradeplanSyncPush",
   },
 };
 

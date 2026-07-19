@@ -12,4 +12,4 @@ PROTOCOL_VERSION = "afb.execution.v1"
 
 # Package/spec semver. Keep in sync with python/pyproject.toml [project].version
 # and the git tag.
-__version__ = "2.0.1"
+__version__ = "2.0.3"

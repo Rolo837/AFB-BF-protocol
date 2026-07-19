@@ -2,6 +2,18 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.0.3 — 2026-07-20
+
+PATCH: Фаза 1 плана `entity-ws-migration` — канон и capability handshake для новых schema-first каналов `alarm`/`tradeplan` (frontend↔AFB-бэкенд, не пересекает AFB↔BF; BF не затронут и не обновляется).
+
+- **`spec/schemas/afbws/common.v1.json`** — общие $defs: `requestId`, `errorCode`.
+- **`spec/schemas/afbws/alarm.channel.v1.json`** (`x-afbws-support-id: afbws.alarm.channel.v1`) — get/list/set/delete request/response, typed `error.response`, `triggered.push` (замена `mail/alarms`) и `ack.request`/`ack.response` (замена `mail/ack`). Домен — существующий `afb.alarm.v1`, без изменений.
+- **`spec/schemas/afbws/tradeplan.channel.v1.json`** (`x-afbws-support-id: afbws.tradeplan.channel.v1`) — get/list/set/delete, typed `error.response` (несёт `item` при конфликте delete), `sync.push` (замена `mail/plans`). `entity` — union `afb.tradeplan.v1`/`afb.tradeplan.v2`; v1 обёрнут `allOf` с обязательным `schema` (в каноне `tradeplan.v1.json` он опционален ради legacy-совместимости — здесь ужесточён только для нового канала). `amend_results[]` — новый `afbws.tradeplan.amend_result.v1`.
+- Все сообщения новых каналов: обязательные `channel`+`schema` (`type` запрещён — маршрутизация только по ним), `additionalProperties: false`, request/response дополнительно требуют `request_id`; push-сообщения (`triggered.push`, `sync.push`) его не несут.
+- **Capability-id константы**: новый генератор `collect_afbws_capability_ids()`/`render_capabilities()`/`render_capabilities_ts()` в `tools/generate.py` — сканирует `x-afbws-support-id` во всех `spec/schemas/afbws/*.json` и пишет `python/afb_bf_protocol/capabilities.py` + `ts/src/capabilities.ts` (реэкспортирован из `ts/src/index.ts`). Не смешивается с AsyncAPI `taxonomy.py`/`taxonomy.ts` (AFB↔BF).
+- `ts/tools/generate-models.mjs`: `namedRootSchemas()`/`NAMED_DEF_SCHEMAS` расширены именами новых message-типов (`AlarmGetRequest`, `AlarmTriggeredPush`, `TradeplanEntity`, `TradeplanSyncPush` и т.д.).
+- PATCH: только новые `afbws/`-схемы и генераторы; `spec/asyncapi.yaml` (кроме версии) и существующие `spec/schemas/*.json` канон не менялись.
+
 ## v2.0.1 — 2026-07-19
 
 > **Note:** тег `v2.0.2` (типизация канала `settings`) отозван: схемы перенесены в

@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: f4817e2abd7ece0146336c7e6aa1a9a69d40d16d380e929d317e390aec242399
+# source-hash: 90f91c5542db112324812bd5b323cb381be912ffac5d8d5186540d9d1a6f1a50
 
 from __future__ import annotations
 
@@ -72,6 +72,144 @@ class AccountSnapshotPush(TypedDict):
     revision: NotRequired[int]
     as_of: NotRequired[str]
     source: NotRequired[str]
+
+
+AfbwsCommonV1ErrorCode: TypeAlias = Literal[
+    "not_found",
+    "invalid_schema",
+    "invalid_channel",
+    "validation_error",
+    "conflict",
+    "internal_error",
+]
+
+
+AfbwsCommonV1RequestId: TypeAlias = str
+
+
+AfbwsCommonV1Root: TypeAlias = Any
+
+
+class AlarmAckEvent(TypedDict):
+    schema: Literal["afb.alarm.trigger_ack.v1"]
+    alarm_id: str
+    triggered_at: str
+
+
+class AlarmAckRequest(TypedDict):
+    channel: Literal["alarm"]
+    schema: Literal["afbws.alarm.ack.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    events: list[AlarmAckEvent]
+
+
+class AlarmAckResponse(TypedDict):
+    channel: Literal["alarm"]
+    schema: Literal["afbws.alarm.ack.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    results: list[AlarmAckResultItem]
+
+
+class AlarmAckResultItem(TypedDict):
+    schema: Literal["afbws.alarm.ack_result.v1"]
+    alarm_id: str
+    triggered_at: str
+    status: Literal["ok", "not_found"]
+
+
+class AlarmDeleteRequest(TypedDict):
+    channel: Literal["alarm"]
+    schema: Literal["afbws.alarm.delete.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class AlarmDeleteResponse(TypedDict):
+    channel: Literal["alarm"]
+    schema: Literal["afbws.alarm.delete.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class AlarmErrorResponse(TypedDict):
+    channel: Literal["alarm"]
+    schema: Literal["afbws.alarm.error.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    code: AfbwsCommonV1ErrorCode
+    message: str
+    details: NotRequired[dict[str, Any]]
+
+
+class AlarmGetRequest(TypedDict):
+    channel: Literal["alarm"]
+    schema: Literal["afbws.alarm.get.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class AlarmGetResponse(TypedDict):
+    channel: Literal["alarm"]
+    schema: Literal["afbws.alarm.get.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: AlarmV1
+
+
+class AlarmListRequest(TypedDict):
+    channel: Literal["alarm"]
+    schema: Literal["afbws.alarm.list.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    ticker: NotRequired[str]
+
+
+class AlarmListResponse(TypedDict):
+    channel: Literal["alarm"]
+    schema: Literal["afbws.alarm.list.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[AlarmV1]
+
+
+class AlarmSetRequest(TypedDict):
+    channel: Literal["alarm"]
+    schema: Literal["afbws.alarm.set.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: AlarmV1
+
+
+class AlarmSetResponse(TypedDict):
+    channel: Literal["alarm"]
+    schema: Literal["afbws.alarm.set.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: AlarmV1
+
+
+class AlarmTriggerEvent(TypedDict):
+    schema: Literal["afb.alarm.trigger.v1"]
+    alarm_id: str
+    triggered_at: str
+    alarm: AlarmV1
+    current_price: NotRequired[float]
+
+
+class AlarmTriggeredPush(TypedDict):
+    channel: Literal["alarm"]
+    schema: Literal["afbws.alarm.triggered.push.v1"]
+    events: list[AlarmTriggerEvent]
+
+
+AlarmChannelV1Message: TypeAlias = (
+    AlarmGetRequest
+    | AlarmGetResponse
+    | AlarmListRequest
+    | AlarmListResponse
+    | AlarmSetRequest
+    | AlarmSetResponse
+    | AlarmDeleteRequest
+    | AlarmDeleteResponse
+    | AlarmErrorResponse
+    | AlarmTriggeredPush
+    | AlarmAckRequest
+    | AlarmAckResponse
+)
 
 
 class AlarmV1(TypedDict):
@@ -1205,6 +1343,110 @@ class TradePlanV2(TypedDict):
     delivery_at: NotRequired[str]
     created_at: NotRequired[str]
     updated_at: NotRequired[str]
+
+
+class TradeplanAmendResultItem(TypedDict):
+    schema: Literal["afbws.tradeplan.amend_result.v1"]
+    deal_id: str
+    accepted: bool
+    revision: NotRequired[str | int | None]
+    status: NotRequired[str | None]
+    message: NotRequired[str | None]
+    code: NotRequired[str | None]
+
+
+class TradeplanDeleteRequest(TypedDict):
+    channel: Literal["tradeplan"]
+    schema: Literal["afbws.tradeplan.delete.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class TradeplanDeleteResponse(TypedDict):
+    channel: Literal["tradeplan"]
+    schema: Literal["afbws.tradeplan.delete.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class TradeplanEntityV1(TradePlanV1):
+    pass
+
+
+TradeplanEntity: TypeAlias = TradeplanEntityV1 | TradePlanV2
+
+
+class TradeplanErrorResponse(TypedDict):
+    channel: Literal["tradeplan"]
+    schema: Literal["afbws.tradeplan.error.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    code: AfbwsCommonV1ErrorCode
+    message: str
+    details: NotRequired[dict[str, Any]]
+    item: NotRequired[TradeplanEntity]
+
+
+class TradeplanGetRequest(TypedDict):
+    channel: Literal["tradeplan"]
+    schema: Literal["afbws.tradeplan.get.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class TradeplanGetResponse(TypedDict):
+    channel: Literal["tradeplan"]
+    schema: Literal["afbws.tradeplan.get.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: TradeplanEntity
+
+
+class TradeplanListRequest(TypedDict):
+    channel: Literal["tradeplan"]
+    schema: Literal["afbws.tradeplan.list.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    ticker: NotRequired[str]
+
+
+class TradeplanListResponse(TypedDict):
+    channel: Literal["tradeplan"]
+    schema: Literal["afbws.tradeplan.list.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[TradeplanEntity]
+
+
+class TradeplanSetRequest(TypedDict):
+    channel: Literal["tradeplan"]
+    schema: Literal["afbws.tradeplan.set.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: TradeplanEntity
+
+
+class TradeplanSetResponse(TypedDict):
+    channel: Literal["tradeplan"]
+    schema: Literal["afbws.tradeplan.set.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: TradeplanEntity
+    amend_results: list[TradeplanAmendResultItem]
+
+
+class TradeplanSyncPush(TypedDict):
+    channel: Literal["tradeplan"]
+    schema: Literal["afbws.tradeplan.sync.push.v1"]
+    items: list[TradeplanEntity]
+
+
+TradeplanChannelV1Message: TypeAlias = (
+    TradeplanGetRequest
+    | TradeplanGetResponse
+    | TradeplanListRequest
+    | TradeplanListResponse
+    | TradeplanSetRequest
+    | TradeplanSetResponse
+    | TradeplanDeleteRequest
+    | TradeplanDeleteResponse
+    | TradeplanErrorResponse
+    | TradeplanSyncPush
+)
 
 
 class TradeplanV1MarketOrPriceCondition(TypedDict):

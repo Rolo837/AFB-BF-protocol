@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/tradeplan.channel.v1.json",
+  "x-afbws-support-id": "afbws.tradeplan.channel.v1",
+  "title": "tradeplan channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v1). Replaces bulk settings/get_plans+set_plans and mail/plans for clients that negotiated this capability; legacy stays available as fallback. `entity` carries both afb.tradeplan.v1 and afb.tradeplan.v2 — v1's `schema` is optional in its own canon file (legacy compatibility), so `entityV1` here wraps it with an explicit required-schema layer; v2 already requires `schema`. See AFB/docs/ENTITY_WS_PROTOCOL.md.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/getRequest" },
+    { "$ref": "#/$defs/getResponse" },
+    { "$ref": "#/$defs/listRequest" },
+    { "$ref": "#/$defs/listResponse" },
+    { "$ref": "#/$defs/setRequest" },
+    { "$ref": "#/$defs/setResponse" },
+    { "$ref": "#/$defs/deleteRequest" },
+    { "$ref": "#/$defs/deleteResponse" },
+    { "$ref": "#/$defs/errorResponse" },
+    { "$ref": "#/$defs/syncPush" }
+  ],
+  "$defs": {
+    "entityV1": {
+      "allOf": [
+        { "$ref": "../tradeplan.v1.json" },
+        { "required": ["schema"] }
+      ]
+    },
+    "entity": {
+      "description": "afb.tradeplan.v1 (schema required, see entityV1) or afb.tradeplan.v2 (schema already required in its own canon file — referenced directly, no wrapping $def needed).",
+      "oneOf": [
+        { "$ref": "#/$defs/entityV1" },
+        { "$ref": "../tradeplan.v2.json" }
+      ]
+    },
+    "amendResultItem": {
+      "type": "object",
+      "title": "afbws.tradeplan.amend_result.v1 — per-deal outcome of re-amending live deals after a plan/primitive change",
+      "required": ["schema", "deal_id", "accepted"],
+      "additionalProperties": false,
+      "properties": {
+        "schema": { "const": "afbws.tradeplan.amend_result.v1" },
+        "deal_id": { "type": "string", "minLength": 1 },
+        "accepted": { "type": "boolean" },
+        "revision": { "type": ["string", "integer", "null"] },
+        "status": { "type": ["string", "null"] },
+        "message": { "type": ["string", "null"] },
+        "code": { "type": ["string", "null"] }
+      }
+    },
+    "getRequest": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.get.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "getResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "item"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.get.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "#/$defs/entity" }
+      }
+    },
+    "listRequest": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.list.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "ticker": { "type": "string", "minLength": 1 }
+      }
+    },
+    "listResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.list.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/entity" } }
+      }
+    },
+    "setRequest": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "item"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.set.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "#/$defs/entity" }
+      }
+    },
+    "setResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "item", "amend_results"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.set.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "#/$defs/entity" },
+        "amend_results": { "type": "array", "items": { "$ref": "#/$defs/amendResultItem" } }
+      }
+    },
+    "deleteRequest": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.delete.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "deleteResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.delete.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "errorResponse": {
+      "type": "object",
+      "title": "typed error; `item` is populated for a delete conflict (entered position) to carry the current authoritative item",
+      "required": ["channel", "schema", "request_id", "code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.error.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "code": { "$ref": "common.v1.json#/$defs/errorCode" },
+        "message": { "type": "string", "minLength": 1 },
+        "details": { "type": "object" },
+        "item": { "$ref": "#/$defs/entity" }
+      }
+    },
+    "syncPush": {
+      "type": "object",
+      "title": "tradeplan/sync push (server-initiated, no request_id) — replaces mail/plans for negotiated clients",
+      "required": ["channel", "schema", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.sync.push.v1" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/entity" } }
+      }
+    }
+  }
+}

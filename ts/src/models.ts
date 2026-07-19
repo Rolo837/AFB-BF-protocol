@@ -1,63 +1,35 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: f4817e2abd7ece0146336c7e6aa1a9a69d40d16d380e929d317e390aec242399
+ * source-hash: 90f91c5542db112324812bd5b323cb381be912ffac5d8d5186540d9d1a6f1a50
  */
 
 /**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "BfsRegistryEntry".
- */
-export type BfsRegistryEntry = BfRegistryEntry & {
-  connected: boolean;
-  dry_run: boolean;
-  dry_run_afb?: boolean;
-  dry_run_bf?: boolean;
-  /**
-   * From connected BF's session.hello capabilities; display-only.
-   */
-  account_id?: string;
-  capabilities?: {
-    [k: string]: unknown;
-  };
-  daemon?: {
-    [k: string]: unknown;
-  };
-};
-/**
- * One entry of the `connector` channel (list/get/create/update responses). Owner view (capability trade, user_id in allowed_users) gets everything except the manager-only block; manager gets all fields. See BFRegistryEntry.to_owner_dict()/to_manager_dict() (AFB/backend/trade/models.py) and connector_policy.py for execution_policy validation.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.alarm.channel.v1). Replaces bulk settings/get_alarms+set_alarms and mail/alarms+mail/ack for clients that negotiated this capability; legacy stays available as fallback for clients that did not. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "ConnectorRecord".
+ * via the `definition` "AlarmChannelV1Message".
  */
-export type ConnectorRecord = BfRegistryEntry & {
-  dry_run: boolean | null;
-  margin_trading: boolean | null;
-  execution_policy: ConnectorExecutionPolicy;
-  paired: boolean;
-  pairing_pending: boolean;
-  pairing_expires_at: string | null;
-  /**
-   * Merged in by list_connectors_for_user/get_connector_for_user, not part of BFRegistryEntry itself.
-   */
-  connected?: boolean;
-  /**
-   * Manager-only.
-   */
-  public_key_id?: string;
-  /**
-   * Manager-only.
-   */
-  public_key_file?: string;
-  /**
-   * Manager-only.
-   */
-  allowed_roles?: string[];
-  /**
-   * Manager-only.
-   */
-  allowed_users?: string[];
-};
+export type AlarmChannelV1Message =
+  | AlarmGetRequest
+  | AlarmGetResponse
+  | AlarmListRequest
+  | AlarmListResponse
+  | AlarmSetRequest
+  | AlarmSetResponse
+  | AlarmDeleteRequest
+  | AlarmDeleteResponse
+  | AlarmErrorResponse
+  | AlarmTriggeredPush
+  | AlarmAckRequest
+  | AlarmAckResponse;
+/**
+ * Client-generated correlation id (e.g. uuid4), echoed verbatim in the matching response.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCommonV1_RequestId".
+ */
+export type AfbwsCommonV1_RequestId = string;
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AlarmV1_AlarmConditionNode".
@@ -113,6 +85,117 @@ export type ConditionV1_PriceLevelOp = 'above' | 'below';
  * via the `definition` "ConditionV1_ScalarOp".
  */
 export type ConditionV1_ScalarOp = 'above' | 'below' | 'crosses_above' | 'crosses_below' | 'crossing';
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCommonV1_ErrorCode".
+ */
+export type AfbwsCommonV1_ErrorCode =
+  'not_found' | 'invalid_schema' | 'invalid_channel' | 'validation_error' | 'conflict' | 'internal_error';
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BfsRegistryEntry".
+ */
+export type BfsRegistryEntry = BfRegistryEntry & {
+  connected: boolean;
+  dry_run: boolean;
+  dry_run_afb?: boolean;
+  dry_run_bf?: boolean;
+  /**
+   * From connected BF's session.hello capabilities; display-only.
+   */
+  account_id?: string;
+  capabilities?: {
+    [k: string]: unknown;
+  };
+  daemon?: {
+    [k: string]: unknown;
+  };
+};
+/**
+ * One entry of the `connector` channel (list/get/create/update responses). Owner view (capability trade, user_id in allowed_users) gets everything except the manager-only block; manager gets all fields. See BFRegistryEntry.to_owner_dict()/to_manager_dict() (AFB/backend/trade/models.py) and connector_policy.py for execution_policy validation.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConnectorRecord".
+ */
+export type ConnectorRecord = BfRegistryEntry & {
+  dry_run: boolean | null;
+  margin_trading: boolean | null;
+  execution_policy: ConnectorExecutionPolicy;
+  paired: boolean;
+  pairing_pending: boolean;
+  pairing_expires_at: string | null;
+  /**
+   * Merged in by list_connectors_for_user/get_connector_for_user, not part of BFRegistryEntry itself.
+   */
+  connected?: boolean;
+  /**
+   * Manager-only.
+   */
+  public_key_id?: string;
+  /**
+   * Manager-only.
+   */
+  public_key_file?: string;
+  /**
+   * Manager-only.
+   */
+  allowed_roles?: string[];
+  /**
+   * Manager-only.
+   */
+  allowed_users?: string[];
+};
+/**
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v1). Replaces bulk settings/get_plans+set_plans and mail/plans for clients that negotiated this capability; legacy stays available as fallback. `entity` carries both afb.tradeplan.v1 and afb.tradeplan.v2 — v1's `schema` is optional in its own canon file (legacy compatibility), so `entityV1` here wraps it with an explicit required-schema layer; v2 already requires `schema`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanChannelV1Message".
+ */
+export type TradeplanChannelV1Message =
+  | TradeplanGetRequest
+  | TradeplanGetResponse
+  | TradeplanListRequest
+  | TradeplanListResponse
+  | TradeplanSetRequest
+  | TradeplanSetResponse
+  | TradeplanDeleteRequest
+  | TradeplanDeleteResponse
+  | TradeplanErrorResponse
+  | TradeplanSyncPush;
+/**
+ * afb.tradeplan.v1 (schema required, see entityV1) or afb.tradeplan.v2 (schema already required in its own canon file — referenced directly, no wrapping $def needed).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanEntity".
+ */
+export type TradeplanEntity = TradeplanEntityV1 | TradePlanV2;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanEntityV1".
+ */
+export type TradeplanEntityV1 = TradePlanV1 & {
+  [k: string]: unknown;
+};
+/**
+ * price_value: null with condition_type price means market entry.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanV1_EntryCondition".
+ */
+export type TradeplanV1_EntryCondition = TradeplanV1_MarketOrPriceCondition | TradeplanV1_PrimitiveCondition;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanV1_Condition".
+ */
+export type TradeplanV1_Condition = TradeplanV1_PriceCondition | TradeplanV1_PrimitiveCondition;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanV2_TpExitList".
+ */
+export type TradeplanV2_TpExitList = {
+  percent?: DealV1_DecimalString;
+  condition: TradeplanV2_TpConditionNode;
+}[];
 /**
  * Optional protective time in seconds: the condition must remain continuously true for this many real seconds (BF monotonic clock) before firing. False, evaluate gaps, amend/pause/cancel and BF restart reset progress; progress is not persisted. AFB draft emulation and alarms ignore it. Only meaningful with price above/below (producer converts touch to above/below before wire); multi-leg plans may carry duration independently per leg.
  *
@@ -173,26 +256,6 @@ export type DealV2_ConditionNode = ConditionNode & {
 export type DealV2_ExitList = {
   percent?: DealV1_DecimalString;
   condition: DealV2_ConditionNode;
-}[];
-/**
- * price_value: null with condition_type price means market entry.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV1_EntryCondition".
- */
-export type TradeplanV1_EntryCondition = TradeplanV1_MarketOrPriceCondition | TradeplanV1_PrimitiveCondition;
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV1_Condition".
- */
-export type TradeplanV1_Condition = TradeplanV1_PriceCondition | TradeplanV1_PrimitiveCondition;
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV2_TpExitList".
- */
-export type TradeplanV2_TpExitList = {
-  percent?: DealV1_DecimalString;
-  condition: TradeplanV2_TpConditionNode;
 }[];
 
 /**
@@ -284,6 +347,222 @@ export interface AccountSnapshotPush {
   source?: string;
 }
 /**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmGetRequest".
+ */
+export interface AlarmGetRequest {
+  channel: 'alarm';
+  schema: 'afbws.alarm.get.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmGetResponse".
+ */
+export interface AlarmGetResponse {
+  channel: 'alarm';
+  schema: 'afbws.alarm.get.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: AlarmV1;
+}
+/**
+ * AFB-side user alarm — like afb.tradeplan.v2, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel; it is documented here (rather than only in AFB) because it shares condition.v1.json's operator vocabulary with deal.v2 and tradeplan.v2. Replaces the legacy YAML shape (condition_type/trigger_type/value_type/value/value_ref flat fields, break_up/break_down operator names) with a conditionNode. Legacy alarms are read via a lazy converter (see docs/PROTOCOL.md 'Алармы' mapping table) and rewritten in this format on next save/reactivation; the API layer only accepts/emits this format going forward. `period` is the alarm's overall computation timeframe (legacy default '10min'); when `condition` is a price candle operator, `condition.timeframe` carries the candle timeframe and by construction equals `period`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmV1".
+ */
+export interface AlarmV1 {
+  schema: 'afb.alarm.v1';
+  id: string;
+  ticker: string;
+  condition: AlarmV1_AlarmConditionNode;
+  period?: ConditionV1_Timeframe;
+  trigger_frequency?: 'once' | 'every_candle' | 'daily';
+  status?: 'active' | 'triggered' | 'expired';
+  created_at?: string;
+  updated_at?: string;
+  triggered_at?: string;
+  delivery_at?: string;
+  trigger_count?: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConditionV1_PriceExpr".
+ */
+export interface ConditionV1_PriceExpr {
+  source: 'price';
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConditionV1_RightConst".
+ */
+export interface ConditionV1_RightConst {
+  const: DealV1_DecimalString;
+}
+/**
+ * Unlike condition.v1.json#/$defs/indicatorExpr, only `source`+`id` are required: AFB resolves `type`/`field`/`params` from the user's saved indicator settings by `id` rather than carrying them inline.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmV1_AlarmIndicatorExpr".
+ */
+export interface AlarmV1_AlarmIndicatorExpr {
+  source: 'indicator';
+  id: string;
+  type?: 'wma' | 'kama' | 'psar';
+  field?: string;
+  params?: {};
+}
+/**
+ * position.* / orders / hhi / trades datasets share this shape; dataset_id=volume is declared here but temporarily unsupported by AFB/BF backends (see condition_semantics module docstring) and not offered by the UI.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConditionV1_DatasetExpr".
+ */
+export interface ConditionV1_DatasetExpr {
+  source: 'dataset';
+  field: string;
+  dataset_id?: string;
+  params?: {};
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmListRequest".
+ */
+export interface AlarmListRequest {
+  channel: 'alarm';
+  schema: 'afbws.alarm.list.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  ticker?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmListResponse".
+ */
+export interface AlarmListResponse {
+  channel: 'alarm';
+  schema: 'afbws.alarm.list.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  items: AlarmV1[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmSetRequest".
+ */
+export interface AlarmSetRequest {
+  channel: 'alarm';
+  schema: 'afbws.alarm.set.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: AlarmV1;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmSetResponse".
+ */
+export interface AlarmSetResponse {
+  channel: 'alarm';
+  schema: 'afbws.alarm.set.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: AlarmV1;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmDeleteRequest".
+ */
+export interface AlarmDeleteRequest {
+  channel: 'alarm';
+  schema: 'afbws.alarm.delete.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmDeleteResponse".
+ */
+export interface AlarmDeleteResponse {
+  channel: 'alarm';
+  schema: 'afbws.alarm.delete.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmErrorResponse".
+ */
+export interface AlarmErrorResponse {
+  channel: 'alarm';
+  schema: 'afbws.alarm.error.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  code: AfbwsCommonV1_ErrorCode;
+  message: string;
+  details?: {};
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmTriggeredPush".
+ */
+export interface AlarmTriggeredPush {
+  channel: 'alarm';
+  schema: 'afbws.alarm.triggered.push.v1';
+  /**
+   * @minItems 1
+   */
+  events: [AlarmTriggerEvent, ...AlarmTriggerEvent[]];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmTriggerEvent".
+ */
+export interface AlarmTriggerEvent {
+  schema: 'afb.alarm.trigger.v1';
+  alarm_id: string;
+  triggered_at: string;
+  alarm: AlarmV1;
+  current_price?: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmAckRequest".
+ */
+export interface AlarmAckRequest {
+  channel: 'alarm';
+  schema: 'afbws.alarm.ack.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * @minItems 1
+   */
+  events: [AlarmAckEvent, ...AlarmAckEvent[]];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmAckEvent".
+ */
+export interface AlarmAckEvent {
+  schema: 'afb.alarm.trigger_ack.v1';
+  alarm_id: string;
+  triggered_at: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmAckResponse".
+ */
+export interface AlarmAckResponse {
+  channel: 'alarm';
+  schema: 'afbws.alarm.ack.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  results: AlarmAckResultItem[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmAckResultItem".
+ */
+export interface AlarmAckResultItem {
+  schema: 'afbws.alarm.ack_result.v1';
+  alarm_id: string;
+  triggered_at: string;
+  status: 'ok' | 'not_found';
+}
+/**
  * Shared public-view basis for `bfs` (registry push) and `connector` (record CRUD) — see BFRegistryEntry.to_public_dict() in AFB/backend/trade/models.py.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -308,6 +587,15 @@ export interface BfsRegistryPush {
   data: {
     bfs: BfsRegistryEntry[];
   };
+}
+/**
+ * Shared building blocks for the schema-first afbws channels introduced alongside `deal`/`connector`/`bfs`/`account` (see afbws/README convention in CLAUDE.md): a request/response correlation id and a typed error vocabulary. Unlike the legacy afbws channels (discriminated by a `type` const), schema-first channels are routed by `channel` then by a mandatory top-level `schema` id — no `type` field.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCommonV1_Root".
+ */
+export interface AfbwsCommonV1_Root {
+  [k: string]: unknown;
 }
 /**
  * See ExecutionService.list_connectors_for_user (AFB/backend/trade/service.py).
@@ -453,63 +741,136 @@ export interface DealStateV2_Position {
   broker_ref?: {};
 }
 /**
- * AFB-side user alarm — like afb.tradeplan.v2, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel; it is documented here (rather than only in AFB) because it shares condition.v1.json's operator vocabulary with deal.v2 and tradeplan.v2. Replaces the legacy YAML shape (condition_type/trigger_type/value_type/value/value_ref flat fields, break_up/break_down operator names) with a conditionNode. Legacy alarms are read via a lazy converter (see docs/PROTOCOL.md 'Алармы' mapping table) and rewritten in this format on next save/reactivation; the API layer only accepts/emits this format going forward. `period` is the alarm's overall computation timeframe (legacy default '10min'); when `condition` is a price candle operator, `condition.timeframe` carries the candle timeframe and by construction equals `period`.
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanGetRequest".
+ */
+export interface TradeplanGetRequest {
+  channel: 'tradeplan';
+  schema: 'afbws.tradeplan.get.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanGetResponse".
+ */
+export interface TradeplanGetResponse {
+  channel: 'tradeplan';
+  schema: 'afbws.tradeplan.get.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: TradeplanEntity;
+}
+/**
+ * AFB-side single-entry / single-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v1. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `schema` is optional: its absence means afb.tradeplan.v1 (compatibility with frontends older than the tradeplan schema itself).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV1".
+ * via the `definition` "TradePlanV1".
  */
-export interface AlarmV1 {
-  schema: 'afb.alarm.v1';
+export interface TradePlanV1 {
   id: string;
   ticker: string;
-  condition: AlarmV1_AlarmConditionNode;
-  period?: ConditionV1_Timeframe;
-  trigger_frequency?: 'once' | 'every_candle' | 'daily';
-  status?: 'active' | 'triggered' | 'expired';
+  status?: 'new' | 'active' | 'published' | 'closed' | 'expired';
+  direction?: 'long' | 'short';
+  schema?: 'afb.tradeplan.v1';
+  activated_at?: string;
+  closed_at?: string;
+  entry_condition: TradeplanV1_EntryCondition;
+  quantity_value?: number | null;
+  quantity_mode?: 'lots' | 'margin' | 'balance_pct' | 'risk_currency' | 'risk_factor';
+  take_profit?: TradeplanV1_Condition | null;
+  stop_loss?: TradeplanV1_Condition | null;
+  deal_id?: string;
+  /**
+   * AFB bf_id (real connector or virtual) used when publishing this plan. Omitted when user has neither trade nor virtual capability.
+   */
+  connector?: string;
+  /**
+   * AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect.
+   */
+  delivery_at?: string;
   created_at?: string;
   updated_at?: string;
-  triggered_at?: string;
-  delivery_at?: string;
-  trigger_count?: number;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "ConditionV1_PriceExpr".
+ * via the `definition` "TradeplanV1_MarketOrPriceCondition".
  */
-export interface ConditionV1_PriceExpr {
-  source: 'price';
+export interface TradeplanV1_MarketOrPriceCondition {
+  condition_type?: 'price';
+  price_value?: number | null;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "ConditionV1_RightConst".
+ * via the `definition` "TradeplanV1_PrimitiveCondition".
  */
-export interface ConditionV1_RightConst {
-  const: DealV1_DecimalString;
+export interface TradeplanV1_PrimitiveCondition {
+  condition_type: 'primitive';
+  primitive_id: string;
+  price_value?: number | null;
 }
 /**
- * Unlike condition.v1.json#/$defs/indicatorExpr, only `source`+`id` are required: AFB resolves `type`/`field`/`params` from the user's saved indicator settings by `id` rather than carrying them inline.
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanV1_PriceCondition".
+ */
+export interface TradeplanV1_PriceCondition {
+  condition_type?: 'price';
+  price_value: number;
+}
+/**
+ * AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with one extension: the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV1_AlarmIndicatorExpr".
+ * via the `definition` "TradePlanV2".
  */
-export interface AlarmV1_AlarmIndicatorExpr {
-  source: 'indicator';
+export interface TradePlanV2 {
   id: string;
-  type?: 'wma' | 'kama' | 'psar';
-  field?: string;
-  params?: {};
+  ticker: string;
+  status?: 'new' | 'active' | 'published' | 'closed' | 'expired';
+  direction: 'long' | 'short';
+  schema: 'afb.tradeplan.v2';
+  activated_at?: string;
+  closed_at?: string;
+  /**
+   * @minItems 1
+   */
+  entries: [
+    {
+      percent?: DealV1_DecimalString;
+      condition: TradeplanV2_TpConditionNode;
+    },
+    ...{
+      percent?: DealV1_DecimalString;
+      condition: TradeplanV2_TpConditionNode;
+    }[]
+  ];
+  stop_loss?: TradeplanV2_TpExitList;
+  take_profit?: TradeplanV2_TpExitList;
+  sizing: DealV1_Sizing;
+  deal_id?: string;
+  /**
+   * AFB bf_id (real connector or virtual) used when publishing this plan. Omitted when user has neither trade nor virtual capability.
+   */
+  connector?: string;
+  /**
+   * AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect.
+   */
+  delivery_at?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 /**
- * position.* / orders / hhi / trades datasets share this shape; dataset_id=volume is declared here but temporarily unsupported by AFB/BF backends (see condition_semantics module docstring) and not offered by the UI.
- *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "ConditionV1_DatasetExpr".
+ * via the `definition` "TradeplanV2_TpConditionNode".
  */
-export interface ConditionV1_DatasetExpr {
-  source: 'dataset';
-  field: string;
-  dataset_id?: string;
-  params?: {};
+export interface TradeplanV2_TpConditionNode {
+  id?: string;
+  op?: 'touch' | 'above' | 'below' | 'crosses_above' | 'crosses_below' | 'crossing' | 'breakout' | 'breakdown';
+  /**
+   * Required (enforced after compilation, not here) when op is a price candle operator (breakout/breakdown/crossing).
+   */
+  timeframe?: '5min' | '10min' | '15min' | '30min' | '1h' | '2h' | '4h' | '1d';
+  left: ConditionV1_PriceExpr | ConditionV1_IndicatorExpr | ConditionV1_DatasetExpr;
+  right: ConditionV1_RightConst | ConditionV1_IndicatorExpr | ConditionV1_DatasetExpr | TradeplanV2_PrimitiveRef;
 }
 /**
  * AFB resolves alarm indicators by `id`, BF by `type`+`params`.
@@ -522,6 +883,117 @@ export interface ConditionV1_IndicatorExpr {
   type: 'wma' | 'kama' | 'psar';
   params?: {};
   id?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanV2_PrimitiveRef".
+ */
+export interface TradeplanV2_PrimitiveRef {
+  primitive_id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV1_Sizing".
+ */
+export interface DealV1_Sizing {
+  mode: 'lots' | 'margin' | 'risk_currency' | 'risk_factor' | 'balance_pct';
+  value: DealV1_DecimalString;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanListRequest".
+ */
+export interface TradeplanListRequest {
+  channel: 'tradeplan';
+  schema: 'afbws.tradeplan.list.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  ticker?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanListResponse".
+ */
+export interface TradeplanListResponse {
+  channel: 'tradeplan';
+  schema: 'afbws.tradeplan.list.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  items: TradeplanEntity[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanSetRequest".
+ */
+export interface TradeplanSetRequest {
+  channel: 'tradeplan';
+  schema: 'afbws.tradeplan.set.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: TradeplanEntity;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanSetResponse".
+ */
+export interface TradeplanSetResponse {
+  channel: 'tradeplan';
+  schema: 'afbws.tradeplan.set.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: TradeplanEntity;
+  amend_results: TradeplanAmendResultItem[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanAmendResultItem".
+ */
+export interface TradeplanAmendResultItem {
+  schema: 'afbws.tradeplan.amend_result.v1';
+  deal_id: string;
+  accepted: boolean;
+  revision?: string | number | null;
+  status?: string | null;
+  message?: string | null;
+  code?: string | null;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanDeleteRequest".
+ */
+export interface TradeplanDeleteRequest {
+  channel: 'tradeplan';
+  schema: 'afbws.tradeplan.delete.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanDeleteResponse".
+ */
+export interface TradeplanDeleteResponse {
+  channel: 'tradeplan';
+  schema: 'afbws.tradeplan.delete.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanErrorResponse".
+ */
+export interface TradeplanErrorResponse {
+  channel: 'tradeplan';
+  schema: 'afbws.tradeplan.error.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  code: AfbwsCommonV1_ErrorCode;
+  message: string;
+  details?: {};
+  item?: TradeplanEntity;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanSyncPush".
+ */
+export interface TradeplanSyncPush {
+  channel: 'tradeplan';
+  schema: 'afbws.tradeplan.sync.push.v1';
+  items: TradeplanEntity[];
 }
 /**
  * Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. The deal-level `direction` (long/short, same vocabulary as afb.deal.v2) is the single source of truth for position bias.
@@ -597,14 +1069,6 @@ export interface DealV1_ConditionNode {
   right: {
     const: DealV1_DecimalString;
   };
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1_Sizing".
- */
-export interface DealV1_Sizing {
-  mode: 'lots' | 'margin' | 'risk_currency' | 'risk_factor' | 'balance_pct';
-  value: DealV1_DecimalString;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1353,123 +1817,4 @@ export interface SessionResyncResponsePayload {
     [k: string]: string;
   };
   [k: string]: unknown;
-}
-/**
- * AFB-side single-entry / single-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v1. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `schema` is optional: its absence means afb.tradeplan.v1 (compatibility with frontends older than the tradeplan schema itself).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradePlanV1".
- */
-export interface TradePlanV1 {
-  id: string;
-  ticker: string;
-  status?: 'new' | 'active' | 'published' | 'closed' | 'expired';
-  direction?: 'long' | 'short';
-  schema?: 'afb.tradeplan.v1';
-  activated_at?: string;
-  closed_at?: string;
-  entry_condition: TradeplanV1_EntryCondition;
-  quantity_value?: number | null;
-  quantity_mode?: 'lots' | 'margin' | 'balance_pct' | 'risk_currency' | 'risk_factor';
-  take_profit?: TradeplanV1_Condition | null;
-  stop_loss?: TradeplanV1_Condition | null;
-  deal_id?: string;
-  /**
-   * AFB bf_id (real connector or virtual) used when publishing this plan. Omitted when user has neither trade nor virtual capability.
-   */
-  connector?: string;
-  /**
-   * AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect.
-   */
-  delivery_at?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV1_MarketOrPriceCondition".
- */
-export interface TradeplanV1_MarketOrPriceCondition {
-  condition_type?: 'price';
-  price_value?: number | null;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV1_PrimitiveCondition".
- */
-export interface TradeplanV1_PrimitiveCondition {
-  condition_type: 'primitive';
-  primitive_id: string;
-  price_value?: number | null;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV1_PriceCondition".
- */
-export interface TradeplanV1_PriceCondition {
-  condition_type?: 'price';
-  price_value: number;
-}
-/**
- * AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with one extension: the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradePlanV2".
- */
-export interface TradePlanV2 {
-  id: string;
-  ticker: string;
-  status?: 'new' | 'active' | 'published' | 'closed' | 'expired';
-  direction: 'long' | 'short';
-  schema: 'afb.tradeplan.v2';
-  activated_at?: string;
-  closed_at?: string;
-  /**
-   * @minItems 1
-   */
-  entries: [
-    {
-      percent?: DealV1_DecimalString;
-      condition: TradeplanV2_TpConditionNode;
-    },
-    ...{
-      percent?: DealV1_DecimalString;
-      condition: TradeplanV2_TpConditionNode;
-    }[]
-  ];
-  stop_loss?: TradeplanV2_TpExitList;
-  take_profit?: TradeplanV2_TpExitList;
-  sizing: DealV1_Sizing;
-  deal_id?: string;
-  /**
-   * AFB bf_id (real connector or virtual) used when publishing this plan. Omitted when user has neither trade nor virtual capability.
-   */
-  connector?: string;
-  /**
-   * AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect.
-   */
-  delivery_at?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV2_TpConditionNode".
- */
-export interface TradeplanV2_TpConditionNode {
-  id?: string;
-  op?: 'touch' | 'above' | 'below' | 'crosses_above' | 'crosses_below' | 'crossing' | 'breakout' | 'breakdown';
-  /**
-   * Required (enforced after compilation, not here) when op is a price candle operator (breakout/breakdown/crossing).
-   */
-  timeframe?: '5min' | '10min' | '15min' | '30min' | '1h' | '2h' | '4h' | '1d';
-  left: ConditionV1_PriceExpr | ConditionV1_IndicatorExpr | ConditionV1_DatasetExpr;
-  right: ConditionV1_RightConst | ConditionV1_IndicatorExpr | ConditionV1_DatasetExpr | TradeplanV2_PrimitiveRef;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV2_PrimitiveRef".
- */
-export interface TradeplanV2_PrimitiveRef {
-  primitive_id: string;
 }

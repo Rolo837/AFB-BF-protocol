@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/common.v1.json",
+  "title": "afbws schema-first common $defs (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Shared building blocks for the schema-first afbws channels introduced alongside `deal`/`connector`/`bfs`/`account` (see afbws/README convention in CLAUDE.md): a request/response correlation id and a typed error vocabulary. Unlike the legacy afbws channels (discriminated by a `type` const), schema-first channels are routed by `channel` then by a mandatory top-level `schema` id — no `type` field.",
+  "$defs": {
+    "requestId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Client-generated correlation id (e.g. uuid4), echoed verbatim in the matching response."
+    },
+    "errorCode": {
+      "enum": ["not_found", "invalid_schema", "invalid_channel", "validation_error", "conflict", "internal_error"]
+    }
+  }
+}
