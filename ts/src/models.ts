@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 79ca9f4d1b47aeb3a65cbfd5eae5ed9b03edcffbfbc60c9592e66d78644f3073
+ * source-hash: 6c8bfec89c1e3b28dce60a403a2e6b069af5d8a7df24edcd2106e38cfcfa1243
  */
 
 /**
@@ -144,6 +144,42 @@ export type ConnectorRecord = BfRegistryEntry & {
    * Manager-only.
    */
   allowed_users?: string[];
+};
+/**
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.gp.channel.v1). Replaces bulk settings/get_primitives+set_primitives for clients that negotiated this capability; legacy stays available as fallback for clients that did not. `list()` (no ticker) returns every primitive the caller owns across all tickers; `list(ticker)` filters to one canonical SECID. `set` is a plain upsert by item.id — moving a primitive (new start/stop) is the same request as creating or editing one, never a separate command; there is no bulk-set and no confirm/usage RPC — the backend alone decides whether a move/delete is safe against linked tradeplans and answers with a typed conflict (see errorResponse) instead of the client asking first. See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpChannelV1Message".
+ */
+export type GpChannelV1Message =
+  | GpGetRequest
+  | GpGetResponse
+  | GpListRequest
+  | GpListResponse
+  | GpSetRequest
+  | GpSetResponse
+  | GpDeleteRequest
+  | GpDeleteResponse
+  | GpErrorResponse;
+/**
+ * AFB-side chart primitive (line/line_enter/line_sl/line_tp/note/zone/ruler) — like afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Never carries `used_in_tradeplans` (rejected by additionalProperties: false) — whether a primitive is referenced by a tradeplan is derived fresh from the tradeplans themselves on every read, never persisted or transmitted as part of this entity (see AFB/docs/ENTITY_WS_PROTOCOL.md). `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV1".
+ */
+export type GpV1 = {
+  [k: string]: unknown;
+} & {
+  schema: 'afb.gp.v1';
+  id: string;
+  ticker: string;
+  kind: 'line' | 'line_enter' | 'line_sl' | 'line_tp' | 'note' | 'zone' | 'ruler';
+  start: GpV1_Point;
+  stop?: GpV1_Point;
+  /**
+   * note only (optional even there).
+   */
+  text?: string;
 };
 /**
  * Manager view of a BF connector config record — reuses link.user.v1.json#/$defs/sharedFields (via $ref, not redeclared, so the two views can't drift apart) plus ACL/key management fields. Never carries `connected`/`daemon`/session runtime — see link.status.v1.json.
@@ -800,6 +836,119 @@ export interface DealStateV2_Position {
   quantity?: number;
   average_price?: string | null;
   broker_ref?: {};
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpGetRequest".
+ */
+export interface GpGetRequest {
+  channel: 'gp';
+  schema: 'afbws.gp.get.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpGetResponse".
+ */
+export interface GpGetResponse {
+  channel: 'gp';
+  schema: 'afbws.gp.get.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: GpV1;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV1_Point".
+ */
+export interface GpV1_Point {
+  /**
+   * Unix seconds, as in klines.
+   */
+  time: number;
+  price: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpListRequest".
+ */
+export interface GpListRequest {
+  channel: 'gp';
+  schema: 'afbws.gp.list.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  ticker?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpListResponse".
+ */
+export interface GpListResponse {
+  channel: 'gp';
+  schema: 'afbws.gp.list.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  items: GpV1[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpSetRequest".
+ */
+export interface GpSetRequest {
+  channel: 'gp';
+  schema: 'afbws.gp.set.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: GpV1;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpSetResponse".
+ */
+export interface GpSetResponse {
+  channel: 'gp';
+  schema: 'afbws.gp.set.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: GpV1;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpDeleteRequest".
+ */
+export interface GpDeleteRequest {
+  channel: 'gp';
+  schema: 'afbws.gp.delete.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpDeleteResponse".
+ */
+export interface GpDeleteResponse {
+  channel: 'gp';
+  schema: 'afbws.gp.delete.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpErrorResponse".
+ */
+export interface GpErrorResponse {
+  channel: 'gp';
+  schema: 'afbws.gp.error.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  code: AfbwsCommonV1_ErrorCode;
+  message: string;
+  item?: GpV1;
+  details?: GpErrorDetails;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpErrorDetails".
+ */
+export interface GpErrorDetails {
+  tradeplan_ids?: string[];
+  deal_ids?: string[];
+  locked_scopes?: ('entry' | 'stop_loss' | 'take_profit')[];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

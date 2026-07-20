@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/gp.v1.json",
+  "title": "Graphic primitive afb.gp.v1",
+  "description": "AFB-side chart primitive (line/line_enter/line_sl/line_tp/note/zone/ruler) — like afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Never carries `used_in_tradeplans` (rejected by additionalProperties: false) — whether a primitive is referenced by a tradeplan is derived fresh from the tradeplans themselves on every read, never persisted or transmitted as part of this entity (see AFB/docs/ENTITY_WS_PROTOCOL.md). `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).",
+  "type": "object",
+  "required": ["schema", "id", "ticker", "kind", "start"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "afb.gp.v1" },
+    "id": { "type": "string", "minLength": 1 },
+    "ticker": { "type": "string", "minLength": 1 },
+    "kind": { "enum": ["line", "line_enter", "line_sl", "line_tp", "note", "zone", "ruler"] },
+    "start": { "$ref": "#/$defs/point" },
+    "stop": { "$ref": "#/$defs/point" },
+    "text": { "type": "string", "maxLength": 160, "description": "note only (optional even there)." }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "enum": ["zone", "ruler"] } }, "required": ["kind"] },
+      "then": { "required": ["stop"] },
+      "else": { "not": { "required": ["stop"] } }
+    },
+    {
+      "if": { "not": { "properties": { "kind": { "const": "note" } }, "required": ["kind"] } },
+      "then": { "not": { "required": ["text"] } }
+    }
+  ],
+  "$defs": {
+    "point": {
+      "type": "object",
+      "required": ["time", "price"],
+      "additionalProperties": false,
+      "properties": {
+        "time": { "type": "integer", "description": "Unix seconds, as in klines." },
+        "price": { "type": "number" }
+      }
+    }
+  }
+}

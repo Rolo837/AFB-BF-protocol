@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/gp.channel.v1.json",
+  "x-afbws-support-id": "afbws.gp.channel.v1",
+  "title": "gp channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.gp.channel.v1). Replaces bulk settings/get_primitives+set_primitives for clients that negotiated this capability; legacy stays available as fallback for clients that did not. `list()` (no ticker) returns every primitive the caller owns across all tickers; `list(ticker)` filters to one canonical SECID. `set` is a plain upsert by item.id — moving a primitive (new start/stop) is the same request as creating or editing one, never a separate command; there is no bulk-set and no confirm/usage RPC — the backend alone decides whether a move/delete is safe against linked tradeplans and answers with a typed conflict (see errorResponse) instead of the client asking first. See AFB/docs/ENTITY_WS_PROTOCOL.md.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/getRequest" },
+    { "$ref": "#/$defs/getResponse" },
+    { "$ref": "#/$defs/listRequest" },
+    { "$ref": "#/$defs/listResponse" },
+    { "$ref": "#/$defs/setRequest" },
+    { "$ref": "#/$defs/setResponse" },
+    { "$ref": "#/$defs/deleteRequest" },
+    { "$ref": "#/$defs/deleteResponse" },
+    { "$ref": "#/$defs/errorResponse" }
+  ],
+  "$defs": {
+    "getRequest": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "gp" },
+        "schema": { "const": "afbws.gp.get.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "getResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "item"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "gp" },
+        "schema": { "const": "afbws.gp.get.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "../gp.v1.json" }
+      }
+    },
+    "listRequest": {
+      "type": "object",
+      "title": "`ticker` omitted -> every primitive the caller owns across all tickers.",
+      "required": ["channel", "schema", "request_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "gp" },
+        "schema": { "const": "afbws.gp.list.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "ticker": { "type": "string", "minLength": 1 }
+      }
+    },
+    "listResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "gp" },
+        "schema": { "const": "afbws.gp.list.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "items": { "type": "array", "items": { "$ref": "../gp.v1.json" } }
+      }
+    },
+    "setRequest": {
+      "type": "object",
+      "title": "Upsert by item.id — moving a primitive is the same request as creating or editing one.",
+      "required": ["channel", "schema", "request_id", "item"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "gp" },
+        "schema": { "const": "afbws.gp.set.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "../gp.v1.json" }
+      }
+    },
+    "setResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "item"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "gp" },
+        "schema": { "const": "afbws.gp.set.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "../gp.v1.json" }
+      }
+    },
+    "deleteRequest": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "gp" },
+        "schema": { "const": "afbws.gp.delete.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "deleteResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "gp" },
+        "schema": { "const": "afbws.gp.delete.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "errorResponse": {
+      "type": "object",
+      "title": "typed error; `item` carries the authoritative current record when a caller needs to see it (e.g. a rejected move/delete restores the server's version, not the client's optimistic one).",
+      "required": ["channel", "schema", "request_id", "code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "gp" },
+        "schema": { "const": "afbws.gp.error.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "code": { "$ref": "common.v1.json#/$defs/errorCode" },
+        "message": { "type": "string", "minLength": 1 },
+        "item": { "$ref": "../gp.v1.json" },
+        "details": { "$ref": "#/$defs/errorDetails" }
+      }
+    },
+    "errorDetails": {
+      "type": "object",
+      "title": "Which linked tradeplans/deals blocked a delete/move, and which scopes are locked — populated on `conflict`.",
+      "additionalProperties": false,
+      "properties": {
+        "tradeplan_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "deal_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "locked_scopes": { "type": "array", "items": { "enum": ["entry", "stop_loss", "take_profit"] } }
+      }
+    }
+  }
+}

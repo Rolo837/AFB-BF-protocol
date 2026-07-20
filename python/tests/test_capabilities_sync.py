@@ -5,7 +5,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from afb_bf_protocol import ALARM_CHANNEL_V1, ALL_CAPABILITY_IDS, LINK_CHANNEL_V1, TRADEPLAN_CHANNEL_V1
+from afb_bf_protocol import (
+    ALARM_CHANNEL_V1,
+    ALL_CAPABILITY_IDS,
+    GP_CHANNEL_V1,
+    LINK_CHANNEL_V1,
+    TRADEPLAN_CHANNEL_V1,
+)
 from afb_bf_protocol.capabilities import __file__ as capabilities_file
 from afb_bf_protocol.tools.generate import (
     collect_afbws_capability_ids,
@@ -24,8 +30,9 @@ def test_capability_ids_match_schema_declarations():
         ALARM_CHANNEL_V1: "ALARM_CHANNEL_V1",
         TRADEPLAN_CHANNEL_V1: "TRADEPLAN_CHANNEL_V1",
         LINK_CHANNEL_V1: "LINK_CHANNEL_V1",
+        GP_CHANNEL_V1: "GP_CHANNEL_V1",
     }
-    assert ALL_CAPABILITY_IDS == {ALARM_CHANNEL_V1, TRADEPLAN_CHANNEL_V1, LINK_CHANNEL_V1}
+    assert ALL_CAPABILITY_IDS == {ALARM_CHANNEL_V1, TRADEPLAN_CHANNEL_V1, LINK_CHANNEL_V1, GP_CHANNEL_V1}
 
 
 def test_capabilities_py_is_up_to_date():

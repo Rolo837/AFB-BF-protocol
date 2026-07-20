@@ -52,6 +52,7 @@ function namedRootSchemas() {
     "tradeplan.v1.json": "TradePlanV1",
     "tradeplan.v2.json": "TradePlanV2",
     "alarm.v1.json": "AlarmV1",
+    "gp.v1.json": "GpV1",
     "notification.deal.v1.json": "NotificationDealV1",
     "notification.alarm.v1.json": "NotificationAlarmV1",
     "afbws/deal.event.v1.json": "DealEventPush",
@@ -72,6 +73,7 @@ function namedRootSchemas() {
     "afbws/link.admin.v1.json": "LinkAdminV1",
     "afbws/link.status.v1.json": "LinkStatusV1",
     "afbws/link.channel.v1.json": "LinkChannelV1Message",
+    "afbws/gp.channel.v1.json": "GpChannelV1Message",
   };
   for (const file of readdirSync(payloadsDir).sort()) {
     if (!file.endsWith(".json")) continue;
@@ -152,6 +154,18 @@ const NAMED_DEF_SCHEMAS = {
     syncPush: "LinkSyncPush",
     statusSyncPush: "LinkStatusSyncPush",
     statusPush: "LinkStatusPush",
+  },
+  "afbws/gp.channel.v1.json": {
+    getRequest: "GpGetRequest",
+    getResponse: "GpGetResponse",
+    listRequest: "GpListRequest",
+    listResponse: "GpListResponse",
+    setRequest: "GpSetRequest",
+    setResponse: "GpSetResponse",
+    deleteRequest: "GpDeleteRequest",
+    deleteResponse: "GpDeleteResponse",
+    errorResponse: "GpErrorResponse",
+    errorDetails: "GpErrorDetails",
   },
 };
 

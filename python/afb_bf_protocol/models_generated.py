@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 79ca9f4d1b47aeb3a65cbfd5eae5ed9b03edcffbfbc60c9592e66d78644f3073
+# source-hash: 6c8bfec89c1e3b28dce60a403a2e6b069af5d8a7df24edcd2106e38cfcfa1243
 
 from __future__ import annotations
 
@@ -1069,6 +1069,110 @@ class Fill(TypedDict):
     role: str
     side: str
     timestamp: NotRequired[str | float | int | bool | dict[str, Any] | list[Any] | None]
+
+
+class GpDeleteRequest(TypedDict):
+    channel: Literal["gp"]
+    schema: Literal["afbws.gp.delete.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class GpDeleteResponse(TypedDict):
+    channel: Literal["gp"]
+    schema: Literal["afbws.gp.delete.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class GpErrorDetails(TypedDict):
+    tradeplan_ids: NotRequired[list[str]]
+    deal_ids: NotRequired[list[str]]
+    locked_scopes: NotRequired[list[Literal["entry", "stop_loss", "take_profit"]]]
+
+
+class GpErrorResponse(TypedDict):
+    channel: Literal["gp"]
+    schema: Literal["afbws.gp.error.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    code: AfbwsCommonV1ErrorCode
+    message: str
+    item: NotRequired[GpV1]
+    details: NotRequired[GpErrorDetails]
+
+
+class GpGetRequest(TypedDict):
+    channel: Literal["gp"]
+    schema: Literal["afbws.gp.get.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class GpGetResponse(TypedDict):
+    channel: Literal["gp"]
+    schema: Literal["afbws.gp.get.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: GpV1
+
+
+class GpListRequest(TypedDict):
+    channel: Literal["gp"]
+    schema: Literal["afbws.gp.list.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    ticker: NotRequired[str]
+
+
+class GpListResponse(TypedDict):
+    channel: Literal["gp"]
+    schema: Literal["afbws.gp.list.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[GpV1]
+
+
+class GpSetRequest(TypedDict):
+    channel: Literal["gp"]
+    schema: Literal["afbws.gp.set.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: GpV1
+
+
+class GpSetResponse(TypedDict):
+    channel: Literal["gp"]
+    schema: Literal["afbws.gp.set.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: GpV1
+
+
+GpChannelV1Message: TypeAlias = (
+    GpGetRequest
+    | GpGetResponse
+    | GpListRequest
+    | GpListResponse
+    | GpSetRequest
+    | GpSetResponse
+    | GpDeleteRequest
+    | GpDeleteResponse
+    | GpErrorResponse
+)
+
+
+class GpV1(TypedDict):
+    """
+    AFB-side chart primitive (line/line_enter/line_sl/line_tp/note/zone/ruler) — like afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Never carries `used_in_tradeplans` (rejected by additionalProperties: false) — whether a primitive is referenced by a tradeplan is derived fresh from the tradeplans themselves on every read, never persisted or transmitted as part of this entity (see AFB/docs/ENTITY_WS_PROTOCOL.md). `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).
+    """
+
+    schema: Literal["afb.gp.v1"]
+    id: str
+    ticker: str
+    kind: Literal["line", "line_enter", "line_sl", "line_tp", "note", "zone", "ruler"]
+    start: GpV1Point
+    stop: NotRequired[GpV1Point]
+    text: NotRequired[str]
+
+
+class GpV1Point(TypedDict):
+    time: int
+    price: float
 
 
 class Health(TypedDict):

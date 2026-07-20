@@ -67,6 +67,7 @@ from .capabilities import (
     ALARM_CHANNEL_V1,
     TRADEPLAN_CHANNEL_V1,
     LINK_CHANNEL_V1,
+    GP_CHANNEL_V1,
     ALL_CAPABILITY_IDS,
 )
 from .deal_state import (
@@ -149,6 +150,7 @@ __all__ = [
     "ALARM_CHANNEL_V1",
     "TRADEPLAN_CHANNEL_V1",
     "LINK_CHANNEL_V1",
+    "GP_CHANNEL_V1",
     "ALL_CAPABILITY_IDS",
     "DealState",
     "DealStatus",
