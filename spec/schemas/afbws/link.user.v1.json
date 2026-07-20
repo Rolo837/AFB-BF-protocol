@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/link.user.v1.json",
+  "title": "link/user config record — non-manager view (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "Caller-scoped BF connector config record for a non-manager viewer (owner: capability trade + user_id in allowed_users, or role-only access — role-only is read-only, enforced by the backend, not this schema). Never carries `connected`/`daemon`/session runtime — see link.status.v1.json for that, delivered on a separate push. The synthetic `virtual` pseudo-connector also uses this exact shape (kind:\"virtual\") — see link.channel.v1.json. `$defs/sharedFields` is the single source of the fields link.admin.v1.json reuses (via $ref) so the two views can't drift apart independently.",
+  "allOf": [
+    { "$ref": "bf_registry_entry.v1.json" },
+    { "$ref": "#/$defs/sharedFields" },
+    {
+      "type": "object",
+      "required": ["schema"],
+      "properties": {
+        "schema": { "const": "afbws.link.user.v1" }
+      }
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "sharedFields": {
+      "type": "object",
+      "title": "Fields common to both the user and admin config views — reused by link.admin.v1.json via $ref, not redeclared.",
+      "required": [
+        "dry_run",
+        "margin_trading",
+        "execution_policy",
+        "paired",
+        "pairing_pending",
+        "pairing_expires_at",
+        "kind",
+        "editable"
+      ],
+      "properties": {
+        "dry_run": { "type": ["boolean", "null"] },
+        "margin_trading": { "type": ["boolean", "null"] },
+        "execution_policy": { "$ref": "connector.record.v1.json#/$defs/executionPolicy" },
+        "paired": { "type": "boolean" },
+        "pairing_pending": { "type": "boolean" },
+        "pairing_expires_at": { "type": ["string", "null"] },
+        "kind": {
+          "description": "connector: real BF entry from trading_bf.yaml. virtual: synthetic pseudo-connector for the no-broker virtual account.",
+          "enum": ["connector", "virtual"]
+        },
+        "editable": { "type": "boolean", "description": "Whether this caller may set() this record." }
+      }
+    },
+    "setInput": {
+      "type": "object",
+      "title": "afbws.link.set.request.v1 item — user-submitted fields only",
+      "description": "A non-manager caller may only adjust dry_run/execution_policy on their own already-existing connector — never name/enabled/display_name/broker/protocol/allowed_*, and never create a new entry (bf_id must already exist and be owned by the caller; enforced by the backend, not this schema).",
+      "required": ["bf_id"],
+      "additionalProperties": false,
+      "properties": {
+        "bf_id": { "type": "string", "minLength": 1 },
+        "dry_run": { "type": ["boolean", "null"] },
+        "execution_policy": { "$ref": "connector.record.v1.json#/$defs/executionPolicy" }
+      }
+    }
+  }
+}

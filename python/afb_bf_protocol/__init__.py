@@ -66,6 +66,7 @@ from .taxonomy import (
 from .capabilities import (
     ALARM_CHANNEL_V1,
     TRADEPLAN_CHANNEL_V1,
+    LINK_CHANNEL_V1,
     ALL_CAPABILITY_IDS,
 )
 from .deal_state import (
@@ -147,6 +148,7 @@ __all__ = [
     "SUPPORTED_MARKETS",
     "ALARM_CHANNEL_V1",
     "TRADEPLAN_CHANNEL_V1",
+    "LINK_CHANNEL_V1",
     "ALL_CAPABILITY_IDS",
     "DealState",
     "DealStatus",

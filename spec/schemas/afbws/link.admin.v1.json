@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/link.admin.v1.json",
+  "title": "link/admin config record — manager view (AFB-only; not part of afb.execution.v1 wire)",
+  "description": "Manager view of a BF connector config record — reuses link.user.v1.json#/$defs/sharedFields (via $ref, not redeclared, so the two views can't drift apart) plus ACL/key management fields. Never carries `connected`/`daemon`/session runtime — see link.status.v1.json.",
+  "allOf": [
+    { "$ref": "bf_registry_entry.v1.json" },
+    { "$ref": "link.user.v1.json#/$defs/sharedFields" },
+    {
+      "type": "object",
+      "required": ["schema", "allowed_roles", "allowed_users", "public_key_id", "public_key_file"],
+      "properties": {
+        "schema": { "const": "afbws.link.admin.v1" },
+        "allowed_roles": { "type": "array", "items": { "type": "string" } },
+        "allowed_users": { "type": "array", "items": { "type": "string" } },
+        "public_key_id": { "type": ["string", "null"] },
+        "public_key_file": { "type": ["string", "null"] }
+      }
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "setInput": {
+      "type": "object",
+      "title": "afbws.link.set.request.v1 item — manager-submitted fields (create or update)",
+      "description": "Manager upsert: `bf_id` omitted means create (backend assigns/validates id and requires broker + defaults); `bf_id` present and already registered means update. Backend enforces which combination is valid, not this schema.",
+      "additionalProperties": false,
+      "properties": {
+        "bf_id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "enabled": { "type": "boolean" },
+        "display_name": { "type": "string" },
+        "broker": { "type": "string", "minLength": 1 },
+        "protocol": { "type": "string" },
+        "dry_run": { "type": ["boolean", "null"] },
+        "margin_trading": { "type": ["boolean", "null"] },
+        "execution_policy": { "$ref": "connector.record.v1.json#/$defs/executionPolicy" },
+        "allowed_roles": { "type": "array", "items": { "type": "string" } },
+        "allowed_users": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

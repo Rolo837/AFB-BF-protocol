@@ -12,14 +12,17 @@ from __future__ import annotations
 
 __all__ = [
     "ALARM_CHANNEL_V1",
+    "LINK_CHANNEL_V1",
     "TRADEPLAN_CHANNEL_V1",
     "ALL_CAPABILITY_IDS",
 ]
 
 ALARM_CHANNEL_V1 = "afbws.alarm.channel.v1"
+LINK_CHANNEL_V1 = "afbws.link.channel.v1"
 TRADEPLAN_CHANNEL_V1 = "afbws.tradeplan.channel.v1"
 
 ALL_CAPABILITY_IDS: frozenset[str] = frozenset({
     ALARM_CHANNEL_V1,
+    LINK_CHANNEL_V1,
     TRADEPLAN_CHANNEL_V1,
 })

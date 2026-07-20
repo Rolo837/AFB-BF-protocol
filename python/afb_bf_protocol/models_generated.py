@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 90f91c5542db112324812bd5b323cb381be912ffac5d8d5186540d9d1a6f1a50
+# source-hash: 79ca9f4d1b47aeb3a65cbfd5eae5ed9b03edcffbfbc60c9592e66d78644f3073
 
 from __future__ import annotations
 
@@ -1088,6 +1088,227 @@ class Left(TypedDict):
 
     source: Literal["price"]
     field: NotRequired[Literal["last"]]
+
+
+class LinkAdminSetInput(TypedDict):
+    """
+    Manager upsert: `bf_id` omitted means create (backend assigns/validates id and requires broker + defaults); `bf_id` present and already registered means update. Backend enforces which combination is valid, not this schema.
+    """
+
+    bf_id: NotRequired[str]
+    name: NotRequired[str]
+    enabled: NotRequired[bool]
+    display_name: NotRequired[str]
+    broker: NotRequired[str]
+    protocol: NotRequired[str]
+    dry_run: NotRequired[bool | None]
+    margin_trading: NotRequired[bool | None]
+    execution_policy: NotRequired[ConnectorExecutionPolicy]
+    allowed_roles: NotRequired[list[str]]
+    allowed_users: NotRequired[list[str]]
+
+
+class LinkDeleteRequest(TypedDict):
+    channel: Literal["link"]
+    schema: Literal["afbws.link.delete.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class LinkDeleteResponse(TypedDict):
+    channel: Literal["link"]
+    schema: Literal["afbws.link.delete.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class LinkErrorResponse(TypedDict):
+    """
+    `code` is an open string, not an enum — at least not_found/forbidden/validation_error/conflict/bf_offline/not_paired/unsupported_action (see AFB/docs/ENTITY_WS_PROTOCOL.md) plus the generic invalid_schema/invalid_channel/internal_error every afbws error response can carry, but nothing here enforces that set at the schema level.
+    """
+
+    channel: Literal["link"]
+    schema: Literal["afbws.link.error.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    code: str
+    message: str
+    details: NotRequired[dict[str, Any]]
+    item: NotRequired[LinkEntity]
+
+
+class LinkGetRequest(TypedDict):
+    channel: Literal["link"]
+    schema: Literal["afbws.link.get.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class LinkGetResponse(TypedDict):
+    channel: Literal["link"]
+    schema: Literal["afbws.link.get.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: LinkEntity
+
+
+class LinkListRequest(TypedDict):
+    channel: Literal["link"]
+    schema: Literal["afbws.link.list.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+
+
+class LinkListResponse(TypedDict):
+    channel: Literal["link"]
+    schema: Literal["afbws.link.list.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[LinkEntity]
+
+
+class LinkPairRequest(TypedDict):
+    channel: Literal["link"]
+    schema: Literal["afbws.link.pair.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class LinkPairResponse(TypedDict):
+    channel: Literal["link"]
+    schema: Literal["afbws.link.pair.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: LinkEntity
+    pairing_string: str
+    expires_at: str
+
+
+class LinkRestartRequest(TypedDict):
+    channel: Literal["link"]
+    schema: Literal["afbws.link.restart.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class LinkRestartResponse(TypedDict):
+    channel: Literal["link"]
+    schema: Literal["afbws.link.restart.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class LinkSession(TypedDict):
+    account_id: str
+    dry_run: bool | None
+    capabilities: dict[str, Any]
+
+
+class LinkSetRequest(TypedDict):
+    channel: Literal["link"]
+    schema: Literal["afbws.link.set.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: LinkSetInput
+
+
+class LinkSetResponse(TypedDict):
+    channel: Literal["link"]
+    schema: Literal["afbws.link.set.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: LinkEntity
+
+
+class LinkSharedFields(TypedDict):
+    dry_run: bool | None
+    margin_trading: bool | None
+    execution_policy: ConnectorExecutionPolicy
+    paired: bool
+    pairing_pending: bool
+    pairing_expires_at: str | None
+    kind: Literal["connector", "virtual"]
+    editable: bool
+
+
+class LinkAdminV1(BfRegistryEntry, LinkSharedFields):
+    """
+    Manager view of a BF connector config record — reuses link.user.v1.json#/$defs/sharedFields (via $ref, not redeclared, so the two views can't drift apart) plus ACL/key management fields. Never carries `connected`/`daemon`/session runtime — see link.status.v1.json.
+    """
+
+    schema: Literal["afbws.link.admin.v1"]
+    allowed_roles: list[str]
+    allowed_users: list[str]
+    public_key_id: str | None
+    public_key_file: str | None
+
+
+class LinkStatusPush(TypedDict):
+    channel: Literal["link"]
+    schema: Literal["afbws.link.status.push.v1"]
+    item: LinkStatusV1
+
+
+class LinkStatusSyncPush(TypedDict):
+    channel: Literal["link"]
+    schema: Literal["afbws.link.status.sync.push.v1"]
+    items: list[LinkStatusV1]
+
+
+class LinkStatusV1(TypedDict):
+    """
+    Runtime-only BF status — never carries name/broker/ACL/keys/policy/config overrides, see link.user.v1.json/link.admin.v1.json for that. Sourced from BF register/unregister, daemon.capabilities and daemon.status events (see AFB-BF-protocol payloads/daemon.status.json) — `updated_at` mirrors the triggering envelope's `created_at`. `daemon` is null until the first daemon.status after connect; `session` is null whenever `connected` is false (disconnect resets both).
+    """
+
+    schema: Literal["afbws.link.status.v1"]
+    bf_id: str
+    connected: bool
+    updated_at: str
+    daemon: DaemonStatusPayload | None
+    session: LinkSession | None
+
+
+class LinkSyncPush(TypedDict):
+    channel: Literal["link"]
+    schema: Literal["afbws.link.sync.push.v1"]
+    items: list[LinkEntity]
+
+
+LinkChannelV1Message: TypeAlias = (
+    LinkGetRequest
+    | LinkGetResponse
+    | LinkListRequest
+    | LinkListResponse
+    | LinkSetRequest
+    | LinkSetResponse
+    | LinkDeleteRequest
+    | LinkDeleteResponse
+    | LinkPairRequest
+    | LinkPairResponse
+    | LinkRestartRequest
+    | LinkRestartResponse
+    | LinkErrorResponse
+    | LinkSyncPush
+    | LinkStatusSyncPush
+    | LinkStatusPush
+)
+
+
+class LinkUserSetInput(TypedDict):
+    """
+    A non-manager caller may only adjust dry_run/execution_policy on their own already-existing connector — never name/enabled/display_name/broker/protocol/allowed_*, and never create a new entry (bf_id must already exist and be owned by the caller; enforced by the backend, not this schema).
+    """
+
+    bf_id: str
+    dry_run: NotRequired[bool | None]
+    execution_policy: NotRequired[ConnectorExecutionPolicy]
+
+
+LinkSetInput: TypeAlias = LinkUserSetInput | LinkAdminSetInput
+
+
+class LinkUserV1(BfRegistryEntry, LinkSharedFields):
+    """
+    Caller-scoped BF connector config record for a non-manager viewer (owner: capability trade + user_id in allowed_users, or role-only access — role-only is read-only, enforced by the backend, not this schema). Never carries `connected`/`daemon`/session runtime — see link.status.v1.json for that, delivered on a separate push. The synthetic `virtual` pseudo-connector also uses this exact shape (kind:"virtual") — see link.channel.v1.json. `$defs/sharedFields` is the single source of the fields link.admin.v1.json reuses (via $ref) so the two views can't drift apart independently.
+    """
+
+    schema: Literal["afbws.link.user.v1"]
+
+
+LinkEntity: TypeAlias = LinkUserV1 | LinkAdminV1
 
 
 class MarketData(TypedDict):

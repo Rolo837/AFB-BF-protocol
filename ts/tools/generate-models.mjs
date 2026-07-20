@@ -68,6 +68,10 @@ function namedRootSchemas() {
     "afbws/account.events.v1.json": "AccountEventsPush",
     "afbws/alarm.channel.v1.json": "AlarmChannelV1Message",
     "afbws/tradeplan.channel.v1.json": "TradeplanChannelV1Message",
+    "afbws/link.user.v1.json": "LinkUserV1",
+    "afbws/link.admin.v1.json": "LinkAdminV1",
+    "afbws/link.status.v1.json": "LinkStatusV1",
+    "afbws/link.channel.v1.json": "LinkChannelV1Message",
   };
   for (const file of readdirSync(payloadsDir).sort()) {
     if (!file.endsWith(".json")) continue;
@@ -118,6 +122,36 @@ const NAMED_DEF_SCHEMAS = {
     deleteResponse: "TradeplanDeleteResponse",
     errorResponse: "TradeplanErrorResponse",
     syncPush: "TradeplanSyncPush",
+  },
+  "afbws/link.user.v1.json": {
+    sharedFields: "LinkSharedFields",
+    setInput: "LinkUserSetInput",
+  },
+  "afbws/link.admin.v1.json": {
+    setInput: "LinkAdminSetInput",
+  },
+  "afbws/link.status.v1.json": {
+    session: "LinkSession",
+  },
+  "afbws/link.channel.v1.json": {
+    entity: "LinkEntity",
+    setInput: "LinkSetInput",
+    getRequest: "LinkGetRequest",
+    getResponse: "LinkGetResponse",
+    listRequest: "LinkListRequest",
+    listResponse: "LinkListResponse",
+    setRequest: "LinkSetRequest",
+    setResponse: "LinkSetResponse",
+    deleteRequest: "LinkDeleteRequest",
+    deleteResponse: "LinkDeleteResponse",
+    pairRequest: "LinkPairRequest",
+    pairResponse: "LinkPairResponse",
+    restartRequest: "LinkRestartRequest",
+    restartResponse: "LinkRestartResponse",
+    errorResponse: "LinkErrorResponse",
+    syncPush: "LinkSyncPush",
+    statusSyncPush: "LinkStatusSyncPush",
+    statusPush: "LinkStatusPush",
   },
 };
 

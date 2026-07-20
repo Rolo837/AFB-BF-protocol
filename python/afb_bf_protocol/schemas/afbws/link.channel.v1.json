@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/link.channel.v1.json",
+  "x-afbws-support-id": "afbws.link.channel.v1",
+  "title": "link channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.link.channel.v1). Replaces legacy channels `connector` (config CRUD) and `bfs` (registry push) for clients that negotiated this capability; legacy stays available as fallback. `entity` carries either afbws.link.user.v1 or afbws.link.admin.v1 depending on the caller's role — the backend chooses which, not the client. `pair`/`restart` are explicit per-id actions, not part of the get/list/set/delete CRUD set. Config (this file + link.user.v1.json/link.admin.v1.json) and runtime status (link.status.v1.json) are delivered as separate push types and never mixed into one item. See AFB/docs/ENTITY_WS_PROTOCOL.md.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/getRequest" },
+    { "$ref": "#/$defs/getResponse" },
+    { "$ref": "#/$defs/listRequest" },
+    { "$ref": "#/$defs/listResponse" },
+    { "$ref": "#/$defs/setRequest" },
+    { "$ref": "#/$defs/setResponse" },
+    { "$ref": "#/$defs/deleteRequest" },
+    { "$ref": "#/$defs/deleteResponse" },
+    { "$ref": "#/$defs/pairRequest" },
+    { "$ref": "#/$defs/pairResponse" },
+    { "$ref": "#/$defs/restartRequest" },
+    { "$ref": "#/$defs/restartResponse" },
+    { "$ref": "#/$defs/errorResponse" },
+    { "$ref": "#/$defs/syncPush" },
+    { "$ref": "#/$defs/statusSyncPush" },
+    { "$ref": "#/$defs/statusPush" }
+  ],
+  "$defs": {
+    "entity": {
+      "description": "Role-chosen config view — afbws.link.user.v1 (non-manager, including the synthetic virtual pseudo-connector) or afbws.link.admin.v1 (manager).",
+      "oneOf": [
+        { "$ref": "link.user.v1.json" },
+        { "$ref": "link.admin.v1.json" }
+      ]
+    },
+    "setInput": {
+      "description": "Role-chosen set() item shape — the backend selects which by the authenticated caller's role, never by a client-declared schema id. anyOf, not oneOf: neither shape carries a discriminating `schema` field, and a minimal payload (e.g. {bf_id, dry_run}) is structurally valid under both — oneOf would reject it as ambiguous. The backend, not this schema, decides which fields a given caller is actually allowed to use.",
+      "anyOf": [
+        { "$ref": "link.user.v1.json#/$defs/setInput" },
+        { "$ref": "link.admin.v1.json#/$defs/setInput" }
+      ]
+    },
+    "getRequest": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.get.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "getResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "item"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.get.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "#/$defs/entity" }
+      }
+    },
+    "listRequest": {
+      "type": "object",
+      "title": "No filters — every list() call returns the caller's full accessible set.",
+      "required": ["channel", "schema", "request_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.list.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" }
+      }
+    },
+    "listResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.list.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/entity" } }
+      }
+    },
+    "setRequest": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "item"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.set.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "#/$defs/setInput" }
+      }
+    },
+    "setResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "item"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.set.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "#/$defs/entity" }
+      }
+    },
+    "deleteRequest": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.delete.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "deleteResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.delete.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "pairRequest": {
+      "type": "object",
+      "title": "Start/restart pairing for an existing bf_id — manager or owner.",
+      "required": ["channel", "schema", "request_id", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.pair.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "pairResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "item", "pairing_string", "expires_at"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.pair.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "#/$defs/entity" },
+        "pairing_string": { "type": "string", "minLength": 1 },
+        "expires_at": { "type": "string", "minLength": 1 }
+      }
+    },
+    "restartRequest": {
+      "type": "object",
+      "title": "Restart requires an explicit id — never implicitly picks the first accessible BF.",
+      "required": ["channel", "schema", "request_id", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.restart.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "restartResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.restart.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "errorResponse": {
+      "type": "object",
+      "title": "typed error; `item` is populated when a conflict/gate needs to show the caller the current authoritative record.",
+      "description": "`code` is an open string, not an enum — at least not_found/forbidden/validation_error/conflict/bf_offline/not_paired/unsupported_action (see AFB/docs/ENTITY_WS_PROTOCOL.md) plus the generic invalid_schema/invalid_channel/internal_error every afbws error response can carry, but nothing here enforces that set at the schema level.",
+      "required": ["channel", "schema", "request_id", "code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.error.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "code": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 },
+        "details": { "type": "object" },
+        "item": { "$ref": "#/$defs/entity" }
+      }
+    },
+    "syncPush": {
+      "type": "object",
+      "title": "link/sync push (server-initiated, no request_id) — role-filtered full config snapshot, replaces connector/changed + bfs/registry's config half.",
+      "required": ["channel", "schema", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.sync.push.v1" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/entity" } }
+      }
+    },
+    "statusSyncPush": {
+      "type": "object",
+      "title": "link/status initial snapshot (server-initiated, no request_id) — sent right after list.response so a late-created frontend client never misses it; the frontend must not depend on the order of the two messages.",
+      "required": ["channel", "schema", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.status.sync.push.v1" },
+        "items": { "type": "array", "items": { "$ref": "link.status.v1.json" } }
+      }
+    },
+    "statusPush": {
+      "type": "object",
+      "title": "link/status one changed status (server-initiated, no request_id) — register/unregister, daemon.capabilities, and each daemon.status all produce exactly this, never a config sync.",
+      "required": ["channel", "schema", "item"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "link" },
+        "schema": { "const": "afbws.link.status.push.v1" },
+        "item": { "$ref": "link.status.v1.json" }
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 90f91c5542db112324812bd5b323cb381be912ffac5d8d5186540d9d1a6f1a50
+ * source-hash: 79ca9f4d1b47aeb3a65cbfd5eae5ed9b03edcffbfbc60c9592e66d78644f3073
  */
 
 /**
@@ -145,6 +145,67 @@ export type ConnectorRecord = BfRegistryEntry & {
    */
   allowed_users?: string[];
 };
+/**
+ * Manager view of a BF connector config record — reuses link.user.v1.json#/$defs/sharedFields (via $ref, not redeclared, so the two views can't drift apart) plus ACL/key management fields. Never carries `connected`/`daemon`/session runtime — see link.status.v1.json.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkAdminV1".
+ */
+export type LinkAdminV1 = BfRegistryEntry &
+  LinkSharedFields & {
+    schema: 'afbws.link.admin.v1';
+    allowed_roles: string[];
+    allowed_users: string[];
+    public_key_id: string | null;
+    public_key_file: string | null;
+  };
+/**
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.link.channel.v1). Replaces legacy channels `connector` (config CRUD) and `bfs` (registry push) for clients that negotiated this capability; legacy stays available as fallback. `entity` carries either afbws.link.user.v1 or afbws.link.admin.v1 depending on the caller's role — the backend chooses which, not the client. `pair`/`restart` are explicit per-id actions, not part of the get/list/set/delete CRUD set. Config (this file + link.user.v1.json/link.admin.v1.json) and runtime status (link.status.v1.json) are delivered as separate push types and never mixed into one item. See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkChannelV1Message".
+ */
+export type LinkChannelV1Message =
+  | LinkGetRequest
+  | LinkGetResponse
+  | LinkListRequest
+  | LinkListResponse
+  | LinkSetRequest
+  | LinkSetResponse
+  | LinkDeleteRequest
+  | LinkDeleteResponse
+  | LinkPairRequest
+  | LinkPairResponse
+  | LinkRestartRequest
+  | LinkRestartResponse
+  | LinkErrorResponse
+  | LinkSyncPush
+  | LinkStatusSyncPush
+  | LinkStatusPush;
+/**
+ * Role-chosen config view — afbws.link.user.v1 (non-manager, including the synthetic virtual pseudo-connector) or afbws.link.admin.v1 (manager).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkEntity".
+ */
+export type LinkEntity = LinkUserV1 | LinkAdminV1;
+/**
+ * Caller-scoped BF connector config record for a non-manager viewer (owner: capability trade + user_id in allowed_users, or role-only access — role-only is read-only, enforced by the backend, not this schema). Never carries `connected`/`daemon`/session runtime — see link.status.v1.json for that, delivered on a separate push. The synthetic `virtual` pseudo-connector also uses this exact shape (kind:"virtual") — see link.channel.v1.json. `$defs/sharedFields` is the single source of the fields link.admin.v1.json reuses (via $ref) so the two views can't drift apart independently.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkUserV1".
+ */
+export type LinkUserV1 = BfRegistryEntry &
+  LinkSharedFields & {
+    schema: 'afbws.link.user.v1';
+  };
+/**
+ * Role-chosen set() item shape — the backend selects which by the authenticated caller's role, never by a client-declared schema id. anyOf, not oneOf: neither shape carries a discriminating `schema` field, and a minimal payload (e.g. {bf_id, dry_run}) is structurally valid under both — oneOf would reject it as ambiguous. The backend, not this schema, decides which fields a given caller is actually allowed to use.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkSetInput".
+ */
+export type LinkSetInput = LinkUserSetInput | LinkAdminSetInput;
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v1). Replaces bulk settings/get_plans+set_plans and mail/plans for clients that negotiated this capability; legacy stays available as fallback. `entity` carries both afb.tradeplan.v1 and afb.tradeplan.v2 — v1's `schema` is optional in its own canon file (legacy compatibility), so `entityV1` here wraps it with an explicit required-schema layer; v2 already requires `schema`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
@@ -739,6 +800,272 @@ export interface DealStateV2_Position {
   quantity?: number;
   average_price?: string | null;
   broker_ref?: {};
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkSharedFields".
+ */
+export interface LinkSharedFields {
+  dry_run: boolean | null;
+  margin_trading: boolean | null;
+  execution_policy: ConnectorExecutionPolicy;
+  paired: boolean;
+  pairing_pending: boolean;
+  pairing_expires_at: string | null;
+  /**
+   * connector: real BF entry from trading_bf.yaml. virtual: synthetic pseudo-connector for the no-broker virtual account.
+   */
+  kind: 'connector' | 'virtual';
+  /**
+   * Whether this caller may set() this record.
+   */
+  editable: boolean;
+}
+/**
+ * Manager upsert: `bf_id` omitted means create (backend assigns/validates id and requires broker + defaults); `bf_id` present and already registered means update. Backend enforces which combination is valid, not this schema.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkAdminSetInput".
+ */
+export interface LinkAdminSetInput {
+  bf_id?: string;
+  name?: string;
+  enabled?: boolean;
+  display_name?: string;
+  broker?: string;
+  protocol?: string;
+  dry_run?: boolean | null;
+  margin_trading?: boolean | null;
+  execution_policy?: ConnectorExecutionPolicy;
+  allowed_roles?: string[];
+  allowed_users?: string[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkGetRequest".
+ */
+export interface LinkGetRequest {
+  channel: 'link';
+  schema: 'afbws.link.get.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkGetResponse".
+ */
+export interface LinkGetResponse {
+  channel: 'link';
+  schema: 'afbws.link.get.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: LinkEntity;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkListRequest".
+ */
+export interface LinkListRequest {
+  channel: 'link';
+  schema: 'afbws.link.list.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkListResponse".
+ */
+export interface LinkListResponse {
+  channel: 'link';
+  schema: 'afbws.link.list.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  items: LinkEntity[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkSetRequest".
+ */
+export interface LinkSetRequest {
+  channel: 'link';
+  schema: 'afbws.link.set.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: LinkSetInput;
+}
+/**
+ * A non-manager caller may only adjust dry_run/execution_policy on their own already-existing connector — never name/enabled/display_name/broker/protocol/allowed_*, and never create a new entry (bf_id must already exist and be owned by the caller; enforced by the backend, not this schema).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkUserSetInput".
+ */
+export interface LinkUserSetInput {
+  bf_id: string;
+  dry_run?: boolean | null;
+  execution_policy?: ConnectorExecutionPolicy;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkSetResponse".
+ */
+export interface LinkSetResponse {
+  channel: 'link';
+  schema: 'afbws.link.set.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: LinkEntity;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkDeleteRequest".
+ */
+export interface LinkDeleteRequest {
+  channel: 'link';
+  schema: 'afbws.link.delete.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkDeleteResponse".
+ */
+export interface LinkDeleteResponse {
+  channel: 'link';
+  schema: 'afbws.link.delete.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkPairRequest".
+ */
+export interface LinkPairRequest {
+  channel: 'link';
+  schema: 'afbws.link.pair.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkPairResponse".
+ */
+export interface LinkPairResponse {
+  channel: 'link';
+  schema: 'afbws.link.pair.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: LinkEntity;
+  pairing_string: string;
+  expires_at: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkRestartRequest".
+ */
+export interface LinkRestartRequest {
+  channel: 'link';
+  schema: 'afbws.link.restart.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkRestartResponse".
+ */
+export interface LinkRestartResponse {
+  channel: 'link';
+  schema: 'afbws.link.restart.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * `code` is an open string, not an enum — at least not_found/forbidden/validation_error/conflict/bf_offline/not_paired/unsupported_action (see AFB/docs/ENTITY_WS_PROTOCOL.md) plus the generic invalid_schema/invalid_channel/internal_error every afbws error response can carry, but nothing here enforces that set at the schema level.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkErrorResponse".
+ */
+export interface LinkErrorResponse {
+  channel: 'link';
+  schema: 'afbws.link.error.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  code: string;
+  message: string;
+  details?: {};
+  item?: LinkEntity;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkSyncPush".
+ */
+export interface LinkSyncPush {
+  channel: 'link';
+  schema: 'afbws.link.sync.push.v1';
+  items: LinkEntity[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkStatusSyncPush".
+ */
+export interface LinkStatusSyncPush {
+  channel: 'link';
+  schema: 'afbws.link.status.sync.push.v1';
+  items: LinkStatusV1[];
+}
+/**
+ * Runtime-only BF status — never carries name/broker/ACL/keys/policy/config overrides, see link.user.v1.json/link.admin.v1.json for that. Sourced from BF register/unregister, daemon.capabilities and daemon.status events (see AFB-BF-protocol payloads/daemon.status.json) — `updated_at` mirrors the triggering envelope's `created_at`. `daemon` is null until the first daemon.status after connect; `session` is null whenever `connected` is false (disconnect resets both).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkStatusV1".
+ */
+export interface LinkStatusV1 {
+  schema: 'afbws.link.status.v1';
+  bf_id: string;
+  connected: boolean;
+  updated_at: string;
+  daemon: null | DaemonStatusPayload;
+  session: null | LinkSession;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DaemonStatusPayload".
+ */
+export interface DaemonStatusPayload {
+  active?: boolean;
+  bf_id: string;
+  broker_connected?: boolean;
+  code: string;
+  reason: string;
+  state?: string;
+  severity?: 'ok' | 'warning' | 'critical';
+  health?: {
+    overall?: 'ok' | 'warning' | 'critical';
+    points?: {};
+    [k: string]: unknown;
+  };
+  changes?: {
+    point?: string;
+    from?: string;
+    to?: string;
+    [k: string]: unknown;
+  }[];
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkSession".
+ */
+export interface LinkSession {
+  account_id: string;
+  /**
+   * Effective value for this session (AFB override if set, else BF's own).
+   */
+  dry_run: boolean | null;
+  capabilities: {
+    [k: string]: unknown;
+  };
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkStatusPush".
+ */
+export interface LinkStatusPush {
+  channel: 'link';
+  schema: 'afbws.link.status.push.v1';
+  item: LinkStatusV1;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1395,31 +1722,6 @@ export interface DaemonCapabilitiesPayload {
  * via the `definition` "DaemonCapabilitiesQueryPayload".
  */
 export interface DaemonCapabilitiesQueryPayload {
-  [k: string]: unknown;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DaemonStatusPayload".
- */
-export interface DaemonStatusPayload {
-  active?: boolean;
-  bf_id: string;
-  broker_connected?: boolean;
-  code: string;
-  reason: string;
-  state?: string;
-  severity?: 'ok' | 'warning' | 'critical';
-  health?: {
-    overall?: 'ok' | 'warning' | 'critical';
-    points?: {};
-    [k: string]: unknown;
-  };
-  changes?: {
-    point?: string;
-    from?: string;
-    to?: string;
-    [k: string]: unknown;
-  }[];
   [k: string]: unknown;
 }
 /**
