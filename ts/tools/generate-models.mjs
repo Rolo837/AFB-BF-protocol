@@ -55,6 +55,7 @@ function namedRootSchemas() {
     "gp.v1.json": "GpV1",
     "notification.deal.v1.json": "NotificationDealV1",
     "notification.alarm.v1.json": "NotificationAlarmV1",
+    "notification.link.v1.json": "NotificationLinkV1",
     "afbws/deal.event.v1.json": "DealEventPush",
     "afbws/deal.pnl.v1.json": "DealPnlPush",
     "afbws/deal.record.v1.json": "DealRecordPush",

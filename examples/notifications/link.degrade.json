@@ -1,0 +1,36 @@
+{
+  "schema": "afb.notification.link.v1",
+  "notification_id": "link-incident-0001",
+  "event": "broker.degraded",
+  "bf_id": "finam-arena-316",
+  "connected": true,
+  "daemon_state": "recovering",
+  "previous_state": "active",
+  "broker_connected": false,
+  "severity": "critical",
+  "previous_severity": "warning",
+  "reason": "Arena REST GET /accounts/1000316: HTTP 500 Internal Server Error",
+  "code": "broker_grpc",
+  "at": "2026-07-21T06:06:08.711947+03:00",
+  "incident_started_at": "2026-07-21T06:01:08.711947+03:00",
+  "health": {
+    "overall": "critical",
+    "points": {
+      "broker": { "level": "critical", "state": "recovering" },
+      "feeds": { "level": "ok", "symbols": {} }
+    }
+  },
+  "display": {
+    "connector_label": "Finam Arena (finam-arena-316)",
+    "title": "Проблема с подключением BF",
+    "text": "BF восстанавливает соединение с брокером, автоматическое исполнение временно недоступно."
+  },
+  "user": {
+    "name": "Trader",
+    "telegram": "@trader",
+    "email": "trader@test",
+    "notify_telegram": true,
+    "notify_email": false
+  },
+  "timestamp": "2026-07-21T06:06:10.114500"
+}

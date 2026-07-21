@@ -54,6 +54,9 @@ _STATUS_ITEM = {
     "bf_id": "bf-1",
     "connected": True,
     "updated_at": "2026-07-20T10:00:00Z",
+    "last_heartbeat_at": "2026-07-20T10:00:12Z",
+    "heartbeat_interval_sec": 15,
+    "heartbeat_stale": False,
     "daemon": None,
     "session": None,
 }
@@ -236,6 +239,26 @@ def test_status_session_rejects_dry_run_afb_bf_split():
 def test_status_daemon_null_and_populated(registry):
     populated = {**_STATUS_ITEM, "daemon": {"bf_id": "bf-1", "code": "ok", "reason": "connected"}}
     _root_validator(LINK_STATUS_ID, registry).validate(populated)  # does not raise
+
+
+def test_status_record_allows_missing_optional_heartbeat_fields(registry):
+    legacy = {k: v for k, v in _STATUS_ITEM.items() if k not in {
+        "last_heartbeat_at", "heartbeat_interval_sec", "heartbeat_stale"
+    }}
+    _root_validator(LINK_STATUS_ID, registry).validate(legacy)  # does not raise
+
+
+def test_status_record_allows_null_last_heartbeat(registry):
+    never_seen = {**_STATUS_ITEM, "last_heartbeat_at": None}
+    _root_validator(LINK_STATUS_ID, registry).validate(never_seen)  # does not raise
+
+
+def test_status_record_rejects_non_boolean_heartbeat_stale(registry):
+    from jsonschema import ValidationError
+
+    bad = {**_STATUS_ITEM, "heartbeat_stale": "nope"}
+    with pytest.raises(ValidationError):
+        _root_validator(LINK_STATUS_ID, registry).validate(bad)
 
 
 # --- RPC operations ------------------------------------------------------

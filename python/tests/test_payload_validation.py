@@ -182,6 +182,23 @@ def test_validate_notification_accepts_deal_close_example():
     assert validate_notification(data) == "afb.notification.deal.v1"
 
 
+def test_validate_notification_accepts_link_degrade_example():
+    data = json.loads((EXAMPLES / "notifications" / "link.degrade.json").read_text())
+    assert validate_notification(data) == "afb.notification.link.v1"
+
+
+def test_validate_notification_accepts_link_recover_example():
+    data = json.loads((EXAMPLES / "notifications" / "link.recover.json").read_text())
+    assert validate_notification(data) == "afb.notification.link.v1"
+
+
+def test_validate_notification_rejects_link_missing_notification_id():
+    data = json.loads((EXAMPLES / "notifications" / "link.degrade.json").read_text())
+    del data["notification_id"]
+    with pytest.raises(PayloadValidationError):
+        validate_notification(data)
+
+
 def test_validate_notification_rejects_unknown_schema():
     with pytest.raises(PayloadValidationError):
         validate_notification({"schema": "afb.notification.unknown.v1"})

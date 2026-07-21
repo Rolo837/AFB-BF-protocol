@@ -1,0 +1,35 @@
+{
+  "schema": "afb.notification.link.v1",
+  "notification_id": "link-recovery-0001",
+  "event": "broker.recovered",
+  "bf_id": "finam-arena-316",
+  "connected": true,
+  "daemon_state": "active",
+  "previous_state": "recovering",
+  "broker_connected": true,
+  "severity": "ok",
+  "previous_severity": "critical",
+  "reason": "",
+  "code": "",
+  "at": "2026-07-21T06:08:15.000000+03:00",
+  "incident_started_at": "2026-07-21T06:01:08.711947+03:00",
+  "health": {
+    "overall": "ok",
+    "points": {
+      "broker": { "level": "ok", "state": "active" }
+    }
+  },
+  "display": {
+    "connector_label": "Finam Arena (finam-arena-316)",
+    "title": "Подключение BF восстановлено",
+    "text": "BF снова подключён к брокеру и готов к исполнению."
+  },
+  "user": {
+    "name": "Trader",
+    "telegram": "@trader",
+    "email": "trader@test",
+    "notify_telegram": true,
+    "notify_email": false
+  },
+  "timestamp": "2026-07-21T06:08:15.114500"
+}

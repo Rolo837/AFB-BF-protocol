@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 6c8bfec89c1e3b28dce60a403a2e6b069af5d8a7df24edcd2106e38cfcfa1243
+# source-hash: d66431f2e6808643cd5402f7008ffa463450ec82c046d0c2a1c4f0a3a581ea2f
 
 from __future__ import annotations
 
@@ -996,6 +996,11 @@ class Display1(TypedDict):
     text: NotRequired[str]
 
 
+class Display2(TypedDict):
+    connector_label: str
+    text: NotRequired[str]
+
+
 class Entry(TypedDict):
     entry_id: str
     account_id: NotRequired[str]
@@ -1354,13 +1359,16 @@ class LinkStatusSyncPush(TypedDict):
 
 class LinkStatusV1(TypedDict):
     """
-    Runtime-only BF status — never carries name/broker/ACL/keys/policy/config overrides, see link.user.v1.json/link.admin.v1.json for that. Sourced from BF register/unregister, daemon.capabilities and daemon.status events (see AFB-BF-protocol payloads/daemon.status.json) — `updated_at` mirrors the triggering envelope's `created_at`. `daemon` is null until the first daemon.status after connect; `session` is null whenever `connected` is false (disconnect resets both).
+    Runtime-only BF status — never carries name/broker/ACL/keys/policy/config overrides, see link.user.v1.json/link.admin.v1.json for that. Sourced from BF register/unregister, daemon.capabilities, daemon.status and session.heartbeat handling in AFB — `updated_at` mirrors the triggering envelope's `created_at`. `daemon` is null until the first daemon.status after connect; `session` is null whenever `connected` is false (disconnect resets both). Heartbeat fields are AFB-derived display/runtime metadata, not part of the afb.execution.v1 wire itself.
     """
 
     schema: Literal["afbws.link.status.v1"]
     bf_id: str
     connected: bool
     updated_at: str
+    last_heartbeat_at: NotRequired[str | None]
+    heartbeat_interval_sec: NotRequired[int]
+    heartbeat_stale: NotRequired[bool]
     daemon: DaemonStatusPayload | None
     session: LinkSession | None
 
@@ -1484,6 +1492,38 @@ class NotificationDealV1(TypedDict):
     close_reason: NotRequired[str]
     at: NotRequired[str]
     display: Display1
+    user: User
+    timestamp: NotRequired[str]
+
+
+class NotificationLinkV1(TypedDict):
+    """
+    AFB-side MQTT notification payload published to <topic_base>/links/<user_id> for a BF connectivity/runtime incident or recovery the user opted into. Consumed by the AFB informer daemon (Telegram/email). NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time; `at` is the AFB-observed transition time. `display` carries human-readable strings pre-rendered by AFB backend.
+    """
+
+    schema: Literal["afb.notification.link.v1"]
+    notification_id: str
+    event: Literal[
+        "link.disconnected",
+        "link.recovered",
+        "broker.degraded",
+        "broker.recovered",
+        "daemon.suspended",
+        "daemon.recovered",
+    ]
+    bf_id: str
+    connected: bool
+    daemon_state: str
+    previous_state: NotRequired[str]
+    broker_connected: bool
+    severity: Literal["ok", "warning", "critical"]
+    previous_severity: NotRequired[Literal["ok", "warning", "critical"]]
+    reason: NotRequired[str]
+    code: NotRequired[str]
+    at: NotRequired[str]
+    incident_started_at: NotRequired[str]
+    health: NotRequired[dict[str, Any]]
+    display: Display2
     user: User
     timestamp: NotRequired[str]
 

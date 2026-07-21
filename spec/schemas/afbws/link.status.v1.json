@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/link.status.v1.json",
   "title": "link/status runtime record (AFB-only; not part of afb.execution.v1 wire)",
-  "description": "Runtime-only BF status — never carries name/broker/ACL/keys/policy/config overrides, see link.user.v1.json/link.admin.v1.json for that. Sourced from BF register/unregister, daemon.capabilities and daemon.status events (see AFB-BF-protocol payloads/daemon.status.json) — `updated_at` mirrors the triggering envelope's `created_at`. `daemon` is null until the first daemon.status after connect; `session` is null whenever `connected` is false (disconnect resets both).",
+  "description": "Runtime-only BF status — never carries name/broker/ACL/keys/policy/config overrides, see link.user.v1.json/link.admin.v1.json for that. Sourced from BF register/unregister, daemon.capabilities, daemon.status and session.heartbeat handling in AFB — `updated_at` mirrors the triggering envelope's `created_at`. `daemon` is null until the first daemon.status after connect; `session` is null whenever `connected` is false (disconnect resets both). Heartbeat fields are AFB-derived display/runtime metadata, not part of the afb.execution.v1 wire itself.",
   "type": "object",
   "required": ["schema", "bf_id", "connected", "updated_at", "daemon", "session"],
   "additionalProperties": false,
@@ -11,6 +11,22 @@
     "bf_id": { "type": "string", "minLength": 1 },
     "connected": { "type": "boolean" },
     "updated_at": { "type": "string" },
+    "last_heartbeat_at": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string" }
+      ],
+      "description": "ISO timestamp of the last verified session.heartbeat observed by AFB for this BF; null when disconnected or before the first heartbeat."
+    },
+    "heartbeat_interval_sec": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Negotiated heartbeat interval for stale detection/display in AFB frontend."
+    },
+    "heartbeat_stale": {
+      "type": "boolean",
+      "description": "AFB-derived stale flag for the last heartbeat observation, carried to the frontend for consistent badge/tooltip rendering."
+    },
     "daemon": {
       "oneOf": [
         { "type": "null" },

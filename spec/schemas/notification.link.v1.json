@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/notification.link.v1.json",
+  "title": "Link notification afb.notification.link.v1",
+  "description": "AFB-side MQTT notification payload published to <topic_base>/links/<user_id> for a BF connectivity/runtime incident or recovery the user opted into. Consumed by the AFB informer daemon (Telegram/email). NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time; `at` is the AFB-observed transition time. `display` carries human-readable strings pre-rendered by AFB backend.",
+  "type": "object",
+  "required": [
+    "schema",
+    "notification_id",
+    "event",
+    "bf_id",
+    "connected",
+    "daemon_state",
+    "broker_connected",
+    "severity",
+    "display",
+    "user"
+  ],
+  "properties": {
+    "schema": { "const": "afb.notification.link.v1" },
+    "notification_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable per-incident event id for informer-side deduplication."
+    },
+    "event": {
+      "description": "Normalized AFB-side incident/recovery event.",
+      "enum": [
+        "link.disconnected",
+        "link.recovered",
+        "broker.degraded",
+        "broker.recovered",
+        "daemon.suspended",
+        "daemon.recovered"
+      ]
+    },
+    "bf_id": { "type": "string", "minLength": 1 },
+    "connected": { "type": "boolean" },
+    "daemon_state": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Current BF runtime state as normalized by AFB (for example: active, off_hours, degraded, recovering, suspended)."
+    },
+    "previous_state": {
+      "type": "string",
+      "minLength": 1
+    },
+    "broker_connected": { "type": "boolean" },
+    "severity": {
+      "type": "string",
+      "enum": ["ok", "warning", "critical"]
+    },
+    "previous_severity": {
+      "type": "string",
+      "enum": ["ok", "warning", "critical"]
+    },
+    "reason": { "type": "string" },
+    "code": { "type": "string" },
+    "at": {
+      "type": "string",
+      "description": "ISO-8601 time when AFB observed the transition and emitted this notification payload."
+    },
+    "incident_started_at": {
+      "type": "string",
+      "description": "ISO-8601 time when the tracked incident originally started, useful on recovery notifications."
+    },
+    "health": {
+      "type": "object",
+      "description": "Optional subset or full copy of the current daemon health payload for richer informer formatting.",
+      "additionalProperties": true
+    },
+    "display": {
+      "type": "object",
+      "required": ["connector_label", "title"],
+      "properties": {
+        "connector_label": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "text": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "user": {
+      "type": "object",
+      "required": ["name", "telegram", "email", "notify_telegram", "notify_email"],
+      "properties": {
+        "name": { "type": "string" },
+        "telegram": { "type": "string" },
+        "email": { "type": "string" },
+        "notify_telegram": { "type": "boolean" },
+        "notify_email": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO-8601 publish time; added by MQTTPublisher, not by the link notification builder."
+    }
+  },
+  "additionalProperties": false
+}

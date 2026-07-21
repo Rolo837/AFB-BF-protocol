@@ -36,7 +36,11 @@ _DEAL_SCHEMAS = {"afb.deal.v1", "afb.deal.v2"}
 _TRADEPLAN_SCHEMAS = {"afb.tradeplan.v1", "afb.tradeplan.v2"}
 _DEFAULT_TRADEPLAN_SCHEMA = "afb.tradeplan.v1"
 _ALARM_SCHEMAS = {"afb.alarm.v1"}
-_NOTIFICATION_SCHEMAS = {"afb.notification.alarm.v1", "afb.notification.deal.v1"}
+_NOTIFICATION_SCHEMAS = {
+    "afb.notification.alarm.v1",
+    "afb.notification.deal.v1",
+    "afb.notification.link.v1",
+}
 
 
 def _schema_filename(schema_id: str) -> str:
@@ -150,10 +154,10 @@ def validate_alarm(obj: dict[str, Any]) -> str:
 
 
 def validate_notification(obj: dict[str, Any]) -> str:
-    """Validate an AFB MQTT notification against afb.notification.alarm.v1 or
-    afb.notification.deal.v1 (dispatched on ``obj["schema"]``). Returns the
-    resolved schema id. Like alarms, notifications never cross the AFB<->BF
-    wire."""
+    """Validate an AFB MQTT notification against afb.notification.alarm.v1,
+    afb.notification.deal.v1 or afb.notification.link.v1 (dispatched on
+    ``obj["schema"]``). Returns the resolved schema id. Like alarms,
+    notifications never cross the AFB<->BF wire."""
     if not isinstance(obj, dict):
         raise PayloadValidationError("invalid_schema", "notification must be an object")
     schema = obj.get("schema")

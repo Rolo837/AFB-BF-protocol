@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 6c8bfec89c1e3b28dce60a403a2e6b069af5d8a7df24edcd2106e38cfcfa1243
+ * source-hash: d66431f2e6808643cd5402f7008ffa463450ec82c046d0c2a1c4f0a3a581ea2f
  */
 
 /**
@@ -1155,7 +1155,7 @@ export interface LinkStatusSyncPush {
   items: LinkStatusV1[];
 }
 /**
- * Runtime-only BF status — never carries name/broker/ACL/keys/policy/config overrides, see link.user.v1.json/link.admin.v1.json for that. Sourced from BF register/unregister, daemon.capabilities and daemon.status events (see AFB-BF-protocol payloads/daemon.status.json) — `updated_at` mirrors the triggering envelope's `created_at`. `daemon` is null until the first daemon.status after connect; `session` is null whenever `connected` is false (disconnect resets both).
+ * Runtime-only BF status — never carries name/broker/ACL/keys/policy/config overrides, see link.user.v1.json/link.admin.v1.json for that. Sourced from BF register/unregister, daemon.capabilities, daemon.status and session.heartbeat handling in AFB — `updated_at` mirrors the triggering envelope's `created_at`. `daemon` is null until the first daemon.status after connect; `session` is null whenever `connected` is false (disconnect resets both). Heartbeat fields are AFB-derived display/runtime metadata, not part of the afb.execution.v1 wire itself.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "LinkStatusV1".
@@ -1165,6 +1165,18 @@ export interface LinkStatusV1 {
   bf_id: string;
   connected: boolean;
   updated_at: string;
+  /**
+   * ISO timestamp of the last verified session.heartbeat observed by AFB for this BF; null when disconnected or before the first heartbeat.
+   */
+  last_heartbeat_at?: null | string;
+  /**
+   * Negotiated heartbeat interval for stale detection/display in AFB frontend.
+   */
+  heartbeat_interval_sec?: number;
+  /**
+   * AFB-derived stale flag for the last heartbeat observation, carried to the frontend for consistent badge/tooltip rendering.
+   */
+  heartbeat_stale?: boolean;
   daemon: null | DaemonStatusPayload;
   session: null | LinkSession;
 }
@@ -1773,6 +1785,70 @@ export interface NotificationDealV1 {
   };
   /**
    * ISO-8601 publish time; added by MQTTPublisher, not by build_deal_notification.
+   */
+  timestamp?: string;
+}
+/**
+ * AFB-side MQTT notification payload published to <topic_base>/links/<user_id> for a BF connectivity/runtime incident or recovery the user opted into. Consumed by the AFB informer daemon (Telegram/email). NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time; `at` is the AFB-observed transition time. `display` carries human-readable strings pre-rendered by AFB backend.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "NotificationLinkV1".
+ */
+export interface NotificationLinkV1 {
+  schema: 'afb.notification.link.v1';
+  /**
+   * Stable per-incident event id for informer-side deduplication.
+   */
+  notification_id: string;
+  /**
+   * Normalized AFB-side incident/recovery event.
+   */
+  event:
+    | 'link.disconnected'
+    | 'link.recovered'
+    | 'broker.degraded'
+    | 'broker.recovered'
+    | 'daemon.suspended'
+    | 'daemon.recovered';
+  bf_id: string;
+  connected: boolean;
+  /**
+   * Current BF runtime state as normalized by AFB (for example: active, off_hours, degraded, recovering, suspended).
+   */
+  daemon_state: string;
+  previous_state?: string;
+  broker_connected: boolean;
+  severity: 'ok' | 'warning' | 'critical';
+  previous_severity?: 'ok' | 'warning' | 'critical';
+  reason?: string;
+  code?: string;
+  /**
+   * ISO-8601 time when AFB observed the transition and emitted this notification payload.
+   */
+  at?: string;
+  /**
+   * ISO-8601 time when the tracked incident originally started, useful on recovery notifications.
+   */
+  incident_started_at?: string;
+  /**
+   * Optional subset or full copy of the current daemon health payload for richer informer formatting.
+   */
+  health?: {
+    [k: string]: unknown;
+  };
+  display: {
+    connector_label: string;
+    text?: string;
+  };
+  user: {
+    name: string;
+    telegram: string;
+    email: string;
+    notify_telegram: boolean;
+    notify_email: boolean;
+  };
+  /**
+   * ISO-8601 publish time; added by MQTTPublisher, not by the link notification builder.
    */
   timestamp?: string;
 }

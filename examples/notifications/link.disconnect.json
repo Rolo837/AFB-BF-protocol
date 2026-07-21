@@ -1,0 +1,29 @@
+{
+  "schema": "afb.notification.link.v1",
+  "notification_id": "link-disconnect-0001",
+  "event": "link.disconnected",
+  "bf_id": "finam-arena-316",
+  "connected": false,
+  "daemon_state": "suspended",
+  "previous_state": "recovering",
+  "broker_connected": false,
+  "severity": "critical",
+  "previous_severity": "critical",
+  "reason": "Heartbeat stale: no BF heartbeat within 45 seconds",
+  "code": "bf_link_stale",
+  "at": "2026-07-21T06:10:00.000000+03:00",
+  "incident_started_at": "2026-07-21T06:09:10.000000+03:00",
+  "display": {
+    "connector_label": "Finam Arena (finam-arena-316)",
+    "title": "Связь с BF потеряна",
+    "text": "AFB больше не получает heartbeat от BF; исполнение и статусы недостоверны."
+  },
+  "user": {
+    "name": "Trader",
+    "telegram": "@trader",
+    "email": "trader@test",
+    "notify_telegram": true,
+    "notify_email": false
+  },
+  "timestamp": "2026-07-21T06:10:00.114500"
+}
