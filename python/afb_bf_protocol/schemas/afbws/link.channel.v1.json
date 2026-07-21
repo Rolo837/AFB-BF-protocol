@@ -62,13 +62,20 @@
     },
     "listRequest": {
       "type": "object",
-      "title": "No filters — every list() call returns the caller's full accessible set.",
+      "title": "Optional scope selects usable working accounts vs manager admin inventory.",
+      "description": "scope omitted or \"usable\": enabled connectors the caller may trade on (allowed_users ACL) plus virtual when permitted — never a manager bypass. scope \"admin\": full registry as admin views; managers only (backend rejects otherwise). Side-effect status.sync.push after list.response uses the same scope.",
       "required": ["channel", "schema", "request_id"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "link" },
         "schema": { "const": "afbws.link.list.request.v1" },
-        "request_id": { "$ref": "common.v1.json#/$defs/requestId" }
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "scope": {
+          "type": "string",
+          "enum": ["usable", "admin"],
+          "default": "usable",
+          "description": "usable (default): working accounts for widgets. admin: ConnectorsModal inventory for managers."
+        }
       }
     },
     "listResponse": {

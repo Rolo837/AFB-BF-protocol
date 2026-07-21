@@ -8,10 +8,9 @@
     { "$ref": "link.user.v1.json#/$defs/sharedFields" },
     {
       "type": "object",
-      "required": ["schema", "allowed_roles", "allowed_users", "public_key_id", "public_key_file"],
+      "required": ["schema", "allowed_users", "public_key_id", "public_key_file"],
       "properties": {
         "schema": { "const": "afbws.link.admin.v1" },
-        "allowed_roles": { "type": "array", "items": { "type": "string" } },
         "allowed_users": { "type": "array", "items": { "type": "string" } },
         "public_key_id": { "type": ["string", "null"] },
         "public_key_file": { "type": ["string", "null"] }
@@ -31,7 +30,6 @@
             "broker": { "type": "string", "minLength": 1 },
             "protocol": { "type": "string" },
             "margin_trading": { "type": ["boolean", "null"] },
-            "allowed_roles": { "type": "array", "items": { "type": "string" } },
             "allowed_users": { "type": "array", "items": { "type": "string" } }
           }
         }

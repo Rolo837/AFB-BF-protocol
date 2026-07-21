@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 65bf7cc42e9cb3ef95f13e0a0c20131b3b2f5e6cda437bb1f9d7a79dce46e2be
+# source-hash: 0438464380b687a542021d3b1b397695e108f397507a5cd68e6cb2b0ea1c4f6d
 
 from __future__ import annotations
 
@@ -547,7 +547,6 @@ class ConnectorRecord(BfRegistryEntry):
     connected: NotRequired[bool]
     public_key_id: NotRequired[str]
     public_key_file: NotRequired[str]
-    allowed_roles: NotRequired[list[str]]
     allowed_users: NotRequired[list[str]]
 
 
@@ -1241,9 +1240,14 @@ class LinkGetResponse(TypedDict):
 
 
 class LinkListRequest(TypedDict):
+    """
+    scope omitted or "usable": enabled connectors the caller may trade on (allowed_users ACL) plus virtual when permitted — never a manager bypass. scope "admin": full registry as admin views; managers only (backend rejects otherwise). Side-effect status.sync.push after list.response uses the same scope.
+    """
+
     channel: Literal["link"]
     schema: Literal["afbws.link.list.request.v1"]
     request_id: AfbwsCommonV1RequestId
+    scope: NotRequired[Literal["usable", "admin"]]
 
 
 class LinkListResponse(TypedDict):
@@ -1310,7 +1314,6 @@ class LinkAdminSetInput(LinkSetInputShared):
     broker: NotRequired[str]
     protocol: NotRequired[str]
     margin_trading: NotRequired[bool | None]
-    allowed_roles: NotRequired[list[str]]
     allowed_users: NotRequired[list[str]]
 
 
@@ -1346,7 +1349,6 @@ class LinkAdminV1(BfRegistryEntry, LinkSharedFields):
     """
 
     schema: Literal["afbws.link.admin.v1"]
-    allowed_roles: list[str]
     allowed_users: list[str]
     public_key_id: str | None
     public_key_file: str | None

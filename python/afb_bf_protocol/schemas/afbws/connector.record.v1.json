@@ -37,7 +37,6 @@
         "connected": { "type": "boolean", "description": "Merged in by list_connectors_for_user/get_connector_for_user, not part of BFRegistryEntry itself." },
         "public_key_id": { "type": "string", "description": "Manager-only." },
         "public_key_file": { "type": "string", "description": "Manager-only." },
-        "allowed_roles": { "type": "array", "items": { "type": "string" }, "description": "Manager-only." },
         "allowed_users": { "type": "array", "items": { "type": "string" }, "description": "Manager-only." }
       }
     }

@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 65bf7cc42e9cb3ef95f13e0a0c20131b3b2f5e6cda437bb1f9d7a79dce46e2be
+ * source-hash: 0438464380b687a542021d3b1b397695e108f397507a5cd68e6cb2b0ea1c4f6d
  */
 
 /**
@@ -139,10 +139,6 @@ export type ConnectorRecord = BfRegistryEntry & {
   /**
    * Manager-only.
    */
-  allowed_roles?: string[];
-  /**
-   * Manager-only.
-   */
   allowed_users?: string[];
 };
 /**
@@ -190,7 +186,6 @@ export type GpV1 = {
 export type LinkAdminV1 = BfRegistryEntry &
   LinkSharedFields & {
     schema: 'afbws.link.admin.v1';
-    allowed_roles: string[];
     allowed_users: string[];
     public_key_id: string | null;
     public_key_file: string | null;
@@ -205,7 +200,6 @@ export type LinkAdminSetInput = LinkSetInputShared & {
   broker?: string;
   protocol?: string;
   margin_trading?: boolean | null;
-  allowed_roles?: string[];
   allowed_users?: string[];
 };
 /**
@@ -1028,6 +1022,8 @@ export interface LinkGetResponse {
   item: LinkEntity;
 }
 /**
+ * scope omitted or "usable": enabled connectors the caller may trade on (allowed_users ACL) plus virtual when permitted — never a manager bypass. scope "admin": full registry as admin views; managers only (backend rejects otherwise). Side-effect status.sync.push after list.response uses the same scope.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "LinkListRequest".
  */
@@ -1035,6 +1031,10 @@ export interface LinkListRequest {
   channel: 'link';
   schema: 'afbws.link.list.request.v1';
   request_id: AfbwsCommonV1_RequestId;
+  /**
+   * usable (default): working accounts for widgets. admin: ConnectorsModal inventory for managers.
+   */
+  scope?: 'usable' | 'admin';
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

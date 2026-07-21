@@ -2,6 +2,14 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.0.8 — 2026-07-21
+
+PATCH: `link.list` optional `scope` (`usable`|`admin`) to separate widget working accounts from manager admin inventory; drop `allowed_roles` from link admin / connector record. Wire AFB↔BF не затронут.
+
+- **`link.channel.v1.json` `listRequest`** — optional `scope` (default `usable`): working ACL set vs full manager inventory.
+- **`link.admin.v1.json` / `connector.record.v1.json`** — removed `allowed_roles`; ACL is `allowed_users` only.
+- **Версии**: bump до `2.0.8`.
+
 ## v2.0.7 — 2026-07-21
 
 PATCH: cleanup link connector fields — drop `display_name`, shared `setInputShared` for user/admin, optional `description`. Wire AFB↔BF не затронут.

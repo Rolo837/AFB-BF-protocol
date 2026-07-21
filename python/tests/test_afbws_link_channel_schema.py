@@ -36,7 +36,6 @@ _USER_ITEM = {
 _ADMIN_ITEM = {
     **{k: v for k, v in _USER_ITEM.items() if k != "schema"},
     "schema": "afbws.link.admin.v1",
-    "allowed_roles": ["trade"],
     "allowed_users": ["id_abc123"],
     "public_key_id": None,
     "public_key_file": None,
@@ -91,11 +90,11 @@ def test_virtual_is_a_valid_user_record(registry):
     _root_validator(LINK_USER_ID, registry).validate(_VIRTUAL_ITEM)  # does not raise
 
 
-@pytest.mark.parametrize("forbidden_field", ["allowed_roles", "allowed_users", "public_key_id", "public_key_file"])
+@pytest.mark.parametrize("forbidden_field", ["allowed_users", "public_key_id", "public_key_file"])
 def test_user_record_rejects_manager_only_fields(forbidden_field, registry):
     from jsonschema import ValidationError
 
-    bad = {**_USER_ITEM, forbidden_field: ["x"] if "roles" in forbidden_field or "users" in forbidden_field else "x"}
+    bad = {**_USER_ITEM, forbidden_field: ["x"] if "users" in forbidden_field else "x"}
     with pytest.raises(ValidationError):
         _root_validator(LINK_USER_ID, registry).validate(bad)
 
@@ -158,7 +157,7 @@ def test_user_set_input_accepts_shared_fields(registry):
 
 
 @pytest.mark.parametrize("forbidden_field,value", [
-    ("broker", "x"), ("allowed_roles", ["trade"]), ("margin_trading", True), ("display_name", "x"),
+    ("broker", "x"), ("allowed_users", ["trade"]), ("margin_trading", True), ("display_name", "x"), ("allowed_roles", ["trade"]),
 ])
 def test_user_set_input_rejects_manager_only_fields(forbidden_field, value, registry):
     from jsonschema import ValidationError
@@ -178,9 +177,17 @@ def test_admin_set_input_accepts_full_manager_fields(registry):
         "bf_id": "bf-1", "name": "x", "enabled": True, "description": "note",
         "broker": "finam-arena", "protocol": "afb.execution.v1",
         "dry_run": True, "margin_trading": None, "execution_policy": _EXECUTION_POLICY,
-        "allowed_roles": ["trade"], "allowed_users": ["id_abc123"],
+        "allowed_users": ["id_abc123"],
     }
     _validator(LINK_ADMIN_ID, "setInput", registry).validate(full)  # does not raise
+
+
+def test_admin_set_input_rejects_allowed_roles(registry):
+    from jsonschema import ValidationError
+
+    bad = {"name": "x", "broker": "finam-arena", "allowed_roles": ["trade"]}
+    with pytest.raises(ValidationError):
+        _validator(LINK_ADMIN_ID, "setInput", registry).validate(bad)
 
 
 def test_admin_set_input_rejects_display_name(registry):
@@ -207,7 +214,7 @@ def test_status_record_valid_with_session(registry):
 
 @pytest.mark.parametrize("forbidden_field,value", [
     ("name", "x"), ("broker", "x"), ("description", "x"), ("protocol", "x"),
-    ("allowed_roles", ["trade"]), ("allowed_users", ["id_abc123"]),
+    ("allowed_users", ["id_abc123"]),
     ("public_key_id", "x"), ("public_key_file", "x"),
     ("execution_policy", {}), ("paired", True), ("kind", "connector"),
 ])
@@ -287,9 +294,22 @@ def test_get_request_and_response_valid(registry):
     _validator(LINK_CHANNEL_ID, "getResponse", registry).validate(resp_admin)  # does not raise
 
 
-def test_list_request_has_no_filters(registry):
-    req = {"channel": "link", "schema": "afbws.link.list.request.v1", "request_id": "r1"}
-    _validator(LINK_CHANNEL_ID, "listRequest", registry).validate(req)  # does not raise
+def test_list_request_accepts_optional_scope(registry):
+    base = {"channel": "link", "schema": "afbws.link.list.request.v1", "request_id": "r1"}
+    _validator(LINK_CHANNEL_ID, "listRequest", registry).validate(base)  # does not raise
+    for scope in ("usable", "admin"):
+        _validator(LINK_CHANNEL_ID, "listRequest", registry).validate({**base, "scope": scope})
+
+
+def test_list_request_rejects_unknown_scope(registry):
+    from jsonschema import ValidationError
+
+    bad = {
+        "channel": "link", "schema": "afbws.link.list.request.v1", "request_id": "r1",
+        "scope": "all",
+    }
+    with pytest.raises(ValidationError):
+        _validator(LINK_CHANNEL_ID, "listRequest", registry).validate(bad)
 
 
 def test_list_request_rejects_extra_filter_field(registry):
