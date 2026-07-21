@@ -2,6 +2,19 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.0.6 — 2026-07-21
+
+PATCH: link health metadata (heartbeat freshness) + AFB-only informer-safe `notification.link.v1` for BF connectivity/runtime incidents/recoveries. Wire AFB↔BF не затронут.
+
+- **`spec/schemas/afbws/link.status.v1.json`** — добавлены AFB-only поля `last_heartbeat_at`, `heartbeat_interval_sec`, `heartbeat_stale` для корректного badge/tooltip рендеринга и stale-детектации в AFB.
+- **Новая схема** `spec/schemas/notification.link.v1.json` (`afb.notification.link.v1`) — MQTT-уведомление информера (Telegram/email) для событий: `link.disconnected`, `link.recovered`, `broker.degraded`/`broker.recovered`, `daemon.suspended`/`daemon.recovered`.
+- **Examples**: `examples/notifications/link.degrade.json`, `link.disconnect.json`, `link.recover.json`.
+- **Валидация/генерация**:
+  - `python/afb_bf_protocol/payload_validation.py` + unit tests: поддержка `afb.notification.link.v1`.
+  - `ts/tools/generate-models.mjs`: добавлен мэппинг `notification.link.v1.json` → `NotificationLinkV1`.
+  - Перегенерированы `python/afb_bf_protocol/models_generated.py` и `ts/src/models.ts`.
+- **Версии**: bump до `2.0.6` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`.
+
 ## v2.0.5 — 2026-07-20
 
 PATCH: план `gp-channel-migration`, протокол-часть — строгий канонический `afb.gp.v1` (графические примитивы графика) и schema-first канал `afbws.gp.channel.v1`, замена legacy bulk `settings/get_primitives`+`set_primitives`. AFB-only расширение вне `spec/asyncapi.yaml`, wire `afb.execution.v1` не тронут, BF не затронут. Backend/frontend-реализация — отдельные этапы плана, ещё не начаты.
