@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: d66431f2e6808643cd5402f7008ffa463450ec82c046d0c2a1c4f0a3a581ea2f
+ * source-hash: 65bf7cc42e9cb3ef95f13e0a0c20131b3b2f5e6cda437bb1f9d7a79dce46e2be
  */
 
 /**
@@ -196,6 +196,19 @@ export type LinkAdminV1 = BfRegistryEntry &
     public_key_file: string | null;
   };
 /**
+ * Manager upsert: composes link.user.v1.json#/$defs/setInputShared with admin-only extras. `bf_id` omitted means create (backend assigns/validates id and requires broker + defaults); `bf_id` present and already registered means update. Backend enforces which combination is valid, not this schema.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkAdminSetInput".
+ */
+export type LinkAdminSetInput = LinkSetInputShared & {
+  broker?: string;
+  protocol?: string;
+  margin_trading?: boolean | null;
+  allowed_roles?: string[];
+  allowed_users?: string[];
+};
+/**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.link.channel.v1). Replaces legacy channels `connector` (config CRUD) and `bfs` (registry push) for clients that negotiated this capability; legacy stays available as fallback. `entity` carries either afbws.link.user.v1 or afbws.link.admin.v1 depending on the caller's role — the backend chooses which, not the client. `pair`/`restart` are explicit per-id actions, not part of the get/list/set/delete CRUD set. Config (this file + link.user.v1.json/link.admin.v1.json) and runtime status (link.status.v1.json) are delivered as separate push types and never mixed into one item. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -226,7 +239,7 @@ export type LinkChannelV1Message =
  */
 export type LinkEntity = LinkUserV1 | LinkAdminV1;
 /**
- * Caller-scoped BF connector config record for a non-manager viewer (owner: capability trade + user_id in allowed_users, or role-only access — role-only is read-only, enforced by the backend, not this schema). Never carries `connected`/`daemon`/session runtime — see link.status.v1.json for that, delivered on a separate push. The synthetic `virtual` pseudo-connector also uses this exact shape (kind:"virtual") — see link.channel.v1.json. `$defs/sharedFields` is the single source of the fields link.admin.v1.json reuses (via $ref) so the two views can't drift apart independently.
+ * Caller-scoped BF connector config record for a non-manager viewer (owner: capability trade + user_id in allowed_users, or role-only access — role-only is read-only, enforced by the backend, not this schema). Never carries `connected`/`daemon`/session runtime — see link.status.v1.json for that, delivered on a separate push. The synthetic `virtual` pseudo-connector also uses this exact shape (kind:"virtual") — see link.channel.v1.json. `$defs/sharedFields` is the single source of the fields link.admin.v1.json reuses (via $ref) so the two views can't drift apart independently. `$defs/setInputShared` is the same for set() payloads.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "LinkUserV1".
@@ -242,6 +255,13 @@ export type LinkUserV1 = BfRegistryEntry &
  * via the `definition` "LinkSetInput".
  */
 export type LinkSetInput = LinkUserSetInput | LinkAdminSetInput;
+/**
+ * A non-manager caller may adjust name/enabled/description/dry_run/execution_policy on their own already-existing connector — never broker/protocol/allowed_* /margin_trading, and never create a new entry (bf_id must already exist and be owned by the caller; enforced by the backend, not this schema).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkUserSetInput".
+ */
+export type LinkUserSetInput = LinkSetInputShared;
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v1). Replaces bulk settings/get_plans+set_plans and mail/plans for clients that negotiated this capability; legacy stays available as fallback. `entity` carries both afb.tradeplan.v1 and afb.tradeplan.v2 — v1's `schema` is optional in its own canon file (legacy compatibility), so `entityV1` here wraps it with an explicit required-schema layer; v2 already requires `schema`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
@@ -669,7 +689,6 @@ export interface BfRegistryEntry {
   bf_id: string;
   name: string;
   enabled: boolean;
-  display_name: string;
   broker: string;
   protocol: string;
 }
@@ -955,6 +974,10 @@ export interface GpErrorDetails {
  * via the `definition` "LinkSharedFields".
  */
 export interface LinkSharedFields {
+  /**
+   * Optional free-text note shown as a tooltip in the AFB UI.
+   */
+  description?: string;
   dry_run: boolean | null;
   margin_trading: boolean | null;
   execution_policy: ConnectorExecutionPolicy;
@@ -971,23 +994,18 @@ export interface LinkSharedFields {
   editable: boolean;
 }
 /**
- * Manager upsert: `bf_id` omitted means create (backend assigns/validates id and requires broker + defaults); `bf_id` present and already registered means update. Backend enforces which combination is valid, not this schema.
+ * Owner-editable connector fields plus bf_id. Admin setInput composes this with broker/ACL/margin extras.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkAdminSetInput".
+ * via the `definition` "LinkSetInputShared".
  */
-export interface LinkAdminSetInput {
+export interface LinkSetInputShared {
   bf_id?: string;
   name?: string;
   enabled?: boolean;
-  display_name?: string;
-  broker?: string;
-  protocol?: string;
+  description?: string;
   dry_run?: boolean | null;
-  margin_trading?: boolean | null;
   execution_policy?: ConnectorExecutionPolicy;
-  allowed_roles?: string[];
-  allowed_users?: string[];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1037,17 +1055,6 @@ export interface LinkSetRequest {
   schema: 'afbws.link.set.request.v1';
   request_id: AfbwsCommonV1_RequestId;
   item: LinkSetInput;
-}
-/**
- * A non-manager caller may only adjust dry_run/execution_policy on their own already-existing connector — never name/enabled/display_name/broker/protocol/allowed_*, and never create a new entry (bf_id must already exist and be owned by the caller; enforced by the backend, not this schema).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkUserSetInput".
- */
-export interface LinkUserSetInput {
-  bf_id: string;
-  dry_run?: boolean | null;
-  execution_policy?: ConnectorExecutionPolicy;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

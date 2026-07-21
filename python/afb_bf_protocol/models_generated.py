@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: d66431f2e6808643cd5402f7008ffa463450ec82c046d0c2a1c4f0a3a581ea2f
+# source-hash: 65bf7cc42e9cb3ef95f13e0a0c20131b3b2f5e6cda437bb1f9d7a79dce46e2be
 
 from __future__ import annotations
 
@@ -302,7 +302,6 @@ class BfRegistryEntry(TypedDict):
     bf_id: str
     name: str
     enabled: bool
-    display_name: str
     broker: str
     protocol: str
 
@@ -1199,24 +1198,6 @@ class Left(TypedDict):
     field: NotRequired[Literal["last"]]
 
 
-class LinkAdminSetInput(TypedDict):
-    """
-    Manager upsert: `bf_id` omitted means create (backend assigns/validates id and requires broker + defaults); `bf_id` present and already registered means update. Backend enforces which combination is valid, not this schema.
-    """
-
-    bf_id: NotRequired[str]
-    name: NotRequired[str]
-    enabled: NotRequired[bool]
-    display_name: NotRequired[str]
-    broker: NotRequired[str]
-    protocol: NotRequired[str]
-    dry_run: NotRequired[bool | None]
-    margin_trading: NotRequired[bool | None]
-    execution_policy: NotRequired[ConnectorExecutionPolicy]
-    allowed_roles: NotRequired[list[str]]
-    allowed_users: NotRequired[list[str]]
-
-
 class LinkDeleteRequest(TypedDict):
     channel: Literal["link"]
     schema: Literal["afbws.link.delete.request.v1"]
@@ -1308,6 +1289,31 @@ class LinkSession(TypedDict):
     capabilities: dict[str, Any]
 
 
+class LinkSetInputShared(TypedDict):
+    """
+    Owner-editable connector fields plus bf_id. Admin setInput composes this with broker/ACL/margin extras.
+    """
+
+    bf_id: NotRequired[str]
+    name: NotRequired[str]
+    enabled: NotRequired[bool]
+    description: NotRequired[str]
+    dry_run: NotRequired[bool | None]
+    execution_policy: NotRequired[ConnectorExecutionPolicy]
+
+
+class LinkAdminSetInput(LinkSetInputShared):
+    """
+    Manager upsert: composes link.user.v1.json#/$defs/setInputShared with admin-only extras. `bf_id` omitted means create (backend assigns/validates id and requires broker + defaults); `bf_id` present and already registered means update. Backend enforces which combination is valid, not this schema.
+    """
+
+    broker: NotRequired[str]
+    protocol: NotRequired[str]
+    margin_trading: NotRequired[bool | None]
+    allowed_roles: NotRequired[list[str]]
+    allowed_users: NotRequired[list[str]]
+
+
 class LinkSetRequest(TypedDict):
     channel: Literal["link"]
     schema: Literal["afbws.link.set.request.v1"]
@@ -1323,6 +1329,7 @@ class LinkSetResponse(TypedDict):
 
 
 class LinkSharedFields(TypedDict):
+    description: NotRequired[str]
     dry_run: bool | None
     margin_trading: bool | None
     execution_policy: ConnectorExecutionPolicy
@@ -1399,14 +1406,12 @@ LinkChannelV1Message: TypeAlias = (
 )
 
 
-class LinkUserSetInput(TypedDict):
+class LinkUserSetInput(LinkSetInputShared):
     """
-    A non-manager caller may only adjust dry_run/execution_policy on their own already-existing connector — never name/enabled/display_name/broker/protocol/allowed_*, and never create a new entry (bf_id must already exist and be owned by the caller; enforced by the backend, not this schema).
+    A non-manager caller may adjust name/enabled/description/dry_run/execution_policy on their own already-existing connector — never broker/protocol/allowed_*/margin_trading, and never create a new entry (bf_id must already exist and be owned by the caller; enforced by the backend, not this schema).
     """
 
     bf_id: str
-    dry_run: NotRequired[bool | None]
-    execution_policy: NotRequired[ConnectorExecutionPolicy]
 
 
 LinkSetInput: TypeAlias = LinkUserSetInput | LinkAdminSetInput
@@ -1414,7 +1419,7 @@ LinkSetInput: TypeAlias = LinkUserSetInput | LinkAdminSetInput
 
 class LinkUserV1(BfRegistryEntry, LinkSharedFields):
     """
-    Caller-scoped BF connector config record for a non-manager viewer (owner: capability trade + user_id in allowed_users, or role-only access — role-only is read-only, enforced by the backend, not this schema). Never carries `connected`/`daemon`/session runtime — see link.status.v1.json for that, delivered on a separate push. The synthetic `virtual` pseudo-connector also uses this exact shape (kind:"virtual") — see link.channel.v1.json. `$defs/sharedFields` is the single source of the fields link.admin.v1.json reuses (via $ref) so the two views can't drift apart independently.
+    Caller-scoped BF connector config record for a non-manager viewer (owner: capability trade + user_id in allowed_users, or role-only access — role-only is read-only, enforced by the backend, not this schema). Never carries `connected`/`daemon`/session runtime — see link.status.v1.json for that, delivered on a separate push. The synthetic `virtual` pseudo-connector also uses this exact shape (kind:"virtual") — see link.channel.v1.json. `$defs/sharedFields` is the single source of the fields link.admin.v1.json reuses (via $ref) so the two views can't drift apart independently. `$defs/setInputShared` is the same for set() payloads.
     """
 
     schema: Literal["afbws.link.user.v1"]

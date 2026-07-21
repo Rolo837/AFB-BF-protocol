@@ -21,23 +21,22 @@
   "unevaluatedProperties": false,
   "$defs": {
     "setInput": {
-      "type": "object",
       "title": "afbws.link.set.request.v1 item — manager-submitted fields (create or update)",
-      "description": "Manager upsert: `bf_id` omitted means create (backend assigns/validates id and requires broker + defaults); `bf_id` present and already registered means update. Backend enforces which combination is valid, not this schema.",
-      "additionalProperties": false,
-      "properties": {
-        "bf_id": { "type": "string", "minLength": 1 },
-        "name": { "type": "string", "minLength": 1 },
-        "enabled": { "type": "boolean" },
-        "display_name": { "type": "string" },
-        "broker": { "type": "string", "minLength": 1 },
-        "protocol": { "type": "string" },
-        "dry_run": { "type": ["boolean", "null"] },
-        "margin_trading": { "type": ["boolean", "null"] },
-        "execution_policy": { "$ref": "connector.record.v1.json#/$defs/executionPolicy" },
-        "allowed_roles": { "type": "array", "items": { "type": "string" } },
-        "allowed_users": { "type": "array", "items": { "type": "string" } }
-      }
+      "description": "Manager upsert: composes link.user.v1.json#/$defs/setInputShared with admin-only extras. `bf_id` omitted means create (backend assigns/validates id and requires broker + defaults); `bf_id` present and already registered means update. Backend enforces which combination is valid, not this schema.",
+      "allOf": [
+        { "$ref": "link.user.v1.json#/$defs/setInputShared" },
+        {
+          "type": "object",
+          "properties": {
+            "broker": { "type": "string", "minLength": 1 },
+            "protocol": { "type": "string" },
+            "margin_trading": { "type": ["boolean", "null"] },
+            "allowed_roles": { "type": "array", "items": { "type": "string" } },
+            "allowed_users": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
     }
   }
 }

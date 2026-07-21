@@ -2,6 +2,16 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.0.7 — 2026-07-21
+
+PATCH: cleanup link connector fields — drop `display_name`, shared `setInputShared` for user/admin, optional `description`. Wire AFB↔BF не затронут.
+
+- **`spec/schemas/afbws/bf_registry_entry.v1.json`** — убран `display_name` (больше не required).
+- **`spec/schemas/afbws/link.user.v1.json`** — опциональный `description` в `sharedFields`; новый `$defs/setInputShared` (`bf_id`, `name`, `enabled`, `description`, `dry_run`, `execution_policy`); user `setInput` = `allOf` shared + `required: [bf_id]` + `unevaluatedProperties: false`.
+- **`spec/schemas/afbws/link.admin.v1.json`** — admin `setInput` = `allOf` `setInputShared` + admin-extras (`broker`, `protocol`, `margin_trading`, ACL); без `display_name`.
+- **Генератор**: `setInputShared` → `LinkSetInputShared` в TS/Python models.
+- **Версии**: bump до `2.0.7`.
+
 ## v2.0.6 — 2026-07-21
 
 PATCH: link health metadata (heartbeat freshness) + AFB-only informer-safe `notification.link.v1` for BF connectivity/runtime incidents/recoveries. Wire AFB↔BF не затронут.

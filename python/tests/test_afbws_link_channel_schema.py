@@ -20,9 +20,9 @@ _USER_ITEM = {
     "bf_id": "bf-1",
     "name": "MyBF",
     "enabled": True,
-    "display_name": "My BF",
     "broker": "finam-arena",
     "protocol": "afb.execution.v1",
+    "description": "Demo connector",
     "dry_run": True,
     "margin_trading": None,
     "execution_policy": _EXECUTION_POLICY,
@@ -145,13 +145,20 @@ def test_user_record_rejects_wrong_schema_const(registry):
         _root_validator(LINK_USER_ID, registry).validate(bad)
 
 
-def test_user_set_input_accepts_only_bf_id_dry_run_execution_policy(registry):
-    valid = {"bf_id": "bf-1", "dry_run": False, "execution_policy": _EXECUTION_POLICY}
+def test_user_set_input_accepts_shared_fields(registry):
+    valid = {
+        "bf_id": "bf-1",
+        "name": "MyBF",
+        "enabled": True,
+        "description": "note",
+        "dry_run": False,
+        "execution_policy": _EXECUTION_POLICY,
+    }
     _validator(LINK_USER_ID, "setInput", registry).validate(valid)  # does not raise
 
 
 @pytest.mark.parametrize("forbidden_field,value", [
-    ("name", "x"), ("broker", "x"), ("allowed_roles", ["trade"]),
+    ("broker", "x"), ("allowed_roles", ["trade"]), ("margin_trading", True), ("display_name", "x"),
 ])
 def test_user_set_input_rejects_manager_only_fields(forbidden_field, value, registry):
     from jsonschema import ValidationError
@@ -168,12 +175,20 @@ def test_admin_set_input_accepts_create_without_bf_id(registry):
 
 def test_admin_set_input_accepts_full_manager_fields(registry):
     full = {
-        "bf_id": "bf-1", "name": "x", "enabled": True, "display_name": "x",
+        "bf_id": "bf-1", "name": "x", "enabled": True, "description": "note",
         "broker": "finam-arena", "protocol": "afb.execution.v1",
         "dry_run": True, "margin_trading": None, "execution_policy": _EXECUTION_POLICY,
         "allowed_roles": ["trade"], "allowed_users": ["id_abc123"],
     }
     _validator(LINK_ADMIN_ID, "setInput", registry).validate(full)  # does not raise
+
+
+def test_admin_set_input_rejects_display_name(registry):
+    from jsonschema import ValidationError
+
+    bad = {"name": "x", "broker": "finam-arena", "display_name": "badge"}
+    with pytest.raises(ValidationError):
+        _validator(LINK_ADMIN_ID, "setInput", registry).validate(bad)
 
 
 # --- status: config fields forbidden ----------------------------------------
@@ -191,7 +206,7 @@ def test_status_record_valid_with_session(registry):
 
 
 @pytest.mark.parametrize("forbidden_field,value", [
-    ("name", "x"), ("broker", "x"), ("display_name", "x"), ("protocol", "x"),
+    ("name", "x"), ("broker", "x"), ("description", "x"), ("protocol", "x"),
     ("allowed_roles", ["trade"]), ("allowed_users", ["id_abc123"]),
     ("public_key_id", "x"), ("public_key_file", "x"),
     ("execution_policy", {}), ("paired", True), ("kind", "connector"),

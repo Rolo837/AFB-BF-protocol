@@ -128,6 +128,7 @@ const NAMED_DEF_SCHEMAS = {
   },
   "afbws/link.user.v1.json": {
     sharedFields: "LinkSharedFields",
+    setInputShared: "LinkSetInputShared",
     setInput: "LinkUserSetInput",
   },
   "afbws/link.admin.v1.json": {
