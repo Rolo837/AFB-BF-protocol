@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 0438464380b687a542021d3b1b397695e108f397507a5cd68e6cb2b0ea1c4f6d
+ * source-hash: 8a6d10a0be4fb20d891ff68066d43ffb8ba4fe24a8c92500bf07f9ca54fab226
  */
 
 /**
@@ -350,6 +350,11 @@ export type ConditionNode1 =
       left?: ConditionV1_DatasetExpr;
       right?: ConditionV1_RightConst | ConditionV1_DatasetExpr;
       op: ConditionV1_ScalarOp;
+    }
+  | {
+      left?: ConditionV1_ImmediateExpr;
+      right?: ConditionV1_RightConst;
+      op: 'above';
     };
 /**
  * Wire-level condition node: same vocabulary as condition.v1.json#/$defs/conditionNode, plus the mandatory `node_type` envelope marker used on the AFB<->BF wire (trade-plan conditions, which never cross the wire, don't carry it).
@@ -1491,6 +1496,13 @@ export interface TradeplanSyncPush {
   items: TradeplanEntity[];
 }
 /**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConditionV1_ImmediateExpr".
+ */
+export interface ConditionV1_ImmediateExpr {
+  source: 'immediate';
+}
+/**
  * Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. The deal-level `direction` (long/short, same vocabulary as afb.deal.v2) is the single source of truth for position bias.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1555,10 +1567,10 @@ export interface DealV1_ConditionNode {
   id?: string;
   op: 'above' | 'below' | 'crosses_above' | 'crosses_below' | 'crossing';
   /**
-   * afb.deal.v1 conditions only compare against the last traded price. quote/indicator/dataset sources are afb.deal.v2-only.
+   * afb.deal.v1 conditions compare against the last traded price, or (entry only — see executor-side validation) fire immediately with no price level of its own. quote/indicator/dataset sources are afb.deal.v2-only.
    */
   left: {
-    source: 'price';
+    source: 'price' | 'immediate';
     field?: 'last';
   };
   right: {

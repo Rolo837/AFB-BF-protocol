@@ -58,9 +58,9 @@
         "left": {
           "type": "object",
           "required": ["source"],
-          "description": "afb.deal.v1 conditions only compare against the last traded price. quote/indicator/dataset sources are afb.deal.v2-only.",
+          "description": "afb.deal.v1 conditions compare against the last traded price, or (entry only — see executor-side validation) fire immediately with no price level of its own. quote/indicator/dataset sources are afb.deal.v2-only.",
           "properties": {
-            "source": {"const": "price"},
+            "source": {"enum": ["price", "immediate"]},
             "field": {"const": "last"}
           }
         },

@@ -2,6 +2,18 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.0.9 — 2026-07-23
+
+PATCH: новый `conditionNode` источник `immediate` — явный вход/условие «по рыночной цене», без ценового уровня. Обратно совместимое расширение вокабуляра (условие AFB↔BF). Прежний sentinel (`price`/`touch`-или-`above` против нулевой константы, `TradeService._normalize_market_entry_event`) по-прежнему принимается на чтение бессрочно — уже сохранённые сделки/тредплены в этом виде не мигрируют.
+
+Мотивация: `right.const == 0` — не цена, а маркер отсутствия уровня; читать его как цену молча ломало риск-сайзинг (`deal-d90e-4c2d-be3d`: BF трактовал 0 как ценовой уровень, `resolve_lots` падал с `SizingError`, вход не размещался часами без единого сигнала). Новый источник убирает необходимость угадывать интент по нулю — `left.source == "immediate"` читается напрямую, `op`/`right` остаются пустыми заглушками ради структурной совместимости `oneOf`, их значение не имеет смысла и не должно читаться.
+
+- **`spec/schemas/condition.v1.json`** — новый `$defs.immediateExpr` (`{source: "immediate"}`) и шестая ветка `oneOf` в `conditionNode`: `left` — `immediateExpr`, `op` зафиксирован как `"above"` (заглушка), `right` — `rightConst` (заглушка), `timeframe` запрещён. Существующие пять веток не тронуты — `oneOf` остаётся однозначным по `left.source`. Роль (только `entry`, не `stop_loss`/`take_profit`) и запрет `duration` — на уровне потребителей (`protocol/validation.py` на стороне BF), не схемы, как и для прочих условий, зависящих от того, где узел расположен.
+- **`spec/schemas/deal.v1.json`** — собственный (замороженный) `conditionNode.left.source` расширен с `const: "price"` до `enum: ["price", "immediate"]`. `op`/`required` не менялись.
+- **`python/afb_bf_protocol/condition_semantics.py`** — новая `IMMEDIATE_OPS = {"above"}`, `OPS_BY_SOURCE["immediate"]`, функция `evaluate_immediate(cur) -> bool` (`cur is not None and cur > 0`) — единая точка истины для BF (`plan_engine.conditions`) и AFB (виртуальный/бумажный движок, `trade/virtual/conditions.py`), как и у остальных операторов.
+- **Перегенерировано**: `python/afb_bf_protocol/schemas/` (мирроринг), `python/afb_bf_protocol/models_generated.py`, `ts/src/models.ts` (новый `ConditionNode6`/`DealV2ConditionNode6` и т.п.). `taxonomy.py`/`docs/MESSAGES.md`/`capabilities.py` не изменились — набор типов сообщений не тронут.
+- **Версии**: bump до `2.0.9` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`.
+
 ## v2.0.8 — 2026-07-21
 
 PATCH: `link.list` optional `scope` (`usable`|`admin`) to separate widget working accounts from manager admin inventory; drop `allowed_roles` from link admin / connector record. Wire AFB↔BF не затронут.

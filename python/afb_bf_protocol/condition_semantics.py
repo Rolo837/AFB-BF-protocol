@@ -16,6 +16,12 @@ MARKET order (must fill regardless of slippage) — see
 evaluates *whether* a condition fired; the execution-type decision lives
 entirely in BF.
 
+A separate source, ``immediate`` (``evaluate_immediate``), fires as soon as a
+live price exists — no price level of its own, always a MARKET-executed entry.
+It replaces the pre-2.0.9 sentinel of a `price`/touch-or-above condition
+against a zero const, still accepted on read indefinitely for deals/tradeplans
+already persisted in that shape.
+
 Pure stdlib, no I/O: callers own sourcing ``cur``/``prev`` (and, for indicators
 and datasets, the same for the right-hand side) and the last CLOSED candle for
 price candle operators. A ``None`` input at any point means "no data available"
@@ -40,11 +46,13 @@ __all__ = [
     "PRICE_TOUCH_OPS",
     "PRICE_LEVEL_OPS",
     "PRICE_CANDLE_OPS",
+    "IMMEDIATE_OPS",
     "OPS_BY_SOURCE",
     "evaluate_touch",
     "evaluate_price_level_op",
     "evaluate_scalar_op",
     "evaluate_candle_op",
+    "evaluate_immediate",
 ]
 
 Number = Union[str, int, float, Decimal]
@@ -73,12 +81,18 @@ PRICE_LEVEL_OPS: frozenset[str] = frozenset({"above", "below"})
 # price conditions with a `timeframe`, evaluated on the last CLOSED candle only.
 PRICE_CANDLE_OPS: frozenset[str] = frozenset({"breakout", "breakdown", "crossing"})
 
+# `left.source == "immediate"` (condition.v1.json's immediateExpr): `op` is a
+# schema-required placeholder, always "above" on the wire, and carries no
+# meaning — evaluate_immediate below never reads it.
+IMMEDIATE_OPS: frozenset[str] = frozenset({"above"})
+
 # Valid explicit `op` values per left.source. `price` additionally allows
 # omitting `op` entirely — equivalent to `op="touch"`, see evaluate_touch.
 OPS_BY_SOURCE: dict[str, frozenset[str]] = {
     "price": PRICE_TOUCH_OPS | PRICE_CANDLE_OPS | PRICE_LEVEL_OPS,
     "indicator": SCALAR_OPS,
     "dataset": SCALAR_OPS,
+    "immediate": IMMEDIATE_OPS,
 }
 
 
@@ -194,3 +208,18 @@ def evaluate_candle_op(
     if op == "breakdown":
         return breakdown
     return breakout or breakdown
+
+
+def evaluate_immediate(cur: Optional[Number]) -> bool:
+    """``left.source == "immediate"``: fires as soon as a live price exists —
+    no price level of its own. Takes only the current sample (unlike
+    ``evaluate_touch``, there is no level to bracket between prev/cur); a
+    missing sample means "no data available yet", same "None is always
+    False" convention as every other operator in this module. `op`/`right`
+    on this condition shape are placeholders and must never be passed here
+    or read anywhere else — see condition.v1.json's immediate branch and
+    ``belphegor.plan_engine.order_policy.condition_is_immediate`` (BF) /
+    ``TradeService._is_market_price_entry`` (AFB) for the legacy zero-const
+    sentinel this shape replaces."""
+    cur_d = _dec(cur)
+    return cur_d is not None and cur_d > 0

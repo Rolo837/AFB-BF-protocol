@@ -29,7 +29,9 @@ PRICE = {"source": "price"}
 QUOTE_BID = {"source": "quote", "field": "bid"}
 INDICATOR_WMA = {"source": "indicator", "type": "wma", "id": "ind1"}
 DATASET_POS = {"source": "dataset", "dataset_id": "positions.long", "field": "long"}
+IMMEDIATE = {"source": "immediate"}
 CONST_100 = {"const": "100"}
+CONST_0 = {"const": "0"}
 
 
 @pytest.mark.parametrize(
@@ -49,6 +51,7 @@ CONST_100 = {"const": "100"}
         {"left": INDICATOR_WMA, "right": INDICATOR_WMA, "op": "crosses_above", "timeframe": "1h"},
         {"left": DATASET_POS, "right": CONST_100, "op": "crossing"},
         {"left": DATASET_POS, "right": DATASET_POS, "op": "below"},
+        {"left": IMMEDIATE, "right": CONST_0, "op": "above"},
     ],
     ids=[
         "price-touch-no-op",
@@ -65,6 +68,7 @@ CONST_100 = {"const": "100"}
         "indicator-vs-indicator-with-timeframe",
         "dataset-vs-const",
         "dataset-vs-dataset",
+        "immediate-entry",
     ],
 )
 def test_valid_condition_nodes(node, registry):
@@ -89,6 +93,10 @@ def test_valid_condition_nodes(node, registry):
         {"right": CONST_100},  # missing left
         {"left": PRICE},  # missing right
         {"left": INDICATOR_WMA, "right": CONST_100, "op": "above", "timeframe": "1min"},  # not in enum
+        {"left": IMMEDIATE, "right": CONST_0, "op": "below"},  # op fixed to "above" only
+        {"left": IMMEDIATE, "right": CONST_0},  # op required even though its value is a placeholder
+        {"left": IMMEDIATE, "right": CONST_0, "op": "above", "timeframe": "5min"},  # no timeframe concept
+        {"left": IMMEDIATE, "op": "above"},  # right required even though its value is a placeholder
     ],
     ids=[
         "price-touch-with-timeframe-rejected",
@@ -106,6 +114,10 @@ def test_valid_condition_nodes(node, registry):
         "missing-left-rejected",
         "missing-right-rejected",
         "indicator-timeframe-not-in-enum-rejected",
+        "immediate-op-must-be-above-rejected",
+        "immediate-missing-op-rejected",
+        "immediate-timeframe-rejected",
+        "immediate-missing-right-rejected",
     ],
 )
 def test_invalid_condition_nodes(node, registry):

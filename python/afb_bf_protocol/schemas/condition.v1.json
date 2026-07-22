@@ -34,6 +34,13 @@
         "source": {"const": "price"}
       }
     },
+    "immediateExpr": {
+      "type": "object",
+      "required": ["source"],
+      "properties": {
+        "source": {"const": "immediate"}
+      }
+    },
     "indicatorExpr": {
       "type": "object",
       "required": ["source", "type"],
@@ -116,6 +123,17 @@
             "left": {"$ref": "#/$defs/datasetExpr"},
             "right": {"oneOf": [{"$ref": "#/$defs/rightConst"}, {"$ref": "#/$defs/datasetExpr"}]},
             "op": {"$ref": "#/$defs/scalarOp"}
+          }
+        },
+        {
+          "title": "immediate (market-price) entry",
+          "description": "Fires as soon as a live price exists — no price level of its own. Replaces the pre-2.0.9 sentinel of a price/touch-or-above condition against a zero const (still accepted on read indefinitely for deals/tradeplans already persisted in that shape — see condition_semantics module docstring). `op` and `right` are placeholders required only for structural symmetry with the other branches; their VALUE carries no meaning and must never be read by any consumer — dispatch on `left.source == \"immediate\"` alone. Meaningful only on an entry leg (BF/AFB reject it on stop_loss/take_profit — a condition that is always true would close a position instantly); `duration` is inapplicable and rejected by consumers, not by this schema (matching this vocabulary's existing convention: role/field applicability that depends on where the node sits, not on the node's own shape, is enforced by consumers, e.g. protocol/validation.py).",
+          "required": ["op"],
+          "not": {"required": ["timeframe"]},
+          "properties": {
+            "left": {"$ref": "#/$defs/immediateExpr"},
+            "right": {"$ref": "#/$defs/rightConst"},
+            "op": {"const": "above"}
           }
         }
       ]

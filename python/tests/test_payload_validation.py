@@ -45,6 +45,15 @@ def test_validate_deal_rejects_v2_price_left_with_indicator_right():
         validate_deal(deal)
 
 
+def test_validate_deal_accepts_v1_immediate_entry():
+    """afb.deal.v1's conditionNode.left.source enum was widened to accept
+    "immediate" (market-price entry, replacing the pre-2.0.9 zero-const
+    sentinel) — op/right stay populated as schema-required placeholders."""
+    deal = copy.deepcopy(_fixture_deal("deal.publish"))
+    deal["entry"]["condition"]["left"] = {"source": "immediate"}
+    assert validate_deal(deal) == "afb.deal.v1"
+
+
 def test_validate_deal_rejects_unknown_schema():
     with pytest.raises(PayloadValidationError):
         validate_deal({"schema": "afb.deal.v3"})

@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 0438464380b687a542021d3b1b397695e108f397507a5cd68e6cb2b0ea1c4f6d
+# source-hash: 8a6d10a0be4fb20d891ff68066d43ffb8ba4fe24a8c92500bf07f9ca54fab226
 
 from __future__ import annotations
 
@@ -454,8 +454,25 @@ class ConditionNode5(TypedDict):
     op: ConditionV1ScalarOp
 
 
+class ConditionNode6(TypedDict):
+    """
+    Fires as soon as a live price exists — no price level of its own. Replaces the pre-2.0.9 sentinel of a price/touch-or-above condition against a zero const (still accepted on read indefinitely for deals/tradeplans already persisted in that shape — see condition_semantics module docstring). `op` and `right` are placeholders required only for structural symmetry with the other branches; their VALUE carries no meaning and must never be read by any consumer — dispatch on `left.source == "immediate"` alone. Meaningful only on an entry leg (BF/AFB reject it on stop_loss/take_profit — a condition that is always true would close a position instantly); `duration` is inapplicable and rejected by consumers, not by this schema (matching this vocabulary's existing convention: role/field applicability that depends on where the node sits, not on the node's own shape, is enforced by consumers, e.g. protocol/validation.py).
+    """
+
+    node_type: NotRequired[Literal["event"]]
+    id: NotRequired[str]
+    left: ConditionV1ImmediateExpr
+    right: ConditionV1RightConst
+    op: Literal["above"]
+
+
 ConditionNode: TypeAlias = (
-    ConditionNode1 | ConditionNode2 | ConditionNode3 | ConditionNode4 | ConditionNode5
+    ConditionNode1
+    | ConditionNode2
+    | ConditionNode3
+    | ConditionNode4
+    | ConditionNode5
+    | ConditionNode6
 )
 
 
@@ -479,6 +496,10 @@ class ConditionV1DatasetExpr(TypedDict):
 
 
 ConditionV1Duration: TypeAlias = int
+
+
+class ConditionV1ImmediateExpr(TypedDict):
+    source: Literal["immediate"]
 
 
 class ConditionV1IndicatorExpr(TypedDict):
@@ -919,48 +940,67 @@ class DealV2ConditionNode5(TypedDict):
 
 class DealV2ConditionNode6(TypedDict):
     """
+    Fires as soon as a live price exists — no price level of its own. Replaces the pre-2.0.9 sentinel of a price/touch-or-above condition against a zero const (still accepted on read indefinitely for deals/tradeplans already persisted in that shape — see condition_semantics module docstring). `op` and `right` are placeholders required only for structural symmetry with the other branches; their VALUE carries no meaning and must never be read by any consumer — dispatch on `left.source == "immediate"` alone. Meaningful only on an entry leg (BF/AFB reject it on stop_loss/take_profit — a condition that is always true would close a position instantly); `duration` is inapplicable and rejected by consumers, not by this schema (matching this vocabulary's existing convention: role/field applicability that depends on where the node sits, not on the node's own shape, is enforced by consumers, e.g. protocol/validation.py).
+    """
+
+    node_type: NotRequired[Literal["event"]]
+    id: NotRequired[str]
+    left: ConditionV1ImmediateExpr
+    right: ConditionV1RightConst
+    op: Literal["above"]
+
+
+class DealV2ConditionNode7(TypedDict):
+    """
     Wire-level condition node: same vocabulary as condition.v1.json#/$defs/conditionNode, plus the mandatory `node_type` envelope marker used on the AFB<->BF wire (trade-plan conditions, which never cross the wire, don't carry it).
     """
 
     node_type: Literal["event"]
 
 
-class DealV2ConditionNode10(DealV2ConditionNode4, DealV2ConditionNode6):
+class DealV2ConditionNode10(DealV2ConditionNode3, DealV2ConditionNode7):
     """
     Wire-level condition node: same vocabulary as condition.v1.json#/$defs/conditionNode, plus the mandatory `node_type` envelope marker used on the AFB<->BF wire (trade-plan conditions, which never cross the wire, don't carry it).
     """
 
 
-class DealV2ConditionNode11(DealV2ConditionNode5, DealV2ConditionNode6):
+class DealV2ConditionNode11(DealV2ConditionNode4, DealV2ConditionNode7):
     """
     Wire-level condition node: same vocabulary as condition.v1.json#/$defs/conditionNode, plus the mandatory `node_type` envelope marker used on the AFB<->BF wire (trade-plan conditions, which never cross the wire, don't carry it).
     """
 
 
-class DealV2ConditionNode7(DealV2ConditionNode1, DealV2ConditionNode6):
+class DealV2ConditionNode12(DealV2ConditionNode5, DealV2ConditionNode7):
     """
     Wire-level condition node: same vocabulary as condition.v1.json#/$defs/conditionNode, plus the mandatory `node_type` envelope marker used on the AFB<->BF wire (trade-plan conditions, which never cross the wire, don't carry it).
     """
 
 
-class DealV2ConditionNode8(DealV2ConditionNode2, DealV2ConditionNode6):
+class DealV2ConditionNode13(DealV2ConditionNode6, DealV2ConditionNode7):
     """
     Wire-level condition node: same vocabulary as condition.v1.json#/$defs/conditionNode, plus the mandatory `node_type` envelope marker used on the AFB<->BF wire (trade-plan conditions, which never cross the wire, don't carry it).
     """
 
 
-class DealV2ConditionNode9(DealV2ConditionNode3, DealV2ConditionNode6):
+class DealV2ConditionNode8(DealV2ConditionNode1, DealV2ConditionNode7):
+    """
+    Wire-level condition node: same vocabulary as condition.v1.json#/$defs/conditionNode, plus the mandatory `node_type` envelope marker used on the AFB<->BF wire (trade-plan conditions, which never cross the wire, don't carry it).
+    """
+
+
+class DealV2ConditionNode9(DealV2ConditionNode2, DealV2ConditionNode7):
     """
     Wire-level condition node: same vocabulary as condition.v1.json#/$defs/conditionNode, plus the mandatory `node_type` envelope marker used on the AFB<->BF wire (trade-plan conditions, which never cross the wire, don't carry it).
     """
 
 
 DealV2ConditionNode: TypeAlias = (
-    DealV2ConditionNode7
-    | DealV2ConditionNode8
+    DealV2ConditionNode8
     | DealV2ConditionNode9
     | DealV2ConditionNode10
     | DealV2ConditionNode11
+    | DealV2ConditionNode12
+    | DealV2ConditionNode13
 )
 """
 Wire-level condition node: same vocabulary as condition.v1.json#/$defs/conditionNode, plus the mandatory `node_type` envelope marker used on the AFB<->BF wire (trade-plan conditions, which never cross the wire, don't carry it).
@@ -1190,10 +1230,10 @@ class Instrument(TypedDict):
 
 class Left(TypedDict):
     """
-    afb.deal.v1 conditions only compare against the last traded price. quote/indicator/dataset sources are afb.deal.v2-only.
+    afb.deal.v1 conditions compare against the last traded price, or (entry only — see executor-side validation) fire immediately with no price level of its own. quote/indicator/dataset sources are afb.deal.v2-only.
     """
 
-    source: Literal["price"]
+    source: Literal["price", "immediate"]
     field: NotRequired[Literal["last"]]
 
 

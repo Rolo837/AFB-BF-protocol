@@ -7,12 +7,14 @@ from __future__ import annotations
 import pytest
 
 from afb_bf_protocol.condition_semantics import (
+    IMMEDIATE_OPS,
     OPS_BY_SOURCE,
     PRICE_CANDLE_OPS,
     PRICE_LEVEL_OPS,
     PRICE_TOUCH_OPS,
     SCALAR_OPS,
     evaluate_candle_op,
+    evaluate_immediate,
     evaluate_price_level_op,
     evaluate_scalar_op,
     evaluate_touch,
@@ -23,8 +25,24 @@ def test_ops_by_source_matches_schema_vocabulary():
     assert OPS_BY_SOURCE["price"] == PRICE_TOUCH_OPS | PRICE_CANDLE_OPS | PRICE_LEVEL_OPS
     assert OPS_BY_SOURCE["indicator"] == SCALAR_OPS
     assert OPS_BY_SOURCE["dataset"] == SCALAR_OPS
+    assert OPS_BY_SOURCE["immediate"] == IMMEDIATE_OPS
     assert "quote" not in OPS_BY_SOURCE
     assert PRICE_TOUCH_OPS == {"touch"}
+    assert IMMEDIATE_OPS == {"above"}
+
+
+# --- evaluate_immediate ------------------------------------------------------
+
+
+def test_evaluate_immediate_true_for_positive_price():
+    assert evaluate_immediate("2.918") is True
+    assert evaluate_immediate(0.01) is True
+
+
+def test_evaluate_immediate_false_for_missing_or_nonpositive():
+    assert evaluate_immediate(None) is False
+    assert evaluate_immediate("0") is False
+    assert evaluate_immediate("-1") is False
 
 
 # --- evaluate_touch --------------------------------------------------------

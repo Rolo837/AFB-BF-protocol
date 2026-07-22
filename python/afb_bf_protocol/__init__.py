@@ -95,6 +95,7 @@ from .condition_semantics import (
     evaluate_price_level_op,
     evaluate_scalar_op,
     evaluate_candle_op,
+    evaluate_immediate,
 )
 
 __all__ = [
@@ -172,4 +173,5 @@ __all__ = [
     "evaluate_price_level_op",
     "evaluate_scalar_op",
     "evaluate_candle_op",
+    "evaluate_immediate",
 ]
