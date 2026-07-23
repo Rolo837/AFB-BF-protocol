@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 8a6d10a0be4fb20d891ff68066d43ffb8ba4fe24a8c92500bf07f9ca54fab226
+ * source-hash: 5c542b60f5bce65a109844b446168327a20e9c5efd0948a4e6c220f4ba6516b8
  */
 
 /**
@@ -2117,6 +2117,8 @@ export interface DealRejectedPayload {
   [k: string]: unknown;
 }
 /**
+ * Report attached to deal.status_changed(closed) with the trade-based fill log for the just-closed deal. `trade_id` is not required — tolerant of older BF versions that predate it. The `summary` block (entry/exit_avg_price, realized_pnl, total_commission) was removed in v2.0.10: it had no consumers (AFB computes realized PnL itself from fills/order events), was never in `required`, and `additionalProperties: true` keeps old and new payloads mutually valid — a PATCH, not a breaking change. `fills[].commission` was removed in the same step for the same reason.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealReportPayload".
  */
@@ -2129,8 +2131,14 @@ export interface DealReportPayload {
   deal_id: string;
   revision: number;
   status: string;
+  /**
+   * Trade-based fill log: one element per broker trade, not per order — an order filled in several trades (e.g. Finam SubscribeTrades) yields one element per trade, all sharing the same order_id. `order_id` remains the reference to the parent order (for role/leg); commission/summary are not part of this payload (removed in v2.0.10, see below).
+   */
   fills?: {
-    commission?: string | number | boolean | {} | unknown[] | null;
+    /**
+     * Broker trade identifier. For brokers without a native trade concept, a synthetic id derived from order_id (e.g. `synth-{order_id}`).
+     */
+    trade_id?: string;
     order_id: string;
     price?: string | number | boolean | {} | unknown[] | null;
     quantity?: number;
@@ -2142,13 +2150,6 @@ export interface DealReportPayload {
     timestamp?: string | number | boolean | {} | unknown[] | null;
     [k: string]: unknown;
   }[];
-  summary?: {
-    entry_avg_price?: string | number | boolean | {} | unknown[] | null;
-    exit_avg_price?: string | number | boolean | {} | unknown[] | null;
-    realized_pnl?: string | number | boolean | {} | unknown[] | null;
-    total_commission?: string | number | boolean | {} | unknown[] | null;
-    [k: string]: unknown;
-  };
   [k: string]: unknown;
 }
 /**

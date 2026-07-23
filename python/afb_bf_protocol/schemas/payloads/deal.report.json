@@ -19,19 +19,13 @@
     },
     "fills": {
       "type": "array",
+      "description": "Trade-based fill log: one element per broker trade, not per order — an order filled in several trades (e.g. Finam SubscribeTrades) yields one element per trade, all sharing the same order_id. `order_id` remains the reference to the parent order (for role/leg); commission/summary are not part of this payload (removed in v2.0.10, see below).",
       "items": {
         "type": "object",
         "properties": {
-          "commission": {
-            "type": [
-              "string",
-              "number",
-              "integer",
-              "boolean",
-              "object",
-              "array",
-              "null"
-            ]
+          "trade_id": {
+            "type": "string",
+            "description": "Broker trade identifier. For brokers without a native trade concept, a synthetic id derived from order_id (e.g. `synth-{order_id}`)."
           },
           "order_id": {
             "type": "string"
@@ -76,56 +70,6 @@
           "side"
         ]
       }
-    },
-    "summary": {
-      "type": "object",
-      "properties": {
-        "entry_avg_price": {
-          "type": [
-            "string",
-            "number",
-            "integer",
-            "boolean",
-            "object",
-            "array",
-            "null"
-          ]
-        },
-        "exit_avg_price": {
-          "type": [
-            "string",
-            "number",
-            "integer",
-            "boolean",
-            "object",
-            "array",
-            "null"
-          ]
-        },
-        "realized_pnl": {
-          "type": [
-            "string",
-            "number",
-            "integer",
-            "boolean",
-            "object",
-            "array",
-            "null"
-          ]
-        },
-        "total_commission": {
-          "type": [
-            "string",
-            "number",
-            "integer",
-            "boolean",
-            "object",
-            "array",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": true
     }
   },
   "additionalProperties": true,
@@ -136,5 +80,6 @@
   ],
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/deal.report.json",
-  "title": "payload: deal.report"
+  "title": "payload: deal.report",
+  "description": "Report attached to deal.status_changed(closed) with the trade-based fill log for the just-closed deal. `trade_id` is not required — tolerant of older BF versions that predate it. The `summary` block (entry/exit_avg_price, realized_pnl, total_commission) was removed in v2.0.10: it had no consumers (AFB computes realized PnL itself from fills/order events), was never in `required`, and `additionalProperties: true` keeps old and new payloads mutually valid — a PATCH, not a breaking change. `fills[].commission` was removed in the same step for the same reason."
 }

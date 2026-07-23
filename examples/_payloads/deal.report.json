@@ -6,7 +6,7 @@
   "status": "closed",
   "fills": [
     {
-      "commission": null,
+      "trade_id": "synth-deal-ec7cec6cb3156",
       "order_id": "deal-ec7cec6cb3156",
       "price": null,
       "quantity": 3,
@@ -15,7 +15,7 @@
       "timestamp": "2026-06-19T10:15:03.612000+03:00"
     },
     {
-      "commission": null,
+      "trade_id": "synth-deal-s08fc5b41f4cd6",
       "order_id": "deal-s08fc5b41f4cd6",
       "price": null,
       "quantity": 3,
@@ -23,11 +23,5 @@
       "side": "sell",
       "timestamp": "2026-06-19T14:02:11.000000+03:00"
     }
-  ],
-  "summary": {
-    "entry_avg_price": null,
-    "exit_avg_price": null,
-    "realized_pnl": null,
-    "total_commission": null
-  }
+  ]
 }

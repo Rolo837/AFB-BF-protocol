@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 8a6d10a0be4fb20d891ff68066d43ffb8ba4fe24a8c92500bf07f9ca54fab226
+# source-hash: 5c542b60f5bce65a109844b446168327a20e9c5efd0948a4e6c220f4ba6516b8
 
 from __future__ import annotations
 
@@ -705,13 +705,16 @@ class DealRejectedPayload(TypedDict):
 
 
 class DealReportPayload(TypedDict):
+    """
+    Report attached to deal.status_changed(closed) with the trade-based fill log for the just-closed deal. `trade_id` is not required — tolerant of older BF versions that predate it. The `summary` block (entry/exit_avg_price, realized_pnl, total_commission) was removed in v2.0.10: it had no consumers (AFB computes realized PnL itself from fills/order events), was never in `required`, and `additionalProperties: true` keeps old and new payloads mutually valid — a PATCH, not a breaking change. `fills[].commission` was removed in the same step for the same reason.
+    """
+
     at: NotRequired[str]
     close_reason: NotRequired[str]
     deal_id: str
     revision: int
     status: str
     fills: NotRequired[list[Fill]]
-    summary: NotRequired[Summary]
 
 
 class DealStateV2(TypedDict):
@@ -1103,9 +1106,7 @@ class Features(TypedDict):
 
 
 class Fill(TypedDict):
-    commission: NotRequired[
-        str | float | int | bool | dict[str, Any] | list[Any] | None
-    ]
+    trade_id: NotRequired[str]
     order_id: str
     price: NotRequired[str | float | int | bool | dict[str, Any] | list[Any] | None]
     quantity: NotRequired[int]
@@ -1691,21 +1692,6 @@ class SessionResyncResponsePayload(TypedDict):
     deals: NotRequired[dict[str, Deals]]
     deal_revisions: NotRequired[dict[str, int]]
     deal_statuses: NotRequired[dict[str, str]]
-
-
-class Summary(TypedDict):
-    entry_avg_price: NotRequired[
-        str | float | int | bool | dict[str, Any] | list[Any] | None
-    ]
-    exit_avg_price: NotRequired[
-        str | float | int | bool | dict[str, Any] | list[Any] | None
-    ]
-    realized_pnl: NotRequired[
-        str | float | int | bool | dict[str, Any] | list[Any] | None
-    ]
-    total_commission: NotRequired[
-        str | float | int | bool | dict[str, Any] | list[Any] | None
-    ]
 
 
 class TradePlanV1(TypedDict):

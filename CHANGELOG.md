@@ -2,6 +2,18 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.0.10 — 2026-07-23
+
+PATCH: `deal.report` — `fills[]` переведены на trade-based формат (один элемент на брокерский трейд, а не на ордер), удалены `fills[].commission` и блок `summary` целиком. Wire AFB↔BF не тронут семантически — только сужение формата уже нетребуемых полей.
+
+Мотивация: у Финама `SubscribeTrades` даёт по несколько трейдов на один ордер (BF раньше агрегировал только первый); `summary` (`entry/exit_avg_price`, `realized_pnl`, `total_commission`) почти всегда приходил `null`-ами — расчёт реализованной прибыли переносится на AFB (леджер по фактам исполнения, средневзвешенная цена входа), справочное сверочное значение теперь берётся из `position.closed.realized_pnl`. Комиссии — вне скоупа.
+
+- **`spec/schemas/payloads/deal.report.json`** — в `fills[]` item добавлено опциональное `trade_id` (**не** в `required`: старые BF, ещё не персистящие трейды, продолжают присылать payload без него — толерантность к разнородному парку); удалено `fills[].commission`; удалён блок `summary` из `properties` целиком; обновлены описания (`fills` — trade-based, у Финама N трейдов на ордер → N элементов; top-level `description` фиксирует, что `summary` удалён как не имевший потребителей).
+- **Обоснование PATCH, а не MAJOR**: `summary` никогда не входил в `required`, схема несёт `additionalProperties: true` — старый payload (с `summary`/`commission`) валиден против новой схемы, новый payload (с `trade_id`, без них) валиден против старой. Двусторонняя валидность подтверждена явной формальной проверкой (`test_fixtures_schema.py`, `test_equivalence.py`), реальных потребителей `summary`/`commission` не найдено (правятся в AFB тем же релизным шагом: ридер `service.py` и фронтовый `dealReportCommission`).
+- **`examples/_payloads/deal.report.json`** — фикстура приведена к новому формату: `fills[]` несёт `trade_id` (синтетический `synth-{order_id}`, у примера цена ещё `null` — до-B1-фолбэк арена-сделка), `commission`/`summary` убраны.
+- **Перегенерировано**: `python/afb_bf_protocol/schemas/` (мирроринг), `python/afb_bf_protocol/models_generated.py` (`Fill.trade_id`, тип `Summary` исчез), `ts/src/models.ts` (аналогично), `examples/deal.report.json` (пересобранный подписанный конверт). `taxonomy.py`/`docs/MESSAGES.md`/`capabilities.py` не изменились — набор типов сообщений не тронут.
+- **Версии**: bump до `2.0.10` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`.
+
 ## v2.0.9 — 2026-07-23
 
 PATCH: новый `conditionNode` источник `immediate` — явный вход/условие «по рыночной цене», без ценового уровня. Обратно совместимое расширение вокабуляра (условие AFB↔BF). Прежний sentinel (`price`/`touch`-или-`above` против нулевой константы, `TradeService._normalize_market_entry_event`) по-прежнему принимается на чтение бессрочно — уже сохранённые сделки/тредплены в этом виде не мигрируют.
