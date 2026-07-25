@@ -24,6 +24,7 @@ Every message is a signed envelope (see `spec/schemas/envelope.json`).
 | `deal.amend` | user |  | `spec/schemas/payloads/deal.amend.json` | — |
 | `deal.resync` | system |  | — | — |
 | `deal.signal` | system |  | — | — |
+| `dataset.update` | system |  | `spec/schemas/payloads/dataset.update.json` | `examples/dataset.update.json` |
 
 ## BF → AFB (events & replies)
 
@@ -42,6 +43,7 @@ Every message is a signed envelope (see `spec/schemas/envelope.json`).
 | `broker.instrument` | user |  | — | — |
 | `broker.instrument_resolved` | user |  | — | — |
 | `broker.position_ledger` | trading | yes | `spec/schemas/payloads/broker.position_ledger.json` | — |
+| `dataset.subscribe` | system |  | `spec/schemas/payloads/dataset.subscribe.json` | — |
 | `deal.accepted` | trading | yes | `spec/schemas/payloads/deal.accepted.json` | `examples/deal.accepted.json` |
 | `deal.rejected` | trading | yes | `spec/schemas/payloads/deal.rejected.json` | `examples/deal.rejected.json` |
 | `deal.status_changed` | trading | yes | `spec/schemas/payloads/deal.status_changed.json` | `examples/deal.status_changed.json` |

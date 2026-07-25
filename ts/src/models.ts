@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 5c542b60f5bce65a109844b446168327a20e9c5efd0948a4e6c220f4ba6516b8
+ * source-hash: f71549763fa3ba51367b20daafe1fcb4e5885474234a4478f9c90d43f6ea101a
  */
 
 /**
@@ -1967,6 +1967,74 @@ export interface DaemonCapabilitiesPayload {
  */
 export interface DaemonCapabilitiesQueryPayload {
   [k: string]: unknown;
+}
+/**
+ * RESERVED — not implemented: this message lets a BF ask AFB for an additional dataset subscription. AFB today derives the full set of needed (dataset_id, instrument) pairs itself from the dataset conditions on deals published to a given BF (see dataset.update.json) and pushes accordingly, so no BF currently sends dataset.subscribe and AFB is not obligated to act on it if received. The shape is reserved on the wire for a future BF-initiated use case (e.g. a BF wanting a dataset ahead of publishing a deal that needs it). Neither BF nor AFB implement this today.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DatasetSubscribePayload".
+ */
+export interface DatasetSubscribePayload {
+  subscriptions: {
+    /**
+     * Same vocabulary as dataset.update.json#/properties/datasets/items/properties/dataset_id.
+     */
+    dataset_id: 'positions' | 'orders' | 'hhi' | 'trades';
+    instrument: DealV1_Instrument;
+    [k: string]: unknown;
+  }[];
+  [k: string]: unknown;
+}
+/**
+ * AFB-pushed feed of MOEX/Algopack dataset snapshots (positions/orders/hhi/trades) so BF can evaluate `condition.v1.json`'s dataset operator itself — BF has no exchange/Algopack access of its own and never will (the Algopack token is IP-bound to AFB). SNAPSHOT SEMANTICS: `datasets` is the FULL current set of records this AFB wants this BF to hold, never a diff — on receipt BF REPLACES its entire dataset cache for the connection with this array (replace-all, not merge); a record absent from a later dataset.update is gone, not merely unchanged. An empty `datasets` array is valid and means 'nothing needed' (clears the cache). AFB derives which (dataset_id, instrument) pairs are needed from the dataset conditions on deals currently published to this BF (every leg — entry/stop_loss/take_profit, both left and right sides of the comparison) and resolves exchange-side keying itself (e.g. a futures position dataset is keyed by the underlying asset, not the contract code) — BF must not attempt to re-derive or re-key this.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DatasetUpdatePayload".
+ */
+export interface DatasetUpdatePayload {
+  /**
+   * Full replacement set of dataset records for this BF; [] means none needed.
+   */
+  datasets: {
+    /**
+     * Same vocabulary as condition.v1.json#/$defs/datasetExpr/dataset_id, except `volume` — declared in condition.v1.json but not computed by AFB or BF and never pushed here.
+     */
+    dataset_id: 'positions' | 'orders' | 'hhi' | 'trades';
+    instrument: DealV1_Instrument1;
+    /**
+     * ISO-8601 exchange-side snapshot time (when this data was true on MOEX), not the time AFB sent the message.
+     */
+    as_of: string;
+    /**
+     * TTL in seconds set by AFB from its knowledge of the source update cadence. The record is usable while now <= as_of + stale_after_sec; once stale, BF must treat it as ABSENT (dataset condition evaluates to false, fail-safe — no entry), not as a frozen last-known value. Not hardcoded on BF: MOEX currently republishes this statistics about every 5 minutes, a move to 1-minute cadence is planned, and stale_after_sec is how AFB communicates the current cadence without a protocol change.
+     */
+    stale_after_sec: number;
+    /**
+     * Dataset field name -> numeric value for the current snapshot (e.g. {"long": "..."} is wrong — values are numbers, not decimal strings, unlike price/sizing fields elsewhere in this protocol). A field absent here is simply not included, never sent as null.
+     */
+    current: {
+      [k: string]: number;
+    };
+    /**
+     * Same shape as `current`, for the prior snapshot. Optional — a previous snapshot may not exist yet (e.g. right after (re)subscription/session start). Needed only for the cross-* operators (crosses_above/crosses_below/crossing) in condition_semantics, which compare a prev/cur pair on both sides; plain above/below only need `current`.
+     */
+    previous?: {
+      [k: string]: number;
+    };
+    [k: string]: unknown;
+  }[];
+  [k: string]: unknown;
+}
+/**
+ * Deal-level instrument this record is keyed by. AFB has already resolved exchange-side nomenclature quirks (e.g. positions for a futures instrument are keyed by the underlying asset on MOEX, not the contract ticker) — BF matches condition legs to records by this field as-is.
+ */
+export interface DealV1_Instrument1 {
+  exchange: string;
+  board: string;
+  ticker: string;
+  market?: 'stock' | 'futures' | 'currency';
+  price_step?: DealV1_DecimalString;
+  step_price?: DealV1_DecimalString;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 5c542b60f5bce65a109844b446168327a20e9c5efd0948a4e6c220f4ba6516b8
+# source-hash: f71549763fa3ba51367b20daafe1fcb4e5885474234a4478f9c90d43f6ea101a
 
 from __future__ import annotations
 
@@ -614,6 +614,31 @@ class Data1(TypedDict):
     avg_price: str
     last_price: str
     as_of: str
+
+
+class Dataset(TypedDict):
+    dataset_id: Literal["positions", "orders", "hhi", "trades"]
+    instrument: DealV1Instrument
+    as_of: str
+    stale_after_sec: float
+    current: dict[str, float]
+    previous: NotRequired[dict[str, float]]
+
+
+class DatasetSubscribePayload(TypedDict):
+    """
+    RESERVED — not implemented: this message lets a BF ask AFB for an additional dataset subscription. AFB today derives the full set of needed (dataset_id, instrument) pairs itself from the dataset conditions on deals published to a given BF (see dataset.update.json) and pushes accordingly, so no BF currently sends dataset.subscribe and AFB is not obligated to act on it if received. The shape is reserved on the wire for a future BF-initiated use case (e.g. a BF wanting a dataset ahead of publishing a deal that needs it). Neither BF nor AFB implement this today.
+    """
+
+    subscriptions: list[Subscription]
+
+
+class DatasetUpdatePayload(TypedDict):
+    """
+    AFB-pushed feed of MOEX/Algopack dataset snapshots (positions/orders/hhi/trades) so BF can evaluate `condition.v1.json`'s dataset operator itself — BF has no exchange/Algopack access of its own and never will (the Algopack token is IP-bound to AFB). SNAPSHOT SEMANTICS: `datasets` is the FULL current set of records this AFB wants this BF to hold, never a diff — on receipt BF REPLACES its entire dataset cache for the connection with this array (replace-all, not merge); a record absent from a later dataset.update is gone, not merely unchanged. An empty `datasets` array is valid and means 'nothing needed' (clears the cache). AFB derives which (dataset_id, instrument) pairs are needed from the dataset conditions on deals currently published to this BF (every leg — entry/stop_loss/take_profit, both left and right sides of the comparison) and resolves exchange-side keying itself (e.g. a futures position dataset is keyed by the underlying asset, not the contract code) — BF must not attempt to re-derive or re-key this.
+    """
+
+    datasets: list[Dataset]
 
 
 class DealAcceptedPayload(TypedDict):
@@ -1692,6 +1717,11 @@ class SessionResyncResponsePayload(TypedDict):
     deals: NotRequired[dict[str, Deals]]
     deal_revisions: NotRequired[dict[str, int]]
     deal_statuses: NotRequired[dict[str, str]]
+
+
+class Subscription(TypedDict):
+    dataset_id: Literal["positions", "orders", "hhi", "trades"]
+    instrument: DealV1Instrument
 
 
 class TradePlanV1(TypedDict):

@@ -76,6 +76,8 @@ MESSAGE_REGISTRY: dict[str, MessageMeta] = {
     "deal.amend": MessageMeta("user", "afb2bf", "deal", "amend"),
     "deal.resync": MessageMeta("system", "afb2bf", "deal", "resync"),
     "deal.signal": MessageMeta("system", "afb2bf", "deal", "signal"),
+    "dataset.update": MessageMeta("system", "afb2bf", "dataset", "update"),
+    "dataset.subscribe": MessageMeta("system", "bf2afb", "dataset", "subscribe"),
     "deal.accepted": MessageMeta("trading", "bf2afb", "deal", "accepted", persists_on_bf=True),
     "deal.rejected": MessageMeta("trading", "bf2afb", "deal", "rejected", persists_on_bf=True),
     "deal.status_changed": MessageMeta("trading", "bf2afb", "deal", "status_changed", persists_on_bf=True),

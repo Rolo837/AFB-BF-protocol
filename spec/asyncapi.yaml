@@ -1,7 +1,7 @@
 asyncapi: 3.1.0
 info:
   title: AFB <-> BF Execution Protocol
-  version: 2.0.10
+  version: 2.1.0
   description: >-
     Business protocol between AFB (OMS) and BF (executor daemon), wire version
     afb.execution.v1. Every message is a signed JSON envelope (Ed25519 over a
@@ -80,6 +80,10 @@ channels:
         $ref: '#/components/messages/deal_resync'
       deal_signal:
         $ref: '#/components/messages/deal_signal'
+      dataset_update:
+        $ref: '#/components/messages/dataset_update'
+      dataset_subscribe:
+        $ref: '#/components/messages/dataset_subscribe'
       deal_accepted:
         $ref: '#/components/messages/deal_accepted'
       deal_rejected:
@@ -137,6 +141,7 @@ operations:
       - $ref: '#/channels/afbBf/messages/deal_amend'
       - $ref: '#/channels/afbBf/messages/deal_resync'
       - $ref: '#/channels/afbBf/messages/deal_signal'
+      - $ref: '#/channels/afbBf/messages/dataset_update'
   receiveFromBf:
     action: receive
     title: BF -> AFB (events & replies)
@@ -156,6 +161,7 @@ operations:
       - $ref: '#/channels/afbBf/messages/broker_instrument'
       - $ref: '#/channels/afbBf/messages/broker_instrument_resolved'
       - $ref: '#/channels/afbBf/messages/broker_position_ledger'
+      - $ref: '#/channels/afbBf/messages/dataset_subscribe'
       - $ref: '#/channels/afbBf/messages/deal_accepted'
       - $ref: '#/channels/afbBf/messages/deal_rejected'
       - $ref: '#/channels/afbBf/messages/deal_status_changed'
@@ -641,6 +647,7 @@ components:
       tags:
         - name: 'class:system'
         - name: 'dir:afb2bf'
+        - name: 'deprecated'
       payload:
         allOf:
           - $ref: './schemas/envelope.json'
@@ -648,7 +655,48 @@ components:
             properties:
               type:
                 const: deal.signal
-      description: 'No fixture yet.'
+      description: >-
+        DEPRECATED: superseded by the dataset.update feed (BF evaluates
+        dataset conditions itself); kept for wire compatibility, no longer
+        sent by AFB. 'No fixture yet.'
+    dataset_update:
+      name: dataset.update
+      title: dataset.update
+      summary: 'system/afb2bf dataset.update'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: dataset.update
+              payload:
+                $ref: './schemas/payloads/dataset.update.json'
+      description: 'Example: examples/dataset.update.json'
+    dataset_subscribe:
+      name: dataset.subscribe
+      title: dataset.subscribe
+      summary: 'system/bf2afb dataset.subscribe'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:bf2afb'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: dataset.subscribe
+              payload:
+                $ref: './schemas/payloads/dataset.subscribe.json'
+      description: >-
+        RESERVED — not implemented: AFB derives dataset needs itself from
+        published deals' conditions; this message is reserved for a future
+        BF-initiated subscription request. No BF sends it today and AFB is
+        not obligated to handle it. 'No fixture yet.'
     deal_accepted:
       name: deal.accepted
       title: deal.accepted

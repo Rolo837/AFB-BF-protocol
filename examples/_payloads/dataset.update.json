@@ -1,0 +1,39 @@
+{
+  "datasets": [
+    {
+      "dataset_id": "positions",
+      "instrument": {
+        "exchange": "MOEX",
+        "board": "RFUD",
+        "ticker": "SiZ5"
+      },
+      "as_of": "2026-07-25T10:35:00+03:00",
+      "stale_after_sec": 900,
+      "current": {
+        "long": 18452,
+        "short": 12930,
+        "position": 5522,
+        "openinterest": 214870
+      },
+      "previous": {
+        "long": 18010,
+        "short": 13205,
+        "position": 4805,
+        "openinterest": 213340
+      }
+    },
+    {
+      "dataset_id": "hhi",
+      "instrument": {
+        "exchange": "MOEX",
+        "board": "TQBR",
+        "ticker": "SBER"
+      },
+      "as_of": "2026-07-25T10:35:00+03:00",
+      "stale_after_sec": 900,
+      "current": {
+        "hhi_agressive_buy": 0.0842
+      }
+    }
+  ]
+}

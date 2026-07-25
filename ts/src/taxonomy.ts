@@ -232,6 +232,20 @@ export const MESSAGE_REGISTRY = {
     event: "signal",
     persists_on_bf: false,
   },
+  "dataset.update": {
+    message_class: "system",
+    direction: "afb2bf",
+    category: "dataset",
+    event: "update",
+    persists_on_bf: false,
+  },
+  "dataset.subscribe": {
+    message_class: "system",
+    direction: "bf2afb",
+    category: "dataset",
+    event: "subscribe",
+    persists_on_bf: false,
+  },
   "deal.accepted": {
     message_class: "trading",
     direction: "bf2afb",
