@@ -8,13 +8,18 @@
   "properties": {
     "id": {"type": "string", "minLength": 1},
     "ticker": {"type": "string", "minLength": 1},
-    "status": {"enum": ["new", "active", "published", "closed", "expired"]},
+    "status": {"enum": ["draft", "published", "completed", "archived"]},
     "direction": {
       "enum": ["long", "short"]
     },
     "schema": {"const": "afb.tradeplan.v1"},
     "activated_at": {"type": "string"},
     "closed_at": {"type": "string"},
+    "archived_at": {"type": "string"},
+    "instrument_missing": {
+      "type": "boolean",
+      "description": "Only for outgoing messages: the plan's ticker is not found in the securities catalog. Not persisted — overlaid in plans_for_ws_response on read. Not a lifecycle state."
+    },
     "entry_condition": {"$ref": "#/$defs/entryCondition"},
     "quantity_value": {"type": ["number", "null"]},
     "quantity_mode": {"enum": ["lots", "margin", "balance_pct", "risk_currency", "risk_factor"]},

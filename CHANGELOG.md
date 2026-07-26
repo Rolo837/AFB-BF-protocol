@@ -2,6 +2,15 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.1.1 — 2026-07-26
+
+PATCH: часть фазы A1 сепарации торгового плана и сделки (AFB) — новая статусная модель `afb.tradeplan.v1/v2` и переопределение семантики `tradeplan/sync`-пуша. Эти схемы AFB-стороннего фронтенд↔бэкенд взаимодействия (`tradeplan.*` никогда не пересекают канал AFB↔BF), поэтому изменение не затрагивает провод и BF не обновляет пин.
+
+- **`spec/schemas/tradeplan.v1.json`, `spec/schemas/tradeplan.v2.json`** — `status.enum`: `["new","active","published","closed","expired"]` → `["draft","published","completed","archived"]` (несовместимое сужение набора значений поля, которое никогда не пересекает AFB↔BF — по правилам версионирования расширения, специфичные для связки фронтенд↔бэкенд AFB, это PATCH). Добавлены `archived_at` (метка ручной архивации) и `instrument_missing` (не персистится; накладывается AFB при выдаче списка планов, если тикер отсутствует в справочнике securities — раньше для этого перегружался статус `expired`, которого больше нет).
+- **`spec/schemas/afbws/tradeplan.channel.v1.json`** — добавлена пара `afbws.tradeplan.archive.request.v1`/`afbws.tradeplan.archive.response.v1` (ручная архивация плана, гейтуется живыми сделками). Переопределена семантика `syncPush` (`afbws.tradeplan.sync.push.v1`): `items[]` теперь ДЕЛЬТА (upsert по `id`), а не снимок всего списка — синтаксис сообщения не изменился, обновлены только `title`/`description`. Полный список планов выдаёт только `afbws.tradeplan.list.request.v1`; удаление плана этим пушем не передаётся.
+- **Перегенерировано**: `python/afb_bf_protocol/schemas/` (мирроринг), `ts/src/models.ts`.
+- **Версии**: bump до `2.1.1` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`. Версия провода (`afb.execution.v1`) не менялась.
+
 ## v2.1.0 — 2026-07-25
 
 MINOR: новый AFB-пушный фид датасетов MOEX/Algopack (`dataset.update`), резервный `dataset.subscribe`, `deal.signal` помечен deprecated. Обратно совместимое расширение протокола AFB↔BF — новые опциональные типы сообщений, ни один существующий формат не тронут.

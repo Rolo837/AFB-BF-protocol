@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: f71549763fa3ba51367b20daafe1fcb4e5885474234a4478f9c90d43f6ea101a
+ * source-hash: bfd9b9e76599c11ba7e314581ceb6c87a4114754981309c9026074fa69435bad
  */
 
 /**
@@ -271,6 +271,8 @@ export type TradeplanChannelV1Message =
   | TradeplanSetResponse
   | TradeplanDeleteRequest
   | TradeplanDeleteResponse
+  | AfbwsTradeplanChannelV1_ArchiveRequest
+  | AfbwsTradeplanChannelV1_ArchiveResponse
   | TradeplanErrorResponse
   | TradeplanSyncPush;
 /**
@@ -1269,11 +1271,16 @@ export interface TradeplanGetResponse {
 export interface TradePlanV1 {
   id: string;
   ticker: string;
-  status?: 'new' | 'active' | 'published' | 'closed' | 'expired';
+  status?: 'draft' | 'published' | 'completed' | 'archived';
   direction?: 'long' | 'short';
   schema?: 'afb.tradeplan.v1';
   activated_at?: string;
   closed_at?: string;
+  archived_at?: string;
+  /**
+   * Only for outgoing messages: the plan's ticker is not found in the securities catalog. Not persisted — overlaid in plans_for_ws_response on read. Not a lifecycle state.
+   */
+  instrument_missing?: boolean;
   entry_condition: TradeplanV1_EntryCondition;
   quantity_value?: number | null;
   quantity_mode?: 'lots' | 'margin' | 'balance_pct' | 'risk_currency' | 'risk_factor';
@@ -1325,11 +1332,16 @@ export interface TradeplanV1_PriceCondition {
 export interface TradePlanV2 {
   id: string;
   ticker: string;
-  status?: 'new' | 'active' | 'published' | 'closed' | 'expired';
+  status?: 'draft' | 'published' | 'completed' | 'archived';
   direction: 'long' | 'short';
   schema: 'afb.tradeplan.v2';
   activated_at?: string;
   closed_at?: string;
+  archived_at?: string;
+  /**
+   * Only for outgoing messages: the plan's ticker is not found in the securities catalog. Not persisted — overlaid in plans_for_ws_response on read. Not a lifecycle state.
+   */
+  instrument_missing?: boolean;
   /**
    * @minItems 1
    */
@@ -1475,6 +1487,26 @@ export interface TradeplanDeleteResponse {
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsTradeplanChannelV1_ArchiveRequest".
+ */
+export interface AfbwsTradeplanChannelV1_ArchiveRequest {
+  channel: 'tradeplan';
+  schema: 'afbws.tradeplan.archive.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsTradeplanChannelV1_ArchiveResponse".
+ */
+export interface AfbwsTradeplanChannelV1_ArchiveResponse {
+  channel: 'tradeplan';
+  schema: 'afbws.tradeplan.archive.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: TradeplanEntity;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanErrorResponse".
  */
 export interface TradeplanErrorResponse {
@@ -1487,12 +1519,17 @@ export interface TradeplanErrorResponse {
   item?: TradeplanEntity;
 }
 /**
+ * items[] is a DELTA, not a snapshot: the client upserts plans in its own list by matching id and leaves everything else untouched. May contain a single element. The authoritative full list comes only from afbws.tradeplan.list.request.v1. Plan deletion is NOT conveyed by this push.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanSyncPush".
  */
 export interface TradeplanSyncPush {
   channel: 'tradeplan';
   schema: 'afbws.tradeplan.sync.push.v1';
+  /**
+   * Delta of upserted plans, matched to the client's list by id. Never a full snapshot.
+   */
   items: TradeplanEntity[];
 }
 /**

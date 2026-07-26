@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: f71549763fa3ba51367b20daafe1fcb4e5885474234a4478f9c90d43f6ea101a
+# source-hash: bfd9b9e76599c11ba7e314581ceb6c87a4114754981309c9026074fa69435bad
 
 from __future__ import annotations
 
@@ -88,6 +88,20 @@ AfbwsCommonV1RequestId: TypeAlias = str
 
 
 AfbwsCommonV1Root: TypeAlias = Any
+
+
+class AfbwsTradeplanChannelV1ArchiveRequest(TypedDict):
+    channel: Literal["tradeplan"]
+    schema: Literal["afbws.tradeplan.archive.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: str
+
+
+class AfbwsTradeplanChannelV1ArchiveResponse(TypedDict):
+    channel: Literal["tradeplan"]
+    schema: Literal["afbws.tradeplan.archive.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: TradeplanEntity
 
 
 class AlarmAckEvent(TypedDict):
@@ -1731,11 +1745,13 @@ class TradePlanV1(TypedDict):
 
     id: str
     ticker: str
-    status: NotRequired[Literal["new", "active", "published", "closed", "expired"]]
+    status: NotRequired[Literal["draft", "published", "completed", "archived"]]
     direction: NotRequired[Literal["long", "short"]]
     schema: NotRequired[Literal["afb.tradeplan.v1"]]
     activated_at: NotRequired[str]
     closed_at: NotRequired[str]
+    archived_at: NotRequired[str]
+    instrument_missing: NotRequired[bool]
     entry_condition: TradeplanV1EntryCondition
     quantity_value: NotRequired[float | None]
     quantity_mode: NotRequired[
@@ -1757,11 +1773,13 @@ class TradePlanV2(TypedDict):
 
     id: str
     ticker: str
-    status: NotRequired[Literal["new", "active", "published", "closed", "expired"]]
+    status: NotRequired[Literal["draft", "published", "completed", "archived"]]
     direction: Literal["long", "short"]
     schema: Literal["afb.tradeplan.v2"]
     activated_at: NotRequired[str]
     closed_at: NotRequired[str]
+    archived_at: NotRequired[str]
+    instrument_missing: NotRequired[bool]
     entries: list[Entry1]
     stop_loss: NotRequired[TradeplanV2TpExitList]
     take_profit: NotRequired[TradeplanV2TpExitList]
@@ -1858,6 +1876,10 @@ class TradeplanSetResponse(TypedDict):
 
 
 class TradeplanSyncPush(TypedDict):
+    """
+    items[] is a DELTA, not a snapshot: the client upserts plans in its own list by matching id and leaves everything else untouched. May contain a single element. The authoritative full list comes only from afbws.tradeplan.list.request.v1. Plan deletion is NOT conveyed by this push.
+    """
+
     channel: Literal["tradeplan"]
     schema: Literal["afbws.tradeplan.sync.push.v1"]
     items: list[TradeplanEntity]
@@ -1872,6 +1894,8 @@ TradeplanChannelV1Message: TypeAlias = (
     | TradeplanSetResponse
     | TradeplanDeleteRequest
     | TradeplanDeleteResponse
+    | AfbwsTradeplanChannelV1ArchiveRequest
+    | AfbwsTradeplanChannelV1ArchiveResponse
     | TradeplanErrorResponse
     | TradeplanSyncPush
 )

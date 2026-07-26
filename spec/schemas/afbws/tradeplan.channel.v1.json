@@ -14,6 +14,8 @@
     { "$ref": "#/$defs/setResponse" },
     { "$ref": "#/$defs/deleteRequest" },
     { "$ref": "#/$defs/deleteResponse" },
+    { "$ref": "#/$defs/archiveRequest" },
+    { "$ref": "#/$defs/archiveResponse" },
     { "$ref": "#/$defs/errorResponse" },
     { "$ref": "#/$defs/syncPush" }
   ],
@@ -135,6 +137,29 @@
         "id": { "type": "string", "minLength": 1 }
       }
     },
+    "archiveRequest": {
+      "type": "object",
+      "title": "Manual archival: status='archived'. Blocked while the plan has live deals (see backend/tradeplans/lifecycle.py::plan_archive_blocked) -> errorResponse code='conflict'.",
+      "required": ["channel", "schema", "request_id", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.archive.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "archiveResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "item"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.archive.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "#/$defs/entity" }
+      }
+    },
     "errorResponse": {
       "type": "object",
       "title": "typed error; `item` is populated for a delete conflict (entered position) to carry the current authoritative item",
@@ -152,13 +177,18 @@
     },
     "syncPush": {
       "type": "object",
-      "title": "tradeplan/sync push (server-initiated, no request_id) — replaces mail/plans for negotiated clients",
+      "title": "tradeplan/sync push (server-initiated, no request_id) — partial update by id",
+      "description": "items[] is a DELTA, not a snapshot: the client upserts plans in its own list by matching id and leaves everything else untouched. May contain a single element. The authoritative full list comes only from afbws.tradeplan.list.request.v1. Plan deletion is NOT conveyed by this push.",
       "required": ["channel", "schema", "items"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "tradeplan" },
         "schema": { "const": "afbws.tradeplan.sync.push.v1" },
-        "items": { "type": "array", "items": { "$ref": "#/$defs/entity" } }
+        "items": {
+          "type": "array",
+          "description": "Delta of upserted plans, matched to the client's list by id. Never a full snapshot.",
+          "items": { "$ref": "#/$defs/entity" }
+        }
       }
     }
   }
