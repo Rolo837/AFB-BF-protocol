@@ -1,0 +1,24 @@
+{
+  "protocol": "afb.execution.v1",
+  "message_id": "458a05e2-696d-44e6-89c7-e361137551b6",
+  "correlation_id": null,
+  "causation_id": null,
+  "sender": "finam-arena-316",
+  "recipient": "afb",
+  "type": "broker.error",
+  "created_at": "2026-06-26T12:00:00+03:00",
+  "expires_at": "2026-06-26T12:05:00+03:00",
+  "idempotency_key": "finam-arena-316:broker.error:fixture-0001",
+  "payload_hash": "6d3637443b478c2d913c543ee353d5fb4f919b935fb844d07253573f6798307b",
+  "payload": {
+    "at": "2026-07-27T01:56:24.366142+03:00",
+    "code": "broker_disconnected",
+    "command_type": "broker.get_account",
+    "message": "Broker not connected"
+  },
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "belphegor-test-1",
+    "value": "yi2LoZ97IjNAj8jveH6_FShI0R-AARW-zhSWB7Kxwwx6VRh4JuUMkN0ceF8wsMYVQEs0DP417srsRd3OsZS6Dg"
+  }
+}

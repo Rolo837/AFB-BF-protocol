@@ -1,7 +1,7 @@
 asyncapi: 3.1.0
 info:
   title: AFB <-> BF Execution Protocol
-  version: 2.1.1
+  version: 2.1.2
   description: >-
     Business protocol between AFB (OMS) and BF (executor daemon), wire version
     afb.execution.v1. Every message is a signed JSON envelope (Ed25519 over a
@@ -70,6 +70,8 @@ channels:
         $ref: '#/components/messages/broker_instrument_resolved'
       broker_position_ledger:
         $ref: '#/components/messages/broker_position_ledger'
+      broker_error:
+        $ref: '#/components/messages/broker_error'
       deal_publish:
         $ref: '#/components/messages/deal_publish'
       deal_operation:
@@ -161,6 +163,7 @@ operations:
       - $ref: '#/channels/afbBf/messages/broker_instrument'
       - $ref: '#/channels/afbBf/messages/broker_instrument_resolved'
       - $ref: '#/channels/afbBf/messages/broker_position_ledger'
+      - $ref: '#/channels/afbBf/messages/broker_error'
       - $ref: '#/channels/afbBf/messages/dataset_subscribe'
       - $ref: '#/channels/afbBf/messages/deal_accepted'
       - $ref: '#/channels/afbBf/messages/deal_rejected'
@@ -574,6 +577,26 @@ components:
         it, and by anything that happened outside BF: manual trades, margin
         calls, expirations). Emitted whenever a ledger entry is added and on
         every reconcile pass. 'No fixture yet.'
+    broker_error:
+      name: broker.error
+      title: broker.error
+      summary: 'user/bf2afb broker.error'
+      tags:
+        - name: 'class:user'
+        - name: 'dir:bf2afb'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: broker.error
+              payload:
+                $ref: './schemas/payloads/broker.error.json'
+      description: >-
+        NACK for any broker.* command (get_account, get_orders, get_catalog,
+        get_instrument, resolve_instrument). Correlated via correlation_id.
+        Example: examples/broker.error.json
     deal_publish:
       name: deal.publish
       title: deal.publish

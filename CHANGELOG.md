@@ -2,6 +2,17 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.1.2 — 2026-07-27
+
+PATCH (по явному решению релиза; формально новый тип сообщения — MINOR): канонический NACK на `broker.*` команды — `broker.error`. Обратно совместимо: старые BF могут по-прежнему слать `deal.rejected` на broker-команды; потребители принимают оба типа на переходный период.
+
+- **`spec/schemas/payloads/broker.error.json`** (новый) — required `code`, `command_type`; optional `message`, `at`. Без `deal_id`.
+- **`spec/asyncapi.yaml`** — сообщение `broker.error` (user/bf2afb), канал + `receiveFromBf`.
+- **`docs/PROTOCOL.md` §4.5** — ошибка любой `broker.*` → `broker.error`.
+- **`examples/broker.error.json`** — подписанный пример (`broker_disconnected` / `broker.get_account`).
+- **Перегенерировано**: `taxonomy.py` / `MESSAGES.md` / `ts/src/*` / `models_generated.py` / schemas mirror.
+- **Версии**: bump до `2.1.2` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`. Версия провода (`afb.execution.v1`) не менялась.
+
 ## v2.1.1 — 2026-07-26
 
 PATCH: часть фазы A1 сепарации торгового плана и сделки (AFB) — новая статусная модель `afb.tradeplan.v1/v2` и переопределение семантики `tradeplan/sync`-пуша. Эти схемы AFB-стороннего фронтенд↔бэкенд взаимодействия (`tradeplan.*` никогда не пересекают канал AFB↔BF), поэтому изменение не затрагивает провод и BF не обновляет пин.

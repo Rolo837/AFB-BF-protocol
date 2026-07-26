@@ -197,6 +197,13 @@ export const MESSAGE_REGISTRY = {
     event: "position_ledger",
     persists_on_bf: true,
   },
+  "broker.error": {
+    message_class: "user",
+    direction: "bf2afb",
+    category: "broker",
+    event: "error",
+    persists_on_bf: false,
+  },
   "deal.publish": {
     message_class: "user",
     direction: "afb2bf",

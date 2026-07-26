@@ -1,0 +1,6 @@
+{
+  "at": "2026-07-27T01:56:24.366142+03:00",
+  "code": "broker_disconnected",
+  "command_type": "broker.get_account",
+  "message": "Broker not connected"
+}

@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: bfd9b9e76599c11ba7e314581ceb6c87a4114754981309c9026074fa69435bad
+ * source-hash: 530ae410bfde492ad21a236e18c94e9ea87303f18b116c43333dc7287a8d417c
  */
 
 /**
@@ -1907,6 +1907,31 @@ export interface NotificationLinkV1 {
    * ISO-8601 publish time; added by MQTTPublisher, not by the link notification builder.
    */
   timestamp?: string;
+}
+/**
+ * NACK for any broker.* command (get_account/get_orders/get_catalog/get_instrument/resolve_instrument). Correlated to the request via correlation_id.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BrokerErrorPayload".
+ */
+export interface BrokerErrorPayload {
+  /**
+   * ISO-8601 BF event-occurrence time.
+   */
+  at?: string;
+  /**
+   * Machine-readable error code (e.g. broker_disconnected).
+   */
+  code: string;
+  /**
+   * The broker.* command that failed (e.g. broker.get_account).
+   */
+  command_type: string;
+  /**
+   * Human-readable error detail.
+   */
+  message?: string;
+  [k: string]: unknown;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

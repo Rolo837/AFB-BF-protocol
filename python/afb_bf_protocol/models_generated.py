@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: bfd9b9e76599c11ba7e314581ceb6c87a4114754981309c9026074fa69435bad
+# source-hash: 530ae410bfde492ad21a236e18c94e9ea87303f18b116c43333dc7287a8d417c
 
 from __future__ import annotations
 
@@ -342,6 +342,17 @@ class BfsRegistryPush(TypedDict):
 class Binding(TypedDict):
     account_id: NotRequired[str]
     symbol: NotRequired[str]
+
+
+class BrokerErrorPayload(TypedDict):
+    """
+    NACK for any broker.* command (get_account/get_orders/get_catalog/get_instrument/resolve_instrument). Correlated to the request via correlation_id.
+    """
+
+    at: NotRequired[str]
+    code: str
+    command_type: str
+    message: NotRequired[str]
 
 
 class BrokerInstrument(TypedDict):

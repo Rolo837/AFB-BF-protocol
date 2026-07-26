@@ -43,6 +43,7 @@ Every message is a signed envelope (see `spec/schemas/envelope.json`).
 | `broker.instrument` | user |  | — | — |
 | `broker.instrument_resolved` | user |  | — | — |
 | `broker.position_ledger` | trading | yes | `spec/schemas/payloads/broker.position_ledger.json` | — |
+| `broker.error` | user |  | `spec/schemas/payloads/broker.error.json` | — |
 | `dataset.subscribe` | system |  | `spec/schemas/payloads/dataset.subscribe.json` | — |
 | `deal.accepted` | trading | yes | `spec/schemas/payloads/deal.accepted.json` | `examples/deal.accepted.json` |
 | `deal.rejected` | trading | yes | `spec/schemas/payloads/deal.rejected.json` | `examples/deal.rejected.json` |

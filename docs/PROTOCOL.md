@@ -237,13 +237,15 @@ stateDiagram-v2
 
 ### 4.5 Broker-запросы (парные команды)
 
-| Команда AFB → BF | Ответ BF → AFB | Описание |
+| Команда AFB → BF | Успех BF → AFB | Описание |
 |------------------|----------------|----------|
 | `broker.get_account` | `broker.account` | баланс и параметры счёта |
 | `broker.get_orders` | `broker.orders` | список активных ордеров |
 | `broker.get_catalog` | `broker.catalog` | инструменты биржи/рынка |
 | `broker.get_instrument` | `broker.instrument` | параметры конкретного инструмента |
 | `broker.resolve_instrument` | `broker.instrument_resolved` | резолюция инструмента для сделки |
+
+Ошибка любой `broker.*` команды → **`broker.error`** с `code`, `command_type` (тип исходной команды), опционально `message`/`at`. Сопоставление с запросом — через `correlation_id` (и `idempotency_key` на запросе).
 
 Все запросы используют `idempotency_key` и `correlation_id` для сопоставления ответа с запросом.
 
