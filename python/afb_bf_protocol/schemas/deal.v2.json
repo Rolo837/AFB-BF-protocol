@@ -28,7 +28,8 @@
     "take_profit": {"$ref": "#/$defs/exitList"},
     "sizing": {"$ref": "deal.v1.json#/$defs/sizing"},
     "execution_policy": {"$ref": "deal.v1.json#/$defs/executionPolicy"},
-    "archive_reason": {"type": "string"}
+    "archive_reason": {"type": "string"},
+    "source": {"$ref": "deal.v1.json#/$defs/source"}
   },
   "$defs": {
     "rightConst": {"$ref": "condition.v1.json#/$defs/rightConst"},

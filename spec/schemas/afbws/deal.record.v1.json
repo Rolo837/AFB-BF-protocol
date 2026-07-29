@@ -1,15 +1,16 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/deal.record.v1.json",
-  "title": "deal/deal_record push (AFB backend -> AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Full authoritative deal snapshot, pushed so the frontend replaces its cached copy instead of merging partial fields from thin `event` pushes. `data` is the same shape as DealState.to_dict() (deal_state.v2.json).",
+  "title": "deal/record push (AFB backend -> AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Authoritative REPLACE of the public deal projection identified by deal_id — the frontend must overwrite its cached copy, never merge partial fields from thin `event` pushes, and never merge-patch this either. `item` is the same public projection as afbws.deal.get.response.v1's item (deal.channel.v1.json#/$defs/dealDetail) — an explicit allow-list built by backend/trade/public_views.py, NOT a serialization of the persisted DealState file (deal_state.v2.json): source_refs, status_history, event_journal, raw orders/positions and observed never appear here.",
   "type": "object",
-  "required": ["type", "deal_id", "bf_id", "data"],
+  "required": ["channel", "schema", "deal_id", "bf_id", "item"],
   "additionalProperties": false,
   "properties": {
-    "type": { "const": "deal_record" },
-    "deal_id": { "type": "string" },
-    "bf_id": { "type": "string" },
-    "data": { "$ref": "../deal_state.v2.json" }
+    "channel": { "const": "deal" },
+    "schema": { "const": "afbws.deal.record.push.v1" },
+    "deal_id": { "$ref": "deal.channel.v1.json#/$defs/dealId" },
+    "bf_id": { "$ref": "deal.channel.v1.json#/$defs/bfId" },
+    "item": { "$ref": "deal.channel.v1.json#/$defs/dealDetail" }
   }
 }

@@ -5,7 +5,7 @@ import copy
 
 import pytest
 
-from afb_bf_protocol import AmendContext, evaluate_amend, is_amend_allowed
+from afb_bf_protocol import AMEND_FIELDS, AmendContext, editable_fields_for, evaluate_amend, is_amend_allowed
 
 
 def _deal_v1(**over):
@@ -285,3 +285,32 @@ def test_v2_entry_right_expression_change_denied_while_holding():
     new["entry"][0]["condition"]["right"] = {"source": "dataset", "field": "y"}
     assert is_amend_allowed(d, new, _ctx("active", "holding")) is False
     assert is_amend_allowed(d, new, _ctx("active", "awaiting_entry")) is True
+
+
+# --- editable_fields_for (phase-matrix query, no trial edit needed) ----------
+
+def test_editable_fields_for_idle_published_allows_everything():
+    assert set(editable_fields_for(_ctx("published", "idle"))) == set(AMEND_FIELDS)
+
+
+def test_editable_fields_for_terminal_allows_nothing():
+    assert editable_fields_for(_ctx("closed", "idle")) == ()
+
+
+def test_editable_fields_for_holding_only_protective_and_policy():
+    fields = set(editable_fields_for(_ctx("active", "holding")))
+    assert fields == {"stop_loss", "take_profit", "execution_policy"}
+
+
+def test_editable_fields_for_awaiting_entry_excludes_instrument():
+    """instrument freezes the moment the deal is live, even before any fill."""
+    fields = set(editable_fields_for(_ctx("active", "awaiting_entry")))
+    assert fields == {"side", "entry", "sizing", "stop_loss", "take_profit", "execution_policy"}
+
+
+def test_editable_fields_for_respects_custom_field_subset():
+    """AFB's public deal projection only exposes AMEND_FIELDS minus
+    instrument/side (see afbws.deal.channel.v1's amendField enum) — the
+    `fields` param lets a caller narrow the query to just that subset."""
+    subset = ("entry", "sizing", "stop_loss", "take_profit", "execution_policy")
+    assert editable_fields_for(_ctx("active", "holding"), fields=subset) == ("stop_loss", "take_profit", "execution_policy")

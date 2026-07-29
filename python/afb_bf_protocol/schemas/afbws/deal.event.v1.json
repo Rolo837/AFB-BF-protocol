@@ -2,14 +2,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/deal.event.v1.json",
   "title": "deal/event push (AFB backend -> AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "See AFB/docs/WS_EXECUTION_CHANNELS.md#deal--event. `data` shape depends on category/event (status_changed, created, archived-as-status_changed, or a raw BF envelope payload) — deliberately untyped here.",
+  "description": "See AFB/docs/WS_EXECUTION_CHANNELS.md#deal--event. `data` shape depends on category/event — deliberately untyped here, full typing of every BF event payload is out of scope for this migration. Known event/data shapes: `created`/`amended` carry a full deal snapshot (frontend must treat `amended` as an authoritative upsert, same as `created` — previously received but dropped); `status_changed` carries a status delta; BF `deal.archived` arrives to the frontend translated as `status_changed` with `status: \"deleted\"`; anything else is the raw translated BF envelope payload.",
   "type": "object",
-  "required": ["type", "deal_id", "bf_id", "category", "event", "logged_at", "data"],
+  "required": ["channel", "schema", "deal_id", "bf_id", "category", "event", "logged_at", "data"],
   "additionalProperties": false,
   "properties": {
-    "type": { "const": "event" },
-    "deal_id": { "type": "string" },
-    "bf_id": { "type": "string" },
+    "channel": { "const": "deal" },
+    "schema": { "const": "afbws.deal.event.push.v1" },
+    "deal_id": { "$ref": "deal.channel.v1.json#/$defs/dealId" },
+    "bf_id": { "$ref": "deal.channel.v1.json#/$defs/bfId" },
     "category": {
       "type": "string",
       "enum": ["deal", "order", "position", "condition"]

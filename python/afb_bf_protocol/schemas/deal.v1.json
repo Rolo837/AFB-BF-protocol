@@ -22,10 +22,24 @@
       }
     },
     "execution_policy": {"$ref": "#/$defs/executionPolicy"},
-    "archive_reason": {"type": "string"}
+    "archive_reason": {"type": "string"},
+    "source": {"$ref": "#/$defs/source"}
   },
   "$defs": {
     "decimalString": {"type": "string", "pattern": "^-?[0-9]+(\\.[0-9]+)?$"},
+    "source": {
+      "type": "object",
+      "description": "Provenance of this deal's compiled definition. The AFB compiler writes only `tradeplan_id` — the single source of truth for deal->tradeplan linkage (see the tradeplan/deal separation plan). `kind`/`draft_id` are a deprecated pre-separation pair: new AFB never writes them, they may still appear on persisted records created before the deal-channel-migration offline backfill ran. Left open (no additionalProperties restriction, matching the rest of this wire schema) since AFB may carry extra compile metadata here (e.g. `compiled_at`, `primitive_snapshot`) that BF does not interpret.",
+      "properties": {
+        "tradeplan_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Id of the AFB tradeplan (state/tradeplans/<user_id>/<id>.yaml) that compiled this deal."
+        },
+        "kind": {"type": "string", "deprecated": true, "description": "Deprecated legacy discriminator (always 'tradeplan_draft'). New AFB never writes this."},
+        "draft_id": {"type": "string", "deprecated": true, "description": "Deprecated alias of tradeplan_id predating the tradeplan/deal separation. New AFB never writes this."}
+      }
+    },
     "instrument": {
       "type": "object",
       "required": ["exchange", "board", "ticker"],

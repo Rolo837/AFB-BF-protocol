@@ -8,6 +8,7 @@ from pathlib import Path
 from afb_bf_protocol import (
     ALARM_CHANNEL_V1,
     ALL_CAPABILITY_IDS,
+    DEAL_CHANNEL_V1,
     GP_CHANNEL_V1,
     LINK_CHANNEL_V1,
     TRADEPLAN_CHANNEL_V1,
@@ -31,8 +32,15 @@ def test_capability_ids_match_schema_declarations():
         TRADEPLAN_CHANNEL_V1: "TRADEPLAN_CHANNEL_V1",
         LINK_CHANNEL_V1: "LINK_CHANNEL_V1",
         GP_CHANNEL_V1: "GP_CHANNEL_V1",
+        DEAL_CHANNEL_V1: "DEAL_CHANNEL_V1",
     }
-    assert ALL_CAPABILITY_IDS == {ALARM_CHANNEL_V1, TRADEPLAN_CHANNEL_V1, LINK_CHANNEL_V1, GP_CHANNEL_V1}
+    assert ALL_CAPABILITY_IDS == {
+        ALARM_CHANNEL_V1,
+        TRADEPLAN_CHANNEL_V1,
+        LINK_CHANNEL_V1,
+        GP_CHANNEL_V1,
+        DEAL_CHANNEL_V1,
+    }
 
 
 def test_capabilities_py_is_up_to_date():

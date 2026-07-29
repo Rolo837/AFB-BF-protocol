@@ -1,0 +1,371 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/deal.channel.v1.json",
+  "x-afbws-support-id": "afbws.deal.channel.v1",
+  "title": "deal channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.deal.channel.v1). Replaces legacy `channel=deal, type=get|list|publish|rebind|operation|amend` plus the guaranteed `channel=mail, type=deals/ack` notifications, for clients that negotiated this capability; legacy stays available as fallback for clients that did not — same channel name (`deal`) for both, discriminated by presence of `schema` vs `type` at dispatch time, never both in the same session. `item`/`items`/`results` never carry the persisted DealState file shape (source_refs, status_history, event_journal, raw orders/positions, observed) — see $defs/dealSummary and $defs/dealDetail, built by backend/trade/public_views.py as explicit allow-list projections. The publish/rebind/amend RPCs resolve the source tradeplan only via deal.source.tradeplan_id (deal.public.v1.json); they never accept an inline plan-like draft — that stays a legacy-only affordance. See AFB/docs/WS_EXECUTION_CHANNELS.md and plans/deal-channel-migration_97a53aa5.plan.md.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/getRequest" },
+    { "$ref": "#/$defs/getResponse" },
+    { "$ref": "#/$defs/listRequest" },
+    { "$ref": "#/$defs/listResponse" },
+    { "$ref": "#/$defs/publishRequest" },
+    { "$ref": "#/$defs/publishResponse" },
+    { "$ref": "#/$defs/rebindRequest" },
+    { "$ref": "#/$defs/rebindResponse" },
+    { "$ref": "#/$defs/operationRequest" },
+    { "$ref": "#/$defs/operationResponse" },
+    { "$ref": "#/$defs/amendRequest" },
+    { "$ref": "#/$defs/amendResponse" },
+    { "$ref": "#/$defs/errorResponse" },
+    { "$ref": "deal.record.v1.json" },
+    { "$ref": "deal.pnl.v1.json" },
+    { "$ref": "deal.event.v1.json" },
+    { "$ref": "#/$defs/triggeredPush" },
+    { "$ref": "#/$defs/ackRequest" },
+    { "$ref": "#/$defs/ackResponse" }
+  ],
+  "$defs": {
+    "dealId": { "type": "string", "minLength": 1 },
+    "bfId": { "type": "string", "minLength": 1 },
+    "dealSource": { "$ref": "deal.public.v1.json#/$defs/source" },
+    "amendField": { "enum": ["entry", "sizing", "stop_loss", "take_profit", "execution_policy"] },
+    "dealSizingDisplay": {
+      "type": "object",
+      "title": "Broker-sizing display projection (lots/required_cash/...) needed by the Deals widget row/editor — not the raw compiled sizing block.",
+      "additionalProperties": false,
+      "properties": {
+        "lots": { "type": "integer" },
+        "required_cash": { "type": "string" }
+      }
+    },
+    "dealSummary": {
+      "type": "object",
+      "title": "Minimal row/card projection for list — no compiled deal body, no source_refs, no journals.",
+      "required": ["deal_id", "revision", "status", "execution_phase", "bf_id", "tradeplan_id", "ticker", "direction", "created_at", "updated_at"],
+      "additionalProperties": false,
+      "properties": {
+        "deal_id": { "$ref": "#/$defs/dealId" },
+        "revision": { "type": "integer", "minimum": 1 },
+        "status": { "type": "string" },
+        "execution_phase": { "type": "string" },
+        "bf_id": { "$ref": "#/$defs/bfId" },
+        "tradeplan_id": { "type": "string", "minLength": 1 },
+        "ticker": { "type": "string" },
+        "direction": { "enum": ["long", "short"] },
+        "sizing": { "$ref": "#/$defs/dealSizingDisplay" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      }
+    },
+    "dealDetail": {
+      "type": "object",
+      "title": "Full editor payload for get() — dealSummary + the compiled public deal + phase-B amendability projection.",
+      "required": ["deal_id", "revision", "status", "execution_phase", "bf_id", "tradeplan_id", "ticker", "direction", "created_at", "updated_at", "deal", "editable_fields", "overridden_fields"],
+      "additionalProperties": false,
+      "properties": {
+        "deal_id": { "$ref": "#/$defs/dealId" },
+        "revision": { "type": "integer", "minimum": 1 },
+        "status": { "type": "string" },
+        "execution_phase": { "type": "string" },
+        "bf_id": { "$ref": "#/$defs/bfId" },
+        "tradeplan_id": { "type": "string", "minLength": 1 },
+        "ticker": { "type": "string" },
+        "direction": { "enum": ["long", "short"] },
+        "sizing": { "$ref": "#/$defs/dealSizingDisplay" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" },
+        "deal": { "$ref": "deal.public.v1.json" },
+        "editable_fields": { "type": "array", "items": { "$ref": "#/$defs/amendField" } },
+        "overridden_fields": { "type": "array", "items": { "$ref": "#/$defs/amendField" } }
+      }
+    },
+    "dealResult": {
+      "type": "object",
+      "required": ["deal_id", "bf_id", "status", "accepted"],
+      "additionalProperties": false,
+      "properties": {
+        "deal_id": { "$ref": "#/$defs/dealId" },
+        "bf_id": { "$ref": "#/$defs/bfId" },
+        "status": { "type": "string" },
+        "accepted": { "type": "boolean" },
+        "revision": { "type": "integer", "minimum": 1 },
+        "item": {
+          "oneOf": [
+            { "$ref": "#/$defs/dealSummary" },
+            { "$ref": "#/$defs/dealDetail" }
+          ]
+        },
+        "code": { "type": "string" },
+        "message": { "type": "string" }
+      }
+    },
+
+    "getRequest": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "deal_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.get.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "deal_id": { "$ref": "#/$defs/dealId" }
+      }
+    },
+    "getResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "item"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.get.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "#/$defs/dealDetail" }
+      }
+    },
+
+    "listRequest": {
+      "type": "object",
+      "title": "No filters in v1 — plan->deals grouping is built on the frontend from the snapshot's tradeplan_id, not a server-side filter.",
+      "required": ["channel", "schema", "request_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.list.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" }
+      }
+    },
+    "listResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.list.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/dealSummary" } }
+      }
+    },
+
+    "publishRequest": {
+      "type": "object",
+      "title": "Publishes an already-saved tradeplan. No inline plan-like draft, no plural bf_ids — v1 stays 1:1 (see §2.3/§2.6 of the migration plan); a future kratnost' phase extends this contract separately.",
+      "required": ["channel", "schema", "request_id", "tradeplan_id", "bf_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.publish.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "tradeplan_id": { "type": "string", "minLength": 1 },
+        "bf_id": { "$ref": "#/$defs/bfId" }
+      }
+    },
+    "publishResponse": {
+      "type": "object",
+      "title": "results[] is batch-shaped to match the existing service's return contract; v1 publish always yields at most one element.",
+      "required": ["channel", "schema", "request_id", "results", "accepted"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.publish.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "results": { "type": "array", "items": { "$ref": "#/$defs/dealResult" } },
+        "accepted": { "type": "boolean" }
+      }
+    },
+
+    "rebindRequest": {
+      "type": "object",
+      "title": "Addresses the deal, not a plan draft — the backend resolves the source tradeplan via the existing deal's deal.source.tradeplan_id.",
+      "required": ["channel", "schema", "request_id", "deal_id", "bf_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.rebind.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "deal_id": { "$ref": "#/$defs/dealId" },
+        "bf_id": { "$ref": "#/$defs/bfId" }
+      }
+    },
+    "rebindResponse": {
+      "type": "object",
+      "title": "If the new target changes the deal id, results[0].deal_id/item carry the NEW id — the frontend must drop the old cache key and upsert the new one.",
+      "required": ["channel", "schema", "request_id", "results", "accepted"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.rebind.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "results": { "type": "array", "items": { "$ref": "#/$defs/dealResult" } },
+        "accepted": { "type": "boolean" }
+      }
+    },
+
+    "operationItem": {
+      "type": "object",
+      "required": ["deal_id", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "deal_id": { "$ref": "#/$defs/dealId" },
+        "action": {
+          "enum": ["activate", "pause", "resume", "cancel", "reconcile", "delete", "archive"],
+          "description": "'archive' is schema-valid but runtime-reserved: the handler never calls run_deal_operations for it, the per-item result is {accepted:false, code:'unsupported_action'}, and other items in the same batch still get processed. No UI action is wired to it in this migration."
+        },
+        "revision": { "type": "integer", "minimum": 1 },
+        "cancel_open_orders": { "type": "boolean", "description": "Only meaningful for action='cancel' — see the allOf guard below." }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["cancel_open_orders"] },
+          "then": { "properties": { "action": { "const": "cancel" } } }
+        }
+      ]
+    },
+    "operationRequest": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.operation.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/operationItem" } }
+      }
+    },
+    "operationResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "results", "accepted"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.operation.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "results": { "type": "array", "items": { "$ref": "#/$defs/dealResult" } },
+        "accepted": { "type": "boolean", "description": "any(result.accepted for result in results)" }
+      }
+    },
+
+    "amendRequest": {
+      "type": "object",
+      "title": "Phase-B amend (plans/gentle-spinning-wigderson.md) — already the target shape in this migration, not a follow-up.",
+      "required": ["channel", "schema", "request_id", "deal_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.amend.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "deal_id": { "$ref": "#/$defs/dealId" },
+        "deal_edit": {
+          "type": "object",
+          "description": "Plan-shaped editable projection (entry/sizing/stop_loss/take_profit/execution_policy fragments) — see the phase-B override rules. Left open here: the phase-B editable-plan shape is defined by the tradeplan schemas, not re-declared on this channel."
+        },
+        "drop_overrides": { "type": "array", "items": { "$ref": "#/$defs/amendField" } },
+        "base_revision": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "amendResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "item", "revision", "status", "accepted"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.amend.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "#/$defs/dealDetail" },
+        "revision": { "type": "integer", "minimum": 1 },
+        "status": { "type": "string" },
+        "accepted": { "type": "boolean" }
+      }
+    },
+
+    "errorResponse": {
+      "type": "object",
+      "title": "item is populated for conflict recovery (e.g. a rebind/amend racing a concurrent status change) so the frontend can adopt the authoritative record instead of retrying blind.",
+      "required": ["channel", "schema", "request_id", "code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.error.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "code": { "$ref": "common.v1.json#/$defs/errorCode" },
+        "message": { "type": "string", "minLength": 1 },
+        "details": { "type": "object" },
+        "item": {
+          "oneOf": [
+            { "$ref": "#/$defs/dealSummary" },
+            { "$ref": "#/$defs/dealDetail" }
+          ]
+        }
+      }
+    },
+
+    "triggerEvent": {
+      "type": "object",
+      "title": "Schema analogue of the legacy TriggeredDealItem — not the MQTT notification.deal.v1 payload (different transport).",
+      "required": ["schema", "notification_id", "deal_id", "bf_id", "event", "created_at", "data"],
+      "additionalProperties": false,
+      "properties": {
+        "schema": { "const": "afb.deal.trigger.v1" },
+        "notification_id": { "type": "string", "minLength": 1 },
+        "deal_id": { "$ref": "#/$defs/dealId" },
+        "bf_id": { "$ref": "#/$defs/bfId" },
+        "event": { "type": "string" },
+        "created_at": { "type": "string" },
+        "data": { "type": "object" }
+      }
+    },
+    "triggeredPush": {
+      "type": "object",
+      "title": "deal/triggered push (server-initiated, no request_id) — guaranteed delivery, same ack discipline as alarms: reconnect redelivers unacked events.",
+      "required": ["channel", "schema", "events"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.triggered.push.v1" },
+        "events": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/triggerEvent" } }
+      }
+    },
+    "ackEvent": {
+      "type": "object",
+      "required": ["schema", "notification_id"],
+      "additionalProperties": false,
+      "properties": {
+        "schema": { "const": "afb.deal.trigger_ack.v1" },
+        "notification_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "ackRequest": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "events"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.ack.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "events": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/ackEvent" } }
+      }
+    },
+    "ackResultItem": {
+      "type": "object",
+      "required": ["schema", "notification_id", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "schema": { "const": "afbws.deal.ack_result.v1" },
+        "notification_id": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["ok", "not_found"] }
+      }
+    },
+    "ackResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "results"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "deal" },
+        "schema": { "const": "afbws.deal.ack.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "results": { "type": "array", "items": { "$ref": "#/$defs/ackResultItem" } }
+      }
+    }
+  }
+}

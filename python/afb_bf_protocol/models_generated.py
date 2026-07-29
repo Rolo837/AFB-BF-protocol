@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 530ae410bfde492ad21a236e18c94e9ea87303f18b116c43333dc7287a8d417c
+# source-hash: b876b8fccb95604d3a1e8f98e20eaa0d16ab7d08ac60e66cbec652900708087c
 
 from __future__ import annotations
 
@@ -81,6 +81,9 @@ AfbwsCommonV1ErrorCode: TypeAlias = Literal[
     "validation_error",
     "conflict",
     "internal_error",
+    "forbidden",
+    "bf_offline",
+    "unsupported_action",
 ]
 
 
@@ -306,6 +309,9 @@ class Backstop(TypedDict):
     stop_price: NotRequired[DealV1DecimalString]
     max_loss_steps: NotRequired[int]
     take_profit: NotRequired[bool]
+
+
+BfId: TypeAlias = str
 
 
 class BfRegistryEntry(TypedDict):
@@ -678,6 +684,36 @@ class DealAcceptedPayload(TypedDict):
     validation: NotRequired[Validation]
 
 
+class DealAckEvent(TypedDict):
+    schema: Literal["afb.deal.trigger_ack.v1"]
+    notification_id: str
+
+
+class DealAckRequest(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.ack.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    events: list[DealAckEvent]
+
+
+class DealAckResponse(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.ack.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    results: list[DealAckResultItem]
+
+
+class DealAckResultItem(TypedDict):
+    schema: Literal["afbws.deal.ack_result.v1"]
+    notification_id: str
+    status: Literal["ok", "not_found"]
+
+
+DealAmendField: TypeAlias = Literal[
+    "entry", "sizing", "stop_loss", "take_profit", "execution_policy"
+]
+
+
 class DealAmendPayload(TypedDict):
     """
     Re-define an existing deal in place. `deal` is the full new definition (its `revision` must be `base_revision` + 1, same `deal_id`). BF gates the change against the allowed-edit matrix (amend_rules) using the deal's live execution phase, then lets reconcile bring broker orders to the new desired state. Unlike deal.publish, the deal's status and observed execution state (orders/positions/phase) are preserved.
@@ -688,6 +724,26 @@ class DealAmendPayload(TypedDict):
     deal: DealV1 | DealV2
 
 
+class DealAmendRequest(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.amend.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    deal_id: DealId
+    deal_edit: NotRequired[dict[str, Any]]
+    drop_overrides: NotRequired[list[DealAmendField]]
+    base_revision: NotRequired[int]
+
+
+class DealAmendResponse(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.amend.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: DealDetail
+    revision: int
+    status: str
+    accepted: bool
+
+
 class DealArchivedPayload(TypedDict):
     archived_at: NotRequired[str]
     at: NotRequired[str]
@@ -696,32 +752,115 @@ class DealArchivedPayload(TypedDict):
     revision: int
 
 
+class DealDetail(TypedDict):
+    deal_id: DealId
+    revision: int
+    status: str
+    execution_phase: str
+    bf_id: BfId
+    tradeplan_id: str
+    ticker: str
+    direction: Literal["long", "short"]
+    sizing: NotRequired[DealSizingDisplay]
+    created_at: str
+    updated_at: str
+    deal: DealPublicV1
+    editable_fields: list[DealAmendField]
+    overridden_fields: list[DealAmendField]
+
+
+class DealErrorResponse(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.error.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    code: AfbwsCommonV1ErrorCode
+    message: str
+    details: NotRequired[dict[str, Any]]
+    item: NotRequired[DealSummary | DealDetail]
+
+
 class DealEventPush(TypedDict):
     """
-    See AFB/docs/WS_EXECUTION_CHANNELS.md#deal--event. `data` shape depends on category/event (status_changed, created, archived-as-status_changed, or a raw BF envelope payload) — deliberately untyped here.
+    See AFB/docs/WS_EXECUTION_CHANNELS.md#deal--event. `data` shape depends on category/event — deliberately untyped here, full typing of every BF event payload is out of scope for this migration. Known event/data shapes: `created`/`amended` carry a full deal snapshot (frontend must treat `amended` as an authoritative upsert, same as `created` — previously received but dropped); `status_changed` carries a status delta; BF `deal.archived` arrives to the frontend translated as `status_changed` with `status: "deleted"`; anything else is the raw translated BF envelope payload.
     """
 
-    type: Literal["event"]
-    deal_id: str
-    bf_id: str
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.event.push.v1"]
+    deal_id: DealId
+    bf_id: BfId
     category: Literal["deal", "order", "position", "condition"]
     event: str
     logged_at: str
     data: dict[str, Any]
 
 
+class DealGetRequest(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.get.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    deal_id: DealId
+
+
+class DealGetResponse(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.get.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: DealDetail
+
+
+DealId: TypeAlias = str
+
+
+class DealListRequest(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.list.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+
+
+class DealListResponse(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.list.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[DealSummary]
+
+
+class DealOperationItem(TypedDict):
+    deal_id: DealId
+    action: Literal[
+        "activate", "pause", "resume", "cancel", "reconcile", "delete", "archive"
+    ]
+    revision: NotRequired[int]
+    cancel_open_orders: NotRequired[bool]
+
+
 class DealOperationPayload(TypedDict):
     operations: NotRequired[list[Operation]]
 
 
+class DealOperationRequest(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.operation.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[DealOperationItem]
+
+
+class DealOperationResponse(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.operation.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    results: list[DealResult]
+    accepted: bool
+
+
 class DealPnlPush(TypedDict):
     """
-    See AFB/docs/WS_EXECUTION_CHANNELS.md#deal--pnl. Periodic unrealized-P&L push, not persisted.
+    See AFB/docs/WS_EXECUTION_CHANNELS.md#deal--pnl. Periodic unrealized-P&L push, not persisted. `trend` is deliberately absent — it is a frontend-only projection computed from consecutive pushes, never sent by the backend.
     """
 
-    type: Literal["pnl"]
-    deal_id: str
-    bf_id: str
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.pnl.push.v1"]
+    deal_id: DealId
+    bf_id: BfId
     data: Data1
 
 
@@ -731,19 +870,94 @@ class DealPositionsSyncedPayload(TypedDict):
     deal_id: str
 
 
+class DealPublicDealV1(TypedDict):
+    schema: Literal["afb.deal.v1"]
+    deal_id: str
+    revision: int
+    target: DealV1Target
+    direction: Literal["long", "short"]
+    entry: DealV1Entry
+    sizing: DealV1Sizing
+    risk: NotRequired[Risk]
+    execution_policy: NotRequired[DealV1ExecutionPolicy]
+    source: DealPublicSource
+
+
+class DealPublicDealV2(TypedDict):
+    schema: Literal["afb.deal.v2"]
+    deal_id: str
+    revision: int
+    target: DealV1Target
+    direction: Literal["long", "short"]
+    entry: list[EntryItem]
+    stop_loss: NotRequired[DealPublicExitList]
+    take_profit: NotRequired[DealPublicExitList]
+    sizing: DealV1Sizing
+    execution_policy: NotRequired[DealV1ExecutionPolicy]
+    source: DealPublicSource
+
+
+class DealPublicExitListItem(TypedDict):
+    percent: NotRequired[DealV1DecimalString]
+    condition: DealV2ConditionNode
+
+
+DealPublicExitList: TypeAlias = list[DealPublicExitListItem]
+
+
+class DealPublicSource(TypedDict):
+    tradeplan_id: str
+
+
+DealPublicV1: TypeAlias = DealPublicDealV1 | DealPublicDealV2
+
+
 class DealPublishPayload(TypedDict):
     deal: DealV1 | DealV2
 
 
+class DealPublishRequest(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.publish.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    tradeplan_id: str
+    bf_id: BfId
+
+
+class DealPublishResponse(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.publish.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    results: list[DealResult]
+    accepted: bool
+
+
+class DealRebindRequest(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.rebind.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    deal_id: DealId
+    bf_id: BfId
+
+
+class DealRebindResponse(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.rebind.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    results: list[DealResult]
+    accepted: bool
+
+
 class DealRecordPush(TypedDict):
     """
-    Full authoritative deal snapshot, pushed so the frontend replaces its cached copy instead of merging partial fields from thin `event` pushes. `data` is the same shape as DealState.to_dict() (deal_state.v2.json).
+    Authoritative REPLACE of the public deal projection identified by deal_id — the frontend must overwrite its cached copy, never merge partial fields from thin `event` pushes, and never merge-patch this either. `item` is the same public projection as afbws.deal.get.response.v1's item (deal.channel.v1.json#/$defs/dealDetail) — an explicit allow-list built by backend/trade/public_views.py, NOT a serialization of the persisted DealState file (deal_state.v2.json): source_refs, status_history, event_journal, raw orders/positions and observed never appear here.
     """
 
-    type: Literal["deal_record"]
-    deal_id: str
-    bf_id: str
-    data: DealStateV2
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.record.push.v1"]
+    deal_id: DealId
+    bf_id: BfId
+    item: DealDetail
 
 
 class DealRejectedPayload(TypedDict):
@@ -765,6 +979,22 @@ class DealReportPayload(TypedDict):
     revision: int
     status: str
     fills: NotRequired[list[Fill]]
+
+
+class DealResult(TypedDict):
+    deal_id: DealId
+    bf_id: BfId
+    status: str
+    accepted: bool
+    revision: NotRequired[int]
+    item: NotRequired[DealSummary | DealDetail]
+    code: NotRequired[str]
+    message: NotRequired[str]
+
+
+class DealSizingDisplay(TypedDict):
+    lots: NotRequired[int]
+    required_cash: NotRequired[str]
 
 
 class DealStateV2(TypedDict):
@@ -843,6 +1073,59 @@ class DealStatusChangedPayload(TypedDict):
     status: str
 
 
+class DealSummary(TypedDict):
+    deal_id: DealId
+    revision: int
+    status: str
+    execution_phase: str
+    bf_id: BfId
+    tradeplan_id: str
+    ticker: str
+    direction: Literal["long", "short"]
+    sizing: NotRequired[DealSizingDisplay]
+    created_at: str
+    updated_at: str
+
+
+class DealTriggerEvent(TypedDict):
+    schema: Literal["afb.deal.trigger.v1"]
+    notification_id: str
+    deal_id: DealId
+    bf_id: BfId
+    event: str
+    created_at: str
+    data: dict[str, Any]
+
+
+class DealTriggeredPush(TypedDict):
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.triggered.push.v1"]
+    events: list[DealTriggerEvent]
+
+
+DealChannelV1Message: TypeAlias = (
+    DealGetRequest
+    | DealGetResponse
+    | DealListRequest
+    | DealListResponse
+    | DealPublishRequest
+    | DealPublishResponse
+    | DealRebindRequest
+    | DealRebindResponse
+    | DealOperationRequest
+    | DealOperationResponse
+    | DealAmendRequest
+    | DealAmendResponse
+    | DealErrorResponse
+    | DealRecordPush
+    | DealPnlPush
+    | DealEventPush
+    | DealTriggeredPush
+    | DealAckRequest
+    | DealAckResponse
+)
+
+
 class DealV1(TypedDict):
     """
     Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. The deal-level `direction` (long/short, same vocabulary as afb.deal.v2) is the single source of truth for position bias.
@@ -859,6 +1142,7 @@ class DealV1(TypedDict):
     risk: NotRequired[Risk]
     execution_policy: NotRequired[DealV1ExecutionPolicy]
     archive_reason: NotRequired[str]
+    source: NotRequired[DealV1Source]
 
 
 class DealV1ConditionNode(TypedDict):
@@ -902,6 +1186,16 @@ class DealV1Sizing(TypedDict):
     value: DealV1DecimalString
 
 
+class DealV1Source(TypedDict):
+    """
+    Provenance of this deal's compiled definition. The AFB compiler writes only `tradeplan_id` — the single source of truth for deal->tradeplan linkage (see the tradeplan/deal separation plan). `kind`/`draft_id` are a deprecated pre-separation pair: new AFB never writes them, they may still appear on persisted records created before the deal-channel-migration offline backfill ran. Left open (no additionalProperties restriction, matching the rest of this wire schema) since AFB may carry extra compile metadata here (e.g. `compiled_at`, `primitive_snapshot`) that BF does not interpret.
+    """
+
+    tradeplan_id: NotRequired[str]
+    kind: NotRequired[str]
+    draft_id: NotRequired[str]
+
+
 class DealV1Target(TypedDict):
     bf_id: str
     broker: str
@@ -926,6 +1220,7 @@ class DealV2(TypedDict):
     sizing: DealV1Sizing
     execution_policy: NotRequired[DealV1ExecutionPolicy]
     archive_reason: NotRequired[str]
+    source: NotRequired[DealV1Source]
 
 
 class DealV2ConditionNode1(TypedDict):

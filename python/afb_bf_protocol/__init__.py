@@ -68,6 +68,7 @@ from .capabilities import (
     TRADEPLAN_CHANNEL_V1,
     LINK_CHANNEL_V1,
     GP_CHANNEL_V1,
+    DEAL_CHANNEL_V1,
     ALL_CAPABILITY_IDS,
 )
 from .deal_state import (
@@ -85,6 +86,7 @@ from .amend_rules import (
     AMEND_FIELDS,
     evaluate_amend,
     is_amend_allowed,
+    editable_fields_for,
 )
 from .condition_semantics import (
     SCALAR_OPS,
@@ -152,6 +154,7 @@ __all__ = [
     "TRADEPLAN_CHANNEL_V1",
     "LINK_CHANNEL_V1",
     "GP_CHANNEL_V1",
+    "DEAL_CHANNEL_V1",
     "ALL_CAPABILITY_IDS",
     "DealState",
     "DealStatus",
@@ -165,6 +168,7 @@ __all__ = [
     "AMEND_FIELDS",
     "evaluate_amend",
     "is_amend_allowed",
+    "editable_fields_for",
     "SCALAR_OPS",
     "PRICE_LEVEL_OPS",
     "PRICE_CANDLE_OPS",

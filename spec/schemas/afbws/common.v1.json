@@ -11,7 +11,17 @@
       "description": "Client-generated correlation id (e.g. uuid4), echoed verbatim in the matching response."
     },
     "errorCode": {
-      "enum": ["not_found", "invalid_schema", "invalid_channel", "validation_error", "conflict", "internal_error"]
+      "enum": [
+        "not_found",
+        "invalid_schema",
+        "invalid_channel",
+        "validation_error",
+        "conflict",
+        "internal_error",
+        "forbidden",
+        "bf_offline",
+        "unsupported_action"
+      ]
     }
   }
 }

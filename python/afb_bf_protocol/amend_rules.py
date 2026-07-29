@@ -43,7 +43,7 @@ Invariants encoded here:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Sequence
 
 from .deal_state import DealStatus, ExecutionPhase
 
@@ -54,6 +54,7 @@ __all__ = [
     "AMEND_FIELDS",
     "evaluate_amend",
     "is_amend_allowed",
+    "editable_fields_for",
 ]
 
 # Terminal statuses: the deal is finished, nothing may change.
@@ -283,3 +284,14 @@ def is_amend_allowed(
     ctx: AmendContext,
 ) -> bool:
     return evaluate_amend(old_deal, new_deal, ctx).allowed
+
+
+def editable_fields_for(ctx: AmendContext, *, fields: Sequence[str] = AMEND_FIELDS) -> tuple[str, ...]:
+    """Which of ``fields`` (default: all of AMEND_FIELDS) are currently
+    editable in this phase/status — independent of any specific proposed
+    value, unlike ``evaluate_amend`` which only judges fields that actually
+    changed between two deal dicts. Used by AFB's public deal projection
+    (dealDetail.editable_fields, see AFB-BF-protocol's
+    afbws/deal.channel.v1.json) to tell the editor what it may currently
+    touch without needing a trial edit first."""
+    return tuple(name for name in fields if _field_allowed(name, ctx)[0])
