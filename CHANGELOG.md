@@ -2,6 +2,22 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.2.0 — 2026-07-30
+
+MINOR: часть 1 (протокол) плана `deal-channel-migration_97a53aa5` — schema-first канал `deal` для AFB frontend↔backend и обратно совместимое добавление `source.tradeplan_id` в `afb.deal.v1/v2` (это единственная часть, затрагивающая провод AFB↔BF, отсюда MINOR, а не PATCH).
+
+- **`spec/schemas/deal.v1.json`, `spec/schemas/deal.v2.json`** — новый опциональный `source` (`tradeplan_id` — единственный источник истины связи сделка→план; legacy `kind`/`draft_id` описаны как deprecated, для старых непромигрированных записей). Не в корневом `required` — старые AFB продолжают публиковать сделки без `source` или с legacy-полями.
+- **`spec/schemas/afbws/deal.public.v1.json`** (новый) — строгая public-проекция `ExecutionDeal` (v1/v2): обязательный `source.tradeplan_id`, без `owner`/`archive_reason`/compile-метаданных/`source.kind`/`draft_id`.
+- **`spec/schemas/afbws/deal.channel.v1.json`** (новый, capability `afbws.deal.channel.v1`) — `get`/`list` (публичные `dealSummary`/`dealDetail`, без `source_refs`/`status_history`/`event_journal`/`orders`/`positions`/`observed`), `publish`/`rebind` (только ссылка на сохранённый план, без inline draft), `operation` (enum `action`, `archive` зарезервирован как `unsupported_action`), `amend` (уже в форме фазы B: `deal_edit`/`drop_overrides`/`base_revision`), typed `error`, гарантированные `triggered`/`ack` (аналог alarm). `dealSummary`/`dealDetail` несут публичный `realized_pnl` (проекция внутреннего `source_refs.afb_pnl`) и `dealDetail.overrides` — карту override-значений **в форме плана** (не только имена полей — см. `plans/gentle-spinning-wigderson.md` §B.0, чтобы редактору не понадобился decompiler deal→plan).
+- **`spec/schemas/afbws/deal.record/pnl/event.v1.json`** — переведены на `channel`+`schema`; `deal.record` теперь несёт публичную проекцию `dealDetail`, а не `deal_state.v2.json`.
+- **`spec/schemas/afbws/common.v1.json`** — добавлены коды ошибок `forbidden`, `bf_offline`, `unsupported_action`.
+- **`python/afb_bf_protocol/amend_rules.py`** — новая `editable_fields_for(ctx, fields=...)`: какие поля матрицы редактируемы в текущей фазе/статусе без пробного сравнения — нужна public-проектору AFB для `dealDetail.editable_fields`.
+- Исправлен баг `ts/tools/generate-models.mjs`: `$defs`-алиас на корень другого файла целиком (без фрагмента) собирал битый ключ типа — обойдено прямым `$ref`.
+- **Перегенерировано**: `taxonomy.py` / `MESSAGES.md` / `ts/src/*` / `models_generated.py` / schemas mirror.
+- **Версии**: bump до `2.2.0` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`. Версия провода (`afb.execution.v1`) не менялась.
+
+Бэкенд/фронтенд AFB для этой миграции — отдельно, вне тегов протокола; capability `afbws.deal.channel.v1` пока нигде не рекламируется (backend `BACKEND_SUPPORTED_CAPABILITIES` её не содержит) — включение отложено до завершения фронтенд-части и офлайн-миграции `state/deals/**/*.yaml`.
+
 ## v2.1.2 — 2026-07-27
 
 PATCH (по явному решению релиза; формально новый тип сообщения — MINOR): канонический NACK на `broker.*` команды — `broker.error`. Обратно совместимо: старые BF могут по-прежнему слать `deal.rejected` на broker-команды; потребители принимают оба типа на переходный период.
