@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: b876b8fccb95604d3a1e8f98e20eaa0d16ab7d08ac60e66cbec652900708087c
+# source-hash: edf75f0cb1f24ba62447415cd853571ceec8c7d2a5468534e1d6c0a15dd348b0
 
 from __future__ import annotations
 
@@ -91,6 +91,17 @@ AfbwsCommonV1RequestId: TypeAlias = str
 
 
 AfbwsCommonV1Root: TypeAlias = Any
+
+
+class AfbwsDealChannelV1DealOverrideEntry(TypedDict):
+    at: str
+    plan_schema: str
+    value: Any
+
+
+class AfbwsDealChannelV1DealRealizedPnl(TypedDict):
+    value: str | None
+    degraded: Literal["missing_price", "missing_step_price"] | None
 
 
 class AfbwsTradeplanChannelV1ArchiveRequest(TypedDict):
@@ -714,6 +725,11 @@ DealAmendField: TypeAlias = Literal[
 ]
 
 
+AfbwsDealChannelV1DealOverrides: TypeAlias = dict[
+    DealAmendField, AfbwsDealChannelV1DealOverrideEntry
+]
+
+
 class DealAmendPayload(TypedDict):
     """
     Re-define an existing deal in place. `deal` is the full new definition (its `revision` must be `base_revision` + 1, same `deal_id`). BF gates the change against the allowed-edit matrix (amend_rules) using the deal's live execution phase, then lets reconcile bring broker orders to the new desired state. Unlike deal.publish, the deal's status and observed execution state (orders/positions/phase) are preserved.
@@ -762,11 +778,12 @@ class DealDetail(TypedDict):
     ticker: str
     direction: Literal["long", "short"]
     sizing: NotRequired[DealSizingDisplay]
+    realized_pnl: NotRequired[AfbwsDealChannelV1DealRealizedPnl]
     created_at: str
     updated_at: str
     deal: DealPublicV1
     editable_fields: list[DealAmendField]
-    overridden_fields: list[DealAmendField]
+    overrides: AfbwsDealChannelV1DealOverrides
 
 
 class DealErrorResponse(TypedDict):
@@ -1083,6 +1100,7 @@ class DealSummary(TypedDict):
     ticker: str
     direction: Literal["long", "short"]
     sizing: NotRequired[DealSizingDisplay]
+    realized_pnl: NotRequired[AfbwsDealChannelV1DealRealizedPnl]
     created_at: str
     updated_at: str
 

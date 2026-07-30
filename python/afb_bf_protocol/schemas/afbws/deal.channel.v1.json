@@ -40,6 +40,38 @@
         "required_cash": { "type": "string" }
       }
     },
+    "dealRealizedPnl": {
+      "type": "object",
+      "title": "AFB-computed realized P&L (rubles), projected from the internal source_refs.afb_pnl ledger — never the raw ledger itself (computed_at/bf_realized_points/schema stay internal). Absent entirely means no ledger yet (deal predates it, or hasn't had an exit fill) — distinct from a present-but-degraded value.",
+      "required": ["value", "degraded"],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": ["string", "null"],
+          "description": "Decimal string, rubles. Null exactly when degraded is set — a fill's money multiplier (step_price/price_step or lot_size) couldn't be resolved."
+        },
+        "degraded": { "enum": [null, "missing_price", "missing_step_price"] }
+      },
+      "if": { "properties": { "degraded": { "const": null } } },
+      "else": { "properties": { "value": { "const": null } } }
+    },
+    "dealOverrideEntry": {
+      "type": "object",
+      "title": "One entry of deal.source.overrides (see plans/gentle-spinning-wigderson.md §B.0) — value is a fragment in the OWNING PLAN's shape (not the compiled deal), so the existing plan editor can render it without a deal->plan decompiler.",
+      "required": ["at", "plan_schema", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "at": { "type": "string", "minLength": 1 },
+        "plan_schema": { "type": "string", "minLength": 1, "description": "afb.tradeplan.v1 or afb.tradeplan.v2 — the schema `value` is shaped for. A stale entry whose plan_schema no longer matches the current plan is dropped server-side (read_overrides), never sent to the frontend." },
+        "value": { "description": "Plan-shaped fragment for this field (e.g. v1 entry -> entry_condition, v1 sizing -> {quantity_mode,quantity_value}, v2 entry -> entries, stop_loss/take_profit/execution_policy -> same-named plan key). Deliberately untyped here — its shape depends on plan_schema and field, not on this channel." }
+      }
+    },
+    "dealOverrides": {
+      "type": "object",
+      "title": "deal.source.overrides, keyed by amendField. The editor derives its badge list from Object.keys(overrides) — the map itself carries the plan-shaped values (see dealOverrideEntry), not just the field names.",
+      "propertyNames": { "$ref": "#/$defs/amendField" },
+      "additionalProperties": { "$ref": "#/$defs/dealOverrideEntry" }
+    },
     "dealSummary": {
       "type": "object",
       "title": "Minimal row/card projection for list — no compiled deal body, no source_refs, no journals.",
@@ -55,6 +87,7 @@
         "ticker": { "type": "string" },
         "direction": { "enum": ["long", "short"] },
         "sizing": { "$ref": "#/$defs/dealSizingDisplay" },
+        "realized_pnl": { "$ref": "#/$defs/dealRealizedPnl" },
         "created_at": { "type": "string" },
         "updated_at": { "type": "string" }
       }
@@ -62,7 +95,7 @@
     "dealDetail": {
       "type": "object",
       "title": "Full editor payload for get() — dealSummary + the compiled public deal + phase-B amendability projection.",
-      "required": ["deal_id", "revision", "status", "execution_phase", "bf_id", "tradeplan_id", "ticker", "direction", "created_at", "updated_at", "deal", "editable_fields", "overridden_fields"],
+      "required": ["deal_id", "revision", "status", "execution_phase", "bf_id", "tradeplan_id", "ticker", "direction", "created_at", "updated_at", "deal", "editable_fields", "overrides"],
       "additionalProperties": false,
       "properties": {
         "deal_id": { "$ref": "#/$defs/dealId" },
@@ -74,11 +107,12 @@
         "ticker": { "type": "string" },
         "direction": { "enum": ["long", "short"] },
         "sizing": { "$ref": "#/$defs/dealSizingDisplay" },
+        "realized_pnl": { "$ref": "#/$defs/dealRealizedPnl" },
         "created_at": { "type": "string" },
         "updated_at": { "type": "string" },
         "deal": { "$ref": "deal.public.v1.json" },
         "editable_fields": { "type": "array", "items": { "$ref": "#/$defs/amendField" } },
-        "overridden_fields": { "type": "array", "items": { "$ref": "#/$defs/amendField" } }
+        "overrides": { "$ref": "#/$defs/dealOverrides" }
       }
     },
     "dealResult": {

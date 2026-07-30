@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: b876b8fccb95604d3a1e8f98e20eaa0d16ab7d08ac60e66cbec652900708087c
+ * source-hash: edf75f0cb1f24ba62447415cd853571ceec8c7d2a5468534e1d6c0a15dd348b0
  */
 
 /**
@@ -859,11 +859,12 @@ export interface DealDetail {
   ticker: string;
   direction: 'long' | 'short';
   sizing?: DealSizingDisplay;
+  realized_pnl?: AfbwsDealChannelV1_DealRealizedPnl;
   created_at: string;
   updated_at: string;
   deal: DealPublicV1;
   editable_fields: DealAmendField[];
-  overridden_fields: DealAmendField[];
+  overrides: AfbwsDealChannelV1_DealOverrides;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -872,6 +873,17 @@ export interface DealDetail {
 export interface DealSizingDisplay {
   lots?: number;
   required_cash?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsDealChannelV1_DealRealizedPnl".
+ */
+export interface AfbwsDealChannelV1_DealRealizedPnl {
+  /**
+   * Decimal string, rubles. Null exactly when degraded is set — a fill's money multiplier (step_price/price_step or lot_size) couldn't be resolved.
+   */
+  value: string | null;
+  degraded: null | 'missing_price' | 'missing_step_price';
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1040,6 +1052,30 @@ export interface ConditionV1_ImmediateExpr {
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsDealChannelV1_DealOverrides".
+ */
+export interface AfbwsDealChannelV1_DealOverrides {
+  [k: string]: AfbwsDealChannelV1_DealOverrideEntry;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsDealChannelV1_DealOverrideEntry".
+ */
+export interface AfbwsDealChannelV1_DealOverrideEntry {
+  at: string;
+  /**
+   * afb.tradeplan.v1 or afb.tradeplan.v2 — the schema `value` is shaped for. A stale entry whose plan_schema no longer matches the current plan is dropped server-side (read_overrides), never sent to the frontend.
+   */
+  plan_schema: string;
+  /**
+   * Plan-shaped fragment for this field (e.g. v1 entry -> entry_condition, v1 sizing -> {quantity_mode,quantity_value}, v2 entry -> entries, stop_loss/take_profit/execution_policy -> same-named plan key). Deliberately untyped here — its shape depends on plan_schema and field, not on this channel.
+   */
+  value: {
+    [k: string]: unknown;
+  };
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealListRequest".
  */
 export interface DealListRequest {
@@ -1071,6 +1107,7 @@ export interface DealSummary {
   ticker: string;
   direction: 'long' | 'short';
   sizing?: DealSizingDisplay;
+  realized_pnl?: AfbwsDealChannelV1_DealRealizedPnl;
   created_at: string;
   updated_at: string;
 }

@@ -41,7 +41,7 @@ _DETAIL = {
     **_SUMMARY,
     "deal": _PUBLIC_DEAL_V1,
     "editable_fields": ["sizing"],
-    "overridden_fields": [],
+    "overrides": {},
 }
 
 
@@ -412,6 +412,85 @@ def test_ack_request_and_response_valid(registry):
         "results": [{"schema": "afbws.deal.ack_result.v1", "notification_id": "deal-1:status_changed:t1", "status": "ok"}],
     }
     _validator("ackResponse", registry).validate(resp)  # does not raise
+
+
+# --- dealSummary/dealDetail: realized_pnl, overrides -------------------------
+
+def test_summary_and_detail_optional_realized_pnl(registry):
+    with_pnl = {**_SUMMARY, "realized_pnl": {"value": "123.45", "degraded": None}}
+    _validator("dealSummary", registry).validate(with_pnl)  # does not raise
+    _validator("dealSummary", registry).validate(_SUMMARY)  # absent is also valid
+
+
+def test_realized_pnl_degraded_value_must_be_null(registry):
+    from jsonschema import ValidationError
+
+    bad = {"value": "1", "degraded": "missing_price"}
+    with pytest.raises(ValidationError):
+        _validator("dealRealizedPnl", registry).validate(bad)
+    ok = {"value": None, "degraded": "missing_price"}
+    _validator("dealRealizedPnl", registry).validate(ok)  # does not raise
+
+
+def test_realized_pnl_unknown_degraded_code_rejected(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("dealRealizedPnl", registry).validate({"value": None, "degraded": "totally_unknown"})
+
+
+def test_detail_overrides_carries_plan_shaped_value(registry):
+    detail = {
+        **_DETAIL,
+        "overrides": {
+            "stop_loss": {
+                "at": "2026-07-26T18:04:11+03:00",
+                "plan_schema": "afb.tradeplan.v1",
+                "value": {"condition_type": "price", "price_value": 281.5},
+            }
+        },
+    }
+    _validator("dealDetail", registry).validate(detail)  # does not raise
+
+
+def test_detail_overrides_rejects_instrument_side_keys(registry):
+    """overrides is keyed by amendField — instrument/side never appear (a
+    deal never overrides those, see gentle-spinning-wigderson.md §3.4)."""
+    from jsonschema import ValidationError
+
+    detail = {
+        **_DETAIL,
+        "overrides": {"instrument": {"at": "t1", "plan_schema": "afb.tradeplan.v1", "value": {}}},
+    }
+    with pytest.raises(ValidationError):
+        _validator("dealDetail", registry).validate(detail)
+
+
+def test_override_entry_requires_at_and_plan_schema(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("dealOverrideEntry", registry).validate({"value": {}})
+
+
+def test_detail_requires_overrides_key(registry):
+    """overrides replaced overridden_fields — dealDetail must not accept the
+    old key name as a substitute (additionalProperties: false already covers
+    this, this pins the required-list contract explicitly)."""
+    from jsonschema import ValidationError
+
+    bad = {k: v for k, v in _DETAIL.items() if k != "overrides"}
+    with pytest.raises(ValidationError):
+        _validator("dealDetail", registry).validate(bad)
+
+
+def test_detail_rejects_legacy_overridden_fields_key(registry):
+    from jsonschema import ValidationError
+
+    bad = {k: v for k, v in _DETAIL.items() if k != "overrides"}
+    bad["overridden_fields"] = []
+    with pytest.raises(ValidationError):
+        _validator("dealDetail", registry).validate(bad)
 
 
 # --- no `type` field anywhere ------------------------------------------
