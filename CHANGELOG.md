@@ -2,9 +2,9 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
-## v2.2.0 — 2026-07-30
+## v2.1.3 — 2026-07-30
 
-MINOR: часть 1 (протокол) плана `deal-channel-migration_97a53aa5` — schema-first канал `deal` для AFB frontend↔backend и обратно совместимое добавление `source.tradeplan_id` в `afb.deal.v1/v2` (это единственная часть, затрагивающая провод AFB↔BF, отсюда MINOR, а не PATCH).
+PATCH (по явному решению релиза): часть 1 (протокол) плана `deal-channel-migration_97a53aa5` — schema-first канал `deal` для AFB frontend↔backend (AFB-only, никогда не пересекает канал AFB↔BF) и типизация `source` в `afb.deal.v1/v2`. `source` и раньше принимался на проводе как открытый нетипизированный объект (схема не ограничивала его `additionalProperties`) — `tradeplan_id` формализует уже фактически передаваемое поле, а не добавляет новое обязательство для BF; расширение остаётся необязательным и не меняет поведение существующих BF.
 
 - **`spec/schemas/deal.v1.json`, `spec/schemas/deal.v2.json`** — новый опциональный `source` (`tradeplan_id` — единственный источник истины связи сделка→план; legacy `kind`/`draft_id` описаны как deprecated, для старых непромигрированных записей). Не в корневом `required` — старые AFB продолжают публиковать сделки без `source` или с legacy-полями.
 - **`spec/schemas/afbws/deal.public.v1.json`** (новый) — строгая public-проекция `ExecutionDeal` (v1/v2): обязательный `source.tradeplan_id`, без `owner`/`archive_reason`/compile-метаданных/`source.kind`/`draft_id`.
@@ -14,7 +14,7 @@ MINOR: часть 1 (протокол) плана `deal-channel-migration_97a53a
 - **`python/afb_bf_protocol/amend_rules.py`** — новая `editable_fields_for(ctx, fields=...)`: какие поля матрицы редактируемы в текущей фазе/статусе без пробного сравнения — нужна public-проектору AFB для `dealDetail.editable_fields`.
 - Исправлен баг `ts/tools/generate-models.mjs`: `$defs`-алиас на корень другого файла целиком (без фрагмента) собирал битый ключ типа — обойдено прямым `$ref`.
 - **Перегенерировано**: `taxonomy.py` / `MESSAGES.md` / `ts/src/*` / `models_generated.py` / schemas mirror.
-- **Версии**: bump до `2.2.0` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`. Версия провода (`afb.execution.v1`) не менялась.
+- **Версии**: bump до `2.1.3` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`. Версия провода (`afb.execution.v1`) не менялась.
 
 Бэкенд/фронтенд AFB для этой миграции — отдельно, вне тегов протокола; capability `afbws.deal.channel.v1` пока нигде не рекламируется (backend `BACKEND_SUPPORTED_CAPABILITIES` её не содержит) — включение отложено до завершения фронтенд-части и офлайн-миграции `state/deals/**/*.yaml`.
 
