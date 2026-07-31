@@ -59,6 +59,7 @@
             "additionalProperties": false,
             "properties": {
               "percent": { "$ref": "../deal.v1.json#/$defs/decimalString" },
+              "logic": { "$ref": "../deal.v2.json#/$defs/legJoin" },
               "condition": { "$ref": "../deal.v2.json#/$defs/conditionNode" }
             }
           }
@@ -78,6 +79,7 @@
         "additionalProperties": false,
         "properties": {
           "percent": { "$ref": "../deal.v1.json#/$defs/decimalString" },
+          "logic": { "$ref": "../deal.v2.json#/$defs/legJoin" },
           "condition": { "$ref": "../deal.v2.json#/$defs/conditionNode" }
         }
       }

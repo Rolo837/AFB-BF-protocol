@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: edf75f0cb1f24ba62447415cd853571ceec8c7d2a5468534e1d6c0a15dd348b0
+# source-hash: b5e4e08ff5ffbc7ec02167fa333849fffdf94005b51ff584191736e257452469
 
 from __future__ import annotations
 
@@ -916,6 +916,7 @@ class DealPublicDealV2(TypedDict):
 
 class DealPublicExitListItem(TypedDict):
     percent: NotRequired[DealV1DecimalString]
+    logic: NotRequired[DealV2LegJoin]
     condition: DealV2ConditionNode
 
 
@@ -1223,7 +1224,7 @@ class DealV1Target(TypedDict):
 
 class DealV2(TypedDict):
     """
-    Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string). Sum of percents per role resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from deal.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_*/crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.
+    Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string) and an optional `logic` (`#/$defs/legJoin`) joining it to the PRECEDING element in the same list — see `legJoin` for the full grammar (groups/buckets, `and`/`or` precedence, `percent` placement). Sum of percents per bucket resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from deal.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_*/crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.
     """
 
     schema: Literal["afb.deal.v2"]
@@ -1375,10 +1376,14 @@ Wire-level condition node: same vocabulary as condition.v1.json#/$defs/condition
 
 class DealV2ExitListItem(TypedDict):
     percent: NotRequired[DealV1DecimalString]
+    logic: NotRequired[DealV2LegJoin]
     condition: DealV2ConditionNode
 
 
 DealV2ExitList: TypeAlias = list[DealV2ExitListItem]
+
+
+DealV2LegJoin: TypeAlias = Literal["split", "and", "or"]
 
 
 class Deals(TypedDict):
@@ -1426,11 +1431,13 @@ class Entry(TypedDict):
 
 class Entry1(TypedDict):
     percent: NotRequired[DealV1DecimalString]
+    logic: NotRequired[DealV2LegJoin]
     condition: TradeplanV2TpConditionNode
 
 
 class EntryItem(TypedDict):
     percent: NotRequired[DealV1DecimalString]
+    logic: NotRequired[DealV2LegJoin]
     condition: DealV2ConditionNode
 
 
@@ -2092,7 +2099,7 @@ class TradePlanV1(TypedDict):
 
 class TradePlanV2(TypedDict):
     """
-    AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with one extension: the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef.
+    AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with one extension: the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
     """
 
     id: str
@@ -2281,6 +2288,7 @@ class TradeplanV2TpConditionNode(TypedDict):
 
 class TradeplanV2TpExitListItem(TypedDict):
     percent: NotRequired[DealV1DecimalString]
+    logic: NotRequired[DealV2LegJoin]
     condition: TradeplanV2TpConditionNode
 
 

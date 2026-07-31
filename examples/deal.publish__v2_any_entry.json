@@ -1,0 +1,76 @@
+{
+  "protocol": "afb.execution.v1",
+  "message_id": "584ce60e-3a68-4652-8556-e792d12d3960",
+  "correlation_id": null,
+  "causation_id": null,
+  "sender": "afb",
+  "recipient": "finam-arena-316",
+  "type": "deal.publish",
+  "created_at": "2026-06-26T12:00:00+03:00",
+  "expires_at": "2026-06-26T12:05:00+03:00",
+  "idempotency_key": "afb:deal.publish__v2_any_entry:fixture-0001",
+  "payload_hash": "09d418cba56e29deb365baa6c86068868502aff09545842a9da52c2543d3d4bb",
+  "payload": {
+    "deal": {
+      "schema": "afb.deal.v2",
+      "deal_id": "deal-71a4-4d3e-8f56:finam-arena-316",
+      "revision": 1,
+      "owner": {
+        "user_id": "id_9139066366"
+      },
+      "target": {
+        "bf_id": "finam-arena-316",
+        "broker": "finam-arena",
+        "instrument": {
+          "exchange": "MOEX",
+          "board": "RFUD",
+          "ticker": "GDU6",
+          "market": "futures",
+          "price_step": "0.1",
+          "step_price": "7.3439"
+        }
+      },
+      "direction": "long",
+      "entry": [
+        {
+          "condition": {
+            "node_type": "event",
+            "id": "entry_1",
+            "op": "touch",
+            "left": {
+              "source": "price",
+              "field": "last"
+            },
+            "right": {
+              "const": "4202.1"
+            }
+          }
+        },
+        {
+          "logic": "or",
+          "condition": {
+            "node_type": "event",
+            "id": "entry_2",
+            "op": "touch",
+            "left": {
+              "source": "price",
+              "field": "last"
+            },
+            "right": {
+              "const": "4180.0"
+            }
+          }
+        }
+      ],
+      "sizing": {
+        "mode": "lots",
+        "value": "5"
+      }
+    }
+  },
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "afb-test-1",
+    "value": "3QuBe03U8eRduE6eGFe--BgTj557G6f3cuBfkYynbv1Jm_Sh_NUkAaDpDeqHySuk8L2nQ4hw9m0RyYlBnel_CQ"
+  }
+}

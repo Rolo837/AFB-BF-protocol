@@ -1,0 +1,48 @@
+{
+  "id": "tradeplan-6f2a-4d18",
+  "ticker": "GDU6",
+  "status": "draft",
+  "direction": "long",
+  "schema": "afb.tradeplan.v2",
+  "activated_at": "",
+  "closed_at": "",
+  "entries": [
+    {
+      "condition": {
+        "left": {"source": "price"},
+        "right": {"const": "4202.1"}
+      }
+    },
+    {
+      "logic": "or",
+      "condition": {
+        "left": {"source": "price"},
+        "right": {"const": "4180.0"}
+      }
+    }
+  ],
+  "stop_loss": [
+    {
+      "condition": {
+        "op": "below",
+        "left": {"source": "price"},
+        "right": {"const": "4150.0"}
+      }
+    },
+    {
+      "logic": "and",
+      "condition": {
+        "op": "crosses_below",
+        "left": {"source": "indicator", "type": "wma", "params": {"length": 20}},
+        "right": {"source": "indicator", "type": "kama", "params": {"length": 10}}
+      }
+    }
+  ],
+  "sizing": {
+    "mode": "lots",
+    "value": "5"
+  },
+  "deal_id": "",
+  "created_at": "2026-06-26T12:00:00+03:00",
+  "updated_at": "2026-06-26T12:00:00+03:00"
+}

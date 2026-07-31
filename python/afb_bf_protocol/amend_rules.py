@@ -156,12 +156,18 @@ def _sides(deal: dict[str, Any]) -> tuple[str, ...]:
 
 def _entry_triggers(deal: dict[str, Any]) -> Any:
     """Entry condition(s), excluding ``side`` (governed separately) and the
-    deprecated per-leg ``order`` block (BF-only concern, not part of the deal)."""
+    deprecated per-leg ``order`` block (BF-only concern, not part of the
+    deal). Includes each leg's ``percent`` and ``logic`` (the infix join to
+    the preceding leg — ``split``/``and``/``or``, absent/``None`` meaning
+    ``split``, see deal.v2.json#/$defs/legJoin) so a plain grouping/bucketing
+    change is treated as an ``entry`` edit, same phase gate as changing the
+    conditions themselves."""
     entry = deal.get("entry")
     if _is_v2(deal) and isinstance(entry, list):
         return [
             {
                 "percent": (e or {}).get("percent"),
+                "logic": (e or {}).get("logic"),
                 "condition": (e or {}).get("condition"),
             }
             for e in entry
