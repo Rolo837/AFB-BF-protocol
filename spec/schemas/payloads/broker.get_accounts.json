@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.get_accounts.json",
+  "title": "payload: broker.get_accounts",
+  "description": "Request the full list of accounts visible to BF's broker token (not just its own trading account) — see belphegor/reporting/account_directory.py::AccountDirectory. Only sent by AFB after the BF instance advertised daemon.capabilities.features.multi_account (see daemon.capabilities.json). AFB always sends an empty payload today; account_ids is reserved for a future partial-refresh use and is not currently read by BF.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "account_ids": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Reserved: filter to specific account ids. Absent/empty means all accounts."
+    }
+  }
+}

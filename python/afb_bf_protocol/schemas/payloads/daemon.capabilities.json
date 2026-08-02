@@ -50,6 +50,10 @@
         "type": "string"
       }
     },
+    "account_id": {
+      "type": "string",
+      "description": "BF's single trading account (brokers/port.py::account_id) — the account this BF instance executes orders on. When features.multi_account is true, the full account list/snapshots are fetched separately via broker.get_accounts, not from this field."
+    },
     "account_aliases": {
       "type": "array",
       "items": {
@@ -100,6 +104,10 @@
         },
         "catalog": {
           "type": "boolean"
+        },
+        "multi_account": {
+          "type": "boolean",
+          "description": "This BF build implements broker.get_accounts/broker.accounts (see payloads/broker.accounts.json) — read-only visibility into every account the broker token can see, not just the trading account named by account_id above. Execution still happens only on account_id in this phase. AFB gates sending broker.get_accounts on this flag being true; absent/false means fall back to the deprecated broker.get_account/broker.account pair."
         }
       },
       "additionalProperties": true

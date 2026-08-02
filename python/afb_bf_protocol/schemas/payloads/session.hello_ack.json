@@ -30,6 +30,17 @@
     },
     "margin_trading_bf": {
       "type": "boolean"
+    },
+    "features": {
+      "type": "object",
+      "description": "AFB-side capability flags for this session — read by BF's afb_client (see afb_client/ws_client.py, alongside dry_run/margin_trading above) to decide what it may send this AFB.",
+      "properties": {
+        "multi_account": {
+          "type": "boolean",
+          "description": "This AFB build understands broker.accounts (see payloads/broker.accounts.json) and negotiated_support for it. When true, BF sends broker.accounts (in response to broker.get_accounts, and unsolicited after every reconcile pass) and stops sending the deprecated broker.account to this session. Absent/false means BF must keep sending broker.account only."
+        }
+      },
+      "additionalProperties": true
     }
   },
   "additionalProperties": true,

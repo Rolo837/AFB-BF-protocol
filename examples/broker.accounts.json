@@ -1,0 +1,65 @@
+{
+  "protocol": "afb.execution.v1",
+  "message_id": "75f6b2c5-0504-404e-8b5a-48d6fcf15f35",
+  "correlation_id": null,
+  "causation_id": null,
+  "sender": "finam-arena-316",
+  "recipient": "afb",
+  "type": "broker.accounts",
+  "created_at": "2026-06-26T12:00:00+03:00",
+  "expires_at": "2026-06-26T12:05:00+03:00",
+  "idempotency_key": "finam-arena-316:broker.accounts:fixture-0001",
+  "payload_hash": "2189559eac381b98c3326e7591aa3effa8143a6e795b4d3817fba0a211e5e615",
+  "payload": {
+    "default_account_id": "1899011",
+    "as_of": "2026-08-01T06:33:00+03:00",
+    "accounts": [
+      {
+        "account_id": "1899011",
+        "tradable": true,
+        "readonly": false,
+        "status": "ok",
+        "equity": "152340.11",
+        "cash": [
+          {
+            "currency": "RUB",
+            "value": "12000.00"
+          }
+        ],
+        "positions": [
+          {
+            "quantity": 10,
+            "average_price": "280.50",
+            "current_price": "281.00",
+            "unrealized_pnl": "5.00",
+            "instrument": {
+              "exchange": "MOEX",
+              "board": "TQBR",
+              "ticker": "SBER",
+              "market": "stock"
+            }
+          }
+        ]
+      },
+      {
+        "account_id": "1899012",
+        "tradable": false,
+        "readonly": false,
+        "status": "ok",
+        "equity": "4300.00",
+        "cash": [
+          {
+            "currency": "RUB",
+            "value": "4300.00"
+          }
+        ],
+        "positions": []
+      }
+    ]
+  },
+  "signature": {
+    "alg": "Ed25519",
+    "key_id": "belphegor-test-1",
+    "value": "vceaHCbqgkhnRCKKfy-y9Qs-a2uGSxD5yb6QF82pa1X5Rw_EtlS-6lXl_7FH9Puq_SGuEGYjalmF_U-2OrTBDA"
+  }
+}

@@ -239,15 +239,22 @@ stateDiagram-v2
 
 | Команда AFB → BF | Успех BF → AFB | Описание |
 |------------------|----------------|----------|
-| `broker.get_account` | `broker.account` | баланс и параметры счёта |
-| `broker.get_orders` | `broker.orders` | список активных ордеров |
+| `broker.get_accounts` | `broker.accounts` | полный список счетов брокерского токена (не только торговый) — `default_account_id`, `as_of`, `accounts[]` с `equity`/`cash`/`positions` по каждому. Только `default_account_id` — `tradable`; остальные счета read-only в этой фазе. Отправляется только при взаимно согласованной `features.multi_account` (см. ниже) |
+| ~~`broker.get_account`~~ | ~~`broker.account`~~ | **DEPRECATED**, заменено `broker.get_accounts`/`broker.accounts` — баланс и параметры только счёта, на котором BF торгует; несёт исторический дубль `account_id`/`broker_account_id` одного и того же счёта |
+| `broker.get_orders` | `broker.orders` | список активных ордеров (счёта, на котором BF торгует) |
 | `broker.get_catalog` | `broker.catalog` | инструменты биржи/рынка |
-| `broker.get_instrument` | `broker.instrument` | параметры конкретного инструмента |
+| ~~`broker.get_instrument`~~ | ~~`broker.instrument`~~ | **DEPRECATED**, заменено уже существующей парой `broker.resolve_instrument`/`broker.instrument_resolved` — параметры конкретного инструмента |
 | `broker.resolve_instrument` | `broker.instrument_resolved` | резолюция инструмента для сделки |
 
 Ошибка любой `broker.*` команды → **`broker.error`** с `code`, `command_type` (тип исходной команды), опционально `message`/`at`. Сопоставление с запросом — через `correlation_id` (и `idempotency_key` на запросе).
 
 Все запросы используют `idempotency_key` и `correlation_id` для сопоставления ответа с запросом.
+
+**Мультисчётность (`features.multi_account`).** Один коннектор BF может видеть несколько счетов брокерского токена, но исполняет заявки только на одном — своём торговом (`daemon.capabilities.account_id` / `default_account_id` в `broker.accounts`). Видимость остальных read-only и не меняет исполнение. Согласование обязательно двустороннее, чтобы не сломать линк со старой стороной:
+
+- BF объявляет поддержку в `daemon.capabilities.features.multi_account: true`; отсутствие/`false` — старый BF, шлёт только `broker.get_account`/`broker.account`.
+- AFB объявляет поддержку в `session.hello_ack.features.multi_account: true`; только тогда BF шлёт `broker.get_accounts` в ответ и `broker.accounts` — как ответ, так и незапрошенный push после каждого reconcile. Той же сессии `broker.account` **не отправляется** — ровно один источник данных о счёте на сессию.
+- Если это поле не согласовано хотя бы одной стороной, обе продолжают работать по устаревшей паре `broker.get_account`/`broker.account`. Отправка `broker.accounts` стороне, не объявившей `multi_account`, недопустима — на приёме неизвестный тип обрывает BF-линк (`verify_incoming` отклоняет любой тип вне `BF_EVENT_TYPES`, соединение закрывается).
 
 ---
 
@@ -395,6 +402,14 @@ AFB↔BF. Это AFB-сторонняя сущность — черновик, �
 шаблон ТП напрямую и однозначно связан со схемой сделки, которую AFB из него
 компилирует — контракт `compile(tradeplan.vN) → deal.vN` проверяется тестами
 в обоих репозиториях.
+
+Оба ТП несут опциональные `connector` (bf_id коннектора публикации) и
+`account_id` (счёт брокера у этого коннектора; пусто/отсутствует — дефолтный
+торговый счёт коннектора, резолвится AFB на лету при публикации, не
+персистится задним числом для старых планов). При компиляции AFB копирует
+`account_id` в `target.account_id` компилируемой сделки (см. §4.5 про
+`broker.get_accounts`/`broker.accounts` и `deal.v1.json#/$defs/target`); BF
+сверяет его со своим торговым счётом, если поле присутствует.
 
 Версия шаблона определяется полем `schema` внутри самого объекта ТП
 (`"afb.tradeplan.v1"` / `"afb.tradeplan.v2"`), а **не** полем протокола нигде

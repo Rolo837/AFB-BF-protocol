@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.get_orders.json",
+  "title": "payload: broker.get_orders",
+  "description": "AFB always sends an empty payload; no filters exist today.",
+  "type": "object",
+  "additionalProperties": true
+}

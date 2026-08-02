@@ -31,6 +31,11 @@
       "minLength": 1,
       "description": "AFB bf_id (real connector or virtual) used when publishing this plan. Omitted when user has neither trade nor virtual capability."
     },
+    "account_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Broker account of `connector` this plan publishes to. Omitted/empty means the connector's default (trading) account — resolved on the fly at publish time, not backfilled. See deal.v1.json#/$defs/target/properties/account_id for the compiled deal's copy of this value."
+    },
     "delivery_at": {
       "type": "string",
       "description": "AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect."

@@ -1,77 +1,161 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 0e71cf0fb2f0ee47088ff4f7e43630d8a8ee7d0bd7048152c00af03b45844901
+# source-hash: 7496354046eb599d4c587bf3c4e89dc9d2c43b73a3ae9b690910464b5b80b04b
 
 from __future__ import annotations
 
 from typing import Any, Literal, NotRequired, TypeAlias, TypedDict
 
+AccountAccountId: TypeAlias = str
 
-class AccountCatalogPush(TypedDict):
-    """
-    Pure proxy of BF's `broker.catalog` payload (see belphegor/proxy.py). `data` untyped — BF owns the shape, unschematized on the wire.
-    """
 
-    type: Literal["catalog"]
-    bf_id: str
-    data: dict[str, Any]
+AccountBfId: TypeAlias = str
+
+
+class AccountErrorResponse(TypedDict):
+    channel: Literal["account"]
+    schema: Literal["afbws.account.error.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    code: AfbwsCommonV1ErrorCode
+    message: str
+    details: NotRequired[dict[str, Any]]
 
 
 class AccountEventRecord(TypedDict):
     logged_at: str
-    bf_id: str
+    bf_id: AccountBfId
     deal_id: NotRequired[str | None]
     category: Literal["deal", "order", "position", "condition"]
     event: str
     data: NotRequired[dict[str, Any] | None]
 
 
-class AccountEventsPush(TypedDict):
-    """
-    Journal of incoming BF events (JSONL direction=in) for one bf_id/day. See ExecutionService.get_account_events_for_user and event_translator.envelope_to_event_record (AFB/backend/trade/).
-    """
+class AccountEventsRequest(TypedDict):
+    channel: Literal["account"]
+    schema: Literal["afbws.account.events.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    bf_id: AccountBfId
+    date: NotRequired[str]
 
-    type: Literal["events"]
-    bf_id: str
+
+class AccountEventsResponse(TypedDict):
+    channel: Literal["account"]
+    schema: Literal["afbws.account.events.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    bf_id: AccountBfId
     date: str
-    data: list[AccountEventRecord]
+    items: list[AccountEventRecord]
 
 
-class AccountInstrumentPush(TypedDict):
-    """
-    Pure proxy of BF's `broker.instrument` payload (see belphegor/proxy.py). `data` untyped — BF owns the shape, unschematized on the wire.
-    """
+class AccountGetRequest(TypedDict):
+    channel: Literal["account"]
+    schema: Literal["afbws.account.get.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    bf_id: AccountBfId
+    account_id: NotRequired[AccountAccountId]
+    force: NotRequired[bool]
 
-    type: Literal["instrument"]
-    bf_id: str
-    data: dict[str, Any]
+
+class AccountGetResponse(TypedDict):
+    channel: Literal["account"]
+    schema: Literal["afbws.account.get.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: AccountSnapshot
+
+
+class AccountListRequest(TypedDict):
+    channel: Literal["account"]
+    schema: Literal["afbws.account.list.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    bf_id: NotRequired[AccountBfId]
+    force: NotRequired[bool]
+
+
+class AccountListResponse(TypedDict):
+    channel: Literal["account"]
+    schema: Literal["afbws.account.list.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[AccountSnapshot]
+
+
+class AccountOrder(TypedDict):
+    order_id: str
+    deal_id: NotRequired[str]
+    symbol: NotRequired[str]
+    side: NotRequired[str]
+    role: NotRequired[str]
+    status: NotRequired[str]
+    quantity: NotRequired[int]
+    filled_quantity: NotRequired[int]
+    leg_index: NotRequired[int]
+    limit_price: NotRequired[str | None]
+    average_price: NotRequired[str | None]
+    client_order_id: NotRequired[str]
+    cancel_source: NotRequired[Literal["system", "broker"]]
+    updated_at: NotRequired[str]
+    error_code: NotRequired[str | None]
+    error_message: NotRequired[str | None]
 
 
 class AccountOrdersPush(TypedDict):
-    """
-    Pure proxy of BF's `broker.orders` payload (see belphegor/proxy.py). `data` untyped for the same reason as account.snapshot.v1.json — BF owns the shape, unschematized on the wire.
-    """
+    channel: Literal["account"]
+    schema: Literal["afbws.account.orders.push.v1"]
+    bf_id: AccountBfId
+    account_id: AccountAccountId
+    items: list[AccountOrder]
 
-    type: Literal["orders"]
-    bf_id: str
-    data: dict[str, Any]
-    revision: NotRequired[int]
+
+class AccountOrdersRequest(TypedDict):
+    channel: Literal["account"]
+    schema: Literal["afbws.account.orders.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    bf_id: AccountBfId
+    account_id: NotRequired[AccountAccountId]
+
+
+class AccountOrdersResponse(TypedDict):
+    channel: Literal["account"]
+    schema: Literal["afbws.account.orders.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    bf_id: AccountBfId
+    account_id: AccountAccountId
+    items: list[AccountOrder]
+
+
+class AccountSnapshot(TypedDict):
+    bf_id: AccountBfId
+    account_id: AccountAccountId
+    tradable: bool
+    readonly: bool
+    status: Literal["ok", "stale", "error"]
+    equity: str | None
+    cash: list[PayloadsBrokerAccountsCashBalance]
+    positions: list[PayloadsBrokerAccountsPosition]
     as_of: NotRequired[str]
-    source: NotRequired[str]
 
 
 class AccountSnapshotPush(TypedDict):
-    """
-    Pure proxy of BF's `broker.account` payload (see belphegor/proxy.py: `dict(envelope.payload)`) plus the AFB envelope wrapper. `data` is intentionally untyped — BF owns that shape and it isn't schematized anywhere (no afb.execution.v1 schema for broker.account); the frontend normalizes it defensively (see belphegor.ts normalizeCashBalances/normalizePositions) rather than trusting a strict shape.
-    """
+    channel: Literal["account"]
+    schema: Literal["afbws.account.snapshot.push.v1"]
+    bf_id: AccountBfId
+    default_account_id: AccountAccountId
+    items: list[AccountSnapshot]
 
-    type: Literal["account"]
-    bf_id: str
-    data: dict[str, Any]
-    revision: NotRequired[int]
-    as_of: NotRequired[str]
-    source: NotRequired[str]
+
+AccountChannelV1Message: TypeAlias = (
+    AccountListRequest
+    | AccountListResponse
+    | AccountGetRequest
+    | AccountGetResponse
+    | AccountOrdersRequest
+    | AccountOrdersResponse
+    | AccountEventsRequest
+    | AccountEventsResponse
+    | AccountErrorResponse
+    | AccountSnapshotPush
+    | AccountOrdersPush
+)
 
 
 AfbwsCommonV1ErrorCode: TypeAlias = Literal[
@@ -361,6 +445,28 @@ class Binding(TypedDict):
     symbol: NotRequired[str]
 
 
+class BrokerAccountPayload(TypedDict):
+    """
+    DEPRECATED: superseded by broker.accounts (see payloads/broker.accounts.json) — kept for wire compatibility with AFB builds that have not negotiated multi_account. Response to broker.get_account, describing only BF's single trading account. Matches belphegor/reporting/broker_snapshots.py::account_snapshot_payload() exactly, including the account_id/broker_account_id split that broker.accounts deliberately drops (see broker.accounts.json). Correlated via correlation_id.
+    """
+
+    account_id: str
+    broker_account_id: NotRequired[str]
+    equity: NotRequired[str | None]
+    cash: list[PayloadsBrokerAccountCashBalance]
+    positions: list[PayloadsBrokerAccountPosition]
+
+
+class BrokerAccountsPayload(TypedDict):
+    """
+    Response to broker.get_accounts and unsolicited push after every reconcile pass (see belphegor/reporting/account_directory.py::AccountDirectory, engine.py::_publish_broker_snapshots) — full list of accounts visible to BF's broker token. Only sent to AFB sessions that advertised session.hello_ack.features.multi_account; a BF instance that has negotiated multi_account with this AFB never sends the deprecated broker.account instead (see broker.account.json). Unlike broker.account, `accounts[].account_id` is the ONLY account identifier — no broker_account_id split, by design (the account_id/broker_account_id duplication in broker.account was judged confusing and deliberately not carried forward). Only `default_account_id` (BF's own trading account, self._account_id) is tradable in this phase — see brokers/port.py::account_id docstring; the rest are read-only until a later multi-account execution phase.
+    """
+
+    default_account_id: str
+    as_of: str
+    accounts: list[PayloadsBrokerAccountsAccount]
+
+
 class BrokerErrorPayload(TypedDict):
     """
     NACK for any broker.* command (get_account/get_orders/get_catalog/get_instrument/resolve_instrument). Correlated to the request via correlation_id.
@@ -370,6 +476,46 @@ class BrokerErrorPayload(TypedDict):
     code: str
     command_type: str
     message: NotRequired[str]
+
+
+class BrokerGetAccountPayload(TypedDict):
+    """
+    DEPRECATED: superseded by broker.get_accounts (see payloads/broker.get_accounts.json) — kept for wire compatibility with AFB builds that have not negotiated multi_account (see daemon.capabilities.json#/properties/features/properties/multi_account, session.hello_ack.json#/properties/features/properties/multi_account). AFB always sends an empty payload; no fields are read by BF (belphegor/plan_engine/engine.py::_get_account).
+    """
+
+
+class BrokerGetAccountsPayload(TypedDict):
+    """
+    Request the full list of accounts visible to BF's broker token (not just its own trading account) — see belphegor/reporting/account_directory.py::AccountDirectory. Only sent by AFB after the BF instance advertised daemon.capabilities.features.multi_account (see daemon.capabilities.json). AFB always sends an empty payload today; account_ids is reserved for a future partial-refresh use and is not currently read by BF.
+    """
+
+    account_ids: NotRequired[list[str]]
+
+
+class BrokerGetCatalogPayload1(TypedDict):
+    """
+    Empty payload requests the meta form (exchanges/markets pairs) of the broker.catalog reply; {exchange,market} together request the slice form (instrument rows) for that market. AFB never sends exchange without market or vice versa (backend/trade/ws_handlers.py::handle_account).
+    """
+
+    exchange: str
+    market: str
+
+
+BrokerGetCatalogPayload: TypeAlias = dict[str, Any] | BrokerGetCatalogPayload1
+
+
+class BrokerGetInstrumentPayload(TypedDict):
+    """
+    DEPRECATED: superseded by broker.resolve_instrument (see payloads/broker.resolve_instrument.json), which AFB's afbws.instrument.channel.v1 canal uses exclusively for detail lookups. Kept for wire compatibility; belphegor/plan_engine/engine.py::_get_symbol_info still serves it.
+    """
+
+    symbol: str
+
+
+class BrokerGetOrdersPayload(TypedDict):
+    """
+    AFB always sends an empty payload; no filters exist today.
+    """
 
 
 class BrokerInstrument(TypedDict):
@@ -435,10 +581,27 @@ class BrokerInstrumentResolvedPayload(TypedDict):
     broker_instrument: dict[str, Any]
 
 
+class BrokerOrdersPayload(TypedDict):
+    """
+    Response to broker.get_orders and unsolicited push after every reconcile pass. Matches belphegor/reporting/broker_snapshots.py::stored_orders_payload()/stored_order_to_dict() exactly — orders BF itself placed and is tracking, always for BF's own trading account (see broker.accounts.json — order history for non-default accounts is not available in this phase). `symbol` and `client_order_id` are NOT part of this wire shape; AFB synthesizes/displays without them.
+    """
+
+    account_id: str
+    orders: list[PayloadsBrokerOrdersOrder]
+
+
 class BrokerPositionLedgerPayload(TypedDict):
     account_id: str
     entries: list[Entry]
     residual_by_symbol: dict[str, int]
+
+
+class BrokerResolveInstrumentPayload(TypedDict):
+    """
+    Deal-instrument pre-flight (AFB's afbws.instrument.channel.v1 `resolve`/`detail`, and the tradeplan publish path) — `deal` is a compiled ExecutionDeal (afb.deal.v1 or afb.deal.v2), the same shape deal.publish carries, sent here purely for its target/instrument fields; BF does not persist it from this command.
+    """
+
+    deal: DealV1 | DealV2
 
 
 class BrokerSizing(TypedDict):
@@ -658,6 +821,7 @@ class DaemonCapabilitiesPayload(TypedDict):
     sizing_modes: NotRequired[list[str]]
     condition_ops: NotRequired[list[str]]
     condition_nodes: NotRequired[list[str]]
+    account_id: NotRequired[str]
     account_aliases: NotRequired[list[str]]
     market_data: NotRequired[MarketData]
     features: NotRequired[Features]
@@ -1254,6 +1418,7 @@ class DealV1Target(TypedDict):
     broker: str
     instrument: DealV1Instrument
     binding: NotRequired[dict[str, Any]]
+    account_id: NotRequired[str]
 
 
 class DealV2(TypedDict):
@@ -1507,6 +1672,15 @@ class Features(TypedDict):
     execution_modes: NotRequired[list[Literal["client", "hybrid", "server"]]]
     reports_api: NotRequired[bool]
     catalog: NotRequired[bool]
+    multi_account: NotRequired[bool]
+
+
+class Features1(TypedDict):
+    """
+    AFB-side capability flags for this session — read by BF's afb_client (see afb_client/ws_client.py, alongside dry_run/margin_trading above) to decide what it may send this AFB.
+    """
+
+    multi_account: NotRequired[bool]
 
 
 class Fill(TypedDict):
@@ -2220,6 +2394,44 @@ class Owner(TypedDict):
     user_id: NotRequired[str]
 
 
+class PayloadsBrokerAccountCashBalance(TypedDict):
+    currency: str
+    value: str
+
+
+class PayloadsBrokerAccountPosition(TypedDict):
+    quantity: int
+    average_price: str
+    current_price: NotRequired[str | None]
+    unrealized_pnl: NotRequired[str | None]
+    instrument: NotRequired[dict[str, Any]]
+    broker_ref: NotRequired[dict[str, Any]]
+
+
+class PayloadsBrokerAccountsAccount(TypedDict):
+    account_id: str
+    tradable: bool
+    readonly: bool
+    status: Literal["ok", "stale", "error"]
+    equity: str | None
+    cash: list[PayloadsBrokerAccountsCashBalance]
+    positions: list[PayloadsBrokerAccountsPosition]
+
+
+class PayloadsBrokerAccountsCashBalance(TypedDict):
+    currency: str
+    value: str
+
+
+class PayloadsBrokerAccountsPosition(TypedDict):
+    quantity: int
+    average_price: str
+    current_price: NotRequired[str | None]
+    unrealized_pnl: NotRequired[str | None]
+    instrument: NotRequired[dict[str, Any]]
+    broker_ref: NotRequired[dict[str, Any]]
+
+
 class PayloadsBrokerCatalogMeta(TypedDict):
     session_date: NotRequired[str | None]
     revision: NotRequired[int]
@@ -2238,6 +2450,22 @@ class PayloadsBrokerCatalogSlice(TypedDict):
 
 
 BrokerCatalogPayload: TypeAlias = PayloadsBrokerCatalogMeta | PayloadsBrokerCatalogSlice
+
+
+class PayloadsBrokerOrdersOrder(TypedDict):
+    deal_id: str
+    order_id: str
+    side: str
+    role: str
+    status: str
+    quantity: int
+    filled_quantity: int
+    leg_index: int
+    limit_price: NotRequired[str | None]
+    average_price: NotRequired[str | None]
+    updated_at: NotRequired[str]
+    error_code: NotRequired[str | None]
+    error_message: NotRequired[str | None]
 
 
 class PositionOpenedPayload(TypedDict):
@@ -2295,6 +2523,7 @@ class SessionHelloAckPayload(TypedDict):
     margin_trading: NotRequired[bool]
     margin_trading_afb: NotRequired[bool]
     margin_trading_bf: NotRequired[bool]
+    features: NotRequired[Features1]
 
 
 class SessionHelloPayload(TypedDict):
@@ -2352,6 +2581,7 @@ class TradePlanV1(TypedDict):
     stop_loss: NotRequired[TradeplanV1Condition | None]
     deal_id: NotRequired[str]
     connector: NotRequired[str]
+    account_id: NotRequired[str]
     delivery_at: NotRequired[str]
     created_at: NotRequired[str]
     updated_at: NotRequired[str]
@@ -2377,6 +2607,7 @@ class TradePlanV2(TypedDict):
     sizing: DealV1Sizing
     deal_id: NotRequired[str]
     connector: NotRequired[str]
+    account_id: NotRequired[str]
     delivery_at: NotRequired[str]
     created_at: NotRequired[str]
     updated_at: NotRequired[str]

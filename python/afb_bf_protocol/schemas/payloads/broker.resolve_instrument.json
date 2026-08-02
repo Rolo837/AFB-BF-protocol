@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.resolve_instrument.json",
+  "title": "payload: broker.resolve_instrument",
+  "description": "Deal-instrument pre-flight (AFB's afbws.instrument.channel.v1 `resolve`/`detail`, and the tradeplan publish path) — `deal` is a compiled ExecutionDeal (afb.deal.v1 or afb.deal.v2), the same shape deal.publish carries, sent here purely for its target/instrument fields; BF does not persist it from this command.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["deal"],
+  "properties": {
+    "deal": {
+      "oneOf": [
+        { "$ref": "../deal.v1.json" },
+        { "$ref": "../deal.v2.json" }
+      ]
+    }
+  }
+}

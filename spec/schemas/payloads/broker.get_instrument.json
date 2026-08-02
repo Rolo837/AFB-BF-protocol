@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.get_instrument.json",
+  "title": "payload: broker.get_instrument",
+  "description": "DEPRECATED: superseded by broker.resolve_instrument (see payloads/broker.resolve_instrument.json), which AFB's afbws.instrument.channel.v1 canal uses exclusively for detail lookups. Kept for wire compatibility; belphegor/plan_engine/engine.py::_get_symbol_info still serves it.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["symbol"],
+  "properties": {
+    "symbol": { "type": "string", "minLength": 1 }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.account.json",
+  "title": "payload: broker.account",
+  "description": "DEPRECATED: superseded by broker.accounts (see payloads/broker.accounts.json) — kept for wire compatibility with AFB builds that have not negotiated multi_account. Response to broker.get_account, describing only BF's single trading account. Matches belphegor/reporting/broker_snapshots.py::account_snapshot_payload() exactly, including the account_id/broker_account_id split that broker.accounts deliberately drops (see broker.accounts.json). Correlated via correlation_id.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["account_id", "cash", "positions"],
+  "properties": {
+    "account_id": { "type": "string", "description": "BF's own trading account id (self._account_id) — NOT necessarily what the broker calls it, see broker_account_id." },
+    "broker_account_id": { "type": "string", "description": "The account id as returned by the broker's GetAccount response (snapshot.account_id)." },
+    "equity": { "type": ["string", "null"] },
+    "cash": { "type": "array", "items": { "$ref": "#/$defs/cashBalance" } },
+    "positions": { "type": "array", "items": { "$ref": "#/$defs/position" } }
+  },
+  "$defs": {
+    "cashBalance": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["currency", "value"],
+      "properties": {
+        "currency": { "type": "string" },
+        "value": { "type": "string" }
+      }
+    },
+    "position": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["quantity", "average_price"],
+      "properties": {
+        "quantity": { "type": "integer", "description": "Signed lots (see position_reconcile.signed_broker_qty) — zero-quantity rows are never emitted." },
+        "average_price": { "type": "string" },
+        "current_price": { "type": ["string", "null"] },
+        "unrealized_pnl": { "type": ["string", "null"] },
+        "instrument": { "type": "object", "description": "Venue-resolved identity (exchange/board/ticker/market) — present when the symbol is known to BF's catalog." },
+        "broker_ref": { "type": "object", "description": "Broker-native {broker,symbol} — present when instrument is unresolved, or always when afb.include_broker_ref is set." }
+      }
+    }
+  }
+}

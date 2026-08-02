@@ -27,6 +27,14 @@ def test_validate_deal_accepts_v1_fixture():
     assert validate_deal(_fixture_deal("deal.publish")) == "afb.deal.v1"
 
 
+def test_validate_deal_accepts_target_account_id():
+    """target.account_id (see deal.v1.json#/$defs/target) is optional and
+    additive — absent means BF's own trading account."""
+    deal = copy.deepcopy(_fixture_deal("deal.publish"))
+    deal["target"]["account_id"] = "1899012"
+    assert validate_deal(deal) == "afb.deal.v1"
+
+
 def test_validate_deal_accepts_v2_fixture():
     assert validate_deal(_fixture_deal("deal.publish__v2")) == "afb.deal.v2"
 

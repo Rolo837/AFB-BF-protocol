@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.accounts.json",
+  "title": "payload: broker.accounts",
+  "description": "Response to broker.get_accounts and unsolicited push after every reconcile pass (see belphegor/reporting/account_directory.py::AccountDirectory, engine.py::_publish_broker_snapshots) — full list of accounts visible to BF's broker token. Only sent to AFB sessions that advertised session.hello_ack.features.multi_account; a BF instance that has negotiated multi_account with this AFB never sends the deprecated broker.account instead (see broker.account.json). Unlike broker.account, `accounts[].account_id` is the ONLY account identifier — no broker_account_id split, by design (the account_id/broker_account_id duplication in broker.account was judged confusing and deliberately not carried forward). Only `default_account_id` (BF's own trading account, self._account_id) is tradable in this phase — see brokers/port.py::account_id docstring; the rest are read-only until a later multi-account execution phase.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["default_account_id", "as_of", "accounts"],
+  "properties": {
+    "default_account_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "BF's single trading account (brokers/port.py::account_id) — the only account this BF instance executes orders on."
+    },
+    "as_of": {
+      "type": "string",
+      "description": "ISO timestamp this snapshot was assembled at. Unlike broker.account, this is always populated (no revision counter — BF does not track one)."
+    },
+    "accounts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/account" }
+    }
+  },
+  "$defs": {
+    "account": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["account_id", "tradable", "readonly", "status", "equity", "cash", "positions"],
+      "properties": {
+        "account_id": { "type": "string", "minLength": 1 },
+        "tradable": {
+          "type": "boolean",
+          "description": "True only for the account matching default_account_id — see brokers/port.py::account_id docstring. Read-only mode does not change execution; it only reflects the broker token's own readonly flag (TokenDetails.readonly)."
+        },
+        "readonly": { "type": "boolean", "description": "TokenDetails.readonly for the broker token this account belongs to." },
+        "status": {
+          "enum": ["ok", "stale", "error"],
+          "description": "'ok': freshly polled. 'stale': last known snapshot, a more recent poll failed. 'error': never successfully polled — cash/positions/equity are placeholders."
+        },
+        "equity": { "type": ["string", "null"] },
+        "cash": { "type": "array", "items": { "$ref": "#/$defs/cashBalance" } },
+        "positions": { "type": "array", "items": { "$ref": "#/$defs/position" } }
+      }
+    },
+    "cashBalance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["currency", "value"],
+      "properties": {
+        "currency": { "type": "string" },
+        "value": { "type": "string" }
+      }
+    },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["quantity", "average_price"],
+      "properties": {
+        "quantity": { "type": "integer" },
+        "average_price": { "type": "string" },
+        "current_price": { "type": ["string", "null"] },
+        "unrealized_pnl": { "type": ["string", "null"] },
+        "instrument": { "type": "object" },
+        "broker_ref": { "type": "object" }
+      }
+    }
+  }
+}

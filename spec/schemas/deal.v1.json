@@ -59,7 +59,12 @@
         "bf_id": {"type": "string"},
         "broker": {"type": "string"},
         "instrument": {"$ref": "#/$defs/instrument"},
-        "binding": {"type": "object", "description": "broker-native locator added by BF after publish"}
+        "binding": {"type": "object", "description": "broker-native locator added by BF after publish"},
+        "account_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Broker account this deal is published against. Optional on the wire — absent means BF's own trading account (brokers/port.py::account_id). AFB compiles it from the owning tradeplan's account_id (see tradeplan.v1.json#/properties/account_id), resolving empty/absent to the connector's default account before publish. BF validates it against its own account (plan_engine/plan_validation.py: wrong_account_id) when present."
+        }
       }
     },
     "conditionNode": {

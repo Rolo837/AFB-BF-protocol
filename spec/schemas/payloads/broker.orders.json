@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.orders.json",
+  "title": "payload: broker.orders",
+  "description": "Response to broker.get_orders and unsolicited push after every reconcile pass. Matches belphegor/reporting/broker_snapshots.py::stored_orders_payload()/stored_order_to_dict() exactly — orders BF itself placed and is tracking, always for BF's own trading account (see broker.accounts.json — order history for non-default accounts is not available in this phase). `symbol` and `client_order_id` are NOT part of this wire shape; AFB synthesizes/displays without them.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["account_id", "orders"],
+  "properties": {
+    "account_id": { "type": "string" },
+    "orders": { "type": "array", "items": { "$ref": "#/$defs/order" } }
+  },
+  "$defs": {
+    "order": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["deal_id", "order_id", "side", "role", "status", "quantity", "filled_quantity", "leg_index"],
+      "properties": {
+        "deal_id": { "type": "string" },
+        "order_id": { "type": "string" },
+        "side": { "type": "string" },
+        "role": { "type": "string" },
+        "status": { "type": "string" },
+        "quantity": { "type": "integer" },
+        "filled_quantity": { "type": "integer" },
+        "leg_index": { "type": "integer" },
+        "limit_price": { "type": ["string", "null"] },
+        "average_price": { "type": ["string", "null"] },
+        "updated_at": { "type": "string" },
+        "error_code": { "type": ["string", "null"] },
+        "error_message": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

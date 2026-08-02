@@ -6,6 +6,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from afb_bf_protocol import (
+    ACCOUNT_CHANNEL_V1,
     ALARM_CHANNEL_V1,
     ALL_CAPABILITY_IDS,
     DEAL_CHANNEL_V1,
@@ -35,6 +36,7 @@ def test_capability_ids_match_schema_declarations():
         GP_CHANNEL_V1: "GP_CHANNEL_V1",
         DEAL_CHANNEL_V1: "DEAL_CHANNEL_V1",
         INSTRUMENT_CHANNEL_V1: "INSTRUMENT_CHANNEL_V1",
+        ACCOUNT_CHANNEL_V1: "ACCOUNT_CHANNEL_V1",
     }
     assert ALL_CAPABILITY_IDS == {
         ALARM_CHANNEL_V1,
@@ -43,6 +45,7 @@ def test_capability_ids_match_schema_declarations():
         GP_CHANNEL_V1,
         DEAL_CHANNEL_V1,
         INSTRUMENT_CHANNEL_V1,
+        ACCOUNT_CHANNEL_V1,
     }
 
 

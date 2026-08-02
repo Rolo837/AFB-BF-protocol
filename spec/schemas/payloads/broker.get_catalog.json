@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.get_catalog.json",
+  "title": "payload: broker.get_catalog",
+  "description": "Empty payload requests the meta form (exchanges/markets pairs) of the broker.catalog reply; {exchange,market} together request the slice form (instrument rows) for that market. AFB never sends exchange without market or vice versa (backend/trade/ws_handlers.py::handle_account).",
+  "type": "object",
+  "additionalProperties": true,
+  "oneOf": [
+    {
+      "not": { "anyOf": [{ "required": ["exchange"] }, { "required": ["market"] }] }
+    },
+    {
+      "required": ["exchange", "market"],
+      "properties": {
+        "exchange": { "type": "string", "minLength": 1 },
+        "market": { "type": "string", "minLength": 1 }
+      }
+    }
+  ]
+}

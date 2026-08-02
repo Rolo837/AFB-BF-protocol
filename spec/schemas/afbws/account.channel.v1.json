@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/account.channel.v1.json",
+  "x-afbws-support-id": "afbws.account.channel.v1",
+  "title": "account channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v1). Replaces legacy `channel=account, type=get_account|get_orders|get_events` for clients that negotiated this capability; legacy stays available as fallback — same channel name (`account`) for both, discriminated by presence of `schema` vs `type`, never both in the same session. The legacy `get_catalog`/`get_instrument`/`resolve_instrument` commands are NOT part of this migration — they are already superseded by the `instrument` channel (see instrument.channel.v1.json) for negotiated clients. `item`/`items` are explicit allow-list projections built by backend/trade/public_views.py, never a verbatim proxy of a BF broker.* payload — see $defs/accountSnapshot and $defs/order, which independently declare their own strict shape (reusing only the field-level $defs of payloads/broker.accounts.json/broker.orders.json, not their whole root) so this channel never inherits the wire schemas' additionalProperties:true. `account` here means a broker account (one bf_id/connector may have more than one — see broker.get_accounts/broker.accounts on the AFB<->BF wire), not the connector itself. See AFB/docs/ENTITY_WS_PROTOCOL.md and plans/account-channel-migration (account.md).",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/listRequest" },
+    { "$ref": "#/$defs/listResponse" },
+    { "$ref": "#/$defs/getRequest" },
+    { "$ref": "#/$defs/getResponse" },
+    { "$ref": "#/$defs/ordersRequest" },
+    { "$ref": "#/$defs/ordersResponse" },
+    { "$ref": "#/$defs/eventsRequest" },
+    { "$ref": "#/$defs/eventsResponse" },
+    { "$ref": "#/$defs/errorResponse" },
+    { "$ref": "#/$defs/snapshotPush" },
+    { "$ref": "#/$defs/ordersPush" }
+  ],
+  "$defs": {
+    "bfId": { "type": "string", "minLength": 1 },
+    "accountId": { "type": "string", "minLength": 1 },
+
+    "cashBalance": { "$ref": "../payloads/broker.accounts.json#/$defs/cashBalance" },
+    "position": { "$ref": "../payloads/broker.accounts.json#/$defs/position" },
+
+    "accountSnapshot": {
+      "type": "object",
+      "title": "One broker account's public projection — see backend/trade/public_views.py::account_snapshot(). Never carries broker_account_id (see payloads/broker.accounts.json — the same field the wire type deliberately dropped).",
+      "required": ["bf_id", "account_id", "tradable", "readonly", "status", "equity", "cash", "positions"],
+      "additionalProperties": false,
+      "properties": {
+        "bf_id": { "$ref": "#/$defs/bfId" },
+        "account_id": { "$ref": "#/$defs/accountId" },
+        "tradable": { "type": "boolean", "description": "True only for this bf_id's default (trading) account." },
+        "readonly": { "type": "boolean" },
+        "status": { "enum": ["ok", "stale", "error"] },
+        "equity": { "type": ["string", "null"] },
+        "cash": { "type": "array", "items": { "$ref": "#/$defs/cashBalance" } },
+        "positions": { "type": "array", "items": { "$ref": "#/$defs/position" } },
+        "as_of": { "type": "string" }
+      }
+    },
+
+    "order": {
+      "type": "object",
+      "title": "Allow-list projection over payloads/broker.orders.json#/$defs/order plus AFB/frontend-synthesized display fields (client_order_id, cancel_source) that BF never sends — see accountStore.ts::normalizeOrder. `symbol` is not part of the BF wire shape either; it stays optional and is resolved by the frontend from the owning deal when present.",
+      "required": ["order_id"],
+      "additionalProperties": false,
+      "properties": {
+        "order_id": { "type": "string", "minLength": 1 },
+        "deal_id": { "type": "string" },
+        "symbol": { "type": "string" },
+        "side": { "type": "string" },
+        "role": { "type": "string" },
+        "status": { "type": "string" },
+        "quantity": { "type": "integer" },
+        "filled_quantity": { "type": "integer" },
+        "leg_index": { "type": "integer" },
+        "limit_price": { "type": ["string", "null"] },
+        "average_price": { "type": ["string", "null"] },
+        "client_order_id": { "type": "string" },
+        "cancel_source": { "enum": ["system", "broker"] },
+        "updated_at": { "type": "string" },
+        "error_code": { "type": ["string", "null"] },
+        "error_message": { "type": ["string", "null"] }
+      }
+    },
+
+    "eventRecord": {
+      "type": "object",
+      "title": "Journal of incoming BF events (JSONL direction=in) for one bf_id/day — unchanged from the legacy account/get_events response. See ExecutionService.get_account_events_for_user and event_translator.envelope_to_event_record.",
+      "required": ["logged_at", "bf_id", "category", "event"],
+      "additionalProperties": false,
+      "properties": {
+        "logged_at": { "type": "string" },
+        "bf_id": { "$ref": "#/$defs/bfId" },
+        "deal_id": { "type": ["string", "null"] },
+        "category": { "enum": ["deal", "order", "position", "condition"] },
+        "event": { "type": "string" },
+        "data": { "type": ["object", "null"] }
+      }
+    },
+
+    "listRequest": {
+      "type": "object",
+      "title": "No bf_id: every account of every accessible connector. With bf_id: only that connector's accounts.",
+      "required": ["channel", "schema", "request_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "account" },
+        "schema": { "const": "afbws.account.list.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "bf_id": { "$ref": "#/$defs/bfId" },
+        "force": { "type": "boolean", "description": "Bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF." }
+      }
+    },
+    "listResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "account" },
+        "schema": { "const": "afbws.account.list.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/accountSnapshot" } }
+      }
+    },
+
+    "getRequest": {
+      "type": "object",
+      "title": "account_id omitted means the connector's default (trading) account.",
+      "required": ["channel", "schema", "request_id", "bf_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "account" },
+        "schema": { "const": "afbws.account.get.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "bf_id": { "$ref": "#/$defs/bfId" },
+        "account_id": { "$ref": "#/$defs/accountId" },
+        "force": { "type": "boolean" }
+      }
+    },
+    "getResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "item"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "account" },
+        "schema": { "const": "afbws.account.get.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "#/$defs/accountSnapshot" }
+      }
+    },
+
+    "ordersRequest": {
+      "type": "object",
+      "title": "account_id omitted means the connector's default (trading) account — the only account order history is available for in this phase (see payloads/broker.orders.json).",
+      "required": ["channel", "schema", "request_id", "bf_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "account" },
+        "schema": { "const": "afbws.account.orders.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "bf_id": { "$ref": "#/$defs/bfId" },
+        "account_id": { "$ref": "#/$defs/accountId" }
+      }
+    },
+    "ordersResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "bf_id", "account_id", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "account" },
+        "schema": { "const": "afbws.account.orders.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "bf_id": { "$ref": "#/$defs/bfId" },
+        "account_id": { "$ref": "#/$defs/accountId" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/order" } }
+      }
+    },
+
+    "eventsRequest": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "bf_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "account" },
+        "schema": { "const": "afbws.account.events.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "bf_id": { "$ref": "#/$defs/bfId" },
+        "date": { "type": "string", "description": "YYYY-MM-DD market date; omitted means today (market_today())." }
+      }
+    },
+    "eventsResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "bf_id", "date", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "account" },
+        "schema": { "const": "afbws.account.events.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "bf_id": { "$ref": "#/$defs/bfId" },
+        "date": { "type": "string" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/eventRecord" } }
+      }
+    },
+
+    "errorResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "account" },
+        "schema": { "const": "afbws.account.error.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "code": { "$ref": "common.v1.json#/$defs/errorCode" },
+        "message": { "type": "string", "minLength": 1 },
+        "details": { "type": "object" }
+      }
+    },
+
+    "snapshotPush": {
+      "type": "object",
+      "title": "Server-initiated (no request_id) — replaces the legacy `account`/`orders`(partially) pushes for negotiated connections. Always the full account list for one bf_id (BF's broker.accounts is itself a full snapshot, never a delta).",
+      "required": ["channel", "schema", "bf_id", "default_account_id", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "account" },
+        "schema": { "const": "afbws.account.snapshot.push.v1" },
+        "bf_id": { "$ref": "#/$defs/bfId" },
+        "default_account_id": { "$ref": "#/$defs/accountId" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/accountSnapshot" } }
+      }
+    },
+    "ordersPush": {
+      "type": "object",
+      "title": "Server-initiated (no request_id) — replaces the legacy `orders` push for negotiated connections. Always the default (trading) account.",
+      "required": ["channel", "schema", "bf_id", "account_id", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "account" },
+        "schema": { "const": "afbws.account.orders.push.v1" },
+        "bf_id": { "$ref": "#/$defs/bfId" },
+        "account_id": { "$ref": "#/$defs/accountId" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/order" } }
+      }
+    }
+  }
+}

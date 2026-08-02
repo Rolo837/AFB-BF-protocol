@@ -1,9 +1,58 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 0e71cf0fb2f0ee47088ff4f7e43630d8a8ee7d0bd7048152c00af03b45844901
+ * source-hash: 7496354046eb599d4c587bf3c4e89dc9d2c43b73a3ae9b690910464b5b80b04b
  */
 
+/**
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v1). Replaces legacy `channel=account, type=get_account|get_orders|get_events` for clients that negotiated this capability; legacy stays available as fallback — same channel name (`account`) for both, discriminated by presence of `schema` vs `type`, never both in the same session. The legacy `get_catalog`/`get_instrument`/`resolve_instrument` commands are NOT part of this migration — they are already superseded by the `instrument` channel (see instrument.channel.v1.json) for negotiated clients. `item`/`items` are explicit allow-list projections built by backend/trade/public_views.py, never a verbatim proxy of a BF broker.* payload — see $defs/accountSnapshot and $defs/order, which independently declare their own strict shape (reusing only the field-level $defs of payloads/broker.accounts.json/broker.orders.json, not their whole root) so this channel never inherits the wire schemas' additionalProperties:true. `account` here means a broker account (one bf_id/connector may have more than one — see broker.get_accounts/broker.accounts on the AFB<->BF wire), not the connector itself. See AFB/docs/ENTITY_WS_PROTOCOL.md and plans/account-channel-migration (account.md).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountChannelV1Message".
+ */
+export type AccountChannelV1Message =
+  | AccountListRequest
+  | AccountListResponse
+  | AccountGetRequest
+  | AccountGetResponse
+  | AccountOrdersRequest
+  | AccountOrdersResponse
+  | AccountEventsRequest
+  | AccountEventsResponse
+  | AccountErrorResponse
+  | AccountSnapshotPush
+  | AccountOrdersPush;
+/**
+ * Client-generated correlation id (e.g. uuid4), echoed verbatim in the matching response.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCommonV1_RequestId".
+ */
+export type AfbwsCommonV1_RequestId = string;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountBfId".
+ */
+export type AccountBfId = string;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountAccountId".
+ */
+export type AccountAccountId = string;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCommonV1_ErrorCode".
+ */
+export type AfbwsCommonV1_ErrorCode =
+  | 'not_found'
+  | 'invalid_schema'
+  | 'invalid_channel'
+  | 'validation_error'
+  | 'conflict'
+  | 'internal_error'
+  | 'forbidden'
+  | 'bf_offline'
+  | 'unsupported_action';
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.alarm.channel.v1). Replaces bulk settings/get_alarms+set_alarms and mail/alarms+mail/ack for clients that negotiated this capability; legacy stays available as fallback for clients that did not. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
@@ -23,13 +72,6 @@ export type AlarmChannelV1Message =
   | AlarmTriggeredPush
   | AlarmAckRequest
   | AlarmAckResponse;
-/**
- * Client-generated correlation id (e.g. uuid4), echoed verbatim in the matching response.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsCommonV1_RequestId".
- */
-export type AfbwsCommonV1_RequestId = string;
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AlarmV1_AlarmConditionNode".
@@ -85,20 +127,6 @@ export type ConditionV1_PriceLevelOp = 'above' | 'below';
  * via the `definition` "ConditionV1_ScalarOp".
  */
 export type ConditionV1_ScalarOp = 'above' | 'below' | 'crosses_above' | 'crosses_below' | 'crossing';
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsCommonV1_ErrorCode".
- */
-export type AfbwsCommonV1_ErrorCode =
-  | 'not_found'
-  | 'invalid_schema'
-  | 'invalid_channel'
-  | 'validation_error'
-  | 'conflict'
-  | 'internal_error'
-  | 'forbidden'
-  | 'bf_offline'
-  | 'unsupported_action';
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "BfsRegistryEntry".
@@ -553,31 +581,175 @@ export type DealV2_ExitList = {
  * via the `definition` "BrokerCatalogPayload".
  */
 export type BrokerCatalogPayload = PayloadsBrokerCatalog_Meta | PayloadsBrokerCatalog_Slice;
+/**
+ * Empty payload requests the meta form (exchanges/markets pairs) of the broker.catalog reply; {exchange,market} together request the slice form (instrument rows) for that market. AFB never sends exchange without market or vice versa (backend/trade/ws_handlers.py::handle_account).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BrokerGetCatalogPayload".
+ */
+export type BrokerGetCatalogPayload =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      exchange: string;
+      market: string;
+    };
 
 /**
- * Pure proxy of BF's `broker.catalog` payload (see belphegor/proxy.py). `data` untyped — BF owns the shape, unschematized on the wire.
- *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountCatalogPush".
+ * via the `definition` "AccountListRequest".
  */
-export interface AccountCatalogPush {
-  type: 'catalog';
-  bf_id: string;
-  data: {
-    [k: string]: unknown;
-  };
+export interface AccountListRequest {
+  channel: 'account';
+  schema: 'afbws.account.list.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  bf_id?: AccountBfId;
+  /**
+   * Bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF.
+   */
+  force?: boolean;
 }
 /**
- * Journal of incoming BF events (JSONL direction=in) for one bf_id/day. See ExecutionService.get_account_events_for_user and event_translator.envelope_to_event_record (AFB/backend/trade/).
- *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountEventsPush".
+ * via the `definition` "AccountListResponse".
  */
-export interface AccountEventsPush {
-  type: 'events';
-  bf_id: string;
+export interface AccountListResponse {
+  channel: 'account';
+  schema: 'afbws.account.list.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  items: AccountSnapshot[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountSnapshot".
+ */
+export interface AccountSnapshot {
+  bf_id: AccountBfId;
+  account_id: AccountAccountId;
+  /**
+   * True only for this bf_id's default (trading) account.
+   */
+  tradable: boolean;
+  readonly: boolean;
+  status: 'ok' | 'stale' | 'error';
+  equity: string | null;
+  cash: PayloadsBrokerAccounts_CashBalance[];
+  positions: PayloadsBrokerAccounts_Position[];
+  as_of?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "PayloadsBrokerAccounts_CashBalance".
+ */
+export interface PayloadsBrokerAccounts_CashBalance {
+  currency: string;
+  value: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "PayloadsBrokerAccounts_Position".
+ */
+export interface PayloadsBrokerAccounts_Position {
+  quantity: number;
+  average_price: string;
+  current_price?: string | null;
+  unrealized_pnl?: string | null;
+  instrument?: {};
+  broker_ref?: {};
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountGetRequest".
+ */
+export interface AccountGetRequest {
+  channel: 'account';
+  schema: 'afbws.account.get.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  bf_id: AccountBfId;
+  account_id?: AccountAccountId;
+  force?: boolean;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountGetResponse".
+ */
+export interface AccountGetResponse {
+  channel: 'account';
+  schema: 'afbws.account.get.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: AccountSnapshot;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountOrdersRequest".
+ */
+export interface AccountOrdersRequest {
+  channel: 'account';
+  schema: 'afbws.account.orders.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  bf_id: AccountBfId;
+  account_id?: AccountAccountId;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountOrdersResponse".
+ */
+export interface AccountOrdersResponse {
+  channel: 'account';
+  schema: 'afbws.account.orders.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  bf_id: AccountBfId;
+  account_id: AccountAccountId;
+  items: AccountOrder[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountOrder".
+ */
+export interface AccountOrder {
+  order_id: string;
+  deal_id?: string;
+  symbol?: string;
+  side?: string;
+  role?: string;
+  status?: string;
+  quantity?: number;
+  filled_quantity?: number;
+  leg_index?: number;
+  limit_price?: string | null;
+  average_price?: string | null;
+  client_order_id?: string;
+  cancel_source?: 'system' | 'broker';
+  updated_at?: string;
+  error_code?: string | null;
+  error_message?: string | null;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountEventsRequest".
+ */
+export interface AccountEventsRequest {
+  channel: 'account';
+  schema: 'afbws.account.events.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  bf_id: AccountBfId;
+  /**
+   * YYYY-MM-DD market date; omitted means today (market_today()).
+   */
+  date?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountEventsResponse".
+ */
+export interface AccountEventsResponse {
+  channel: 'account';
+  schema: 'afbws.account.events.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  bf_id: AccountBfId;
   date: string;
-  data: AccountEventRecord[];
+  items: AccountEventRecord[];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -585,62 +757,45 @@ export interface AccountEventsPush {
  */
 export interface AccountEventRecord {
   logged_at: string;
-  bf_id: string;
+  bf_id: AccountBfId;
   deal_id?: string | null;
   category: 'deal' | 'order' | 'position' | 'condition';
   event: string;
   data?: {} | null;
 }
 /**
- * Pure proxy of BF's `broker.instrument` payload (see belphegor/proxy.py). `data` untyped — BF owns the shape, unschematized on the wire.
- *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountInstrumentPush".
+ * via the `definition` "AccountErrorResponse".
  */
-export interface AccountInstrumentPush {
-  type: 'instrument';
-  bf_id: string;
-  data: {
-    [k: string]: unknown;
-  };
+export interface AccountErrorResponse {
+  channel: 'account';
+  schema: 'afbws.account.error.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  code: AfbwsCommonV1_ErrorCode;
+  message: string;
+  details?: {};
 }
 /**
- * Pure proxy of BF's `broker.orders` payload (see belphegor/proxy.py). `data` untyped for the same reason as account.snapshot.v1.json — BF owns the shape, unschematized on the wire.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountOrdersPush".
- */
-export interface AccountOrdersPush {
-  type: 'orders';
-  bf_id: string;
-  data: {
-    [k: string]: unknown;
-  };
-  /**
-   * Merged in by event_translator._merge_snapshot_meta when present on the BF payload.
-   */
-  revision?: number;
-  as_of?: string;
-  source?: string;
-}
-/**
- * Pure proxy of BF's `broker.account` payload (see belphegor/proxy.py: `dict(envelope.payload)`) plus the AFB envelope wrapper. `data` is intentionally untyped — BF owns that shape and it isn't schematized anywhere (no afb.execution.v1 schema for broker.account); the frontend normalizes it defensively (see belphegor.ts normalizeCashBalances/normalizePositions) rather than trusting a strict shape.
- *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountSnapshotPush".
  */
 export interface AccountSnapshotPush {
-  type: 'account';
-  bf_id: string;
-  data: {
-    [k: string]: unknown;
-  };
-  /**
-   * Merged in by event_translator._merge_snapshot_meta when present on the BF payload.
-   */
-  revision?: number;
-  as_of?: string;
-  source?: string;
+  channel: 'account';
+  schema: 'afbws.account.snapshot.push.v1';
+  bf_id: AccountBfId;
+  default_account_id: AccountAccountId;
+  items: AccountSnapshot[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountOrdersPush".
+ */
+export interface AccountOrdersPush {
+  channel: 'account';
+  schema: 'afbws.account.orders.push.v1';
+  bf_id: AccountBfId;
+  account_id: AccountAccountId;
+  items: AccountOrder[];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1012,6 +1167,10 @@ export interface DealV1_Target {
    * broker-native locator added by BF after publish
    */
   binding?: {};
+  /**
+   * Broker account this deal is published against. Optional on the wire — absent means BF's own trading account (brokers/port.py::account_id). AFB compiles it from the owning tradeplan's account_id (see tradeplan.v1.json#/properties/account_id), resolving empty/absent to the connector's default account before publish. BF validates it against its own account (plan_engine/plan_validation.py: wrong_account_id) when present.
+   */
+  account_id?: string;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2121,6 +2280,10 @@ export interface TradePlanV1 {
    */
   connector?: string;
   /**
+   * Broker account of `connector` this plan publishes to. Omitted/empty means the connector's default (trading) account — resolved on the fly at publish time, not backfilled. See deal.v1.json#/$defs/target/properties/account_id for the compiled deal's copy of this value.
+   */
+  account_id?: string;
+  /**
    * AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect.
    */
   delivery_at?: string;
@@ -2194,6 +2357,10 @@ export interface TradePlanV2 {
    * AFB bf_id (real connector or virtual) used when publishing this plan. Omitted when user has neither trade nor virtual capability.
    */
   connector?: string;
+  /**
+   * Broker account of `connector` this plan publishes to. Omitted/empty means the connector's default (trading) account — resolved on the fly at publish time, not backfilled. See deal.v1.json#/$defs/target/properties/account_id for the compiled deal's copy of this value.
+   */
+  account_id?: string;
   /**
    * AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect.
    */
@@ -2713,6 +2880,96 @@ export interface NotificationLinkV1 {
   timestamp?: string;
 }
 /**
+ * DEPRECATED: superseded by broker.accounts (see payloads/broker.accounts.json) — kept for wire compatibility with AFB builds that have not negotiated multi_account. Response to broker.get_account, describing only BF's single trading account. Matches belphegor/reporting/broker_snapshots.py::account_snapshot_payload() exactly, including the account_id/broker_account_id split that broker.accounts deliberately drops (see broker.accounts.json). Correlated via correlation_id.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BrokerAccountPayload".
+ */
+export interface BrokerAccountPayload {
+  /**
+   * BF's own trading account id (self._account_id) — NOT necessarily what the broker calls it, see broker_account_id.
+   */
+  account_id: string;
+  /**
+   * The account id as returned by the broker's GetAccount response (snapshot.account_id).
+   */
+  broker_account_id?: string;
+  equity?: string | null;
+  cash: PayloadsBrokerAccount_CashBalance[];
+  positions: PayloadsBrokerAccount_Position[];
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "PayloadsBrokerAccount_CashBalance".
+ */
+export interface PayloadsBrokerAccount_CashBalance {
+  currency: string;
+  value: string;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "PayloadsBrokerAccount_Position".
+ */
+export interface PayloadsBrokerAccount_Position {
+  /**
+   * Signed lots (see position_reconcile.signed_broker_qty) — zero-quantity rows are never emitted.
+   */
+  quantity: number;
+  average_price: string;
+  current_price?: string | null;
+  unrealized_pnl?: string | null;
+  /**
+   * Venue-resolved identity (exchange/board/ticker/market) — present when the symbol is known to BF's catalog.
+   */
+  instrument?: {};
+  /**
+   * Broker-native {broker,symbol} — present when instrument is unresolved, or always when afb.include_broker_ref is set.
+   */
+  broker_ref?: {};
+  [k: string]: unknown;
+}
+/**
+ * Response to broker.get_accounts and unsolicited push after every reconcile pass (see belphegor/reporting/account_directory.py::AccountDirectory, engine.py::_publish_broker_snapshots) — full list of accounts visible to BF's broker token. Only sent to AFB sessions that advertised session.hello_ack.features.multi_account; a BF instance that has negotiated multi_account with this AFB never sends the deprecated broker.account instead (see broker.account.json). Unlike broker.account, `accounts[].account_id` is the ONLY account identifier — no broker_account_id split, by design (the account_id/broker_account_id duplication in broker.account was judged confusing and deliberately not carried forward). Only `default_account_id` (BF's own trading account, self._account_id) is tradable in this phase — see brokers/port.py::account_id docstring; the rest are read-only until a later multi-account execution phase.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BrokerAccountsPayload".
+ */
+export interface BrokerAccountsPayload {
+  /**
+   * BF's single trading account (brokers/port.py::account_id) — the only account this BF instance executes orders on.
+   */
+  default_account_id: string;
+  /**
+   * ISO timestamp this snapshot was assembled at. Unlike broker.account, this is always populated (no revision counter — BF does not track one).
+   */
+  as_of: string;
+  accounts: PayloadsBrokerAccounts_Account[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "PayloadsBrokerAccounts_Account".
+ */
+export interface PayloadsBrokerAccounts_Account {
+  account_id: string;
+  /**
+   * True only for the account matching default_account_id — see brokers/port.py::account_id docstring. Read-only mode does not change execution; it only reflects the broker token's own readonly flag (TokenDetails.readonly).
+   */
+  tradable: boolean;
+  /**
+   * TokenDetails.readonly for the broker token this account belongs to.
+   */
+  readonly: boolean;
+  /**
+   * 'ok': freshly polled. 'stale': last known snapshot, a more recent poll failed. 'error': never successfully polled — cash/positions/equity are placeholders.
+   */
+  status: 'ok' | 'stale' | 'error';
+  equity: string | null;
+  cash: PayloadsBrokerAccounts_CashBalance[];
+  positions: PayloadsBrokerAccounts_Position[];
+}
+/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "PayloadsBrokerCatalog_Meta".
  */
@@ -2778,6 +3035,47 @@ export interface BrokerErrorPayload {
   [k: string]: unknown;
 }
 /**
+ * DEPRECATED: superseded by broker.get_accounts (see payloads/broker.get_accounts.json) — kept for wire compatibility with AFB builds that have not negotiated multi_account (see daemon.capabilities.json#/properties/features/properties/multi_account, session.hello_ack.json#/properties/features/properties/multi_account). AFB always sends an empty payload; no fields are read by BF (belphegor/plan_engine/engine.py::_get_account).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BrokerGetAccountPayload".
+ */
+export interface BrokerGetAccountPayload {
+  [k: string]: unknown;
+}
+/**
+ * Request the full list of accounts visible to BF's broker token (not just its own trading account) — see belphegor/reporting/account_directory.py::AccountDirectory. Only sent by AFB after the BF instance advertised daemon.capabilities.features.multi_account (see daemon.capabilities.json). AFB always sends an empty payload today; account_ids is reserved for a future partial-refresh use and is not currently read by BF.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BrokerGetAccountsPayload".
+ */
+export interface BrokerGetAccountsPayload {
+  /**
+   * Reserved: filter to specific account ids. Absent/empty means all accounts.
+   */
+  account_ids?: string[];
+  [k: string]: unknown;
+}
+/**
+ * DEPRECATED: superseded by broker.resolve_instrument (see payloads/broker.resolve_instrument.json), which AFB's afbws.instrument.channel.v1 canal uses exclusively for detail lookups. Kept for wire compatibility; belphegor/plan_engine/engine.py::_get_symbol_info still serves it.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BrokerGetInstrumentPayload".
+ */
+export interface BrokerGetInstrumentPayload {
+  symbol: string;
+  [k: string]: unknown;
+}
+/**
+ * AFB always sends an empty payload; no filters exist today.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BrokerGetOrdersPayload".
+ */
+export interface BrokerGetOrdersPayload {
+  [k: string]: unknown;
+}
+/**
  * Response to broker.get_instrument — the enriched instrument (belphegor/domain/instruments.py InstrumentInfo), unlike broker.catalog's brief CatalogEntry rows. Broker-agnostic explicit allow-list, not an asdict()-based dump: broker-native/Finam-specific fields (asset_type, min_step_raw, long_risk_rate, short_risk_rate, future_details, bond_details) never reach this wire — AFB doesn't read them and admitting them would make this canon description implicitly Finam-shaped (belphegor/reporting/broker_snapshots.py::instrument_resolved_payload builds this explicitly, not via InstrumentInfo.to_broker_instrument_dict(), which a different wire field — deal.accepted's broker_instrument — still uses unchanged). `symbol`/`currency` are the canon names on this wire — they map from InstrumentInfo's own internal `symbol`/`quote_currency` attributes, which are unchanged BF-side. additionalProperties stays true so a future broker plugin can add fields without breaking AFB's validation; required kept to `symbol`. This is a PATCH-level description of existing wire behavior, not a new constraint on it.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2829,6 +3127,37 @@ export interface BrokerInstrumentResolvedPayload {
   [k: string]: unknown;
 }
 /**
+ * Response to broker.get_orders and unsolicited push after every reconcile pass. Matches belphegor/reporting/broker_snapshots.py::stored_orders_payload()/stored_order_to_dict() exactly — orders BF itself placed and is tracking, always for BF's own trading account (see broker.accounts.json — order history for non-default accounts is not available in this phase). `symbol` and `client_order_id` are NOT part of this wire shape; AFB synthesizes/displays without them.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BrokerOrdersPayload".
+ */
+export interface BrokerOrdersPayload {
+  account_id: string;
+  orders: PayloadsBrokerOrders_Order[];
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "PayloadsBrokerOrders_Order".
+ */
+export interface PayloadsBrokerOrders_Order {
+  deal_id: string;
+  order_id: string;
+  side: string;
+  role: string;
+  status: string;
+  quantity: number;
+  filled_quantity: number;
+  leg_index: number;
+  limit_price?: string | null;
+  average_price?: string | null;
+  updated_at?: string;
+  error_code?: string | null;
+  error_message?: string | null;
+  [k: string]: unknown;
+}
+/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "BrokerPositionLedgerPayload".
  */
@@ -2856,6 +3185,16 @@ export interface BrokerPositionLedgerPayload {
   residual_by_symbol: {
     [k: string]: number;
   };
+  [k: string]: unknown;
+}
+/**
+ * Deal-instrument pre-flight (AFB's afbws.instrument.channel.v1 `resolve`/`detail`, and the tradeplan publish path) — `deal` is a compiled ExecutionDeal (afb.deal.v1 or afb.deal.v2), the same shape deal.publish carries, sent here purely for its target/instrument fields; BF does not persist it from this command.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BrokerResolveInstrumentPayload".
+ */
+export interface BrokerResolveInstrumentPayload {
+  deal: DealV1 | DealV2;
   [k: string]: unknown;
 }
 /**
@@ -2891,6 +3230,10 @@ export interface DaemonCapabilitiesPayload {
   sizing_modes?: string[];
   condition_ops?: string[];
   condition_nodes?: string[];
+  /**
+   * BF's single trading account (brokers/port.py::account_id) — the account this BF instance executes orders on. When features.multi_account is true, the full account list/snapshots are fetched separately via broker.get_accounts, not from this field.
+   */
+  account_id?: string;
   account_aliases?: string[];
   /**
    * What market data this BF instance can serve, and on which wire timeframes (see condition.v1.json#/$defs/timeframe) — used by AFB to validate indicator/price-candle condition timeframes before publish.
@@ -2914,6 +3257,10 @@ export interface DaemonCapabilitiesPayload {
     execution_modes?: ('client' | 'hybrid' | 'server')[];
     reports_api?: boolean;
     catalog?: boolean;
+    /**
+     * This BF build implements broker.get_accounts/broker.accounts (see payloads/broker.accounts.json) — read-only visibility into every account the broker token can see, not just the trading account named by account_id above. Execution still happens only on account_id in this phase. AFB gates sending broker.get_accounts on this flag being true; absent/false means fall back to the deprecated broker.get_account/broker.account pair.
+     */
+    multi_account?: boolean;
     [k: string]: unknown;
   };
   [k: string]: unknown;
@@ -3315,6 +3662,16 @@ export interface SessionHelloAckPayload {
   margin_trading?: boolean;
   margin_trading_afb?: boolean;
   margin_trading_bf?: boolean;
+  /**
+   * AFB-side capability flags for this session — read by BF's afb_client (see afb_client/ws_client.py, alongside dry_run/margin_trading above) to decide what it may send this AFB.
+   */
+  features?: {
+    /**
+     * This AFB build understands broker.accounts (see payloads/broker.accounts.json) and negotiated_support for it. When true, BF sends broker.accounts (in response to broker.get_accounts, and unsolicited after every reconcile pass) and stops sending the deprecated broker.account to this session. Absent/false means BF must keep sending broker.account only.
+     */
+    multi_account?: boolean;
+    [k: string]: unknown;
+  };
   [k: string]: unknown;
 }
 /**

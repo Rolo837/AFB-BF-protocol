@@ -1,0 +1,32 @@
+{
+  "default_account_id": "1899011",
+  "as_of": "2026-08-01T06:33:00+03:00",
+  "accounts": [
+    {
+      "account_id": "1899011",
+      "tradable": true,
+      "readonly": false,
+      "status": "ok",
+      "equity": "152340.11",
+      "cash": [{ "currency": "RUB", "value": "12000.00" }],
+      "positions": [
+        {
+          "quantity": 10,
+          "average_price": "280.50",
+          "current_price": "281.00",
+          "unrealized_pnl": "5.00",
+          "instrument": { "exchange": "MOEX", "board": "TQBR", "ticker": "SBER", "market": "stock" }
+        }
+      ]
+    },
+    {
+      "account_id": "1899012",
+      "tradable": false,
+      "readonly": false,
+      "status": "ok",
+      "equity": "4300.00",
+      "cash": [{ "currency": "RUB", "value": "4300.00" }],
+      "positions": []
+    }
+  ]
+}

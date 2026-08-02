@@ -127,6 +127,13 @@ export const MESSAGE_REGISTRY = {
     event: "get_account",
     persists_on_bf: false,
   },
+  "broker.get_accounts": {
+    message_class: "user",
+    direction: "afb2bf",
+    category: "broker",
+    event: "get_accounts",
+    persists_on_bf: false,
+  },
   "broker.get_orders": {
     message_class: "user",
     direction: "afb2bf",
@@ -160,6 +167,13 @@ export const MESSAGE_REGISTRY = {
     direction: "bf2afb",
     category: "broker",
     event: "account",
+    persists_on_bf: false,
+  },
+  "broker.accounts": {
+    message_class: "user",
+    direction: "bf2afb",
+    category: "broker",
+    event: "accounts",
     persists_on_bf: false,
   },
   "broker.orders": {

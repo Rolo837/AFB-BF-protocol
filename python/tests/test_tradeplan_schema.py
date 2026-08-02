@@ -255,3 +255,42 @@ def test_connector_rejects_empty_string(registry):
     }
     with pytest.raises(ValidationError):
         _validator(TRADEPLAN_V2_ID, registry).validate(v2)
+
+
+def test_v1_and_v2_accept_optional_account_id(registry):
+    """Empty/absent account_id means the connector's default (trading)
+    account — resolved on the fly at publish time, not persisted here."""
+    v1 = {
+        "id": "tp1",
+        "ticker": "SBER",
+        "entry_condition": {"condition_type": "price", "price_value": 100},
+        "connector": "bf-main",
+        "account_id": "1899012",
+    }
+    _validator(TRADEPLAN_V1_ID, registry).validate(v1)
+    v2 = {
+        "schema": "afb.tradeplan.v2",
+        "id": "tp1",
+        "ticker": "SBER",
+        "direction": "long",
+        "entries": [
+            {"condition": {"left": {"source": "price"}, "op": "touch", "right": {"const": "100"}}}
+        ],
+        "sizing": {"mode": "lots", "value": "1"},
+        "connector": "bf-main",
+        "account_id": "1899012",
+    }
+    _validator(TRADEPLAN_V2_ID, registry).validate(v2)
+
+
+def test_account_id_rejects_empty_string(registry):
+    from jsonschema import ValidationError
+
+    v1 = {
+        "id": "tp1",
+        "ticker": "SBER",
+        "entry_condition": {"condition_type": "price", "price_value": 100},
+        "account_id": "",
+    }
+    with pytest.raises(ValidationError):
+        _validator(TRADEPLAN_V1_ID, registry).validate(v1)
