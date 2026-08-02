@@ -60,6 +60,20 @@ afb-bf-protocol @ git+https://github.com/Rolo837/AFB-BF-protocol.git@v1.0.0
    нужна отдельная команда пользователя), после того как обе стороны перестали
    его слать (подтверждается журналами `trading_events`).
 
+**Текущие депрекейты** (тег `deprecated` в `spec/asyncapi.yaml`, введены v2.3.0):
+
+| Тип | Замена |
+|-----|--------|
+| `broker.get_account` | `broker.get_accounts` |
+| `broker.account` | `broker.accounts` |
+| `broker.get_instrument` | `broker.resolve_instrument` |
+| `broker.instrument` | `broker.instrument_resolved` |
+
+Все четыре остаются в `MESSAGE_REGISTRY`/`COMMAND_TYPES`/`BF_EVENT_TYPES` — депрекейт не
+удаление. Первая пара шлётся только между сторонами, не согласовавшими
+`features.multi_account`; вторая — не отправляется ни одной актуальной стороной, оставлена
+для совместимости со старым BF/AFB.
+
 ## 5. Процедура релиза
 
 1. Изменить `spec/asyncapi.yaml` и/или `spec/schemas/*` (канон).
