@@ -1,0 +1,65 @@
+{
+  "oneOf": [
+    { "$ref": "#/$defs/meta" },
+    { "$ref": "#/$defs/slice" }
+  ],
+  "$defs": {
+    "meta": {
+      "title": "No exchange/market in the request -> exchanges + market pairs available from this broker.",
+      "type": "object",
+      "properties": {
+        "session_date": { "type": ["string", "null"] },
+        "revision": { "type": "integer" },
+        "broker": { "type": "string" },
+        "exchanges": { "type": "array", "items": { "type": "string" } },
+        "markets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "exchange": { "type": "string" },
+              "market": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true,
+      "required": ["broker", "exchanges", "markets"]
+    },
+    "slice": {
+      "title": "exchange/market both present in the request -> the instrument rows for that segment.",
+      "type": "object",
+      "properties": {
+        "session_date": { "type": ["string", "null"] },
+        "revision": { "type": "integer" },
+        "broker": { "type": "string" },
+        "exchange": { "type": "string" },
+        "market": { "type": "string" },
+        "instruments": {
+          "type": "array",
+          "items": {
+            "title": "CatalogEntry.to_afb_dict() — a brief catalog row, not the full enriched instrument (see broker.instrument.json for that).",
+            "type": "object",
+            "properties": {
+              "broker_symbol": { "type": "string", "description": "Opaque broker-native locator (e.g. Finam's TICKER@MIC). Not the AFB `ticker`." },
+              "exchange": { "type": "string" },
+              "board": { "type": "string" },
+              "ticker": { "type": "string" },
+              "name": { "type": "string" },
+              "market": { "type": "string" }
+            },
+            "additionalProperties": true,
+            "required": ["broker_symbol"]
+          }
+        }
+      },
+      "additionalProperties": true,
+      "required": ["broker", "exchange", "market", "instruments"]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.catalog.json",
+  "title": "payload: broker.catalog",
+  "description": "Response to broker.get_catalog. Describes the shape BF's InstrumentRegistry/CatalogStore actually emits today (belphegor/brokers/catalog_store.py CatalogMeta.to_dict() for the meta form, get_catalog_slice() for the slice form) — deliberately permissive (additionalProperties: true throughout, required kept to the minimum AFB reads) since BrokerPort.get_catalog_meta()/get_catalog_slice() impose nothing on a broker plugin's exact dict shape. This is a PATCH-level description of existing wire behavior, not a new constraint on it."
+}

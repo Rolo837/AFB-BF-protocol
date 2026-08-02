@@ -53,6 +53,7 @@ function namedRootSchemas() {
     "tradeplan.v2.json": "TradePlanV2",
     "alarm.v1.json": "AlarmV1",
     "gp.v1.json": "GpV1",
+    "instrument.v1.json": "InstrumentV1",
     "notification.deal.v1.json": "NotificationDealV1",
     "notification.alarm.v1.json": "NotificationAlarmV1",
     "notification.link.v1.json": "NotificationLinkV1",
@@ -77,6 +78,7 @@ function namedRootSchemas() {
     "afbws/link.status.v1.json": "LinkStatusV1",
     "afbws/link.channel.v1.json": "LinkChannelV1Message",
     "afbws/gp.channel.v1.json": "GpChannelV1Message",
+    "afbws/instrument.channel.v1.json": "InstrumentChannelV1Message",
   };
   for (const file of readdirSync(payloadsDir).sort()) {
     if (!file.endsWith(".json")) continue;
@@ -170,6 +172,27 @@ const NAMED_DEF_SCHEMAS = {
     deleteResponse: "GpDeleteResponse",
     errorResponse: "GpErrorResponse",
     errorDetails: "GpErrorDetails",
+  },
+  "afbws/instrument.channel.v1.json": {
+    group: "InstrumentGroup",
+    asset: "InstrumentAsset",
+    assets: "InstrumentAssets",
+    catalogSet: "InstrumentCatalogSet",
+    listRequest: "InstrumentListRequest",
+    listResponse: "InstrumentListResponse",
+    getRequest: "InstrumentGetRequest",
+    getResponse: "InstrumentGetResponse",
+    poolRequest: "InstrumentPoolRequest",
+    poolResponse: "InstrumentPoolResponse",
+    poolMetaResponse: "InstrumentPoolMetaResponse",
+    poolSliceResponse: "InstrumentPoolSliceResponse",
+    applyRequest: "InstrumentApplyRequest",
+    applyResponse: "InstrumentApplyResponse",
+    resolveRequest: "InstrumentResolveRequest",
+    resolveResponse: "InstrumentResolveResponse",
+    detailRequest: "InstrumentDetailRequest",
+    detailResponse: "InstrumentDetailResponse",
+    errorResponse: "InstrumentErrorResponse",
   },
   "afbws/deal.public.v1.json": {
     source: "DealPublicSource",

@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "binding": {
+      "type": "object",
+      "description": "Broker-native locator applied to the deal at publish time (belphegor/plan_engine/deal_binding.py apply_publish_binding) — e.g. account_id, symbol.",
+      "additionalProperties": true
+    },
+    "broker_instrument": {
+      "type": "object",
+      "description": "Same trading-params shape as broker.instrument.json (minus symbol/account_id/exchange/board/ticker) — see InstrumentInfo.to_broker_instrument_dict().",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "required": ["binding", "broker_instrument"],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.instrument_resolved.json",
+  "title": "payload: broker.instrument_resolved",
+  "description": "Response to broker.resolve_instrument (deal-instrument pre-flight resolution). Deliberately permissive (additionalProperties: true throughout) — both objects are BF-owned shapes; this is a PATCH-level description of existing wire behavior, not a new constraint on it."
+}

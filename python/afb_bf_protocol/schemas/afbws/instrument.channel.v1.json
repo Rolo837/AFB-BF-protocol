@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/instrument.channel.v1.json",
+  "x-afbws-support-id": "afbws.instrument.channel.v1",
+  "title": "instrument channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. `list`/`get`/`resolve`/`detail` are open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `pool`/`apply` are manager-only: `pool` browses candidate instruments (from the daily MOEX/ISS refresh or a connector's own broker.get_catalog) that are not yet part of the curated set; `apply` is the sole write — a bulk, all-or-nothing replace of the whole curated set (items + groups + assets), never a per-item mutation. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/listRequest" },
+    { "$ref": "#/$defs/listResponse" },
+    { "$ref": "#/$defs/getRequest" },
+    { "$ref": "#/$defs/getResponse" },
+    { "$ref": "#/$defs/poolRequest" },
+    { "$ref": "#/$defs/poolResponse" },
+    { "$ref": "#/$defs/applyRequest" },
+    { "$ref": "#/$defs/applyResponse" },
+    { "$ref": "#/$defs/resolveRequest" },
+    { "$ref": "#/$defs/resolveResponse" },
+    { "$ref": "#/$defs/detailRequest" },
+    { "$ref": "#/$defs/detailResponse" },
+    { "$ref": "#/$defs/errorResponse" }
+  ],
+  "$defs": {
+    "group": {
+      "type": "object",
+      "required": ["key", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "order": { "type": ["integer", "null"] }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": ["string", "null"] }
+      }
+    },
+    "assets": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/asset" }
+    },
+    "catalogSet": {
+      "title": "The curated instrument set — items + the groups/assets they're organized into.",
+      "type": "object",
+      "required": ["items", "groups", "assets"],
+      "additionalProperties": false,
+      "properties": {
+        "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
+        "groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
+        "assets": { "$ref": "#/$defs/assets" }
+      }
+    },
+    "listRequest": {
+      "type": "object",
+      "title": "No filters — returns the full curated set (as legacy securities/list + setup/get_assign combined).",
+      "required": ["channel", "schema", "request_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.list.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" }
+      }
+    },
+    "listResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "items", "groups", "assets"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.list.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
+        "groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
+        "assets": { "$ref": "#/$defs/assets" }
+      }
+    },
+    "getRequest": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "ticker"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.get.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "ticker": { "type": "string", "minLength": 1 }
+      }
+    },
+    "getResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "item"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.get.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "../instrument.v1.json" }
+      }
+    },
+    "poolRequest": {
+      "type": "object",
+      "title": "manager only. `exchange`/`market` both present -> a slice; both absent -> just the meta (exchanges/markets available from this source).",
+      "required": ["channel", "schema", "request_id", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.pool.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "source": { "type": "string", "minLength": 1, "description": "\"moex\" for the daily ISS-fed candidate pool, or a bf_id to browse that connector's own broker.get_catalog." },
+        "exchange": { "type": "string", "minLength": 1 },
+        "market": { "type": "string", "minLength": 1 },
+        "query": { "type": "string", "description": "Optional substring filter over ticker/name. Applied server-side for source=\"moex\" (a local, in-memory scan); a broker source ignores it today and returns the full slice — the client filters client-side, same as it already does for the curated list (see TickersService.tsx)." }
+      }
+    },
+    "poolResponse": {
+      "type": "object",
+      "oneOf": [
+        { "$ref": "#/$defs/poolMetaResponse" },
+        { "$ref": "#/$defs/poolSliceResponse" }
+      ]
+    },
+    "poolMetaResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "source", "exchanges", "markets"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.pool.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "source": { "type": "string", "minLength": 1 },
+        "exchanges": { "type": "array", "items": { "type": "string" } },
+        "markets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["exchange", "market"],
+            "additionalProperties": false,
+            "properties": {
+              "exchange": { "type": "string" },
+              "market": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "poolSliceResponse": {
+      "type": "object",
+      "title": "Candidate rows, normalized into the canonical shape with group: null (not yet distributed).",
+      "required": ["channel", "schema", "request_id", "source", "exchange", "market", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.pool.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "source": { "type": "string", "minLength": 1 },
+        "exchange": { "type": "string" },
+        "market": { "type": "string" },
+        "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } }
+      }
+    },
+    "applyRequest": {
+      "type": "object",
+      "title": "manager only. Bulk replace of the whole curated set — validated and enriched (broker.get_instrument for source != moex rows missing trading params) atomically before write; never partial.",
+      "required": ["channel", "schema", "request_id", "items", "groups", "assets"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.apply.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
+        "groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
+        "assets": { "$ref": "#/$defs/assets" }
+      }
+    },
+    "applyResponse": {
+      "type": "object",
+      "title": "The authoritative saved set, after enrichment.",
+      "required": ["channel", "schema", "request_id", "items", "groups", "assets"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.apply.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
+        "groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
+        "assets": { "$ref": "#/$defs/assets" }
+      }
+    },
+    "resolveRequest": {
+      "type": "object",
+      "title": "Pre-flight: compiles a tradeplan (draft or by id) into a deal and asks the target BF to resolve its instrument, without publishing.",
+      "required": ["channel", "schema", "request_id", "bf_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.resolve.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "bf_id": { "type": "string", "minLength": 1 },
+        "tradeplan_id": { "type": "string", "minLength": 1 },
+        "draft": { "type": "object" }
+      }
+    },
+    "resolveResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "item", "binding", "broker_instrument"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.resolve.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "../instrument.v1.json" },
+        "binding": { "type": "object", "additionalProperties": true, "description": "Broker-native locator, BF-owned shape — see broker.instrument_resolved.json." },
+        "broker_instrument": { "type": "object", "additionalProperties": true, "description": "Broker-owned trading params, BF-owned shape." }
+      }
+    },
+    "detailRequest": {
+      "type": "object",
+      "title": "Lightweight live broker lookup for an already-catalogued instrument — no tradeplan draft/compile involved, unlike resolve. Used while editing a tradeplan, right after a ticker+connector are picked, to preview tradability/margin before any entry/quantity condition exists.",
+      "required": ["channel", "schema", "request_id", "bf_id", "ticker"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.detail.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "bf_id": { "type": "string", "minLength": 1 },
+        "ticker": { "type": "string", "minLength": 1, "description": "Canonical ticker of an item already present in the curated catalog (see instrument/get) — not an arbitrary broker-native symbol." }
+      }
+    },
+    "detailResponse": {
+      "type": "object",
+      "title": "Same {item, binding, broker_instrument} shape as resolveResponse — same underlying BF mechanism (broker.resolve_instrument against a minimal synthetic venue triplet), just without compiling a tradeplan/deal first.",
+      "required": ["channel", "schema", "request_id", "item", "binding", "broker_instrument"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.detail.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "$ref": "../instrument.v1.json" },
+        "binding": { "type": "object", "additionalProperties": true, "description": "Broker-native locator, BF-owned shape — see broker.instrument_resolved.json." },
+        "broker_instrument": { "type": "object", "additionalProperties": true, "description": "Broker-owned trading params, BF-owned shape (InstrumentInfo.to_broker_instrument_dict() — the same deal-publish-shared shape resolveResponse carries, not the narrower broker.instrument.json allow-list; e.g. it has no `symbol` key, that lives in `binding` instead)." }
+      }
+    },
+    "errorResponse": {
+      "type": "object",
+      "required": ["channel", "schema", "request_id", "code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.error.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "code": { "$ref": "common.v1.json#/$defs/errorCode" },
+        "message": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

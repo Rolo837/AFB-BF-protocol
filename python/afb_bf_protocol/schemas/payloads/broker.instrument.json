@@ -1,0 +1,29 @@
+{
+  "type": "object",
+  "properties": {
+    "symbol": { "type": "string", "description": "Opaque broker-native locator (e.g. Finam's TICKER@MIC)." },
+    "exchange": { "type": "string" },
+    "board": { "type": "string" },
+    "ticker": { "type": "string" },
+    "mic": { "type": "string" },
+    "name": { "type": "string" },
+    "market": { "type": "string" },
+    "decimals": { "type": "integer" },
+    "price_step": { "type": "string" },
+    "lot_size": { "type": "integer" },
+    "currency": { "type": "string" },
+    "expiration_date": { "type": ["string", "null"] },
+    "tradable": { "type": "boolean" },
+    "longable": { "type": "boolean" },
+    "shortable": { "type": "boolean" },
+    "long_initial_margin": { "type": ["string", "null"] },
+    "short_initial_margin": { "type": ["string", "null"] },
+    "updated_at": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true,
+  "required": ["symbol"],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.instrument.json",
+  "title": "payload: broker.instrument",
+  "description": "Response to broker.get_instrument — the enriched instrument (belphegor/domain/instruments.py InstrumentInfo), unlike broker.catalog's brief CatalogEntry rows. Broker-agnostic explicit allow-list, not an asdict()-based dump: broker-native/Finam-specific fields (asset_type, min_step_raw, long_risk_rate, short_risk_rate, future_details, bond_details) never reach this wire — AFB doesn't read them and admitting them would make this canon description implicitly Finam-shaped (belphegor/reporting/broker_snapshots.py::instrument_resolved_payload builds this explicitly, not via InstrumentInfo.to_broker_instrument_dict(), which a different wire field — deal.accepted's broker_instrument — still uses unchanged). `symbol`/`currency` are the canon names on this wire — they map from InstrumentInfo's own internal `symbol`/`quote_currency` attributes, which are unchanged BF-side. additionalProperties stays true so a future broker plugin can add fields without breaking AFB's validation; required kept to `symbol`. This is a PATCH-level description of existing wire behavior, not a new constraint on it."
+}

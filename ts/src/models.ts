@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: b5e4e08ff5ffbc7ec02167fa333849fffdf94005b51ff584191736e257452469
+ * source-hash: 0e71cf0fb2f0ee47088ff4f7e43630d8a8ee7d0bd7048152c00af03b45844901
  */
 
 /**
@@ -326,6 +326,85 @@ export type GpV1 = {
   text?: string;
 };
 /**
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. `list`/`get`/`resolve`/`detail` are open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `pool`/`apply` are manager-only: `pool` browses candidate instruments (from the daily MOEX/ISS refresh or a connector's own broker.get_catalog) that are not yet part of the curated set; `apply` is the sole write — a bulk, all-or-nothing replace of the whole curated set (items + groups + assets), never a per-item mutation. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentChannelV1Message".
+ */
+export type InstrumentChannelV1Message =
+  | InstrumentListRequest
+  | InstrumentListResponse
+  | InstrumentGetRequest
+  | InstrumentGetResponse
+  | InstrumentPoolRequest
+  | InstrumentPoolResponse
+  | InstrumentApplyRequest
+  | InstrumentApplyResponse
+  | InstrumentResolveRequest
+  | InstrumentResolveResponse
+  | InstrumentDetailRequest
+  | InstrumentDetailResponse
+  | InstrumentErrorResponse;
+/**
+ * AFB-side canonical instrument — like afb.gp.v1/afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. One broker-agnostic shape for every market class (stock/futures/currency/index); class-specific fields are gated by `market` via the `allOf`/`if` blocks below (forbidden, not just absent, for classes they don't apply to), but the wire type stays a single schema. `ticker` is the canonical identity: bare SECID for MOEX (e.g. "SBER"), `EXCHANGE:TICKER` for everything else (e.g. "XNAS:AAPL") — `exchange`/`board`/`market` are still carried as explicit fields so nothing but one shared parser (AFB backend/instruments/identity.py, frontend utils/instrumentId.ts) ever splits the string. `group`/`asset` place the instrument in the curated catalog tree (config/instruments.yaml) that AFB users actually see — `group: null` means not yet distributed into a group, the flat-list replacement for the old `lost` bucket. `source` says who refreshes this record's trading params ("moex" for the daily ISS refresh, a broker id like "finam" for instruments obtained from that broker's catalog) — it is NOT a broker binding: which connector can actually trade this instrument, and under what broker-native symbol, is resolved at publish time (see deal.v1.json's target.instrument + BF's own catalog), never persisted here.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentV1".
+ */
+export type InstrumentV1 = {
+  [k: string]: unknown;
+} & {
+  schema: 'afb.instrument.v1';
+  /**
+   * Canonical identity: bare SECID for MOEX, "EXCHANGE:TICKER" otherwise.
+   */
+  ticker: string;
+  exchange: string;
+  board: string;
+  market: 'stock' | 'futures' | 'currency' | 'index';
+  name?: string | null;
+  shortname?: string | null;
+  /**
+   * Underlying asset code (futures) or self-grouping code.
+   */
+  asset?: string | null;
+  /**
+   * Catalog group key; null = not yet distributed.
+   */
+  group: string | null;
+  lot_size?: number | null;
+  price_step?: DealV1_DecimalString;
+  decimals?: number | null;
+  currency?: string | null;
+  /**
+   * Previous trading day's close (MOEX PREVPRICE/PREVWAPRICE), not a live quote.
+   */
+  prev_close?: string;
+  /**
+   * Futures only.
+   */
+  expiration?: string;
+  step_price?: DealV1_DecimalString;
+  margin?: DealV1_DecimalString;
+  /**
+   * Futures only; FUTOI series/perpetual code.
+   */
+  futoi_code?: string;
+  /**
+   * Stock only.
+   */
+  isin?: string;
+  /**
+   * "moex" or a broker id (e.g. "finam") — who refreshes this record's trading params.
+   */
+  source: string;
+};
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentPoolResponse".
+ */
+export type InstrumentPoolResponse = InstrumentPoolMetaResponse | InstrumentPoolSliceResponse;
+/**
  * Manager view of a BF connector config record — reuses link.user.v1.json#/$defs/sharedFields (via $ref, not redeclared, so the two views can't drift apart) plus ACL/key management fields. Never carries `connected`/`daemon`/session runtime — see link.status.v1.json.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -467,6 +546,13 @@ export type DealV2_ExitList = {
   logic?: DealV2_LegJoin;
   condition: DealV2_ConditionNode;
 }[];
+/**
+ * Response to broker.get_catalog. Describes the shape BF's InstrumentRegistry/CatalogStore actually emits today (belphegor/brokers/catalog_store.py CatalogMeta.to_dict() for the meta form, get_catalog_slice() for the slice form) — deliberately permissive (additionalProperties: true throughout, required kept to the minimum AFB reads) since BrokerPort.get_catalog_meta()/get_catalog_slice() impose nothing on a broker plugin's exact dict shape. This is a PATCH-level description of existing wire behavior, not a new constraint on it.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BrokerCatalogPayload".
+ */
+export type BrokerCatalogPayload = PayloadsBrokerCatalog_Meta | PayloadsBrokerCatalog_Slice;
 
 /**
  * Pure proxy of BF's `broker.catalog` payload (see belphegor/proxy.py). `data` untyped — BF owns the shape, unschematized on the wire.
@@ -1490,6 +1576,231 @@ export interface GpErrorDetails {
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentListRequest".
+ */
+export interface InstrumentListRequest {
+  channel: 'instrument';
+  schema: 'afbws.instrument.list.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentListResponse".
+ */
+export interface InstrumentListResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.list.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  items: InstrumentV1[];
+  groups: InstrumentGroup[];
+  assets: InstrumentAssets;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentGroup".
+ */
+export interface InstrumentGroup {
+  key: string;
+  name: string;
+  order?: number | null;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentAssets".
+ */
+export interface InstrumentAssets {
+  [k: string]: InstrumentAsset;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentAsset".
+ */
+export interface InstrumentAsset {
+  name: string | null;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentGetRequest".
+ */
+export interface InstrumentGetRequest {
+  channel: 'instrument';
+  schema: 'afbws.instrument.get.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  ticker: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentGetResponse".
+ */
+export interface InstrumentGetResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.get.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: InstrumentV1;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentPoolRequest".
+ */
+export interface InstrumentPoolRequest {
+  channel: 'instrument';
+  schema: 'afbws.instrument.pool.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * "moex" for the daily ISS-fed candidate pool, or a bf_id to browse that connector's own broker.get_catalog.
+   */
+  source: string;
+  exchange?: string;
+  market?: string;
+  /**
+   * Optional substring filter over ticker/name. Applied server-side for source="moex" (a local, in-memory scan); a broker source ignores it today and returns the full slice — the client filters client-side, same as it already does for the curated list (see TickersService.tsx).
+   */
+  query?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentPoolMetaResponse".
+ */
+export interface InstrumentPoolMetaResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.pool.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  source: string;
+  exchanges: string[];
+  markets: {
+    exchange: string;
+    market: string;
+  }[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentPoolSliceResponse".
+ */
+export interface InstrumentPoolSliceResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.pool.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  source: string;
+  exchange: string;
+  market: string;
+  items: InstrumentV1[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentApplyRequest".
+ */
+export interface InstrumentApplyRequest {
+  channel: 'instrument';
+  schema: 'afbws.instrument.apply.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  items: InstrumentV1[];
+  groups: InstrumentGroup[];
+  assets: InstrumentAssets;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentApplyResponse".
+ */
+export interface InstrumentApplyResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.apply.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  items: InstrumentV1[];
+  groups: InstrumentGroup[];
+  assets: InstrumentAssets;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentResolveRequest".
+ */
+export interface InstrumentResolveRequest {
+  channel: 'instrument';
+  schema: 'afbws.instrument.resolve.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  bf_id: string;
+  tradeplan_id?: string;
+  draft?: {};
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentResolveResponse".
+ */
+export interface InstrumentResolveResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.resolve.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: InstrumentV1;
+  /**
+   * Broker-native locator, BF-owned shape — see broker.instrument_resolved.json.
+   */
+  binding: {
+    [k: string]: unknown;
+  };
+  /**
+   * Broker-owned trading params, BF-owned shape.
+   */
+  broker_instrument: {
+    [k: string]: unknown;
+  };
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentDetailRequest".
+ */
+export interface InstrumentDetailRequest {
+  channel: 'instrument';
+  schema: 'afbws.instrument.detail.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  bf_id: string;
+  /**
+   * Canonical ticker of an item already present in the curated catalog (see instrument/get) — not an arbitrary broker-native symbol.
+   */
+  ticker: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentDetailResponse".
+ */
+export interface InstrumentDetailResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.detail.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  item: InstrumentV1;
+  /**
+   * Broker-native locator, BF-owned shape — see broker.instrument_resolved.json.
+   */
+  binding: {
+    [k: string]: unknown;
+  };
+  /**
+   * Broker-owned trading params, BF-owned shape (InstrumentInfo.to_broker_instrument_dict() — the same deal-publish-shared shape resolveResponse carries, not the narrower broker.instrument.json allow-list; e.g. it has no `symbol` key, that lives in `binding` instead).
+   */
+  broker_instrument: {
+    [k: string]: unknown;
+  };
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentErrorResponse".
+ */
+export interface InstrumentErrorResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.error.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  code: AfbwsCommonV1_ErrorCode;
+  message: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentCatalogSet".
+ */
+export interface InstrumentCatalogSet {
+  items: InstrumentV1[];
+  groups: InstrumentGroup[];
+  assets: InstrumentAssets;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "LinkSharedFields".
  */
 export interface LinkSharedFields {
@@ -2402,6 +2713,46 @@ export interface NotificationLinkV1 {
   timestamp?: string;
 }
 /**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "PayloadsBrokerCatalog_Meta".
+ */
+export interface PayloadsBrokerCatalog_Meta {
+  session_date?: string | null;
+  revision?: number;
+  broker: string;
+  exchanges: string[];
+  markets: {
+    exchange?: string;
+    market?: string;
+    [k: string]: unknown;
+  }[];
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "PayloadsBrokerCatalog_Slice".
+ */
+export interface PayloadsBrokerCatalog_Slice {
+  session_date?: string | null;
+  revision?: number;
+  broker: string;
+  exchange: string;
+  market: string;
+  instruments: {
+    /**
+     * Opaque broker-native locator (e.g. Finam's TICKER@MIC). Not the AFB `ticker`.
+     */
+    broker_symbol: string;
+    exchange?: string;
+    board?: string;
+    ticker?: string;
+    name?: string;
+    market?: string;
+    [k: string]: unknown;
+  }[];
+  [k: string]: unknown;
+}
+/**
  * NACK for any broker.* command (get_account/get_orders/get_catalog/get_instrument/resolve_instrument). Correlated to the request via correlation_id.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2424,6 +2775,57 @@ export interface BrokerErrorPayload {
    * Human-readable error detail.
    */
   message?: string;
+  [k: string]: unknown;
+}
+/**
+ * Response to broker.get_instrument — the enriched instrument (belphegor/domain/instruments.py InstrumentInfo), unlike broker.catalog's brief CatalogEntry rows. Broker-agnostic explicit allow-list, not an asdict()-based dump: broker-native/Finam-specific fields (asset_type, min_step_raw, long_risk_rate, short_risk_rate, future_details, bond_details) never reach this wire — AFB doesn't read them and admitting them would make this canon description implicitly Finam-shaped (belphegor/reporting/broker_snapshots.py::instrument_resolved_payload builds this explicitly, not via InstrumentInfo.to_broker_instrument_dict(), which a different wire field — deal.accepted's broker_instrument — still uses unchanged). `symbol`/`currency` are the canon names on this wire — they map from InstrumentInfo's own internal `symbol`/`quote_currency` attributes, which are unchanged BF-side. additionalProperties stays true so a future broker plugin can add fields without breaking AFB's validation; required kept to `symbol`. This is a PATCH-level description of existing wire behavior, not a new constraint on it.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BrokerInstrumentPayload".
+ */
+export interface BrokerInstrumentPayload {
+  /**
+   * Opaque broker-native locator (e.g. Finam's TICKER@MIC).
+   */
+  symbol: string;
+  exchange?: string;
+  board?: string;
+  ticker?: string;
+  mic?: string;
+  name?: string;
+  market?: string;
+  decimals?: number;
+  price_step?: string;
+  lot_size?: number;
+  currency?: string;
+  expiration_date?: string | null;
+  tradable?: boolean;
+  longable?: boolean;
+  shortable?: boolean;
+  long_initial_margin?: string | null;
+  short_initial_margin?: string | null;
+  updated_at?: string | null;
+  [k: string]: unknown;
+}
+/**
+ * Response to broker.resolve_instrument (deal-instrument pre-flight resolution). Deliberately permissive (additionalProperties: true throughout) — both objects are BF-owned shapes; this is a PATCH-level description of existing wire behavior, not a new constraint on it.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "BrokerInstrumentResolvedPayload".
+ */
+export interface BrokerInstrumentResolvedPayload {
+  /**
+   * Broker-native locator applied to the deal at publish time (belphegor/plan_engine/deal_binding.py apply_publish_binding) — e.g. account_id, symbol.
+   */
+  binding: {
+    [k: string]: unknown;
+  };
+  /**
+   * Same trading-params shape as broker.instrument.json (minus symbol/account_id/exchange/board/ticker) — see InstrumentInfo.to_broker_instrument_dict().
+   */
+  broker_instrument: {
+    [k: string]: unknown;
+  };
   [k: string]: unknown;
 }
 /**

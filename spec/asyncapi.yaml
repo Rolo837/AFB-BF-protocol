@@ -1,7 +1,7 @@
 asyncapi: 3.1.0
 info:
   title: AFB <-> BF Execution Protocol
-  version: 2.2.0
+  version: 2.2.2
   description: >-
     Business protocol between AFB (OMS) and BF (executor daemon), wire version
     afb.execution.v1. Every message is a signed JSON envelope (Ed25519 over a
@@ -522,7 +522,13 @@ components:
             properties:
               type:
                 const: broker.catalog
-      description: 'No fixture yet.'
+              payload:
+                $ref: './schemas/payloads/broker.catalog.json'
+      description: >-
+        Response to broker.get_catalog — meta form (exchanges/markets pairs)
+        when the request omitted exchange/market, slice form (instrument
+        rows) when it named both. Correlated via correlation_id.
+        'No fixture yet.'
     broker_instrument:
       name: broker.instrument
       title: broker.instrument
@@ -537,7 +543,12 @@ components:
             properties:
               type:
                 const: broker.instrument
-      description: 'No fixture yet.'
+              payload:
+                $ref: './schemas/payloads/broker.instrument.json'
+      description: >-
+        Response to broker.get_instrument — full enriched instrument
+        (belphegor/domain/instruments.py InstrumentInfo). Correlated via
+        correlation_id. 'No fixture yet.'
     broker_instrument_resolved:
       name: broker.instrument_resolved
       title: broker.instrument_resolved
@@ -552,7 +563,12 @@ components:
             properties:
               type:
                 const: broker.instrument_resolved
-      description: 'No fixture yet.'
+              payload:
+                $ref: './schemas/payloads/broker.instrument_resolved.json'
+      description: >-
+        Response to broker.resolve_instrument (deal-instrument pre-flight,
+        AFB's `instrument/resolve`) — binding + broker_instrument. Correlated
+        via correlation_id. 'No fixture yet.'
     broker_position_ledger:
       name: broker.position_ledger
       title: broker.position_ledger

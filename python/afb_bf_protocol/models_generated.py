@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: b5e4e08ff5ffbc7ec02167fa333849fffdf94005b51ff584191736e257452469
+# source-hash: 0e71cf0fb2f0ee47088ff4f7e43630d8a8ee7d0bd7048152c00af03b45844901
 
 from __future__ import annotations
 
@@ -399,6 +399,40 @@ class BrokerInstrument(TypedDict):
     shortable: NotRequired[bool]
     tradable: NotRequired[bool]
     updated_at: NotRequired[str]
+
+
+class BrokerInstrumentPayload(TypedDict):
+    """
+    Response to broker.get_instrument — the enriched instrument (belphegor/domain/instruments.py InstrumentInfo), unlike broker.catalog's brief CatalogEntry rows. Broker-agnostic explicit allow-list, not an asdict()-based dump: broker-native/Finam-specific fields (asset_type, min_step_raw, long_risk_rate, short_risk_rate, future_details, bond_details) never reach this wire — AFB doesn't read them and admitting them would make this canon description implicitly Finam-shaped (belphegor/reporting/broker_snapshots.py::instrument_resolved_payload builds this explicitly, not via InstrumentInfo.to_broker_instrument_dict(), which a different wire field — deal.accepted's broker_instrument — still uses unchanged). `symbol`/`currency` are the canon names on this wire — they map from InstrumentInfo's own internal `symbol`/`quote_currency` attributes, which are unchanged BF-side. additionalProperties stays true so a future broker plugin can add fields without breaking AFB's validation; required kept to `symbol`. This is a PATCH-level description of existing wire behavior, not a new constraint on it.
+    """
+
+    symbol: str
+    exchange: NotRequired[str]
+    board: NotRequired[str]
+    ticker: NotRequired[str]
+    mic: NotRequired[str]
+    name: NotRequired[str]
+    market: NotRequired[str]
+    decimals: NotRequired[int]
+    price_step: NotRequired[str]
+    lot_size: NotRequired[int]
+    currency: NotRequired[str]
+    expiration_date: NotRequired[str | None]
+    tradable: NotRequired[bool]
+    longable: NotRequired[bool]
+    shortable: NotRequired[bool]
+    long_initial_margin: NotRequired[str | None]
+    short_initial_margin: NotRequired[str | None]
+    updated_at: NotRequired[str | None]
+
+
+class BrokerInstrumentResolvedPayload(TypedDict):
+    """
+    Response to broker.resolve_instrument (deal-instrument pre-flight resolution). Deliberately permissive (additionalProperties: true throughout) — both objects are BF-owned shapes; this is a PATCH-level description of existing wire behavior, not a new constraint on it.
+    """
+
+    binding: dict[str, Any]
+    broker_instrument: dict[str, Any]
 
 
 class BrokerPositionLedgerPayload(TypedDict):
@@ -1599,6 +1633,202 @@ class Instrument(TypedDict):
     secname: NotRequired[str]
 
 
+class Instrument2(TypedDict):
+    broker_symbol: str
+    exchange: NotRequired[str]
+    board: NotRequired[str]
+    ticker: NotRequired[str]
+    name: NotRequired[str]
+    market: NotRequired[str]
+
+
+class InstrumentApplyRequest(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.apply.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[InstrumentV1]
+    groups: list[InstrumentGroup]
+    assets: InstrumentAssets
+
+
+class InstrumentApplyResponse(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.apply.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[InstrumentV1]
+    groups: list[InstrumentGroup]
+    assets: InstrumentAssets
+
+
+class InstrumentAsset(TypedDict):
+    name: str | None
+
+
+InstrumentAssets: TypeAlias = dict[str, InstrumentAsset]
+
+
+class InstrumentCatalogSet(TypedDict):
+    items: list[InstrumentV1]
+    groups: list[InstrumentGroup]
+    assets: InstrumentAssets
+
+
+class InstrumentDetailRequest(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.detail.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    bf_id: str
+    ticker: str
+
+
+class InstrumentDetailResponse(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.detail.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: InstrumentV1
+    binding: dict[str, Any]
+    broker_instrument: dict[str, Any]
+
+
+class InstrumentErrorResponse(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.error.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    code: AfbwsCommonV1ErrorCode
+    message: str
+
+
+class InstrumentGetRequest(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.get.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    ticker: str
+
+
+class InstrumentGetResponse(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.get.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: InstrumentV1
+
+
+class InstrumentGroup(TypedDict):
+    key: str
+    name: str
+    order: NotRequired[int | None]
+
+
+class InstrumentListRequest(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.list.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+
+
+class InstrumentListResponse(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.list.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[InstrumentV1]
+    groups: list[InstrumentGroup]
+    assets: InstrumentAssets
+
+
+class InstrumentPoolMetaResponse(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.pool.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    source: str
+    exchanges: list[str]
+    markets: list[Market]
+
+
+class InstrumentPoolRequest(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.pool.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    source: str
+    exchange: NotRequired[str]
+    market: NotRequired[str]
+    query: NotRequired[str]
+
+
+class InstrumentPoolSliceResponse(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.pool.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    source: str
+    exchange: str
+    market: str
+    items: list[InstrumentV1]
+
+
+InstrumentPoolResponse: TypeAlias = (
+    InstrumentPoolMetaResponse | InstrumentPoolSliceResponse
+)
+
+
+class InstrumentResolveRequest(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.resolve.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    bf_id: str
+    tradeplan_id: NotRequired[str]
+    draft: NotRequired[dict[str, Any]]
+
+
+class InstrumentResolveResponse(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.resolve.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    item: InstrumentV1
+    binding: dict[str, Any]
+    broker_instrument: dict[str, Any]
+
+
+InstrumentChannelV1Message: TypeAlias = (
+    InstrumentListRequest
+    | InstrumentListResponse
+    | InstrumentGetRequest
+    | InstrumentGetResponse
+    | InstrumentPoolRequest
+    | InstrumentPoolResponse
+    | InstrumentApplyRequest
+    | InstrumentApplyResponse
+    | InstrumentResolveRequest
+    | InstrumentResolveResponse
+    | InstrumentDetailRequest
+    | InstrumentDetailResponse
+    | InstrumentErrorResponse
+)
+
+
+class InstrumentV1(TypedDict):
+    """
+    AFB-side canonical instrument — like afb.gp.v1/afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. One broker-agnostic shape for every market class (stock/futures/currency/index); class-specific fields are gated by `market` via the `allOf`/`if` blocks below (forbidden, not just absent, for classes they don't apply to), but the wire type stays a single schema. `ticker` is the canonical identity: bare SECID for MOEX (e.g. "SBER"), `EXCHANGE:TICKER` for everything else (e.g. "XNAS:AAPL") — `exchange`/`board`/`market` are still carried as explicit fields so nothing but one shared parser (AFB backend/instruments/identity.py, frontend utils/instrumentId.ts) ever splits the string. `group`/`asset` place the instrument in the curated catalog tree (config/instruments.yaml) that AFB users actually see — `group: null` means not yet distributed into a group, the flat-list replacement for the old `lost` bucket. `source` says who refreshes this record's trading params ("moex" for the daily ISS refresh, a broker id like "finam" for instruments obtained from that broker's catalog) — it is NOT a broker binding: which connector can actually trade this instrument, and under what broker-native symbol, is resolved at publish time (see deal.v1.json's target.instrument + BF's own catalog), never persisted here.
+    """
+
+    schema: Literal["afb.instrument.v1"]
+    ticker: str
+    exchange: str
+    board: str
+    market: Literal["stock", "futures", "currency", "index"]
+    name: NotRequired[str | None]
+    shortname: NotRequired[str | None]
+    asset: NotRequired[str | None]
+    group: str | None
+    lot_size: NotRequired[int | None]
+    price_step: NotRequired[DealV1DecimalString]
+    decimals: NotRequired[int | None]
+    currency: NotRequired[str | None]
+    prev_close: NotRequired[DealV1DecimalString]
+    expiration: NotRequired[str]
+    step_price: NotRequired[DealV1DecimalString]
+    margin: NotRequired[DealV1DecimalString]
+    futoi_code: NotRequired[str]
+    isin: NotRequired[str]
+    source: str
+
+
 class Left(TypedDict):
     """
     afb.deal.v1 conditions compare against the last traded price, or (entry only — see executor-side validation) fire immediately with no price level of its own. quote/indicator/dataset sources are afb.deal.v2-only.
@@ -1841,6 +2071,16 @@ class LinkUserV1(BfRegistryEntry, LinkSharedFields):
 LinkEntity: TypeAlias = LinkUserV1 | LinkAdminV1
 
 
+class Market(TypedDict):
+    exchange: str
+    market: str
+
+
+class Market1(TypedDict):
+    exchange: NotRequired[str]
+    market: NotRequired[str]
+
+
 class MarketData(TypedDict):
     """
     What market data this BF instance can serve, and on which wire timeframes (see condition.v1.json#/$defs/timeframe) — used by AFB to validate indicator/price-candle condition timeframes before publish.
@@ -1978,6 +2218,26 @@ class OrderFilledPayload(TypedDict):
 
 class Owner(TypedDict):
     user_id: NotRequired[str]
+
+
+class PayloadsBrokerCatalogMeta(TypedDict):
+    session_date: NotRequired[str | None]
+    revision: NotRequired[int]
+    broker: str
+    exchanges: list[str]
+    markets: list[Market1]
+
+
+class PayloadsBrokerCatalogSlice(TypedDict):
+    session_date: NotRequired[str | None]
+    revision: NotRequired[int]
+    broker: str
+    exchange: str
+    market: str
+    instruments: list[Instrument2]
+
+
+BrokerCatalogPayload: TypeAlias = PayloadsBrokerCatalogMeta | PayloadsBrokerCatalogSlice
 
 
 class PositionOpenedPayload(TypedDict):

@@ -39,9 +39,9 @@ Every message is a signed envelope (see `spec/schemas/envelope.json`).
 | `daemon.error` | system | yes | — | — |
 | `broker.account` | user |  | — | — |
 | `broker.orders` | user |  | — | — |
-| `broker.catalog` | user |  | — | — |
-| `broker.instrument` | user |  | — | — |
-| `broker.instrument_resolved` | user |  | — | — |
+| `broker.catalog` | user |  | `spec/schemas/payloads/broker.catalog.json` | — |
+| `broker.instrument` | user |  | `spec/schemas/payloads/broker.instrument.json` | — |
+| `broker.instrument_resolved` | user |  | `spec/schemas/payloads/broker.instrument_resolved.json` | — |
 | `broker.position_ledger` | trading | yes | `spec/schemas/payloads/broker.position_ledger.json` | — |
 | `broker.error` | user |  | `spec/schemas/payloads/broker.error.json` | `examples/broker.error.json` |
 | `dataset.subscribe` | system |  | `spec/schemas/payloads/dataset.subscribe.json` | — |

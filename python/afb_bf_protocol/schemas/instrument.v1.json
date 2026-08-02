@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/instrument.v1.json",
+  "title": "Canonical catalog instrument afb.instrument.v1",
+  "description": "AFB-side canonical instrument — like afb.gp.v1/afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. One broker-agnostic shape for every market class (stock/futures/currency/index); class-specific fields are gated by `market` via the `allOf`/`if` blocks below (forbidden, not just absent, for classes they don't apply to), but the wire type stays a single schema. `ticker` is the canonical identity: bare SECID for MOEX (e.g. \"SBER\"), `EXCHANGE:TICKER` for everything else (e.g. \"XNAS:AAPL\") — `exchange`/`board`/`market` are still carried as explicit fields so nothing but one shared parser (AFB backend/instruments/identity.py, frontend utils/instrumentId.ts) ever splits the string. `group`/`asset` place the instrument in the curated catalog tree (config/instruments.yaml) that AFB users actually see — `group: null` means not yet distributed into a group, the flat-list replacement for the old `lost` bucket. `source` says who refreshes this record's trading params (\"moex\" for the daily ISS refresh, a broker id like \"finam\" for instruments obtained from that broker's catalog) — it is NOT a broker binding: which connector can actually trade this instrument, and under what broker-native symbol, is resolved at publish time (see deal.v1.json's target.instrument + BF's own catalog), never persisted here.",
+  "type": "object",
+  "required": ["schema", "ticker", "exchange", "board", "market", "group", "source"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "afb.instrument.v1" },
+    "ticker": { "type": "string", "minLength": 1, "description": "Canonical identity: bare SECID for MOEX, \"EXCHANGE:TICKER\" otherwise." },
+    "exchange": { "type": "string", "minLength": 1 },
+    "board": { "type": "string" },
+    "market": { "enum": ["stock", "futures", "currency", "index"] },
+    "name": { "type": ["string", "null"] },
+    "shortname": { "type": ["string", "null"] },
+    "asset": { "type": ["string", "null"], "description": "Underlying asset code (futures) or self-grouping code." },
+    "group": { "type": ["string", "null"], "description": "Catalog group key; null = not yet distributed." },
+    "lot_size": { "type": ["integer", "null"], "minimum": 1 },
+    "price_step": { "$ref": "deal.v1.json#/$defs/decimalString" },
+    "decimals": { "type": ["integer", "null"], "minimum": 0 },
+    "currency": { "type": ["string", "null"] },
+    "prev_close": { "$ref": "deal.v1.json#/$defs/decimalString", "description": "Previous trading day's close (MOEX PREVPRICE/PREVWAPRICE), not a live quote." },
+    "expiration": { "type": "string", "description": "Futures only." },
+    "step_price": { "$ref": "deal.v1.json#/$defs/decimalString" },
+    "margin": { "$ref": "deal.v1.json#/$defs/decimalString" },
+    "futoi_code": { "type": "string", "description": "Futures only; FUTOI series/perpetual code." },
+    "isin": { "type": "string", "description": "Stock only." },
+    "source": { "type": "string", "minLength": 1, "description": "\"moex\" or a broker id (e.g. \"finam\") — who refreshes this record's trading params." }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "market": { "const": "futures" } }, "required": ["market"] },
+      "then": {},
+      "else": {
+        "properties": {
+          "expiration": false,
+          "step_price": false,
+          "margin": false,
+          "futoi_code": false
+        }
+      }
+    },
+    {
+      "if": { "properties": { "market": { "const": "stock" } }, "required": ["market"] },
+      "then": {},
+      "else": { "properties": { "isin": false } }
+    }
+  ]
+}
