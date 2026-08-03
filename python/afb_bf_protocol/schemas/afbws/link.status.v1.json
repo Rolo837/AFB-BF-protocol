@@ -21,7 +21,7 @@
     "heartbeat_interval_sec": {
       "type": "integer",
       "minimum": 1,
-      "description": "Negotiated heartbeat interval for stale detection/display in AFB frontend."
+      "description": "Negotiated at session.hello/hello_ack; used for stale detection (3× interval) and UI display."
     },
     "heartbeat_stale": {
       "type": "boolean",

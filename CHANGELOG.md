@@ -2,6 +2,17 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.3.1 — 2026-08-03
+
+PATCH: согласование интервала heartbeat при handshake и deprecation split-полей `dry_run_*`/`margin_trading_*`.
+
+- **`spec/schemas/payloads/session.hello.json`** — опциональный `heartbeat_interval_sec` (предложение BF; AFB может clamp в `hello_ack`).
+- **`spec/schemas/payloads/session.hello_ack.json`** — уточнён description `heartbeat_interval_sec` (нормализованный интервал); `dry_run_afb`/`dry_run_bf`/`margin_trading_afb`/`margin_trading_bf` помечены `deprecated` (использовать эффективные `dry_run`/`margin_trading`).
+- **`spec/schemas/afbws/bfs.registry.v1.json`** — `dry_run_afb`/`dry_run_bf` deprecated.
+- **`spec/schemas/afbws/link.status.v1.json`** — description `heartbeat_interval_sec`: negotiated interval для stale (3×) и UI.
+- **`docs/PROTOCOL.md`** — handshake: предложение/нормализация heartbeat; split-поля deprecated.
+- **Версии**: bump до `2.3.1` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`. Версия провода (`afb.execution.v1`) не менялась.
+
 ## v2.3.0 — 2026-08-02
 
 MINOR: часть 1 (протокол) миграции канала `account` для AFB frontend↔backend — новый schema-first `afbws.account.channel.v1`, мультисчётность на проводе AFB↔BF (read-only: коннектор видит все счета брокерского токена, но исполняет по-прежнему только на своём торговом) и закрытие семейства `broker.*` payload-схемами: у каждого типа теперь есть `spec/schemas/payloads/<type>.json`, ранее было только у пяти из двенадцати.

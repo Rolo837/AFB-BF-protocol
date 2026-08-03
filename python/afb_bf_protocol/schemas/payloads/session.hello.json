@@ -10,6 +10,11 @@
     "margin_trading": {
       "type": "boolean"
     },
+    "heartbeat_interval_sec": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "BF-proposed heartbeat period (seconds); AFB may clamp in hello_ack."
+    },
     "nonce": {
       "type": "string"
     },

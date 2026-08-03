@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 7496354046eb599d4c587bf3c4e89dc9d2c43b73a3ae9b690910464b5b80b04b
+# source-hash: e7959355ba52bea7da03f76e5375f3d0d0c007a9026f1ac031cbbb8962914b33
 
 from __future__ import annotations
 
@@ -2530,6 +2530,7 @@ class SessionHelloPayload(TypedDict):
     bf_id: str
     dry_run: NotRequired[bool]
     margin_trading: NotRequired[bool]
+    heartbeat_interval_sec: NotRequired[int]
     nonce: str
     protocol: str
     version: NotRequired[str]

@@ -13,8 +13,16 @@
           "properties": {
             "connected": { "type": "boolean" },
             "dry_run": { "type": "boolean" },
-            "dry_run_afb": { "type": "boolean" },
-            "dry_run_bf": { "type": "boolean" },
+            "dry_run_afb": {
+              "type": "boolean",
+              "deprecated": true,
+              "description": "Deprecated: use dry_run (effective session value) instead."
+            },
+            "dry_run_bf": {
+              "type": "boolean",
+              "deprecated": true,
+              "description": "Deprecated: use dry_run (effective session value) instead."
+            },
             "account_id": { "type": "string", "description": "From connected BF's session.hello capabilities; display-only." },
             "capabilities": { "type": "object", "additionalProperties": true },
             "daemon": { "type": "object", "additionalProperties": true }

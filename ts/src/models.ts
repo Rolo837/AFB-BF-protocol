@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 7496354046eb599d4c587bf3c4e89dc9d2c43b73a3ae9b690910464b5b80b04b
+ * source-hash: e7959355ba52bea7da03f76e5375f3d0d0c007a9026f1ac031cbbb8962914b33
  */
 
 /**
@@ -134,7 +134,15 @@ export type ConditionV1_ScalarOp = 'above' | 'below' | 'crosses_above' | 'crosse
 export type BfsRegistryEntry = BfRegistryEntry & {
   connected: boolean;
   dry_run: boolean;
+  /**
+   * @deprecated
+   * Deprecated: use dry_run (effective session value) instead.
+   */
   dry_run_afb?: boolean;
+  /**
+   * @deprecated
+   * Deprecated: use dry_run (effective session value) instead.
+   */
   dry_run_bf?: boolean;
   /**
    * From connected BF's session.hello capabilities; display-only.
@@ -2172,7 +2180,7 @@ export interface LinkStatusV1 {
    */
   last_heartbeat_at?: null | string;
   /**
-   * Negotiated heartbeat interval for stale detection/display in AFB frontend.
+   * Negotiated at session.hello/hello_ack; used for stale detection (3× interval) and UI display.
    */
   heartbeat_interval_sec?: number;
   /**
@@ -3642,6 +3650,10 @@ export interface SessionHelloPayload {
   bf_id: string;
   dry_run?: boolean;
   margin_trading?: boolean;
+  /**
+   * BF-proposed heartbeat period (seconds); AFB may clamp in hello_ack.
+   */
+  heartbeat_interval_sec?: number;
   nonce: string;
   protocol: string;
   version?: string;
@@ -3653,14 +3665,33 @@ export interface SessionHelloPayload {
  */
 export interface SessionHelloAckPayload {
   server_nonce?: string;
+  /**
+   * Negotiated heartbeat interval (seconds): BF proposal from session.hello, clamped by AFB to connector_defaults.heartbeat_interval_min/max. BF must use this value for session.heartbeat period.
+   */
   heartbeat_interval_sec?: number;
   protocol: string;
   accepted_protocol?: string;
   dry_run?: boolean;
+  /**
+   * @deprecated
+   * Deprecated: use dry_run (effective session value) instead.
+   */
   dry_run_afb?: boolean;
+  /**
+   * @deprecated
+   * Deprecated: use dry_run (effective session value) instead.
+   */
   dry_run_bf?: boolean;
   margin_trading?: boolean;
+  /**
+   * @deprecated
+   * Deprecated: use margin_trading (effective session value) instead.
+   */
   margin_trading_afb?: boolean;
+  /**
+   * @deprecated
+   * Deprecated: use margin_trading (effective session value) instead.
+   */
   margin_trading_bf?: boolean;
   /**
    * AFB-side capability flags for this session — read by BF's afb_client (see afb_client/ws_client.py, alongside dry_run/margin_trading above) to decide what it may send this AFB.

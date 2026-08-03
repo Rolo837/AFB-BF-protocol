@@ -5,7 +5,9 @@
       "type": "string"
     },
     "heartbeat_interval_sec": {
-      "type": "integer"
+      "type": "integer",
+      "minimum": 1,
+      "description": "Negotiated heartbeat interval (seconds): BF proposal from session.hello, clamped by AFB to connector_defaults.heartbeat_interval_min/max. BF must use this value for session.heartbeat period."
     },
     "protocol": {
       "type": "string"
@@ -17,19 +19,27 @@
       "type": "boolean"
     },
     "dry_run_afb": {
-      "type": "boolean"
+      "type": "boolean",
+      "deprecated": true,
+      "description": "Deprecated: use dry_run (effective session value) instead."
     },
     "dry_run_bf": {
-      "type": "boolean"
+      "type": "boolean",
+      "deprecated": true,
+      "description": "Deprecated: use dry_run (effective session value) instead."
     },
     "margin_trading": {
       "type": "boolean"
     },
     "margin_trading_afb": {
-      "type": "boolean"
+      "type": "boolean",
+      "deprecated": true,
+      "description": "Deprecated: use margin_trading (effective session value) instead."
     },
     "margin_trading_bf": {
-      "type": "boolean"
+      "type": "boolean",
+      "deprecated": true,
+      "description": "Deprecated: use margin_trading (effective session value) instead."
     },
     "features": {
       "type": "object",
