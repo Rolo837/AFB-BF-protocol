@@ -63,6 +63,27 @@ sequenceDiagram
 
 `heartbeat_interval_sec` в `session.hello` — предложение BF (обычно `afb.heartbeat_sec` из конфига демона). AFB нормализует значение в диапазон `connector_defaults.heartbeat_interval_min`/`heartbeat_interval_max` (`trading.yaml`, по умолчанию 15–300) и возвращает нормализованный интервал в `session.hello_ack.heartbeat_interval_sec`. BF обязан использовать это значение для периода `session.heartbeat`. Если поле отсутствует в `hello` (старый BF), AFB подставляет fallback `trading.yaml: heartbeat_interval_sec`. Поля `dry_run_afb`/`dry_run_bf`/`margin_trading_afb`/`margin_trading_bf` в `hello_ack` помечены `deprecated` — потребители должны читать только эффективные `dry_run`/`margin_trading`.
 
+### Отказ рукопожатия: close-коды
+
+`session.hello_ack` — только «успешный» ответ, отдельного payload-сообщения
+для отказа в протоколе нет. Отказ на шаге 1-2 AFB сигнализирует голым
+WebSocket close (без прикладного конверта, до `hello_ack`) — BF обязан
+разбирать код закрытия в основном цикле переподключения, а не считать любой
+обрыв транзиентной сетевой ошибкой:
+
+| Код | Причина | Ожидаемая реакция BF |
+|-----|---------|----------------------|
+| `4000` | Неверный первый фрейм (не `session.hello`) или `bf_id` mismatch | Штатный reconnect (`afb.reconnect_sec`) — вероятно баг клиента, но не обязательно постоянный |
+| `4003` | `bf_id` неизвестен реестру AFB **или** коннектор выключен (`enabled: false`) | Не ретраить в штатном темпе — это осознанное административное действие. Уйти в длинный backoff (`afb.disabled_reconnect_sec`, по умолчанию 300s) и не спамить лог на каждой попытке |
+| `4004` | Отказ на `session.enroll_request` (см. §14.5, шаг 5) | Не относится к `session.hello` — обрабатывается отдельно в enrollment-flow |
+| `4008` | AFB не дождался первого сообщения (`HANDSHAKE_TIMEOUT_SEC=15`) | Штатный reconnect |
+
+Код 4003 передаётся транспортно (WS close code), а не полем payload — при
+разборе в `websockets`-клиенте это `ConnectionClosed.rcvd.code`. AFB также
+пишет причину (`"not_registered"`/`"disabled"`) в свой локальный
+аудит-лог (`storage.append_event`) — это диагностика для AFB, не часть
+контракта с BF.
+
 ---
 
 ## 2. Resync: алгоритм выравнивания инвентаря
