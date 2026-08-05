@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: e7959355ba52bea7da03f76e5375f3d0d0c007a9026f1ac031cbbb8962914b33
+ * source-hash: c270cdf3517669504d5bc417d549662e9527bd58c33609874bcda249e777fe86
  */
 
 /**
@@ -1132,6 +1132,10 @@ export interface DealDetail {
 export interface DealSizingDisplay {
   lots?: number;
   required_cash?: string;
+  /**
+   * BF-resolved actual order quantity (lots), fixed once at entry-trigger time — distinct from `lots`, which stays the pre-trade publish estimate. Present only once BF has reported it (deal.status_changed/deal.snapshot `quantity`).
+   */
+  resolved_lots?: number;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -3534,6 +3538,28 @@ export interface DealReportPayload {
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealSnapshotPayload".
+ */
+export interface DealSnapshotPayload {
+  deal_id: string;
+  execution_phase?: string;
+  observed?: {};
+  positions?: {
+    symbol?: string;
+    quantity?: number;
+    average_price?: string;
+    updated_at?: string;
+    [k: string]: unknown;
+  }[];
+  /**
+   * Resolved order quantity (lots), fixed once by BF at entry-trigger time (`resolved_quantity`). Present only once known — never present before the entry order is placed, never cleared afterward.
+   */
+  quantity?: number;
+  status?: string;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealStatusChangedPayload".
  */
 export interface DealStatusChangedPayload {
@@ -3544,6 +3570,10 @@ export interface DealStatusChangedPayload {
   deal_id: string;
   execution_phase?: string;
   last_price?: string;
+  /**
+   * Resolved order quantity (lots), fixed once by BF at entry-trigger time (`resolved_quantity`). Present only once known — never present before the entry order is placed, never cleared afterward.
+   */
+  quantity?: number;
   revision: number;
   status: string;
   [k: string]: unknown;

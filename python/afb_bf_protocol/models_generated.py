@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: e7959355ba52bea7da03f76e5375f3d0d0c007a9026f1ac031cbbb8962914b33
+# source-hash: c270cdf3517669504d5bc417d549662e9527bd58c33609874bcda249e777fe86
 
 from __future__ import annotations
 
@@ -1211,6 +1211,16 @@ class DealResult(TypedDict):
 class DealSizingDisplay(TypedDict):
     lots: NotRequired[int]
     required_cash: NotRequired[str]
+    resolved_lots: NotRequired[int]
+
+
+class DealSnapshotPayload(TypedDict):
+    deal_id: str
+    execution_phase: NotRequired[str]
+    observed: NotRequired[dict[str, Any]]
+    positions: NotRequired[list[Position]]
+    quantity: NotRequired[int]
+    status: NotRequired[str]
 
 
 class DealStateV2(TypedDict):
@@ -1285,6 +1295,7 @@ class DealStatusChangedPayload(TypedDict):
     deal_id: str
     execution_phase: NotRequired[str]
     last_price: NotRequired[str]
+    quantity: NotRequired[int]
     revision: int
     status: str
 
@@ -2466,6 +2477,13 @@ class PayloadsBrokerOrdersOrder(TypedDict):
     updated_at: NotRequired[str]
     error_code: NotRequired[str | None]
     error_message: NotRequired[str | None]
+
+
+class Position(TypedDict):
+    symbol: NotRequired[str]
+    quantity: NotRequired[int]
+    average_price: NotRequired[str]
+    updated_at: NotRequired[str]
 
 
 class PositionOpenedPayload(TypedDict):

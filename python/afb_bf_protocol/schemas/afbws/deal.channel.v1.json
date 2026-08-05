@@ -37,7 +37,8 @@
       "additionalProperties": false,
       "properties": {
         "lots": { "type": "integer" },
-        "required_cash": { "type": "string" }
+        "required_cash": { "type": "string" },
+        "resolved_lots": { "type": "integer", "description": "BF-resolved actual order quantity (lots), fixed once at entry-trigger time — distinct from `lots`, which stays the pre-trade publish estimate. Present only once BF has reported it (deal.status_changed/deal.snapshot `quantity`)." }
       }
     },
     "dealRealizedPnl": {

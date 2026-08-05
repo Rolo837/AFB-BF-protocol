@@ -1,0 +1,17 @@
+{
+  "deal_id": "deal-1cb4-4fe0-9c41:finam-arena-316",
+  "status": "active",
+  "execution_phase": "holding",
+  "observed": {
+    "position_qty": 7
+  },
+  "positions": [
+    {
+      "symbol": "SBER",
+      "quantity": 7,
+      "average_price": "312.50",
+      "updated_at": "2026-06-26T06:00:12.100000+03:00"
+    }
+  ],
+  "quantity": 7
+}

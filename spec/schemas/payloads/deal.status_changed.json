@@ -14,6 +14,10 @@
     "last_price": {
       "type": "string"
     },
+    "quantity": {
+      "type": "integer",
+      "description": "Resolved order quantity (lots), fixed once by BF at entry-trigger time (`resolved_quantity`). Present only once known — never present before the entry order is placed, never cleared afterward."
+    },
     "revision": {
       "type": "integer"
     },

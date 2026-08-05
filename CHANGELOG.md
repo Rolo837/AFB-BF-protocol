@@ -2,6 +2,17 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.4.0 — 2026-08-05
+
+MINOR: новое опциональное поле `quantity` в `deal.snapshot`/`deal.status_changed` — финальный (resolved) размер сделки, который BF фиксирует один раз в момент триггера входа (`resolved_quantity`), в отличие от предварительной publish-оценки `broker_sizing.lots`.
+
+- **`spec/schemas/payloads/deal.snapshot.json`** (новый файл) — payload `deal.snapshot` вынесен из инлайновой схемы `asyncapi.yaml` в отдельный файл (был пустым стабом без примера, `additionalProperties: true`, в отличие от соседних сообщений) — те же поля (`deal_id`, `status`, `execution_phase`, `observed`, `positions[]`) плюс новый опциональный `quantity` (integer).
+- **`spec/schemas/payloads/deal.status_changed.json`** — новый опциональный `quantity` (integer) — тот же смысл, реальный проактивный канал доставки (сообщение шлётся на каждом переходе состояния сделки, в т.ч. сразу после фиксации `resolved_quantity`), в отличие от `deal.snapshot`, который сегодня шлётся только по явному on-demand `deal.operation{op:"reconcile"}`.
+- **`spec/schemas/afbws/deal.channel.v1.json`** — `$defs.dealSizingDisplay` (AFB frontend↔backend, не пересекает канал AFB↔BF) получил опциональный `resolved_lots` (integer) рядом с `lots`/`required_cash` — публичная проекция того же `quantity`, отдаваемая `deal_summary`/`deal_detail`.
+- **`examples/_payloads/deal.snapshot.json`** (новый) — первый пример для `deal.snapshot`.
+- **Перегенерировано**: `taxonomy.py`/`MESSAGES.md`/`ts/src/taxonomy.ts`/`index.ts`/`models_generated.py`/`ts/src/models.ts`/schemas mirror, `examples/deal.snapshot.json`.
+- **Версии**: bump до `2.4.0` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`. Версия провода (`afb.execution.v1`) не менялась.
+
 ## v2.3.1 — 2026-08-03
 
 PATCH: согласование интервала heartbeat при handshake и deprecation split-полей `dry_run_*`/`margin_trading_*`.

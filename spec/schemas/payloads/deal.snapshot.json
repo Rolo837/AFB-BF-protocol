@@ -1,0 +1,49 @@
+{
+  "type": "object",
+  "properties": {
+    "deal_id": {
+      "type": "string"
+    },
+    "execution_phase": {
+      "type": "string"
+    },
+    "observed": {
+      "type": "object"
+    },
+    "positions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "average_price": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "quantity": {
+      "type": "integer",
+      "description": "Resolved order quantity (lots), fixed once by BF at entry-trigger time (`resolved_quantity`). Present only once known — never present before the entry order is placed, never cleared afterward."
+    },
+    "status": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "deal_id"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/deal.snapshot.json",
+  "title": "payload: deal.snapshot"
+}
