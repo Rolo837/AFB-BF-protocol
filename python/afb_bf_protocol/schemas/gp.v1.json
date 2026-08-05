@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/gp.v1.json",
   "title": "Graphic primitive afb.gp.v1",
-  "description": "AFB-side chart primitive (line/line_enter/line_sl/line_tp/note/zone/ruler) — like afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Never carries `used_in_tradeplans` (rejected by additionalProperties: false) — whether a primitive is referenced by a tradeplan is derived fresh from the tradeplans themselves on every read, never persisted or transmitted as part of this entity (see AFB/docs/ENTITY_WS_PROTOCOL.md). `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).",
+  "description": "AFB-side chart primitive (line/line_enter/line_sl/line_tp/note/zone/ruler) — like afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`. `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).",
   "type": "object",
   "required": ["schema", "id", "ticker", "kind", "start"],
   "additionalProperties": false,
@@ -13,7 +13,11 @@
     "kind": { "enum": ["line", "line_enter", "line_sl", "line_tp", "note", "zone", "ruler"] },
     "start": { "$ref": "#/$defs/point" },
     "stop": { "$ref": "#/$defs/point" },
-    "text": { "type": "string", "maxLength": 160, "description": "note only (optional even there)." }
+    "text": { "type": "string", "maxLength": 160, "description": "note only (optional even there)." },
+    "tradeplan_id": {
+      "type": "string",
+      "description": "Владеющий торговый план. Проставляется сервером при компиляции плана в сделку (публикация/amend); снимается только при физическом удалении плана. Клиент это поле не задаёт и не меняет — в set-запросе оно игнорируется в пользу хранимого значения. Пустое/отсутствующее — свободный примитив, доступный любому плану. Уровни архивируемого плана не получают архивной формы: они замораживаются в числовые значения внутри плана и физически удаляются из этого хранилища."
+    }
   },
   "allOf": [
     {

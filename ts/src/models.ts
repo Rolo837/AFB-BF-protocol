@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: c270cdf3517669504d5bc417d549662e9527bd58c33609874bcda249e777fe86
+ * source-hash: c64bac395b0348ebe5f4a93d66c8eb3ed88447696b7ded18a8fbc5f650576e5a
  */
 
 /**
@@ -342,7 +342,7 @@ export type GpChannelV1Message =
   | GpDeleteResponse
   | GpErrorResponse;
 /**
- * AFB-side chart primitive (line/line_enter/line_sl/line_tp/note/zone/ruler) — like afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Never carries `used_in_tradeplans` (rejected by additionalProperties: false) — whether a primitive is referenced by a tradeplan is derived fresh from the tradeplans themselves on every read, never persisted or transmitted as part of this entity (see AFB/docs/ENTITY_WS_PROTOCOL.md). `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).
+ * AFB-side chart primitive (line/line_enter/line_sl/line_tp/note/zone/ruler) — like afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`. `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpV1".
@@ -360,6 +360,10 @@ export type GpV1 = {
    * note only (optional even there).
    */
   text?: string;
+  /**
+   * Владеющий торговый план. Проставляется сервером при компиляции плана в сделку (публикация/amend); снимается только при физическом удалении плана. Клиент это поле не задаёт и не меняет — в set-запросе оно игнорируется в пользу хранимого значения. Пустое/отсутствующее — свободный примитив, доступный любому плану. Уровни архивируемого плана не получают архивной формы: они замораживаются в числовые значения внутри плана и физически удаляются из этого хранилища.
+   */
+  tradeplan_id?: string;
 };
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. `list`/`get`/`resolve`/`detail` are open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `pool`/`apply` are manager-only: `pool` browses candidate instruments (from the daily MOEX/ISS refresh or a connector's own broker.get_catalog) that are not yet part of the curated set; `apply` is the sole write — a bulk, all-or-nothing replace of the whole curated set (items + groups + assets), never a per-item mutation. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md.
