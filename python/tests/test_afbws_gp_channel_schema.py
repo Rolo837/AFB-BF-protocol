@@ -152,6 +152,47 @@ def test_delete_request_and_response_valid(registry):
     _validator("deleteResponse", registry).validate(resp)  # does not raise
 
 
+# --- sync push ---------------------------------------------------------------
+
+def test_sync_push_valid(registry):
+    msg = {
+        "channel": "gp", "schema": "afbws.gp.sync.push.v1",
+        "items": [_GP_ITEM, {**_GP_ITEM, "id": "gp-2", "tradeplan_id": "tp-1"}],
+    }
+    _validator("syncPush", registry).validate(msg)  # does not raise
+
+
+def test_sync_push_requires_non_empty_items(registry):
+    from jsonschema import ValidationError
+
+    msg = {"channel": "gp", "schema": "afbws.gp.sync.push.v1", "items": []}
+    with pytest.raises(ValidationError):
+        _validator("syncPush", registry).validate(msg)
+
+
+def test_sync_push_requires_items_key(registry):
+    from jsonschema import ValidationError
+
+    msg = {"channel": "gp", "schema": "afbws.gp.sync.push.v1"}
+    with pytest.raises(ValidationError):
+        _validator("syncPush", registry).validate(msg)
+
+
+def test_sync_push_has_no_request_id_property(registry):
+    """Server-initiated push, not correlated to a request."""
+    resolved = registry[GP_CHANNEL_ID]
+    assert "request_id" not in resolved.contents["$defs"]["syncPush"]["properties"]
+
+
+def test_sync_push_item_without_schema_rejected(registry):
+    from jsonschema import ValidationError
+
+    bad_item = {k: v for k, v in _GP_ITEM.items() if k != "schema"}
+    msg = {"channel": "gp", "schema": "afbws.gp.sync.push.v1", "items": [bad_item]}
+    with pytest.raises(ValidationError):
+        _validator("syncPush", registry).validate(msg)
+
+
 # --- error, including details ------------------------------------------------
 
 def test_error_response_minimal_valid(registry):
