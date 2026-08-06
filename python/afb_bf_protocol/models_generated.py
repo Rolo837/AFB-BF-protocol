@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: c143a19f4441306338e1156690b4e39539bea6c0841312b640dec8dd9b0835a3
+# source-hash: f2bbd0a10703d003791b748541ce7d1b9d7fc1af2b35879ccb7ab9aa1897e179
 
 from __future__ import annotations
 
