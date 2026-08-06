@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: c64bac395b0348ebe5f4a93d66c8eb3ed88447696b7ded18a8fbc5f650576e5a
+ * source-hash: c143a19f4441306338e1156690b4e39539bea6c0841312b640dec8dd9b0835a3
  */
 
 /**
@@ -340,6 +340,7 @@ export type GpChannelV1Message =
   | GpSetResponse
   | GpDeleteRequest
   | GpDeleteResponse
+  | AfbwsGpChannelV1_SyncPush
   | GpErrorResponse;
 /**
  * AFB-side chart primitive (line/line_enter/line_sl/line_tp/note/zone/ruler) — like afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`. `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).
@@ -1726,6 +1727,20 @@ export interface GpDeleteResponse {
   schema: 'afbws.gp.delete.response.v1';
   request_id: AfbwsCommonV1_RequestId;
   id: string;
+}
+/**
+ * items[] — upsert by id (bind: tradeplan_id set on publish/amend; release: tradeplan_id cleared on plan physical delete), full authoritative afb.gp.v1 record, same shape as set.response. Never a snapshot. Primitive deletion (archival freeze) is NOT conveyed by this push — a dropped primitive was, by construction, bound to a plan and only rendered while that plan is selected; the plan's own afbws.tradeplan.sync.push.v1 (status: archived, frozen numeric conditions) already replaces its on-chart representation.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsGpChannelV1_SyncPush".
+ */
+export interface AfbwsGpChannelV1_SyncPush {
+  channel: 'gp';
+  schema: 'afbws.gp.sync.push.v1';
+  /**
+   * @minItems 1
+   */
+  items: [GpV1, ...GpV1[]];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

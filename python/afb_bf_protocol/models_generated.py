@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: c64bac395b0348ebe5f4a93d66c8eb3ed88447696b7ded18a8fbc5f650576e5a
+# source-hash: c143a19f4441306338e1156690b4e39539bea6c0841312b640dec8dd9b0835a3
 
 from __future__ import annotations
 
@@ -186,6 +186,16 @@ class AfbwsDealChannelV1DealOverrideEntry(TypedDict):
 class AfbwsDealChannelV1DealRealizedPnl(TypedDict):
     value: str | None
     degraded: Literal["missing_price", "missing_step_price"] | None
+
+
+class AfbwsGpChannelV1SyncPush(TypedDict):
+    """
+    items[] — upsert by id (bind: tradeplan_id set on publish/amend; release: tradeplan_id cleared on plan physical delete), full authoritative afb.gp.v1 record, same shape as set.response. Never a snapshot. Primitive deletion (archival freeze) is NOT conveyed by this push — a dropped primitive was, by construction, bound to a plan and only rendered while that plan is selected; the plan's own afbws.tradeplan.sync.push.v1 (status: archived, frozen numeric conditions) already replaces its on-chart representation.
+    """
+
+    channel: Literal["gp"]
+    schema: Literal["afbws.gp.sync.push.v1"]
+    items: list[GpV1]
 
 
 class AfbwsTradeplanChannelV1ArchiveRequest(TypedDict):
@@ -1785,6 +1795,7 @@ GpChannelV1Message: TypeAlias = (
     | GpSetResponse
     | GpDeleteRequest
     | GpDeleteResponse
+    | AfbwsGpChannelV1SyncPush
     | GpErrorResponse
 )
 
