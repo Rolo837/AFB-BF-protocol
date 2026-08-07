@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: f2bbd0a10703d003791b748541ce7d1b9d7fc1af2b35879ccb7ab9aa1897e179
+# source-hash: a067bba0a07104e931d2d0cf01d9b900a8e0bdab9475705758761525bd4b0a58
 
 from __future__ import annotations
 
@@ -2626,6 +2626,7 @@ class TradePlanV2(TypedDict):
     id: str
     ticker: str
     status: NotRequired[Literal["draft", "published", "completed", "archived"]]
+    editor: NotRequired[Literal["simple", "advanced"]]
     direction: Literal["long", "short"]
     schema: Literal["afb.tradeplan.v2"]
     activated_at: NotRequired[str]

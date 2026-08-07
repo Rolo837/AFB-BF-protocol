@@ -9,6 +9,10 @@
     "id": {"type": "string", "minLength": 1},
     "ticker": {"type": "string", "minLength": 1},
     "status": {"enum": ["draft", "published", "completed", "archived"]},
+    "editor": {
+      "enum": ["simple", "advanced"],
+      "description": "AFB frontend hint only — which of the two editor modes owns this plan. Never crosses the AFB<->BF channel and is dropped at compile time (not copied into the deal). Absence means \"advanced\": a plan written by a frontend older than this field, or by any non-UI producer, opens in the advanced editor. `simple` additionally asserts the plan is expressible in the simple editor (single leg per role, price/market conditions with above/below, no timeframe/percent/logic) — a `simple` plan that violates this is opened in the advanced editor anyway (see AFB frontend/src/utils/planEditorMode.ts)."
+    },
     "direction": {"enum": ["long", "short"]},
     "schema": {"const": "afb.tradeplan.v2"},
     "activated_at": {"type": "string"},

@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: f2bbd0a10703d003791b748541ce7d1b9d7fc1af2b35879ccb7ab9aa1897e179
+ * source-hash: a067bba0a07104e931d2d0cf01d9b900a8e0bdab9475705758761525bd4b0a58
  */
 
 /**
@@ -2356,6 +2356,10 @@ export interface TradePlanV2 {
   id: string;
   ticker: string;
   status?: 'draft' | 'published' | 'completed' | 'archived';
+  /**
+   * AFB frontend hint only — which of the two editor modes owns this plan. Never crosses the AFB<->BF channel and is dropped at compile time (not copied into the deal). Absence means "advanced": a plan written by a frontend older than this field, or by any non-UI producer, opens in the advanced editor. `simple` additionally asserts the plan is expressible in the simple editor (single leg per role, price/market conditions with above/below, no timeframe/percent/logic) — a `simple` plan that violates this is opened in the advanced editor anyway (see AFB frontend/src/utils/planEditorMode.ts).
+   */
+  editor?: 'simple' | 'advanced';
   direction: 'long' | 'short';
   schema: 'afb.tradeplan.v2';
   activated_at?: string;
