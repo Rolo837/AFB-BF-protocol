@@ -154,6 +154,26 @@ def _sides(deal: dict[str, Any]) -> tuple[str, ...]:
     return (str(deal.get("direction") or ""),)
 
 
+def _canonical_entry_condition(condition: Any) -> Any:
+    """Immediate legs' ``right``/``op`` are structural placeholders with no
+    meaning (``condition.v1.json``'s ``immediateExpr`` convention —
+    ``condition_semantics.py`` never reads them either: dispatch is on
+    ``left.source == "immediate"`` alone). Comparing them verbatim causes a
+    false "entry changed" whenever their formatting drifts between compiler
+    versions/paths (observed: ``right.const`` ``"0"`` vs ``"0.0"``/``"0.00"``,
+    depending on whether the compiler took a price-rounding or a plain
+    decimal-normalization branch for the same semantic no-op value).
+    Canonicalize so any two immediate legs compare equal regardless of
+    ``right``/``op``/``id``/``duration``."""
+    if (
+        isinstance(condition, dict)
+        and isinstance(condition.get("left"), dict)
+        and condition["left"].get("source") == "immediate"
+    ):
+        return {"left": {"source": "immediate"}}
+    return condition
+
+
 def _entry_triggers(deal: dict[str, Any]) -> Any:
     """Entry condition(s), excluding ``side`` (governed separately) and the
     deprecated per-leg ``order`` block (BF-only concern, not part of the
@@ -161,19 +181,21 @@ def _entry_triggers(deal: dict[str, Any]) -> Any:
     the preceding leg — ``split``/``and``/``or``, absent/``None`` meaning
     ``split``, see deal.v2.json#/$defs/legJoin) so a plain grouping/bucketing
     change is treated as an ``entry`` edit, same phase gate as changing the
-    conditions themselves."""
+    conditions themselves. Each leg's ``condition`` is canonicalized (see
+    ``_canonical_entry_condition``) so an immediate/market leg compares equal
+    regardless of its meaningless ``right``/``op`` placeholder formatting."""
     entry = deal.get("entry")
     if _is_v2(deal) and isinstance(entry, list):
         return [
             {
                 "percent": (e or {}).get("percent"),
                 "logic": (e or {}).get("logic"),
-                "condition": (e or {}).get("condition"),
+                "condition": _canonical_entry_condition((e or {}).get("condition")),
             }
             for e in entry
         ]
     if isinstance(entry, dict):
-        return [{"condition": entry.get("condition")}]
+        return [{"condition": _canonical_entry_condition(entry.get("condition"))}]
     return []
 
 

@@ -123,6 +123,28 @@ def test_legacy_order_block_ignored_by_entry_field():
     assert dec.changed() == []
 
 
+def test_immediate_entry_right_formatting_drift_ignored():
+    """Regression: an immediate/market entry leg's right.const is a
+    meaningless structural placeholder (condition.v1.json's immediateExpr
+    convention) — its formatting drifted between AFB compiler versions
+    ("0.0" for legs compiled via the legacy price+zero-const path,
+    "0" via the direct-immediate path introduced in protocol v2.4.5), which
+    must not be read as an entry change."""
+    d = _deal_v1()
+    d["entry"]["condition"] = {
+        "node_type": "event", "id": "entry_1", "op": "above",
+        "left": {"source": "immediate"}, "right": {"const": "0.0"},
+    }
+    new = copy.deepcopy(d)
+    new["entry"]["condition"] = {
+        "node_type": "event", "id": "entry_1", "op": "above",
+        "left": {"source": "immediate"}, "right": {"const": "0"},
+    }
+    dec = evaluate_amend(d, new, _ctx("active", "holding"))
+    assert dec.allowed is True
+    assert dec.changed() == []
+
+
 def test_instrument_immutable_once_active():
     d = _deal_v1()
     new = _mutate(d, ["target", "instrument", "ticker"], "GAZP")
@@ -217,6 +239,26 @@ def _deal_v2():
         "take_profit": [],
         "sizing": {"mode": "lots", "value": "10"},
     }
+
+
+def test_v2_immediate_entry_right_formatting_drift_ignored():
+    """Same regression as test_immediate_entry_right_formatting_drift_ignored,
+    on the v2 leg-list shape — this is the exact real-world case: a market
+    entry compiled before protocol v2.4.5 (right.const normalized to the
+    instrument's decimals, e.g. "0.00") vs the same leg recompiled after
+    (right.const via plain decimal_string, "0"). Editing only take_profit
+    must not be blocked by a spurious entry diff."""
+    d = _deal_v2()
+    d["entry"][0]["condition"]["left"] = {"source": "immediate"}
+    d["entry"][0]["condition"]["right"]["const"] = "0.00"
+    new = copy.deepcopy(d)
+    new["entry"][0]["condition"]["right"]["const"] = "0"
+    new["take_profit"] = [{"percent": "100", "condition": {
+        "node_type": "event", "id": "tp", "op": "below",
+        "left": {"source": "price", "field": "last"}, "right": {"const": "110"}, "duration": 10}}]
+    dec = evaluate_amend(d, new, _ctx("active", "holding"))
+    assert dec.allowed is True
+    assert {v.field for v in dec.changed()} == {"take_profit"}
 
 
 def test_v2_stop_loss_change_detected_and_allowed_while_holding():
