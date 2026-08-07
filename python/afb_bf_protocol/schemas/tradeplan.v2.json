@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/tradeplan.v2.json",
   "title": "TradePlan template afb.tradeplan.v2",
-  "description": "AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with one extension: the `right` side of a condition may be a `primitiveRef` (`{\"primitive_id\": \"...\"}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.",
+  "description": "AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{\"primitive_id\": \"...\"}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{\"source\": \"immediate\"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == \"immediate\"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.",
   "type": "object",
   "required": ["id", "ticker", "direction", "schema", "entries", "sizing"],
   "properties": {
@@ -79,10 +79,12 @@
           "description": "Required (enforced after compilation, not here) when op is a price candle operator (breakout/breakdown/crossing)."
         },
         "left": {
+          "description": "`condition.v1.json#/$defs/immediateExpr` (market entry) is valid only on an entry leg — enforced after compilation by deal.v2.json/BF, not here, same as the rest of this schema's left/right pairing.",
           "oneOf": [
             {"$ref": "deal.v2.json#/$defs/priceExpr"},
             {"$ref": "deal.v2.json#/$defs/indicatorExpr"},
-            {"$ref": "deal.v2.json#/$defs/datasetExpr"}
+            {"$ref": "deal.v2.json#/$defs/datasetExpr"},
+            {"$ref": "condition.v1.json#/$defs/immediateExpr"}
           ]
         },
         "right": {
