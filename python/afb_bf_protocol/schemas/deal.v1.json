@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/deal.v1.json",
   "title": "ExecutionDeal afb.deal.v1",
-  "description": "Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. The deal-level `direction` (long/short, same vocabulary as afb.deal.v2) is the single source of truth for position bias.",
+  "description": "Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. The deal-level `direction` (long/short, same vocabulary as afb.deal.v2) is the single source of truth for position bias. Shared $defs (decimalString/instrument/target/sizing/executionPolicy/source) live in common.v1.json — this file keeps only what's v1-specific (conditionNode/entry/exitBlock); see common.v1.json's description for why.",
   "type": "object",
   "required": ["schema", "deal_id", "revision", "target", "direction", "entry", "sizing"],
   "properties": {
@@ -10,10 +10,10 @@
     "deal_id": {"type": "string", "minLength": 1},
     "revision": {"type": "integer", "minimum": 1},
     "owner": {"type": "object", "properties": {"user_id": {"type": "string"}}},
-    "target": {"$ref": "#/$defs/target"},
+    "target": {"$ref": "common.v1.json#/$defs/target"},
     "direction": {"enum": ["long", "short"]},
     "entry": {"$ref": "#/$defs/entry"},
-    "sizing": {"$ref": "#/$defs/sizing"},
+    "sizing": {"$ref": "common.v1.json#/$defs/sizing"},
     "risk": {
       "type": "object",
       "properties": {
@@ -21,52 +21,11 @@
         "stop_loss": {"$ref": "#/$defs/exitBlock"}
       }
     },
-    "execution_policy": {"$ref": "#/$defs/executionPolicy"},
+    "execution_policy": {"$ref": "common.v1.json#/$defs/executionPolicy"},
     "archive_reason": {"type": "string"},
-    "source": {"$ref": "#/$defs/source"}
+    "source": {"$ref": "common.v1.json#/$defs/source"}
   },
   "$defs": {
-    "decimalString": {"type": "string", "pattern": "^-?[0-9]+(\\.[0-9]+)?$"},
-    "source": {
-      "type": "object",
-      "description": "Provenance of this deal's compiled definition. The AFB compiler writes only `tradeplan_id` — the single source of truth for deal->tradeplan linkage (see the tradeplan/deal separation plan). `kind`/`draft_id` are a deprecated pre-separation pair: new AFB never writes them, they may still appear on persisted records created before the deal-channel-migration offline backfill ran. Left open (no additionalProperties restriction, matching the rest of this wire schema) since AFB may carry extra compile metadata here (e.g. `compiled_at`, `primitive_snapshot`) that BF does not interpret.",
-      "properties": {
-        "tradeplan_id": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Id of the AFB tradeplan (state/tradeplans/<user_id>/<id>.yaml) that compiled this deal."
-        },
-        "kind": {"type": "string", "deprecated": true, "description": "Deprecated legacy discriminator (always 'tradeplan_draft'). New AFB never writes this."},
-        "draft_id": {"type": "string", "deprecated": true, "description": "Deprecated alias of tradeplan_id predating the tradeplan/deal separation. New AFB never writes this."}
-      }
-    },
-    "instrument": {
-      "type": "object",
-      "required": ["exchange", "board", "ticker"],
-      "properties": {
-        "exchange": {"type": "string"},
-        "board": {"type": "string"},
-        "ticker": {"type": "string"},
-        "market": {"enum": ["stock", "futures", "currency"]},
-        "price_step": {"$ref": "#/$defs/decimalString"},
-        "step_price": {"$ref": "#/$defs/decimalString"}
-      }
-    },
-    "target": {
-      "type": "object",
-      "required": ["bf_id", "broker", "instrument"],
-      "properties": {
-        "bf_id": {"type": "string"},
-        "broker": {"type": "string"},
-        "instrument": {"$ref": "#/$defs/instrument"},
-        "binding": {"type": "object", "description": "broker-native locator added by BF after publish"},
-        "account_id": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Broker account this deal is published against. Optional on the wire — absent means BF's own trading account (brokers/port.py::account_id). AFB compiles it from the owning tradeplan's account_id (see tradeplan.v1.json#/properties/account_id), resolving empty/absent to the connector's default account before publish. BF validates it against its own account (plan_engine/plan_validation.py: wrong_account_id) when present."
-        }
-      }
-    },
     "conditionNode": {
       "type": "object",
       "required": ["node_type", "op", "left", "right"],
@@ -86,7 +45,7 @@
         "right": {
           "type": "object",
           "required": ["const"],
-          "properties": {"const": {"$ref": "#/$defs/decimalString"}}
+          "properties": {"const": {"$ref": "common.v1.json#/$defs/decimalString"}}
         }
       }
     },
@@ -100,39 +59,6 @@
     "exitBlock": {
       "type": "object",
       "properties": {"condition": {"$ref": "#/$defs/conditionNode"}}
-    },
-    "sizing": {
-      "type": "object",
-      "required": ["mode", "value"],
-      "properties": {
-        "mode": {"enum": ["lots", "margin", "risk_currency", "risk_factor", "balance_pct"]},
-        "value": {"$ref": "#/$defs/decimalString"}
-      }
-    },
-    "executionPolicy": {
-      "type": "object",
-      "properties": {
-        "on_afb_disconnect": {"type": "string"},
-        "max_spread_steps": {"type": "integer"},
-        "margin_trading": {"type": "boolean"},
-        "execution_mode": {
-          "enum": ["client", "hybrid", "server"],
-          "description": "How exit protection is executed. Absent means `client` (condition engine only, current behaviour). `hybrid` additionally places a server-side SLTP backstop order once a position opens. `server` is reserved — not yet implemented by any BF, always rejected at publish. See RESILIENCE.md, Фаза 3/5."
-        },
-        "backstop": {
-          "type": "object",
-          "description": "Per-deal overrides for the hybrid-mode server-side backstop order; unset fields fall back to the executing BF's own config defaults. Meaningful only when execution_mode is `hybrid`.",
-          "properties": {
-            "offset_steps": {"type": "integer", "minimum": 0},
-            "stop_price": {"$ref": "#/$defs/decimalString"},
-            "max_loss_steps": {"type": "integer", "minimum": 1},
-            "take_profit": {
-              "type": "boolean",
-              "description": "Reserved for a future server-side take-profit leg (OCO). Always rejected as true for now — the backstop is protection-only in this phase."
-            }
-          }
-        }
-      }
     }
   }
 }

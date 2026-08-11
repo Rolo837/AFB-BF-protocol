@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 209d9cd51a1e28c5533c475dc143f42689705d23129b989ca91c1a570a80b5f4
+# source-hash: 0e4073e7aa5752ca5c9c36175de1b87891390d3987954ba70b2cd4d5cd1614d5
 
 from __future__ import annotations
 
@@ -175,12 +175,6 @@ AfbwsCommonV1RequestId: TypeAlias = str
 
 
 AfbwsCommonV1Root: TypeAlias = Any
-
-
-class AfbwsDealChannelV1DealOverrideEntry(TypedDict):
-    at: str
-    plan_schema: str
-    value: Any
 
 
 class AfbwsDealChannelV1DealRealizedPnl(TypedDict):
@@ -411,7 +405,7 @@ class Backstop(TypedDict):
     """
 
     offset_steps: NotRequired[int]
-    stop_price: NotRequired[DealV1DecimalString]
+    stop_price: NotRequired[DecimalString]
     max_loss_steps: NotRequired[int]
     take_profit: NotRequired[bool]
 
@@ -640,6 +634,9 @@ class ChangedItem(TypedDict):
     symbol: NotRequired[str]
 
 
+CommonV1Root: TypeAlias = Any
+
+
 class ConditionNode1(TypedDict):
     """
     Level touched when min(prev, cur) <= level <= max(prev, cur). `op` may be omitted (accepted on read for wire back-compat with pre-touch-op deals/plans) or given explicitly as "touch" (what AFB now always sends). Executed by BF as a LIMIT order.
@@ -770,7 +767,7 @@ ConditionV1PriceLevelOp: TypeAlias = Literal["above", "below"]
 
 
 class ConditionV1RightConst(TypedDict):
-    const: DealV1DecimalString
+    const: DecimalString
 
 
 ConditionV1ScalarOp: TypeAlias = Literal[
@@ -868,7 +865,7 @@ class Data1(TypedDict):
 
 class Dataset(TypedDict):
     dataset_id: Literal["positions", "orders", "hhi", "trades"]
-    instrument: DealV1Instrument
+    instrument: DealInstrument
     as_of: str
     stale_after_sec: float
     current: dict[str, float]
@@ -933,11 +930,6 @@ DealAmendField: TypeAlias = Literal[
 ]
 
 
-AfbwsDealChannelV1DealOverrides: TypeAlias = dict[
-    DealAmendField, AfbwsDealChannelV1DealOverrideEntry
-]
-
-
 class DealAmendPayload(TypedDict):
     """
     Re-define an existing deal in place. `deal` is the full new definition (its `revision` must be `base_revision` + 1, same `deal_id`). BF gates the change against the allowed-edit matrix (amend_rules) using the deal's live execution phase, then lets reconcile bring broker orders to the new desired state. Unlike deal.publish, the deal's status and observed execution state (orders/positions/phase) are preserved.
@@ -954,7 +946,6 @@ class DealAmendRequest(TypedDict):
     request_id: AfbwsCommonV1RequestId
     deal_id: DealId
     deal_edit: NotRequired[dict[str, Any]]
-    drop_overrides: NotRequired[list[DealAmendField]]
     base_revision: NotRequired[int]
 
 
@@ -984,14 +975,16 @@ class DealDetail(TypedDict):
     bf_id: BfId
     tradeplan_id: str
     ticker: str
+    market: NotRequired[Literal["stock", "futures", "currency"]]
     direction: Literal["long", "short"]
-    sizing: NotRequired[DealSizingDisplay]
+    sizing: NotRequired[DealSizing]
+    execution_policy: NotRequired[DealExecutionPolicy]
+    broker_sizing: NotRequired[DealSizingDisplay]
     realized_pnl: NotRequired[AfbwsDealChannelV1DealRealizedPnl]
     created_at: str
     updated_at: str
     deal: DealPublicV1
     editable_fields: list[DealAmendField]
-    overrides: AfbwsDealChannelV1DealOverrides
 
 
 class DealErrorResponse(TypedDict):
@@ -1019,6 +1012,14 @@ class DealEventPush(TypedDict):
     data: dict[str, Any]
 
 
+class DealExecutionPolicy(TypedDict):
+    on_afb_disconnect: NotRequired[str]
+    max_spread_steps: NotRequired[int]
+    margin_trading: NotRequired[bool]
+    execution_mode: NotRequired[Literal["client", "hybrid", "server"]]
+    backstop: NotRequired[Backstop]
+
+
 class DealGetRequest(TypedDict):
     channel: Literal["deal"]
     schema: Literal["afbws.deal.get.request.v1"]
@@ -1036,6 +1037,15 @@ class DealGetResponse(TypedDict):
 DealId: TypeAlias = str
 
 
+class DealInstrument(TypedDict):
+    exchange: str
+    board: str
+    ticker: str
+    market: NotRequired[Literal["stock", "futures", "currency"]]
+    price_step: NotRequired[DecimalString]
+    step_price: NotRequired[DecimalString]
+
+
 class DealListRequest(TypedDict):
     channel: Literal["deal"]
     schema: Literal["afbws.deal.list.request.v1"]
@@ -1051,9 +1061,7 @@ class DealListResponse(TypedDict):
 
 class DealOperationItem(TypedDict):
     deal_id: DealId
-    action: Literal[
-        "activate", "pause", "resume", "cancel", "reconcile", "delete", "archive"
-    ]
+    action: Literal["activate", "pause", "resume", "cancel", "reconcile", "delete"]
     revision: NotRequired[int]
     cancel_open_orders: NotRequired[bool]
 
@@ -1099,12 +1107,12 @@ class DealPublicDealV1(TypedDict):
     schema: Literal["afb.deal.v1"]
     deal_id: str
     revision: int
-    target: DealV1Target
+    target: DealTarget
     direction: Literal["long", "short"]
     entry: DealV1Entry
-    sizing: DealV1Sizing
+    sizing: DealSizing
     risk: NotRequired[Risk]
-    execution_policy: NotRequired[DealV1ExecutionPolicy]
+    execution_policy: NotRequired[DealExecutionPolicy]
     source: DealPublicSource
 
 
@@ -1112,18 +1120,18 @@ class DealPublicDealV2(TypedDict):
     schema: Literal["afb.deal.v2"]
     deal_id: str
     revision: int
-    target: DealV1Target
+    target: DealTarget
     direction: Literal["long", "short"]
     entry: list[EntryItem]
     stop_loss: NotRequired[DealPublicExitList]
     take_profit: NotRequired[DealPublicExitList]
-    sizing: DealV1Sizing
-    execution_policy: NotRequired[DealV1ExecutionPolicy]
+    sizing: DealSizing
+    execution_policy: NotRequired[DealExecutionPolicy]
     source: DealPublicSource
 
 
 class DealPublicExitListItem(TypedDict):
-    percent: NotRequired[DealV1DecimalString]
+    percent: NotRequired[DecimalString]
     logic: NotRequired[DealV2LegJoin]
     condition: DealV2ConditionNode
 
@@ -1218,6 +1226,11 @@ class DealResult(TypedDict):
     message: NotRequired[str]
 
 
+class DealSizing(TypedDict):
+    mode: Literal["lots", "margin", "risk_currency", "risk_factor", "balance_pct"]
+    value: DecimalString
+
+
 class DealSizingDisplay(TypedDict):
     lots: NotRequired[int]
     required_cash: NotRequired[str]
@@ -1231,6 +1244,16 @@ class DealSnapshotPayload(TypedDict):
     positions: NotRequired[list[Position]]
     quantity: NotRequired[int]
     status: NotRequired[str]
+
+
+class DealSource(TypedDict):
+    """
+    Provenance of this deal's compiled definition. The AFB compiler writes only `tradeplan_id` — the single source of truth for deal->tradeplan linkage (see the tradeplan/deal separation plan). `kind`/`draft_id` are a deprecated pre-separation pair: new AFB never writes them, they may still appear on persisted records created before the deal-channel-migration offline backfill ran. Left open (no additionalProperties restriction, matching the rest of this wire schema) since AFB may carry extra compile metadata here (e.g. `compiled_at`, `primitive_snapshot`) that BF does not interpret.
+    """
+
+    tradeplan_id: NotRequired[str]
+    kind: NotRequired[str]
+    draft_id: NotRequired[str]
 
 
 class DealStateV2(TypedDict):
@@ -1318,11 +1341,22 @@ class DealSummary(TypedDict):
     bf_id: BfId
     tradeplan_id: str
     ticker: str
+    market: NotRequired[Literal["stock", "futures", "currency"]]
     direction: Literal["long", "short"]
-    sizing: NotRequired[DealSizingDisplay]
+    sizing: NotRequired[DealSizing]
+    execution_policy: NotRequired[DealExecutionPolicy]
+    broker_sizing: NotRequired[DealSizingDisplay]
     realized_pnl: NotRequired[AfbwsDealChannelV1DealRealizedPnl]
     created_at: str
     updated_at: str
+
+
+class DealTarget(TypedDict):
+    bf_id: str
+    broker: str
+    instrument: DealInstrument
+    binding: NotRequired[dict[str, Any]]
+    account_id: NotRequired[str]
 
 
 class DealTriggerEvent(TypedDict):
@@ -1366,21 +1400,21 @@ DealChannelV1Message: TypeAlias = (
 
 class DealV1(TypedDict):
     """
-    Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. The deal-level `direction` (long/short, same vocabulary as afb.deal.v2) is the single source of truth for position bias.
+    Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. The deal-level `direction` (long/short, same vocabulary as afb.deal.v2) is the single source of truth for position bias. Shared $defs (decimalString/instrument/target/sizing/executionPolicy/source) live in common.v1.json — this file keeps only what's v1-specific (conditionNode/entry/exitBlock); see common.v1.json's description for why.
     """
 
     schema: Literal["afb.deal.v1"]
     deal_id: str
     revision: int
     owner: NotRequired[Owner]
-    target: DealV1Target
+    target: DealTarget
     direction: Literal["long", "short"]
     entry: DealV1Entry
-    sizing: DealV1Sizing
+    sizing: DealSizing
     risk: NotRequired[Risk]
-    execution_policy: NotRequired[DealV1ExecutionPolicy]
+    execution_policy: NotRequired[DealExecutionPolicy]
     archive_reason: NotRequired[str]
-    source: NotRequired[DealV1Source]
+    source: NotRequired[DealSource]
 
 
 class DealV1ConditionNode(TypedDict):
@@ -1391,55 +1425,12 @@ class DealV1ConditionNode(TypedDict):
     right: Right
 
 
-DealV1DecimalString: TypeAlias = str
-
-
 class DealV1Entry(TypedDict):
     condition: DealV1ConditionNode
 
 
-class DealV1ExecutionPolicy(TypedDict):
-    on_afb_disconnect: NotRequired[str]
-    max_spread_steps: NotRequired[int]
-    margin_trading: NotRequired[bool]
-    execution_mode: NotRequired[Literal["client", "hybrid", "server"]]
-    backstop: NotRequired[Backstop]
-
-
 class DealV1ExitBlock(TypedDict):
     condition: NotRequired[DealV1ConditionNode]
-
-
-class DealV1Instrument(TypedDict):
-    exchange: str
-    board: str
-    ticker: str
-    market: NotRequired[Literal["stock", "futures", "currency"]]
-    price_step: NotRequired[DealV1DecimalString]
-    step_price: NotRequired[DealV1DecimalString]
-
-
-class DealV1Sizing(TypedDict):
-    mode: Literal["lots", "margin", "risk_currency", "risk_factor", "balance_pct"]
-    value: DealV1DecimalString
-
-
-class DealV1Source(TypedDict):
-    """
-    Provenance of this deal's compiled definition. The AFB compiler writes only `tradeplan_id` — the single source of truth for deal->tradeplan linkage (see the tradeplan/deal separation plan). `kind`/`draft_id` are a deprecated pre-separation pair: new AFB never writes them, they may still appear on persisted records created before the deal-channel-migration offline backfill ran. Left open (no additionalProperties restriction, matching the rest of this wire schema) since AFB may carry extra compile metadata here (e.g. `compiled_at`, `primitive_snapshot`) that BF does not interpret.
-    """
-
-    tradeplan_id: NotRequired[str]
-    kind: NotRequired[str]
-    draft_id: NotRequired[str]
-
-
-class DealV1Target(TypedDict):
-    bf_id: str
-    broker: str
-    instrument: DealV1Instrument
-    binding: NotRequired[dict[str, Any]]
-    account_id: NotRequired[str]
 
 
 class DealV2(TypedDict):
@@ -1451,15 +1442,15 @@ class DealV2(TypedDict):
     deal_id: str
     revision: int
     owner: NotRequired[dict[str, Any]]
-    target: DealV1Target
+    target: DealTarget
     direction: Literal["long", "short"]
     entry: list[EntryItem]
     stop_loss: NotRequired[DealV2ExitList]
     take_profit: NotRequired[DealV2ExitList]
-    sizing: DealV1Sizing
-    execution_policy: NotRequired[DealV1ExecutionPolicy]
+    sizing: DealSizing
+    execution_policy: NotRequired[DealExecutionPolicy]
     archive_reason: NotRequired[str]
-    source: NotRequired[DealV1Source]
+    source: NotRequired[DealSource]
 
 
 class DealV2ConditionNode1(TypedDict):
@@ -1595,7 +1586,7 @@ Wire-level condition node: same vocabulary as condition.v1.json#/$defs/condition
 
 
 class DealV2ExitListItem(TypedDict):
-    percent: NotRequired[DealV1DecimalString]
+    percent: NotRequired[DecimalString]
     logic: NotRequired[DealV2LegJoin]
     condition: DealV2ConditionNode
 
@@ -1611,6 +1602,9 @@ class Deals(TypedDict):
     status: str
     execution_phase: NotRequired[str]
     archived: bool
+
+
+DecimalString: TypeAlias = str
 
 
 class Display(TypedDict):
@@ -1650,13 +1644,13 @@ class Entry(TypedDict):
 
 
 class Entry1(TypedDict):
-    percent: NotRequired[DealV1DecimalString]
+    percent: NotRequired[DecimalString]
     logic: NotRequired[DealV2LegJoin]
     condition: TradeplanV2TpConditionNode
 
 
 class EntryItem(TypedDict):
-    percent: NotRequired[DealV1DecimalString]
+    percent: NotRequired[DecimalString]
     logic: NotRequired[DealV2LegJoin]
     condition: DealV2ConditionNode
 
@@ -2014,13 +2008,13 @@ class InstrumentV1(TypedDict):
     asset: NotRequired[str | None]
     group: str | None
     lot_size: NotRequired[int | None]
-    price_step: NotRequired[DealV1DecimalString]
+    price_step: NotRequired[DecimalString]
     decimals: NotRequired[int | None]
     currency: NotRequired[str | None]
-    prev_close: NotRequired[DealV1DecimalString]
+    prev_close: NotRequired[DecimalString]
     expiration: NotRequired[str]
-    step_price: NotRequired[DealV1DecimalString]
-    margin: NotRequired[DealV1DecimalString]
+    step_price: NotRequired[DecimalString]
+    margin: NotRequired[DecimalString]
     futoi_code: NotRequired[str]
     isin: NotRequired[str]
     source: str
@@ -2509,8 +2503,17 @@ class PositionOpenedPayload(TypedDict):
     symbol: NotRequired[str]
 
 
+class Publish(TypedDict):
+    """
+    Параметры публикации плана (используется ТОЛЬКО при публикации, не хранит связь с сделкой). bf_id — коннектор по умолчанию для UI; истина при публикации — bf_id из afbws.deal.publish.request.v1. account_id пусто/отсутствует — дефолтный (торговый) счёт коннектора, резолвится на лету (ExecutionService.resolve_plan_account).
+    """
+
+    bf_id: NotRequired[str]
+    account_id: NotRequired[str]
+
+
 class Right(TypedDict):
-    const: DealV1DecimalString
+    const: DecimalString
 
 
 class Risk(TypedDict):
@@ -2586,7 +2589,7 @@ class SessionResyncResponsePayload(TypedDict):
 
 class Subscription(TypedDict):
     dataset_id: Literal["positions", "orders", "hhi", "trades"]
-    instrument: DealV1Instrument
+    instrument: DealInstrument
 
 
 class TradePlanV1(TypedDict):
@@ -2610,9 +2613,7 @@ class TradePlanV1(TypedDict):
     ]
     take_profit: NotRequired[TradeplanV1Condition | None]
     stop_loss: NotRequired[TradeplanV1Condition | None]
-    deal_id: NotRequired[str]
-    connector: NotRequired[str]
-    account_id: NotRequired[str]
+    publish: NotRequired[Publish]
     delivery_at: NotRequired[str]
     created_at: NotRequired[str]
     updated_at: NotRequired[str]
@@ -2636,10 +2637,8 @@ class TradePlanV2(TypedDict):
     entries: list[Entry1]
     stop_loss: NotRequired[TradeplanV2TpExitList]
     take_profit: NotRequired[TradeplanV2TpExitList]
-    sizing: DealV1Sizing
-    deal_id: NotRequired[str]
-    connector: NotRequired[str]
-    account_id: NotRequired[str]
+    sizing: DealSizing
+    publish: NotRequired[Publish]
     delivery_at: NotRequired[str]
     created_at: NotRequired[str]
     updated_at: NotRequired[str]
@@ -2815,7 +2814,7 @@ class TradeplanV2TpConditionNode(TypedDict):
 
 
 class TradeplanV2TpExitListItem(TypedDict):
-    percent: NotRequired[DealV1DecimalString]
+    percent: NotRequired[DecimalString]
     logic: NotRequired[DealV2LegJoin]
     condition: TradeplanV2TpConditionNode
 

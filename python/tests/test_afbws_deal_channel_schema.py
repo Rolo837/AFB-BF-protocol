@@ -41,7 +41,6 @@ _DETAIL = {
     **_SUMMARY,
     "deal": _PUBLIC_DEAL_V1,
     "editable_fields": ["sizing"],
-    "overrides": {},
 }
 
 
@@ -216,17 +215,20 @@ def test_rebind_request_tradeplan_id_rejected(registry):
 
 # --- operation ---------------------------------------------------------
 
-@pytest.mark.parametrize("action", ["activate", "pause", "resume", "cancel", "reconcile", "delete", "archive"])
+@pytest.mark.parametrize("action", ["activate", "pause", "resume", "cancel", "reconcile", "delete"])
 def test_operation_item_accepts_every_enum_action(registry, action):
     item = {"deal_id": "deal-1", "action": action}
     _validator("operationItem", registry).validate(item)  # does not raise
 
 
-def test_operation_item_unknown_action_rejected(registry):
+@pytest.mark.parametrize("action", ["close", "archive"])
+def test_operation_item_unknown_action_rejected(registry, action):
+    """'archive' was removed as a schema-valid action (was runtime-reserved,
+    never actually wired to any handler) — see tradeplan/deal separation Фаза B1."""
     from jsonschema import ValidationError
 
     with pytest.raises(ValidationError):
-        _validator("operationItem", registry).validate({"deal_id": "deal-1", "action": "close"})
+        _validator("operationItem", registry).validate({"deal_id": "deal-1", "action": action})
 
 
 def test_operation_item_cancel_open_orders_only_for_cancel(registry):
@@ -245,7 +247,7 @@ def test_operation_request_response_valid(registry):
         "channel": "deal",
         "schema": "afbws.deal.operation.request.v1",
         "request_id": "req-1",
-        "items": [{"deal_id": "deal-1", "action": "pause"}, {"deal_id": "deal-2", "action": "archive"}],
+        "items": [{"deal_id": "deal-1", "action": "pause"}, {"deal_id": "deal-2", "action": "resume"}],
     }
     _validator("operationRequest", registry).validate(req)  # does not raise
 
@@ -271,7 +273,6 @@ def test_amend_request_response_valid(registry):
         "request_id": "req-1",
         "deal_id": "deal-1",
         "deal_edit": {"sizing": {"mode": "lots", "value": "2"}},
-        "drop_overrides": ["stop_loss"],
         "base_revision": 3,
     }
     _validator("amendRequest", registry).validate(req)  # does not raise
@@ -288,7 +289,9 @@ def test_amend_request_response_valid(registry):
     _validator("amendResponse", registry).validate(resp)  # does not raise
 
 
-def test_amend_drop_overrides_unknown_field_rejected(registry):
+def test_amend_request_rejects_legacy_drop_overrides_key(registry):
+    """drop_overrides was removed (was an explicit no-op on both sides) —
+    see tradeplan/deal separation Фаза B1."""
     from jsonschema import ValidationError
 
     req = {
@@ -296,7 +299,7 @@ def test_amend_drop_overrides_unknown_field_rejected(registry):
         "schema": "afbws.deal.amend.request.v1",
         "request_id": "req-1",
         "deal_id": "deal-1",
-        "drop_overrides": ["instrument"],
+        "drop_overrides": ["stop_loss"],
     }
     with pytest.raises(ValidationError):
         _validator("amendRequest", registry).validate(req)
@@ -414,7 +417,7 @@ def test_ack_request_and_response_valid(registry):
     _validator("ackResponse", registry).validate(resp)  # does not raise
 
 
-# --- dealSummary/dealDetail: realized_pnl, overrides -------------------------
+# --- dealSummary/dealDetail: realized_pnl, sizing/execution_policy/market ---
 
 def test_summary_and_detail_optional_realized_pnl(registry):
     with_pnl = {**_SUMMARY, "realized_pnl": {"value": "123.45", "degraded": None}}
@@ -439,56 +442,44 @@ def test_realized_pnl_unknown_degraded_code_rejected(registry):
         _validator("dealRealizedPnl", registry).validate({"value": None, "degraded": "totally_unknown"})
 
 
-def test_detail_overrides_carries_plan_shaped_value(registry):
-    detail = {
-        **_DETAIL,
-        "overrides": {
-            "stop_loss": {
-                "at": "2026-07-26T18:04:11+03:00",
-                "plan_schema": "afb.tradeplan.v1",
-                "value": {"condition_type": "price", "price_value": 281.5},
-            }
-        },
+def test_summary_accepts_sizing_execution_policy_market_and_broker_sizing(registry):
+    """dealSummary now carries the user-set sizing {mode,value} and
+    execution_policy (whole $ref, same as the compiled deal) alongside the
+    pre-existing broker_sizing projection — see tradeplan/deal separation
+    Фаза B1. All four are optional."""
+    full = {
+        **_SUMMARY,
+        "market": "futures",
+        "sizing": {"mode": "risk_factor", "value": "2"},
+        "execution_policy": {"execution_mode": "hybrid", "max_spread_steps": 3},
+        "broker_sizing": {"lots": 1, "required_cash": "1000", "resolved_lots": 1},
     }
-    _validator("dealDetail", registry).validate(detail)  # does not raise
+    _validator("dealSummary", registry).validate(full)  # does not raise
 
 
-def test_detail_overrides_rejects_instrument_side_keys(registry):
-    """overrides is keyed by amendField — instrument/side never appear (a
-    deal never overrides those, see gentle-spinning-wigderson.md §3.4)."""
+def test_summary_sizing_rejects_broker_shaped_object(registry):
+    """sizing is the canonical {mode,value} $ref — a broker_sizing-shaped
+    object under the `sizing` key (the old, pre-rename meaning) must be
+    rejected, not silently accepted as something else."""
     from jsonschema import ValidationError
 
-    detail = {
-        **_DETAIL,
-        "overrides": {"instrument": {"at": "t1", "plan_schema": "afb.tradeplan.v1", "value": {}}},
-    }
+    bad = {**_SUMMARY, "sizing": {"lots": 1, "required_cash": "1000"}}
     with pytest.raises(ValidationError):
-        _validator("dealDetail", registry).validate(detail)
+        _validator("dealSummary", registry).validate(bad)
 
 
-def test_override_entry_requires_at_and_plan_schema(registry):
+def test_detail_does_not_require_overrides_key(registry):
+    """overrides was removed entirely (dead Phase-B-cancelled design, always
+    `{}` in practice) — dealDetail must validate without it."""
+    _validator("dealDetail", registry).validate(_DETAIL)  # does not raise
+
+
+def test_detail_rejects_overrides_key(registry):
+    """overrides is no longer a declared property — additionalProperties:
+    false must reject it outright, not silently accept and ignore."""
     from jsonschema import ValidationError
 
-    with pytest.raises(ValidationError):
-        _validator("dealOverrideEntry", registry).validate({"value": {}})
-
-
-def test_detail_requires_overrides_key(registry):
-    """overrides replaced overridden_fields — dealDetail must not accept the
-    old key name as a substitute (additionalProperties: false already covers
-    this, this pins the required-list contract explicitly)."""
-    from jsonschema import ValidationError
-
-    bad = {k: v for k, v in _DETAIL.items() if k != "overrides"}
-    with pytest.raises(ValidationError):
-        _validator("dealDetail", registry).validate(bad)
-
-
-def test_detail_rejects_legacy_overridden_fields_key(registry):
-    from jsonschema import ValidationError
-
-    bad = {k: v for k, v in _DETAIL.items() if k != "overrides"}
-    bad["overridden_fields"] = []
+    bad = {**_DETAIL, "overrides": {}}
     with pytest.raises(ValidationError):
         _validator("dealDetail", registry).validate(bad)
 

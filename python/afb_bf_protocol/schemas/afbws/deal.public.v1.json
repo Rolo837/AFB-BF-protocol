@@ -24,10 +24,10 @@
         "schema": { "const": "afb.deal.v1" },
         "deal_id": { "type": "string", "minLength": 1 },
         "revision": { "type": "integer", "minimum": 1 },
-        "target": { "$ref": "../deal.v1.json#/$defs/target" },
+        "target": { "$ref": "../common.v1.json#/$defs/target" },
         "direction": { "enum": ["long", "short"] },
         "entry": { "$ref": "../deal.v1.json#/$defs/entry" },
-        "sizing": { "$ref": "../deal.v1.json#/$defs/sizing" },
+        "sizing": { "$ref": "../common.v1.json#/$defs/sizing" },
         "risk": {
           "type": "object",
           "additionalProperties": false,
@@ -36,7 +36,7 @@
             "stop_loss": { "$ref": "../deal.v1.json#/$defs/exitBlock" }
           }
         },
-        "execution_policy": { "$ref": "../deal.v1.json#/$defs/executionPolicy" },
+        "execution_policy": { "$ref": "../common.v1.json#/$defs/executionPolicy" },
         "source": { "$ref": "#/$defs/source" }
       }
     },
@@ -48,7 +48,7 @@
         "schema": { "const": "afb.deal.v2" },
         "deal_id": { "type": "string", "minLength": 1 },
         "revision": { "type": "integer", "minimum": 1 },
-        "target": { "$ref": "../deal.v1.json#/$defs/target" },
+        "target": { "$ref": "../common.v1.json#/$defs/target" },
         "direction": { "enum": ["long", "short"] },
         "entry": {
           "type": "array",
@@ -58,7 +58,7 @@
             "required": ["condition"],
             "additionalProperties": false,
             "properties": {
-              "percent": { "$ref": "../deal.v1.json#/$defs/decimalString" },
+              "percent": { "$ref": "../common.v1.json#/$defs/decimalString" },
               "logic": { "$ref": "../deal.v2.json#/$defs/legJoin" },
               "condition": { "$ref": "../deal.v2.json#/$defs/conditionNode" }
             }
@@ -66,8 +66,8 @@
         },
         "stop_loss": { "$ref": "#/$defs/exitList" },
         "take_profit": { "$ref": "#/$defs/exitList" },
-        "sizing": { "$ref": "../deal.v1.json#/$defs/sizing" },
-        "execution_policy": { "$ref": "../deal.v1.json#/$defs/executionPolicy" },
+        "sizing": { "$ref": "../common.v1.json#/$defs/sizing" },
+        "execution_policy": { "$ref": "../common.v1.json#/$defs/executionPolicy" },
         "source": { "$ref": "#/$defs/source" }
       }
     },
@@ -78,7 +78,7 @@
         "required": ["condition"],
         "additionalProperties": false,
         "properties": {
-          "percent": { "$ref": "../deal.v1.json#/$defs/decimalString" },
+          "percent": { "$ref": "../common.v1.json#/$defs/decimalString" },
           "logic": { "$ref": "../deal.v2.json#/$defs/legJoin" },
           "condition": { "$ref": "../deal.v2.json#/$defs/conditionNode" }
         }

@@ -25,7 +25,7 @@
     "rightConst": {
       "type": "object",
       "required": ["const"],
-      "properties": {"const": {"$ref": "deal.v1.json#/$defs/decimalString"}}
+      "properties": {"const": {"$ref": "common.v1.json#/$defs/decimalString"}}
     },
     "priceExpr": {
       "type": "object",

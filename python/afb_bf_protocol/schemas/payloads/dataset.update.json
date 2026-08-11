@@ -18,7 +18,7 @@
             "description": "Same vocabulary as condition.v1.json#/$defs/datasetExpr/dataset_id, except `volume` — declared in condition.v1.json but not computed by AFB or BF and never pushed here."
           },
           "instrument": {
-            "$ref": "../deal.v1.json#/$defs/instrument",
+            "$ref": "../common.v1.json#/$defs/instrument",
             "description": "Deal-level instrument this record is keyed by. AFB has already resolved exchange-side nomenclature quirks (e.g. positions for a futures instrument are keyed by the underlying asset on MOEX, not the contract ticker) — BF matches condition legs to records by this field as-is."
           },
           "as_of": {

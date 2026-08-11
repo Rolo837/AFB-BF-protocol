@@ -28,7 +28,7 @@ def test_validate_deal_accepts_v1_fixture():
 
 
 def test_validate_deal_accepts_target_account_id():
-    """target.account_id (see deal.v1.json#/$defs/target) is optional and
+    """target.account_id (see common.v1.json#/$defs/target) is optional and
     additive — absent means BF's own trading account."""
     deal = copy.deepcopy(_fixture_deal("deal.publish"))
     deal["target"]["account_id"] = "1899012"

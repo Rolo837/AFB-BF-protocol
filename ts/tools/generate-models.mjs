@@ -88,6 +88,14 @@ function namedRootSchemas() {
 // members (as opposed to named file roots).
 const NAMED_DEF_SCHEMAS = {
   "condition.v1.json": { conditionNode: "ConditionNode" },
+  "common.v1.json": {
+    decimalString: "DecimalString",
+    instrument: "DealInstrument",
+    target: "DealTarget",
+    sizing: "DealSizing",
+    executionPolicy: "DealExecutionPolicy",
+    source: "DealSource",
+  },
   "afbws/bfs.registry.v1.json": { entry: "BfsRegistryEntry" },
   "afbws/account.channel.v1.json": {
     bfId: "AccountBfId",

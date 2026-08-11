@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/deal.channel.v1.json",
   "x-afbws-support-id": "afbws.deal.channel.v1",
   "title": "deal channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.deal.channel.v1). Replaces legacy `channel=deal, type=get|list|publish|rebind|operation|amend` plus the guaranteed `channel=mail, type=deals/ack` notifications, for clients that negotiated this capability; legacy stays available as fallback for clients that did not — same channel name (`deal`) for both, discriminated by presence of `schema` vs `type` at dispatch time, never both in the same session. `item`/`items`/`results` never carry the persisted DealState file shape (source_refs, status_history, event_journal, raw orders/positions, observed) — see $defs/dealSummary and $defs/dealDetail, built by backend/trade/public_views.py as explicit allow-list projections. The publish/rebind/amend RPCs resolve the source tradeplan only via deal.source.tradeplan_id (deal.public.v1.json); they never accept an inline plan-like draft — that stays a legacy-only affordance. See AFB/docs/WS_EXECUTION_CHANNELS.md and plans/deal-channel-migration_97a53aa5.plan.md.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.deal.channel.v1) — the sole entry point for `channel=deal`, the AFB legacy schema-less transport was removed. `item`/`items`/`results` never carry the persisted DealState file shape (source_refs, status_history, event_journal, raw orders/positions, observed) — see $defs/dealSummary and $defs/dealDetail, built by backend/trade/public_views.py as explicit allow-list projections. The publish/rebind/amend RPCs resolve the source tradeplan only via deal.source.tradeplan_id (deal.public.v1.json); they never accept an inline plan-like draft. See AFB/docs/ws/deal.md.",
   "type": "object",
   "oneOf": [
     { "$ref": "#/$defs/getRequest" },
@@ -29,7 +29,6 @@
   "$defs": {
     "dealId": { "type": "string", "minLength": 1 },
     "bfId": { "type": "string", "minLength": 1 },
-    "dealSource": { "$ref": "deal.public.v1.json#/$defs/source" },
     "amendField": { "enum": ["entry", "sizing", "stop_loss", "take_profit", "execution_policy"] },
     "dealSizingDisplay": {
       "type": "object",
@@ -56,26 +55,9 @@
       "if": { "properties": { "degraded": { "const": null } } },
       "else": { "properties": { "value": { "const": null } } }
     },
-    "dealOverrideEntry": {
-      "type": "object",
-      "title": "One entry of deal.source.overrides (see plans/gentle-spinning-wigderson.md §B.0) — value is a fragment in the OWNING PLAN's shape (not the compiled deal), so the existing plan editor can render it without a deal->plan decompiler.",
-      "required": ["at", "plan_schema", "value"],
-      "additionalProperties": false,
-      "properties": {
-        "at": { "type": "string", "minLength": 1 },
-        "plan_schema": { "type": "string", "minLength": 1, "description": "afb.tradeplan.v1 or afb.tradeplan.v2 — the schema `value` is shaped for. A stale entry whose plan_schema no longer matches the current plan is dropped server-side (read_overrides), never sent to the frontend." },
-        "value": { "description": "Plan-shaped fragment for this field (e.g. v1 entry -> entry_condition, v1 sizing -> {quantity_mode,quantity_value}, v2 entry -> entries, stop_loss/take_profit/execution_policy -> same-named plan key). Deliberately untyped here — its shape depends on plan_schema and field, not on this channel." }
-      }
-    },
-    "dealOverrides": {
-      "type": "object",
-      "title": "deal.source.overrides, keyed by amendField. The editor derives its badge list from Object.keys(overrides) — the map itself carries the plan-shaped values (see dealOverrideEntry), not just the field names.",
-      "propertyNames": { "$ref": "#/$defs/amendField" },
-      "additionalProperties": { "$ref": "#/$defs/dealOverrideEntry" }
-    },
     "dealSummary": {
       "type": "object",
-      "title": "Minimal row/card projection for list — no compiled deal body, no source_refs, no journals.",
+      "title": "Minimal row/card projection for list — no compiled deal body, no source_refs, no journals. `sizing` is the user-set {mode,value} from the «Риск и объём» block (at publish or last amend) — NOT the broker_sizing projection, see `broker_sizing` below for that.",
       "required": ["deal_id", "revision", "status", "execution_phase", "bf_id", "tradeplan_id", "ticker", "direction", "created_at", "updated_at"],
       "additionalProperties": false,
       "properties": {
@@ -86,8 +68,11 @@
         "bf_id": { "$ref": "#/$defs/bfId" },
         "tradeplan_id": { "type": "string", "minLength": 1 },
         "ticker": { "type": "string" },
+        "market": { "enum": ["stock", "futures", "currency"] },
         "direction": { "enum": ["long", "short"] },
-        "sizing": { "$ref": "#/$defs/dealSizingDisplay" },
+        "sizing": { "$ref": "../common.v1.json#/$defs/sizing" },
+        "execution_policy": { "$ref": "../common.v1.json#/$defs/executionPolicy" },
+        "broker_sizing": { "$ref": "#/$defs/dealSizingDisplay" },
         "realized_pnl": { "$ref": "#/$defs/dealRealizedPnl" },
         "created_at": { "type": "string" },
         "updated_at": { "type": "string" }
@@ -96,7 +81,7 @@
     "dealDetail": {
       "type": "object",
       "title": "Full editor payload for get() — dealSummary + the compiled public deal + phase-B amendability projection.",
-      "required": ["deal_id", "revision", "status", "execution_phase", "bf_id", "tradeplan_id", "ticker", "direction", "created_at", "updated_at", "deal", "editable_fields", "overrides"],
+      "required": ["deal_id", "revision", "status", "execution_phase", "bf_id", "tradeplan_id", "ticker", "direction", "created_at", "updated_at", "deal", "editable_fields"],
       "additionalProperties": false,
       "properties": {
         "deal_id": { "$ref": "#/$defs/dealId" },
@@ -106,14 +91,16 @@
         "bf_id": { "$ref": "#/$defs/bfId" },
         "tradeplan_id": { "type": "string", "minLength": 1 },
         "ticker": { "type": "string" },
+        "market": { "enum": ["stock", "futures", "currency"] },
         "direction": { "enum": ["long", "short"] },
-        "sizing": { "$ref": "#/$defs/dealSizingDisplay" },
+        "sizing": { "$ref": "../common.v1.json#/$defs/sizing" },
+        "execution_policy": { "$ref": "../common.v1.json#/$defs/executionPolicy" },
+        "broker_sizing": { "$ref": "#/$defs/dealSizingDisplay" },
         "realized_pnl": { "$ref": "#/$defs/dealRealizedPnl" },
         "created_at": { "type": "string" },
         "updated_at": { "type": "string" },
         "deal": { "$ref": "deal.public.v1.json" },
-        "editable_fields": { "type": "array", "items": { "$ref": "#/$defs/amendField" } },
-        "overrides": { "$ref": "#/$defs/dealOverrides" }
+        "editable_fields": { "type": "array", "items": { "$ref": "#/$defs/amendField" } }
       }
     },
     "dealResult": {
@@ -244,8 +231,7 @@
       "properties": {
         "deal_id": { "$ref": "#/$defs/dealId" },
         "action": {
-          "enum": ["activate", "pause", "resume", "cancel", "reconcile", "delete", "archive"],
-          "description": "'archive' is schema-valid but runtime-reserved: the handler never calls run_deal_operations for it, the per-item result is {accepted:false, code:'unsupported_action'}, and other items in the same batch still get processed. No UI action is wired to it in this migration."
+          "enum": ["activate", "pause", "resume", "cancel", "reconcile", "delete"]
         },
         "revision": { "type": "integer", "minimum": 1 },
         "cancel_open_orders": { "type": "boolean", "description": "Only meaningful for action='cancel' — see the allOf guard below." }
@@ -295,7 +281,6 @@
           "type": "object",
           "description": "Plan-shaped editable projection (entry/sizing/stop_loss/take_profit/execution_policy fragments) — see the phase-B override rules. Left open here: the phase-B editable-plan shape is defined by the tradeplan schemas, not re-declared on this channel."
         },
-        "drop_overrides": { "type": "array", "items": { "$ref": "#/$defs/amendField" } },
         "base_revision": { "type": "integer", "minimum": 1 }
       }
     },

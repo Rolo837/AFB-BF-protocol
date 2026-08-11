@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 209d9cd51a1e28c5533c475dc143f42689705d23129b989ca91c1a570a80b5f4
+ * source-hash: 0e4073e7aa5752ca5c9c36175de1b87891390d3987954ba70b2cd4d5cd1614d5
  */
 
 /**
@@ -105,9 +105,9 @@ export type AlarmV1_AlarmConditionNode =
     };
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1_DecimalString".
+ * via the `definition` "DecimalString".
  */
-export type DealV1_DecimalString = string;
+export type DecimalString = string;
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "ConditionV1_Timeframe".
@@ -186,7 +186,7 @@ export type ConnectorRecord = BfRegistryEntry & {
   allowed_users?: string[];
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.deal.channel.v1). Replaces legacy `channel=deal, type=get|list|publish|rebind|operation|amend` plus the guaranteed `channel=mail, type=deals/ack` notifications, for clients that negotiated this capability; legacy stays available as fallback for clients that did not — same channel name (`deal`) for both, discriminated by presence of `schema` vs `type` at dispatch time, never both in the same session. `item`/`items`/`results` never carry the persisted DealState file shape (source_refs, status_history, event_journal, raw orders/positions, observed) — see $defs/dealSummary and $defs/dealDetail, built by backend/trade/public_views.py as explicit allow-list projections. The publish/rebind/amend RPCs resolve the source tradeplan only via deal.source.tradeplan_id (deal.public.v1.json); they never accept an inline plan-like draft — that stays a legacy-only affordance. See AFB/docs/WS_EXECUTION_CHANNELS.md and plans/deal-channel-migration_97a53aa5.plan.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.deal.channel.v1) — the sole entry point for `channel=deal`, the AFB legacy schema-less transport was removed. `item`/`items`/`results` never carry the persisted DealState file shape (source_refs, status_history, event_journal, raw orders/positions, observed) — see $defs/dealSummary and $defs/dealDetail, built by backend/trade/public_views.py as explicit allow-list projections. The publish/rebind/amend RPCs resolve the source tradeplan only via deal.source.tradeplan_id (deal.public.v1.json); they never accept an inline plan-like draft. See AFB/docs/ws/deal.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealChannelV1Message".
@@ -298,7 +298,7 @@ export type ConditionV1_Duration = number;
  * via the `definition` "DealPublicExitList".
  */
 export type DealPublicExitList = {
-  percent?: DealV1_DecimalString;
+  percent?: DecimalString;
   logic?: DealV2_LegJoin;
   condition: DealV2_ConditionNode;
 }[];
@@ -315,10 +315,7 @@ export type DealOperationItem = {
   [k: string]: unknown;
 } & {
   deal_id: DealId;
-  /**
-   * 'archive' is schema-valid but runtime-reserved: the handler never calls run_deal_operations for it, the per-item result is {accepted:false, code:'unsupported_action'}, and other items in the same batch still get processed. No UI action is wired to it in this migration.
-   */
-  action: 'activate' | 'pause' | 'resume' | 'cancel' | 'reconcile' | 'delete' | 'archive';
+  action: 'activate' | 'pause' | 'resume' | 'cancel' | 'reconcile' | 'delete';
   revision?: number;
   /**
    * Only meaningful for action='cancel' — see the allOf guard below.
@@ -414,7 +411,7 @@ export type InstrumentV1 = {
    */
   group: string | null;
   lot_size?: number | null;
-  price_step?: DealV1_DecimalString;
+  price_step?: DecimalString;
   decimals?: number | null;
   currency?: string | null;
   /**
@@ -425,8 +422,8 @@ export type InstrumentV1 = {
    * Futures only.
    */
   expiration?: string;
-  step_price?: DealV1_DecimalString;
-  margin?: DealV1_DecimalString;
+  step_price?: DecimalString;
+  margin?: DecimalString;
   /**
    * Futures only; FUTOI series/perpetual code.
    */
@@ -574,7 +571,7 @@ export type TradeplanV1_Condition = TradeplanV1_PriceCondition | TradeplanV1_Pri
  * via the `definition` "TradeplanV2_TpExitList".
  */
 export type TradeplanV2_TpExitList = {
-  percent?: DealV1_DecimalString;
+  percent?: DecimalString;
   logic?: DealV2_LegJoin;
   condition: TradeplanV2_TpConditionNode;
 }[];
@@ -583,7 +580,7 @@ export type TradeplanV2_TpExitList = {
  * via the `definition` "DealV2_ExitList".
  */
 export type DealV2_ExitList = {
-  percent?: DealV1_DecimalString;
+  percent?: DecimalString;
   logic?: DealV2_LegJoin;
   condition: DealV2_ConditionNode;
 }[];
@@ -862,7 +859,7 @@ export interface ConditionV1_PriceExpr {
  * via the `definition` "ConditionV1_RightConst".
  */
 export interface ConditionV1_RightConst {
-  const: DealV1_DecimalString;
+  const: DecimalString;
 }
 /**
  * Unlike condition.v1.json#/$defs/indicatorExpr, only `source`+`id` are required: AFB resolves `type`/`field`/`params` from the user's saved indicator settings by `id` rather than carrying them inline.
@@ -1121,14 +1118,49 @@ export interface DealDetail {
   bf_id: BfId;
   tradeplan_id: string;
   ticker: string;
+  market?: 'stock' | 'futures' | 'currency';
   direction: 'long' | 'short';
-  sizing?: DealSizingDisplay;
+  sizing?: DealSizing;
+  execution_policy?: DealExecutionPolicy;
+  broker_sizing?: DealSizingDisplay;
   realized_pnl?: AfbwsDealChannelV1_DealRealizedPnl;
   created_at: string;
   updated_at: string;
   deal: DealPublicV1;
   editable_fields: DealAmendField[];
-  overrides: AfbwsDealChannelV1_DealOverrides;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealSizing".
+ */
+export interface DealSizing {
+  mode: 'lots' | 'margin' | 'risk_currency' | 'risk_factor' | 'balance_pct';
+  value: DecimalString;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealExecutionPolicy".
+ */
+export interface DealExecutionPolicy {
+  on_afb_disconnect?: string;
+  max_spread_steps?: number;
+  margin_trading?: boolean;
+  /**
+   * How exit protection is executed. Absent means `client` (condition engine only, current behaviour). `hybrid` additionally places a server-side SLTP backstop order once a position opens. `server` is reserved — not yet implemented by any BF, always rejected at publish. See RESILIENCE.md, Фаза 3/5.
+   */
+  execution_mode?: 'client' | 'hybrid' | 'server';
+  /**
+   * Per-deal overrides for the hybrid-mode server-side backstop order; unset fields fall back to the executing BF's own config defaults. Meaningful only when execution_mode is `hybrid`.
+   */
+  backstop?: {
+    offset_steps?: number;
+    stop_price?: DecimalString;
+    max_loss_steps?: number;
+    /**
+     * Reserved for a future server-side take-profit leg (OCO). Always rejected as true for now — the backstop is protection-only in this phase.
+     */
+    take_profit?: boolean;
+  };
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1161,45 +1193,45 @@ export interface DealPublicDealV1 {
   schema: 'afb.deal.v1';
   deal_id: string;
   revision: number;
-  target: DealV1_Target;
+  target: DealTarget;
   direction: 'long' | 'short';
   entry: DealV1_Entry;
-  sizing: DealV1_Sizing;
+  sizing: DealSizing;
   risk?: {
     take_profit?: DealV1_ExitBlock;
     stop_loss?: DealV1_ExitBlock;
   };
-  execution_policy?: DealV1_ExecutionPolicy;
+  execution_policy?: DealExecutionPolicy;
   source: DealPublicSource;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1_Target".
+ * via the `definition` "DealTarget".
  */
-export interface DealV1_Target {
+export interface DealTarget {
   bf_id: string;
   broker: string;
-  instrument: DealV1_Instrument;
+  instrument: DealInstrument;
   /**
    * broker-native locator added by BF after publish
    */
   binding?: {};
   /**
-   * Broker account this deal is published against. Optional on the wire — absent means BF's own trading account (brokers/port.py::account_id). AFB compiles it from the owning tradeplan's account_id (see tradeplan.v1.json#/properties/account_id), resolving empty/absent to the connector's default account before publish. BF validates it against its own account (plan_engine/plan_validation.py: wrong_account_id) when present.
+   * Broker account this deal is published against. Optional on the wire — absent means BF's own trading account (brokers/port.py::account_id). AFB compiles it from the owning tradeplan's publish.account_id (see tradeplan.v1.json#/properties/publish), resolving empty/absent to the connector's default account before publish (ExecutionService.resolve_plan_account). BF validates it against its own account (plan_engine/plan_validation.py: wrong_account_id) when present.
    */
   account_id?: string;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1_Instrument".
+ * via the `definition` "DealInstrument".
  */
-export interface DealV1_Instrument {
+export interface DealInstrument {
   exchange: string;
   board: string;
   ticker: string;
   market?: 'stock' | 'futures' | 'currency';
-  price_step?: DealV1_DecimalString;
-  step_price?: DealV1_DecimalString;
+  price_step?: DecimalString;
+  step_price?: DecimalString;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1224,16 +1256,8 @@ export interface DealV1_ConditionNode {
     field?: 'last';
   };
   right: {
-    const: DealV1_DecimalString;
+    const: DecimalString;
   };
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1_Sizing".
- */
-export interface DealV1_Sizing {
-  mode: 'lots' | 'margin' | 'risk_currency' | 'risk_factor' | 'balance_pct';
-  value: DealV1_DecimalString;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1241,31 +1265,6 @@ export interface DealV1_Sizing {
  */
 export interface DealV1_ExitBlock {
   condition?: DealV1_ConditionNode;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1_ExecutionPolicy".
- */
-export interface DealV1_ExecutionPolicy {
-  on_afb_disconnect?: string;
-  max_spread_steps?: number;
-  margin_trading?: boolean;
-  /**
-   * How exit protection is executed. Absent means `client` (condition engine only, current behaviour). `hybrid` additionally places a server-side SLTP backstop order once a position opens. `server` is reserved — not yet implemented by any BF, always rejected at publish. See RESILIENCE.md, Фаза 3/5.
-   */
-  execution_mode?: 'client' | 'hybrid' | 'server';
-  /**
-   * Per-deal overrides for the hybrid-mode server-side backstop order; unset fields fall back to the executing BF's own config defaults. Meaningful only when execution_mode is `hybrid`.
-   */
-  backstop?: {
-    offset_steps?: number;
-    stop_price?: DealV1_DecimalString;
-    max_loss_steps?: number;
-    /**
-     * Reserved for a future server-side take-profit leg (OCO). Always rejected as true for now — the backstop is protection-only in this phase.
-     */
-    take_profit?: boolean;
-  };
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1282,27 +1281,27 @@ export interface DealPublicDealV2 {
   schema: 'afb.deal.v2';
   deal_id: string;
   revision: number;
-  target: DealV1_Target;
+  target: DealTarget;
   direction: 'long' | 'short';
   /**
    * @minItems 1
    */
   entry: [
     {
-      percent?: DealV1_DecimalString;
+      percent?: DecimalString;
       logic?: DealV2_LegJoin;
       condition: DealV2_ConditionNode;
     },
     ...{
-      percent?: DealV1_DecimalString;
+      percent?: DecimalString;
       logic?: DealV2_LegJoin;
       condition: DealV2_ConditionNode;
     }[]
   ];
   stop_loss?: DealPublicExitList;
   take_profit?: DealPublicExitList;
-  sizing: DealV1_Sizing;
-  execution_policy?: DealV1_ExecutionPolicy;
+  sizing: DealSizing;
+  execution_policy?: DealExecutionPolicy;
   source: DealPublicSource;
 }
 /**
@@ -1323,30 +1322,6 @@ export interface ConditionV1_IndicatorExpr {
  */
 export interface ConditionV1_ImmediateExpr {
   source: 'immediate';
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsDealChannelV1_DealOverrides".
- */
-export interface AfbwsDealChannelV1_DealOverrides {
-  [k: string]: AfbwsDealChannelV1_DealOverrideEntry;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsDealChannelV1_DealOverrideEntry".
- */
-export interface AfbwsDealChannelV1_DealOverrideEntry {
-  at: string;
-  /**
-   * afb.tradeplan.v1 or afb.tradeplan.v2 — the schema `value` is shaped for. A stale entry whose plan_schema no longer matches the current plan is dropped server-side (read_overrides), never sent to the frontend.
-   */
-  plan_schema: string;
-  /**
-   * Plan-shaped fragment for this field (e.g. v1 entry -> entry_condition, v1 sizing -> {quantity_mode,quantity_value}, v2 entry -> entries, stop_loss/take_profit/execution_policy -> same-named plan key). Deliberately untyped here — its shape depends on plan_schema and field, not on this channel.
-   */
-  value: {
-    [k: string]: unknown;
-  };
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1379,8 +1354,11 @@ export interface DealSummary {
   bf_id: BfId;
   tradeplan_id: string;
   ticker: string;
+  market?: 'stock' | 'futures' | 'currency';
   direction: 'long' | 'short';
-  sizing?: DealSizingDisplay;
+  sizing?: DealSizing;
+  execution_policy?: DealExecutionPolicy;
+  broker_sizing?: DealSizingDisplay;
   realized_pnl?: AfbwsDealChannelV1_DealRealizedPnl;
   created_at: string;
   updated_at: string;
@@ -1483,7 +1461,6 @@ export interface DealAmendRequest {
    * Plan-shaped editable projection (entry/sizing/stop_loss/take_profit/execution_policy fragments) — see the phase-B override rules. Left open here: the phase-B editable-plan shape is defined by the tradeplan schemas, not re-declared on this channel.
    */
   deal_edit?: {};
-  drop_overrides?: DealAmendField[];
   base_revision?: number;
 }
 /**
@@ -2305,15 +2282,13 @@ export interface TradePlanV1 {
   quantity_mode?: 'lots' | 'margin' | 'balance_pct' | 'risk_currency' | 'risk_factor';
   take_profit?: TradeplanV1_Condition | null;
   stop_loss?: TradeplanV1_Condition | null;
-  deal_id?: string;
   /**
-   * AFB bf_id (real connector or virtual) used when publishing this plan. Omitted when user has neither trade nor virtual capability.
+   * Параметры публикации плана (используется ТОЛЬКО при публикации, не хранит связь с сделкой). bf_id — коннектор по умолчанию для UI; истина при публикации — bf_id из afbws.deal.publish.request.v1. account_id пусто/отсутствует — дефолтный (торговый) счёт коннектора, резолвится на лету (ExecutionService.resolve_plan_account).
    */
-  connector?: string;
-  /**
-   * Broker account of `connector` this plan publishes to. Omitted/empty means the connector's default (trading) account — resolved on the fly at publish time, not backfilled. See deal.v1.json#/$defs/target/properties/account_id for the compiled deal's copy of this value.
-   */
-  account_id?: string;
+  publish?: {
+    bf_id?: string;
+    account_id?: string;
+  };
   /**
    * AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect.
    */
@@ -2374,28 +2349,26 @@ export interface TradePlanV2 {
    */
   entries: [
     {
-      percent?: DealV1_DecimalString;
+      percent?: DecimalString;
       logic?: DealV2_LegJoin;
       condition: TradeplanV2_TpConditionNode;
     },
     ...{
-      percent?: DealV1_DecimalString;
+      percent?: DecimalString;
       logic?: DealV2_LegJoin;
       condition: TradeplanV2_TpConditionNode;
     }[]
   ];
   stop_loss?: TradeplanV2_TpExitList;
   take_profit?: TradeplanV2_TpExitList;
-  sizing: DealV1_Sizing;
-  deal_id?: string;
+  sizing: DealSizing;
   /**
-   * AFB bf_id (real connector or virtual) used when publishing this plan. Omitted when user has neither trade nor virtual capability.
+   * Параметры публикации плана (используется ТОЛЬКО при публикации, не хранит связь с сделкой). bf_id — коннектор по умолчанию для UI; истина при публикации — bf_id из afbws.deal.publish.request.v1. account_id пусто/отсутствует — дефолтный (торговый) счёт коннектора, резолвится на лету (ExecutionService.resolve_plan_account).
    */
-  connector?: string;
-  /**
-   * Broker account of `connector` this plan publishes to. Omitted/empty means the connector's default (trading) account — resolved on the fly at publish time, not backfilled. See deal.v1.json#/$defs/target/properties/account_id for the compiled deal's copy of this value.
-   */
-  account_id?: string;
+  publish?: {
+    bf_id?: string;
+    account_id?: string;
+  };
   /**
    * AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect.
    */
@@ -2549,37 +2522,21 @@ export interface TradeplanSyncPush {
   items: TradeplanEntity[];
 }
 /**
- * Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. The deal-level `direction` (long/short, same vocabulary as afb.deal.v2) is the single source of truth for position bias.
+ * Building blocks reused across deal.v1.json/deal.v2.json/tradeplan.v1.json/tradeplan.v2.json/condition.v1.json/instrument.v1.json and payloads/dataset.*.json. Extracted from deal.v1.json (2026-08-11, tradeplan/deal separation Фаза B1) once it became clear deal.v1.json was serving as the de-facto shared library for the whole protocol, not just the afb.deal.v1 wire shape — deal.v1.json now keeps only what's genuinely v1-specific (conditionNode/entry/exitBlock). On the wire this is invisible: the resolved schema is byte-identical to before the move.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1".
+ * via the `definition` "CommonV1_Root".
  */
-export interface DealV1 {
-  schema: 'afb.deal.v1';
-  deal_id: string;
-  revision: number;
-  owner?: {
-    user_id?: string;
-  };
-  target: DealV1_Target;
-  direction: 'long' | 'short';
-  entry: DealV1_Entry;
-  sizing: DealV1_Sizing;
-  risk?: {
-    take_profit?: DealV1_ExitBlock;
-    stop_loss?: DealV1_ExitBlock;
-  };
-  execution_policy?: DealV1_ExecutionPolicy;
-  archive_reason?: string;
-  source?: DealV1_Source;
+export interface CommonV1_Root {
+  [k: string]: unknown;
 }
 /**
  * Provenance of this deal's compiled definition. The AFB compiler writes only `tradeplan_id` — the single source of truth for deal->tradeplan linkage (see the tradeplan/deal separation plan). `kind`/`draft_id` are a deprecated pre-separation pair: new AFB never writes them, they may still appear on persisted records created before the deal-channel-migration offline backfill ran. Left open (no additionalProperties restriction, matching the rest of this wire schema) since AFB may carry extra compile metadata here (e.g. `compiled_at`, `primitive_snapshot`) that BF does not interpret.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1_Source".
+ * via the `definition` "DealSource".
  */
-export interface DealV1_Source {
+export interface DealSource {
   /**
    * Id of the AFB tradeplan (state/tradeplans/<user_id>/<id>.yaml) that compiled this deal.
    */
@@ -2596,6 +2553,31 @@ export interface DealV1_Source {
   draft_id?: string;
 }
 /**
+ * Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. The deal-level `direction` (long/short, same vocabulary as afb.deal.v2) is the single source of truth for position bias. Shared $defs (decimalString/instrument/target/sizing/executionPolicy/source) live in common.v1.json — this file keeps only what's v1-specific (conditionNode/entry/exitBlock); see common.v1.json's description for why.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV1".
+ */
+export interface DealV1 {
+  schema: 'afb.deal.v1';
+  deal_id: string;
+  revision: number;
+  owner?: {
+    user_id?: string;
+  };
+  target: DealTarget;
+  direction: 'long' | 'short';
+  entry: DealV1_Entry;
+  sizing: DealSizing;
+  risk?: {
+    take_profit?: DealV1_ExitBlock;
+    stop_loss?: DealV1_ExitBlock;
+  };
+  execution_policy?: DealExecutionPolicy;
+  archive_reason?: string;
+  source?: DealSource;
+}
+/**
  * Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string) and an optional `logic` (`#/$defs/legJoin`) joining it to the PRECEDING element in the same list — see `legJoin` for the full grammar (groups/buckets, `and`/`or` precedence, `percent` placement). Sum of percents per bucket resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from deal.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_* /crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2606,29 +2588,29 @@ export interface DealV2 {
   deal_id: string;
   revision: number;
   owner?: {};
-  target: DealV1_Target;
+  target: DealTarget;
   direction: 'long' | 'short';
   /**
    * @minItems 1
    */
   entry: [
     {
-      percent?: DealV1_DecimalString;
+      percent?: DecimalString;
       logic?: DealV2_LegJoin;
       condition: DealV2_ConditionNode;
     },
     ...{
-      percent?: DealV1_DecimalString;
+      percent?: DecimalString;
       logic?: DealV2_LegJoin;
       condition: DealV2_ConditionNode;
     }[]
   ];
   stop_loss?: DealV2_ExitList;
   take_profit?: DealV2_ExitList;
-  sizing: DealV1_Sizing;
-  execution_policy?: DealV1_ExecutionPolicy;
+  sizing: DealSizing;
+  execution_policy?: DealExecutionPolicy;
   archive_reason?: string;
-  source?: DealV1_Source;
+  source?: DealSource;
 }
 /**
  * Shared per-deal YAML/JSON state, identical on AFB and BF. orders[]/positions[] are the authoritative observed facts; observed{} and execution_phase are derived.
@@ -3322,7 +3304,7 @@ export interface DatasetSubscribePayload {
      * Same vocabulary as dataset.update.json#/properties/datasets/items/properties/dataset_id.
      */
     dataset_id: 'positions' | 'orders' | 'hhi' | 'trades';
-    instrument: DealV1_Instrument;
+    instrument: DealInstrument;
     [k: string]: unknown;
   }[];
   [k: string]: unknown;
@@ -3342,7 +3324,7 @@ export interface DatasetUpdatePayload {
      * Same vocabulary as condition.v1.json#/$defs/datasetExpr/dataset_id, except `volume` — declared in condition.v1.json but not computed by AFB or BF and never pushed here.
      */
     dataset_id: 'positions' | 'orders' | 'hhi' | 'trades';
-    instrument: DealV1_Instrument1;
+    instrument: DealInstrument1;
     /**
      * ISO-8601 exchange-side snapshot time (when this data was true on MOEX), not the time AFB sent the message.
      */
@@ -3370,13 +3352,13 @@ export interface DatasetUpdatePayload {
 /**
  * Deal-level instrument this record is keyed by. AFB has already resolved exchange-side nomenclature quirks (e.g. positions for a futures instrument are keyed by the underlying asset on MOEX, not the contract ticker) — BF matches condition legs to records by this field as-is.
  */
-export interface DealV1_Instrument1 {
+export interface DealInstrument1 {
   exchange: string;
   board: string;
   ticker: string;
   market?: 'stock' | 'futures' | 'currency';
-  price_step?: DealV1_DecimalString;
-  step_price?: DealV1_DecimalString;
+  price_step?: DecimalString;
+  step_price?: DecimalString;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

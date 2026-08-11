@@ -16,7 +16,7 @@
             "enum": ["positions", "orders", "hhi", "trades"],
             "description": "Same vocabulary as dataset.update.json#/properties/datasets/items/properties/dataset_id."
           },
-          "instrument": {"$ref": "../deal.v1.json#/$defs/instrument"}
+          "instrument": {"$ref": "../common.v1.json#/$defs/instrument"}
         },
         "additionalProperties": true
       }

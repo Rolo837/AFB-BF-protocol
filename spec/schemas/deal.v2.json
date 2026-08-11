@@ -10,7 +10,7 @@
     "deal_id": {"type": "string", "minLength": 1},
     "revision": {"type": "integer", "minimum": 1},
     "owner": {"type": "object"},
-    "target": {"$ref": "deal.v1.json#/$defs/target"},
+    "target": {"$ref": "common.v1.json#/$defs/target"},
     "direction": {"enum": ["long", "short"]},
     "entry": {
       "type": "array",
@@ -19,7 +19,7 @@
         "type": "object",
         "required": ["condition"],
         "properties": {
-          "percent": {"$ref": "deal.v1.json#/$defs/decimalString"},
+          "percent": {"$ref": "common.v1.json#/$defs/decimalString"},
           "logic": {"$ref": "#/$defs/legJoin"},
           "condition": {"$ref": "#/$defs/conditionNode"}
         }
@@ -27,10 +27,10 @@
     },
     "stop_loss": {"$ref": "#/$defs/exitList"},
     "take_profit": {"$ref": "#/$defs/exitList"},
-    "sizing": {"$ref": "deal.v1.json#/$defs/sizing"},
-    "execution_policy": {"$ref": "deal.v1.json#/$defs/executionPolicy"},
+    "sizing": {"$ref": "common.v1.json#/$defs/sizing"},
+    "execution_policy": {"$ref": "common.v1.json#/$defs/executionPolicy"},
     "archive_reason": {"type": "string"},
-    "source": {"$ref": "deal.v1.json#/$defs/source"}
+    "source": {"$ref": "common.v1.json#/$defs/source"}
   },
   "$defs": {
     "rightConst": {"$ref": "condition.v1.json#/$defs/rightConst"},
@@ -57,7 +57,7 @@
         "type": "object",
         "required": ["condition"],
         "properties": {
-          "percent": {"$ref": "deal.v1.json#/$defs/decimalString"},
+          "percent": {"$ref": "common.v1.json#/$defs/decimalString"},
           "logic": {"$ref": "#/$defs/legJoin"},
           "condition": {"$ref": "#/$defs/conditionNode"}
         }

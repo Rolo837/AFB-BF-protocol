@@ -29,7 +29,7 @@
         "type": "object",
         "required": ["condition"],
         "properties": {
-          "percent": {"$ref": "deal.v1.json#/$defs/decimalString"},
+          "percent": {"$ref": "common.v1.json#/$defs/decimalString"},
           "logic": {"$ref": "deal.v2.json#/$defs/legJoin"},
           "condition": {"$ref": "#/$defs/tpConditionNode"}
         }
@@ -37,17 +37,15 @@
     },
     "stop_loss": {"$ref": "#/$defs/tpExitList"},
     "take_profit": {"$ref": "#/$defs/tpExitList"},
-    "sizing": {"$ref": "deal.v1.json#/$defs/sizing"},
-    "deal_id": {"type": "string"},
-    "connector": {
-      "type": "string",
-      "minLength": 1,
-      "description": "AFB bf_id (real connector or virtual) used when publishing this plan. Omitted when user has neither trade nor virtual capability."
-    },
-    "account_id": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Broker account of `connector` this plan publishes to. Omitted/empty means the connector's default (trading) account — resolved on the fly at publish time, not backfilled. See deal.v1.json#/$defs/target/properties/account_id for the compiled deal's copy of this value."
+    "sizing": {"$ref": "common.v1.json#/$defs/sizing"},
+    "publish": {
+      "type": "object",
+      "description": "Параметры публикации плана (используется ТОЛЬКО при публикации, не хранит связь с сделкой). bf_id — коннектор по умолчанию для UI; истина при публикации — bf_id из afbws.deal.publish.request.v1. account_id пусто/отсутствует — дефолтный (торговый) счёт коннектора, резолвится на лету (ExecutionService.resolve_plan_account).",
+      "additionalProperties": false,
+      "properties": {
+        "bf_id": {"type": "string", "minLength": 1},
+        "account_id": {"type": "string", "minLength": 1}
+      }
     },
     "delivery_at": {
       "type": "string",
@@ -103,7 +101,7 @@
         "type": "object",
         "required": ["condition"],
         "properties": {
-          "percent": {"$ref": "deal.v1.json#/$defs/decimalString"},
+          "percent": {"$ref": "common.v1.json#/$defs/decimalString"},
           "logic": {"$ref": "deal.v2.json#/$defs/legJoin"},
           "condition": {"$ref": "#/$defs/tpConditionNode"}
         }
