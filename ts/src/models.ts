@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: ed9d1033797e57b4980b78cd844f1cd078870693c9c3e0e5dd05bb4426e04205
+ * source-hash: 86959c44a30e172e51bea63cc5f1351807215d2dcd3af1e0328fe24f49559167
  */
 
 /**
@@ -222,12 +222,19 @@ export type DealId = string;
  */
 export type BfId = string;
 /**
- * Explicit allow-list projector output over afb.deal.v1/v2 (../deal.v1.json, ../deal.v2.json), built by backend/trade/public_views.py — never a serialization of the persisted DealState file. Deliberately NOT an allOf+$ref extension of the whole wire root: those wire schemas declare `owner`/`archive_reason` in their own `properties` with no `additionalProperties: false`, so those fields would count as already-'evaluated' and survive an outer `unevaluatedProperties: false` — the only way to actually drop them is to define this object's own shape directly and reuse the wire schemas' field-level $defs (target, sizing, conditions, execution policy) rather than their root. `source` is strict and requires `tradeplan_id` — the single public link back to the owning tradeplan; `source.kind`/`draft_id`, compile snapshots and raw phase-B overrides never appear here.
+ * Explicit allow-list projector output over afb.deal.v1/v2 (../deal.v1.json, ../deal.v2.json), built by backend/trade/public_views.py — never a serialization of the persisted DealState file. Deliberately NOT an allOf+$ref extension of the whole wire root: those wire schemas declare `owner`/`archive_reason` in their own `properties` with no `additionalProperties: false`, so those fields would count as already-'evaluated' and survive an outer `unevaluatedProperties: false` — the only way to actually drop them is to define this object's own shape directly and reuse the wire schemas' field-level $defs (target, sizing, conditions, execution policy) rather than their root. `source` is strict and requires `tradeplan_id` — the single public link back to the owning tradeplan; `source.kind`/`draft_id`, compile snapshots and raw phase-B overrides never appear here. The one internal field that IS projected — per-leg, not on `source` — is `leg_id` (v2 legs only), the plan-leg identity the frontend needs to tell which deal leg still tracks which plan leg.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealPublicV1".
  */
 export type DealPublicV1 = DealPublicDealV1 | DealPublicDealV2;
+/**
+ * Stable identity of this leg across edits — the key overrides/carry-over (tradeplan/deal separation Фаза B2) use to match a plan leg to its compiled deal leg, never array position. Assigned once when a leg is created and never reused/reassigned; a plan predating this field falls back to a deterministic `legacy:{role}:{index}` synthetic id at compile time (see AFB backend/tradeplans/models.py) until migrated.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanV2_LegId".
+ */
+export type TradeplanV2_LegId = string;
 /**
  * Infix operator joining THIS leg to the PRECEDING leg in the same role's list (entry/stop_loss/take_profit) — not a per-role mode. Omitted (on read) is equivalent to "split", today's behavior, unaffected by this field's existence — old deals/tradeplans persisted without it keep working as-is. The FIRST leg of a role never carries a meaningful `logic` (nothing precedes it) — a producer must omit it there or send `split`; consumers ignore it if present. Grammar, applied left to right over the role's leg list, `and` binding tighter than `or` (`split` always starts a new top-level term, so `a, b:or, c:and` parses as `a OR (b AND c)`): consecutive legs joined by `and` form a GROUP (evaluated as gating sub-conditions of a single order for the group's full volume — the group fires only when every leg in it is true in the same evaluation pass); consecutive groups joined by `or` form a BUCKET (each group remains an independent order, but the whole bucket shares one common volume budget — first fill exhausts the budget, the rest are withdrawn); `split` starts a new bucket, and buckets divide the role's total volume via `percent`. `percent` belongs to the BUCKET and is only meaningful on its first leg (the one whose own `logic` is absent/`split`); it MUST be absent on any leg joined via `and`/`or`. A leg is a bucket of one group of one leg when nothing after it continues it — behaves identically to today regardless of this field's value. NOTE: this schema does not itself enforce leg position (first-leg-has-no-logic) or bucket/role-level homogeneity constraints a consumer may currently apply — those, like other position-dependent rules in this vocabulary, are consumer-side (see BF `protocol/validation.py`).
  *
@@ -305,6 +312,7 @@ export type DealV2_LegSource = 'tradeplan' | 'deal';
  * via the `definition` "DealPublicExitList".
  */
 export type DealPublicExitList = {
+  leg_id?: TradeplanV2_LegId;
   percent?: DecimalString;
   logic?: DealV2_LegJoin;
   condition: DealV2_ConditionNode;
@@ -574,13 +582,6 @@ export type TradeplanV1_EntryCondition = TradeplanV1_MarketOrPriceCondition | Tr
  * via the `definition` "TradeplanV1_Condition".
  */
 export type TradeplanV1_Condition = TradeplanV1_PriceCondition | TradeplanV1_PrimitiveCondition;
-/**
- * Stable identity of this leg across edits — the key overrides/carry-over (tradeplan/deal separation Фаза B2) use to match a plan leg to its compiled deal leg, never array position. Assigned once when a leg is created and never reused/reassigned; a plan predating this field falls back to a deterministic `legacy:{role}:{index}` synthetic id at compile time (see AFB backend/tradeplans/models.py) until migrated.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV2_LegId".
- */
-export type TradeplanV2_LegId = string;
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2_TpExitList".
@@ -1305,12 +1306,14 @@ export interface DealPublicDealV2 {
    */
   entry: [
     {
+      leg_id?: TradeplanV2_LegId;
       percent?: DecimalString;
       logic?: DealV2_LegJoin;
       condition: DealV2_ConditionNode;
       source?: DealV2_LegSource;
     },
     ...{
+      leg_id?: TradeplanV2_LegId;
       percent?: DecimalString;
       logic?: DealV2_LegJoin;
       condition: DealV2_ConditionNode;
@@ -2592,7 +2595,7 @@ export interface CommonV1_Root {
   [k: string]: unknown;
 }
 /**
- * Provenance of this deal's compiled definition. The AFB compiler writes only `tradeplan_id` — the single source of truth for deal->tradeplan linkage (see the tradeplan/deal separation plan). `kind`/`draft_id` are a deprecated pre-separation pair: new AFB never writes them, they may still appear on persisted records created before the deal-channel-migration offline backfill ran. Left open (no additionalProperties restriction, matching the rest of this wire schema) since AFB may carry extra compile metadata here (e.g. `compiled_at`, `primitive_snapshot`, and — Фаза B2 — `leg_ids` [{entry,stop_loss,take_profit}: [leg_id|null, ...], parallel to the matching deal.v2.json leg array] and `removed_plan_leg_ids` [string[], tombstoned plan leg_ids]) that BF does not interpret; AFB's own public projection (afbws/deal.public.v1.json#/$defs/source) strips all of this down to `tradeplan_id` alone before it ever reaches the frontend.
+ * Provenance of this deal's compiled definition. The AFB compiler writes only `tradeplan_id` — the single source of truth for deal->tradeplan linkage (see the tradeplan/deal separation plan). `kind`/`draft_id` are a deprecated pre-separation pair: new AFB never writes them, they may still appear on persisted records created before the deal-channel-migration offline backfill ran. Left open (no additionalProperties restriction, matching the rest of this wire schema) since AFB may carry extra compile metadata here (e.g. `compiled_at`, `primitive_snapshot`, and — Фаза B2 — `leg_ids` [{entry,stop_loss,take_profit}: [leg_id|null, ...], parallel to the matching deal.v2.json leg array] and `removed_plan_leg_ids` [string[], tombstoned plan leg_ids]) that BF does not interpret; AFB's own public projection reduces this object to `tradeplan_id` alone (afbws/deal.public.v1.json#/$defs/source) — the only piece that survives elsewhere is `leg_ids`, re-projected per leg as `leg_id` on the public v2 legs (afbws/deal.public.v1.json#/$defs/legId), never as part of `source`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealSource".

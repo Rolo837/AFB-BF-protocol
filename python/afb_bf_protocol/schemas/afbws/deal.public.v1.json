@@ -2,12 +2,16 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/deal.public.v1.json",
   "title": "Public deal projection (AFB backend -> AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Explicit allow-list projector output over afb.deal.v1/v2 (../deal.v1.json, ../deal.v2.json), built by backend/trade/public_views.py — never a serialization of the persisted DealState file. Deliberately NOT an allOf+$ref extension of the whole wire root: those wire schemas declare `owner`/`archive_reason` in their own `properties` with no `additionalProperties: false`, so those fields would count as already-'evaluated' and survive an outer `unevaluatedProperties: false` — the only way to actually drop them is to define this object's own shape directly and reuse the wire schemas' field-level $defs (target, sizing, conditions, execution policy) rather than their root. `source` is strict and requires `tradeplan_id` — the single public link back to the owning tradeplan; `source.kind`/`draft_id`, compile snapshots and raw phase-B overrides never appear here.",
+  "description": "Explicit allow-list projector output over afb.deal.v1/v2 (../deal.v1.json, ../deal.v2.json), built by backend/trade/public_views.py — never a serialization of the persisted DealState file. Deliberately NOT an allOf+$ref extension of the whole wire root: those wire schemas declare `owner`/`archive_reason` in their own `properties` with no `additionalProperties: false`, so those fields would count as already-'evaluated' and survive an outer `unevaluatedProperties: false` — the only way to actually drop them is to define this object's own shape directly and reuse the wire schemas' field-level $defs (target, sizing, conditions, execution policy) rather than their root. `source` is strict and requires `tradeplan_id` — the single public link back to the owning tradeplan; `source.kind`/`draft_id`, compile snapshots and raw phase-B overrides never appear here. The one internal field that IS projected — per-leg, not on `source` — is `leg_id` (v2 legs only), the plan-leg identity the frontend needs to tell which deal leg still tracks which plan leg.",
   "oneOf": [
     { "$ref": "#/$defs/v1" },
     { "$ref": "#/$defs/v2" }
   ],
   "$defs": {
+    "legId": {
+      "$ref": "../tradeplan.v2.json#/$defs/legId",
+      "description": "Identity of the TRADEPLAN leg this deal leg follows, projected out of the internal `deal.source.leg_ids[role][i]` (see common.v1.json#/$defs/source) so the frontend can look the plan leg up — e.g. to tell that this leg's price came from a chart line (`right.primitive_id` on the plan side, already resolved to a `const` here) and must not be drawn a second time as an overlay level. Absent for a leg added directly on the deal (no plan counterpart) and for every v1-bodied deal (afb.deal.v1 predates leg identity entirely). Never a deal-side identity: leg matching within a deal stays positional (see afbws/deal.amend.request.v1.json)."
+    },
     "source": {
       "type": "object",
       "required": ["tradeplan_id"],
@@ -58,6 +62,7 @@
             "required": ["condition"],
             "additionalProperties": false,
             "properties": {
+              "leg_id": { "$ref": "#/$defs/legId" },
               "percent": { "$ref": "../common.v1.json#/$defs/decimalString" },
               "logic": { "$ref": "../deal.v2.json#/$defs/legJoin" },
               "condition": { "$ref": "../deal.v2.json#/$defs/conditionNode" },
@@ -79,6 +84,7 @@
         "required": ["condition"],
         "additionalProperties": false,
         "properties": {
+          "leg_id": { "$ref": "#/$defs/legId" },
           "percent": { "$ref": "../common.v1.json#/$defs/decimalString" },
           "logic": { "$ref": "../deal.v2.json#/$defs/legJoin" },
           "condition": { "$ref": "../deal.v2.json#/$defs/conditionNode" },

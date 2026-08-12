@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: ed9d1033797e57b4980b78cd844f1cd078870693c9c3e0e5dd05bb4426e04205
+# source-hash: 86959c44a30e172e51bea63cc5f1351807215d2dcd3af1e0328fe24f49559167
 
 from __future__ import annotations
 
@@ -1152,6 +1152,7 @@ class DealPublicDealV2(TypedDict):
 
 
 class DealPublicExitListItem(TypedDict):
+    leg_id: NotRequired[TradeplanV2LegId]
     percent: NotRequired[DecimalString]
     logic: NotRequired[DealV2LegJoin]
     condition: DealV2ConditionNode
@@ -1277,7 +1278,7 @@ class DealSnapshotPayload(TypedDict):
 
 class DealSource(TypedDict):
     """
-    Provenance of this deal's compiled definition. The AFB compiler writes only `tradeplan_id` — the single source of truth for deal->tradeplan linkage (see the tradeplan/deal separation plan). `kind`/`draft_id` are a deprecated pre-separation pair: new AFB never writes them, they may still appear on persisted records created before the deal-channel-migration offline backfill ran. Left open (no additionalProperties restriction, matching the rest of this wire schema) since AFB may carry extra compile metadata here (e.g. `compiled_at`, `primitive_snapshot`, and — Фаза B2 — `leg_ids` [{entry,stop_loss,take_profit}: [leg_id|null, ...], parallel to the matching deal.v2.json leg array] and `removed_plan_leg_ids` [string[], tombstoned plan leg_ids]) that BF does not interpret; AFB's own public projection (afbws/deal.public.v1.json#/$defs/source) strips all of this down to `tradeplan_id` alone before it ever reaches the frontend.
+    Provenance of this deal's compiled definition. The AFB compiler writes only `tradeplan_id` — the single source of truth for deal->tradeplan linkage (see the tradeplan/deal separation plan). `kind`/`draft_id` are a deprecated pre-separation pair: new AFB never writes them, they may still appear on persisted records created before the deal-channel-migration offline backfill ran. Left open (no additionalProperties restriction, matching the rest of this wire schema) since AFB may carry extra compile metadata here (e.g. `compiled_at`, `primitive_snapshot`, and — Фаза B2 — `leg_ids` [{entry,stop_loss,take_profit}: [leg_id|null, ...], parallel to the matching deal.v2.json leg array] and `removed_plan_leg_ids` [string[], tombstoned plan leg_ids]) that BF does not interpret; AFB's own public projection reduces this object to `tradeplan_id` alone (afbws/deal.public.v1.json#/$defs/source) — the only piece that survives elsewhere is `leg_ids`, re-projected per leg as `leg_id` on the public v2 legs (afbws/deal.public.v1.json#/$defs/legId), never as part of `source`.
     """
 
     tradeplan_id: NotRequired[str]
@@ -1473,7 +1474,7 @@ class DealV2(TypedDict):
     owner: NotRequired[dict[str, Any]]
     target: DealTarget
     direction: Literal["long", "short"]
-    entry: list[EntryItem]
+    entry: list[EntryItem1]
     stop_loss: NotRequired[DealV2ExitList]
     take_profit: NotRequired[DealV2ExitList]
     sizing: DealSizing
@@ -1684,6 +1685,14 @@ class Entry1(TypedDict):
 
 
 class EntryItem(TypedDict):
+    leg_id: NotRequired[TradeplanV2LegId]
+    percent: NotRequired[DecimalString]
+    logic: NotRequired[DealV2LegJoin]
+    condition: DealV2ConditionNode
+    source: NotRequired[DealV2LegSource]
+
+
+class EntryItem1(TypedDict):
     percent: NotRequired[DecimalString]
     logic: NotRequired[DealV2LegJoin]
     condition: DealV2ConditionNode
