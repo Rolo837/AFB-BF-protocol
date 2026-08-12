@@ -305,6 +305,61 @@ def test_amend_request_rejects_legacy_drop_overrides_key(registry):
         _validator("amendRequest", registry).validate(req)
 
 
+def test_amend_request_deal_edit_per_leg_role_shape(registry):
+    """tradeplan/deal separation Фаза B2 — per-leg dealRoleEdit fragment:
+    edited (by current-array index)/removed_indices/reset_indices/new_legs."""
+    req = {
+        "channel": "deal",
+        "schema": "afbws.deal.amend.request.v1",
+        "request_id": "req-1",
+        "deal_id": "deal-1",
+        "deal_edit": {
+            "stop_loss": {
+                "edited": [
+                    {
+                        "index": 0,
+                        "condition": {"node_type": "event", "op": "below", "left": {"source": "price", "field": "last"}, "right": {"const": "95"}},
+                    }
+                ],
+                "removed_indices": [1],
+                "reset_indices": [2],
+                "new_legs": [
+                    {"condition": {"node_type": "event", "op": "below", "left": {"source": "price", "field": "last"}, "right": {"const": "90"}}}
+                ],
+            },
+        },
+    }
+    _validator("amendRequest", registry).validate(req)  # does not raise
+
+
+def test_amend_request_deal_edit_rejects_unknown_role_edit_key(registry):
+    from jsonschema import ValidationError
+
+    req = {
+        "channel": "deal",
+        "schema": "afbws.deal.amend.request.v1",
+        "request_id": "req-1",
+        "deal_id": "deal-1",
+        "deal_edit": {"entry": {"bogus": []}},
+    }
+    with pytest.raises(ValidationError):
+        _validator("amendRequest", registry).validate(req)
+
+
+def test_amend_request_deal_edit_rejects_unknown_top_level_key(registry):
+    from jsonschema import ValidationError
+
+    req = {
+        "channel": "deal",
+        "schema": "afbws.deal.amend.request.v1",
+        "request_id": "req-1",
+        "deal_id": "deal-1",
+        "deal_edit": {"bogus_field": {}},
+    }
+    with pytest.raises(ValidationError):
+        _validator("amendRequest", registry).validate(req)
+
+
 # --- error ---------------------------------------------------------------
 
 @pytest.mark.parametrize(

@@ -29,6 +29,7 @@
         "type": "object",
         "required": ["condition"],
         "properties": {
+          "leg_id": {"$ref": "#/$defs/legId"},
           "percent": {"$ref": "common.v1.json#/$defs/decimalString"},
           "logic": {"$ref": "deal.v2.json#/$defs/legJoin"},
           "condition": {"$ref": "#/$defs/tpConditionNode"}
@@ -55,6 +56,11 @@
     "updated_at": {"type": "string"}
   },
   "$defs": {
+    "legId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identity of this leg across edits — the key overrides/carry-over (tradeplan/deal separation Фаза B2) use to match a plan leg to its compiled deal leg, never array position. Assigned once when a leg is created and never reused/reassigned; a plan predating this field falls back to a deterministic `legacy:{role}:{index}` synthetic id at compile time (see AFB backend/tradeplans/models.py) until migrated."
+    },
     "primitiveRef": {
       "type": "object",
       "required": ["primitive_id"],
@@ -101,6 +107,7 @@
         "type": "object",
         "required": ["condition"],
         "properties": {
+          "leg_id": {"$ref": "#/$defs/legId"},
           "percent": {"$ref": "common.v1.json#/$defs/decimalString"},
           "logic": {"$ref": "deal.v2.json#/$defs/legJoin"},
           "condition": {"$ref": "#/$defs/tpConditionNode"}

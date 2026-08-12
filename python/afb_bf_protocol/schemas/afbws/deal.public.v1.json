@@ -60,7 +60,8 @@
             "properties": {
               "percent": { "$ref": "../common.v1.json#/$defs/decimalString" },
               "logic": { "$ref": "../deal.v2.json#/$defs/legJoin" },
-              "condition": { "$ref": "../deal.v2.json#/$defs/conditionNode" }
+              "condition": { "$ref": "../deal.v2.json#/$defs/conditionNode" },
+              "source": { "$ref": "../deal.v2.json#/$defs/legSource" }
             }
           }
         },
@@ -80,7 +81,8 @@
         "properties": {
           "percent": { "$ref": "../common.v1.json#/$defs/decimalString" },
           "logic": { "$ref": "../deal.v2.json#/$defs/legJoin" },
-          "condition": { "$ref": "../deal.v2.json#/$defs/conditionNode" }
+          "condition": { "$ref": "../deal.v2.json#/$defs/conditionNode" },
+          "source": { "$ref": "../deal.v2.json#/$defs/legSource" }
         }
       }
     }

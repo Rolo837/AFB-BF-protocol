@@ -21,7 +21,8 @@
         "properties": {
           "percent": {"$ref": "common.v1.json#/$defs/decimalString"},
           "logic": {"$ref": "#/$defs/legJoin"},
-          "condition": {"$ref": "#/$defs/conditionNode"}
+          "condition": {"$ref": "#/$defs/conditionNode"},
+          "source": {"$ref": "#/$defs/legSource"}
         }
       }
     },
@@ -59,9 +60,14 @@
         "properties": {
           "percent": {"$ref": "common.v1.json#/$defs/decimalString"},
           "logic": {"$ref": "#/$defs/legJoin"},
-          "condition": {"$ref": "#/$defs/conditionNode"}
+          "condition": {"$ref": "#/$defs/conditionNode"},
+          "source": {"$ref": "#/$defs/legSource"}
         }
       }
+    },
+    "legSource": {
+      "enum": ["tradeplan", "deal"],
+      "description": "AFB-side provenance of this leg's condition — which side last set it: `tradeplan` (still following the linked plan, default when absent) or `deal` (overridden directly on the deal, decoupled from further plan edits to this leg). BF does not interpret this field — round-trip only (persist as received, echo back unchanged); it exists purely for AFB's per-leg amend/override UI (tradeplan/deal separation Фаза B2)."
     }
   }
 }

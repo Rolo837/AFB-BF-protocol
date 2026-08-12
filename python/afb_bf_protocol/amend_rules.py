@@ -183,13 +183,19 @@ def _entry_triggers(deal: dict[str, Any]) -> Any:
     change is treated as an ``entry`` edit, same phase gate as changing the
     conditions themselves. Each leg's ``condition`` is canonicalized (see
     ``_canonical_entry_condition``) so an immediate/market leg compares equal
-    regardless of its meaningless ``right``/``op`` placeholder formatting."""
+    regardless of its meaningless ``right``/``op`` placeholder formatting.
+    Also includes ``source`` (tradeplan/deal provenance, deal.v2.json#/$defs/
+    legSource, tradeplan/deal separation Фаза B2) — a bare "Восстановить"
+    (drop the deal-level override, no value change) still flips this field,
+    and without it here that no-value-change edit would compare equal to the
+    old deal and never reach the phase gate at all."""
     entry = deal.get("entry")
     if _is_v2(deal) and isinstance(entry, list):
         return [
             {
                 "percent": (e or {}).get("percent"),
                 "logic": (e or {}).get("logic"),
+                "source": (e or {}).get("source"),
                 "condition": _canonical_entry_condition((e or {}).get("condition")),
             }
             for e in entry

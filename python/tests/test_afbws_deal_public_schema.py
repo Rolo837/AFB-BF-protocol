@@ -122,3 +122,22 @@ def test_v2_stop_loss_take_profit_valid(registry):
         "take_profit": [{"condition": {"node_type": "event", "op": "above", "left": {"source": "price"}, "right": {"const": "110"}}}],
     }
     _validator(registry).validate(item)  # does not raise
+
+
+# --- entry/exit leg `source` (tradeplan/deal separation Фаза B2) ------------
+
+def test_v2_leg_source_tradeplan_and_deal_valid(registry):
+    item = {
+        **_GOOD_V2,
+        "entry": [{**_GOOD_V2["entry"][0], "source": "tradeplan"}],
+        "stop_loss": [{"condition": {"node_type": "event", "op": "below", "left": {"source": "price"}, "right": {"const": "90"}}, "source": "deal"}],
+    }
+    _validator(registry).validate(item)  # does not raise
+
+
+def test_v2_leg_source_unknown_value_rejected(registry):
+    from jsonschema import ValidationError
+
+    item = {**_GOOD_V2, "entry": [{**_GOOD_V2["entry"][0], "source": "bogus"}]}
+    with pytest.raises(ValidationError):
+        _validator(registry).validate(item)

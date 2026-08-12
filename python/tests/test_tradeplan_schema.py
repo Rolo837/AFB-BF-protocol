@@ -286,3 +286,39 @@ def test_publish_rejects_unknown_keys(registry):
     }
     with pytest.raises(ValidationError):
         _validator(TRADEPLAN_V2_ID, registry).validate(v2)
+
+
+# --- leg_id (tradeplan/deal separation Фаза B2) ------------------------------
+
+def test_v2_leg_id_accepted_on_entries_and_exits(registry):
+    v2 = {
+        "schema": "afb.tradeplan.v2",
+        "id": "tp1",
+        "ticker": "SBER",
+        "direction": "long",
+        "entries": [
+            {"leg_id": "leg-a1b2c3d4", "condition": {"left": {"source": "price"}, "op": "touch", "right": {"const": "100"}}}
+        ],
+        "stop_loss": [
+            {"leg_id": "leg-e5f6a7b8", "condition": {"left": {"source": "price"}, "op": "below", "right": {"const": "90"}}}
+        ],
+        "sizing": {"mode": "lots", "value": "1"},
+    }
+    _validator(TRADEPLAN_V2_ID, registry).validate(v2)  # does not raise
+
+
+def test_v2_leg_id_rejects_empty_string(registry):
+    from jsonschema import ValidationError
+
+    v2 = {
+        "schema": "afb.tradeplan.v2",
+        "id": "tp1",
+        "ticker": "SBER",
+        "direction": "long",
+        "entries": [
+            {"leg_id": "", "condition": {"left": {"source": "price"}, "op": "touch", "right": {"const": "100"}}}
+        ],
+        "sizing": {"mode": "lots", "value": "1"},
+    }
+    with pytest.raises(ValidationError):
+        _validator(TRADEPLAN_V2_ID, registry).validate(v2)

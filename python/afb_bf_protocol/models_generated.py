@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 0e4073e7aa5752ca5c9c36175de1b87891390d3987954ba70b2cd4d5cd1614d5
+# source-hash: d6dd1ea3484eaa740ac90221e92be20d98757042e0474026cd21e007355f66c9
 
 from __future__ import annotations
 
@@ -177,9 +177,37 @@ AfbwsCommonV1RequestId: TypeAlias = str
 AfbwsCommonV1Root: TypeAlias = Any
 
 
+class AfbwsDealChannelV1DealEdit(TypedDict):
+    entry: NotRequired[AfbwsDealChannelV1DealRoleEdit]
+    stop_loss: NotRequired[AfbwsDealChannelV1DealRoleEdit]
+    take_profit: NotRequired[AfbwsDealChannelV1DealRoleEdit]
+    sizing: NotRequired[DealSizing]
+    execution_policy: NotRequired[DealExecutionPolicy]
+
+
+class AfbwsDealChannelV1DealLegEdit(TypedDict):
+    index: int
+    condition: NotRequired[DealV2ConditionNode]
+    percent: NotRequired[DecimalString]
+    logic: NotRequired[DealV2LegJoin]
+
+
+class AfbwsDealChannelV1DealNewLeg(TypedDict):
+    condition: DealV2ConditionNode
+    percent: NotRequired[DecimalString]
+    logic: NotRequired[DealV2LegJoin]
+
+
 class AfbwsDealChannelV1DealRealizedPnl(TypedDict):
     value: str | None
     degraded: Literal["missing_price", "missing_step_price"] | None
+
+
+class AfbwsDealChannelV1DealRoleEdit(TypedDict):
+    edited: NotRequired[list[AfbwsDealChannelV1DealLegEdit]]
+    removed_indices: NotRequired[list[int]]
+    reset_indices: NotRequired[list[int]]
+    new_legs: NotRequired[list[AfbwsDealChannelV1DealNewLeg]]
 
 
 class AfbwsGpChannelV1SyncPush(TypedDict):
@@ -945,7 +973,7 @@ class DealAmendRequest(TypedDict):
     schema: Literal["afbws.deal.amend.request.v1"]
     request_id: AfbwsCommonV1RequestId
     deal_id: DealId
-    deal_edit: NotRequired[dict[str, Any]]
+    deal_edit: NotRequired[AfbwsDealChannelV1DealEdit]
     base_revision: NotRequired[int]
 
 
@@ -1134,6 +1162,7 @@ class DealPublicExitListItem(TypedDict):
     percent: NotRequired[DecimalString]
     logic: NotRequired[DealV2LegJoin]
     condition: DealV2ConditionNode
+    source: NotRequired[DealV2LegSource]
 
 
 DealPublicExitList: TypeAlias = list[DealPublicExitListItem]
@@ -1589,12 +1618,16 @@ class DealV2ExitListItem(TypedDict):
     percent: NotRequired[DecimalString]
     logic: NotRequired[DealV2LegJoin]
     condition: DealV2ConditionNode
+    source: NotRequired[DealV2LegSource]
 
 
 DealV2ExitList: TypeAlias = list[DealV2ExitListItem]
 
 
 DealV2LegJoin: TypeAlias = Literal["split", "and", "or"]
+
+
+DealV2LegSource: TypeAlias = Literal["tradeplan", "deal"]
 
 
 class Deals(TypedDict):
@@ -1644,6 +1677,7 @@ class Entry(TypedDict):
 
 
 class Entry1(TypedDict):
+    leg_id: NotRequired[TradeplanV2LegId]
     percent: NotRequired[DecimalString]
     logic: NotRequired[DealV2LegJoin]
     condition: TradeplanV2TpConditionNode
@@ -1653,6 +1687,7 @@ class EntryItem(TypedDict):
     percent: NotRequired[DecimalString]
     logic: NotRequired[DealV2LegJoin]
     condition: DealV2ConditionNode
+    source: NotRequired[DealV2LegSource]
 
 
 class Envelope(TypedDict):
@@ -2780,6 +2815,9 @@ TradeplanV1EntryCondition: TypeAlias = (
 )
 
 
+TradeplanV2LegId: TypeAlias = str
+
+
 class TradeplanV2PrimitiveRef(TypedDict):
     primitive_id: str
 
@@ -2814,6 +2852,7 @@ class TradeplanV2TpConditionNode(TypedDict):
 
 
 class TradeplanV2TpExitListItem(TypedDict):
+    leg_id: NotRequired[TradeplanV2LegId]
     percent: NotRequired[DecimalString]
     logic: NotRequired[DealV2LegJoin]
     condition: TradeplanV2TpConditionNode

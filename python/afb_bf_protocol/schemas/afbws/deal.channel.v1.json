@@ -103,6 +103,56 @@
         "editable_fields": { "type": "array", "items": { "$ref": "#/$defs/amendField" } }
       }
     },
+    "dealLegEdit": {
+      "type": "object",
+      "title": "Edit of one EXISTING leg, by its current index in the deal's role array — never by leg_id (BF/deal-side has no leg_id, only AFB's tradeplan does).",
+      "required": ["index"],
+      "additionalProperties": false,
+      "properties": {
+        "index": { "type": "integer", "minimum": 0 },
+        "condition": { "$ref": "../deal.v2.json#/$defs/conditionNode" },
+        "percent": { "$ref": "../common.v1.json#/$defs/decimalString" },
+        "logic": { "$ref": "../deal.v2.json#/$defs/legJoin" }
+      }
+    },
+    "dealNewLeg": {
+      "type": "object",
+      "title": "A brand-new deal-only leg (no linked tradeplan leg) — always source=deal, appended at the end of the role's array.",
+      "required": ["condition"],
+      "additionalProperties": false,
+      "properties": {
+        "condition": { "$ref": "../deal.v2.json#/$defs/conditionNode" },
+        "percent": { "$ref": "../common.v1.json#/$defs/decimalString" },
+        "logic": { "$ref": "../deal.v2.json#/$defs/legJoin" }
+      }
+    },
+    "dealRoleEdit": {
+      "type": "object",
+      "title": "Per-role (entry/stop_loss/take_profit) leg-level edit fragment. Indices refer to the CURRENT deal's leg array for that role at base_revision — never a tradeplan's, never leg_id. edited/removed_indices/reset_indices apply to existing legs; new_legs are appended after them. See AFB backend/tradeplans/overrides.py::apply_deal_edit for the exact merge order.",
+      "additionalProperties": false,
+      "properties": {
+        "edited": { "type": "array", "items": { "$ref": "#/$defs/dealLegEdit" } },
+        "removed_indices": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+        "reset_indices": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Drop this leg's deal-level override (source reverts to tradeplan) — the leg immediately re-adopts whatever the linked plan currently holds for the matching leg_id."
+        },
+        "new_legs": { "type": "array", "items": { "$ref": "#/$defs/dealNewLeg" } }
+      }
+    },
+    "dealEdit": {
+      "type": "object",
+      "title": "Amend fragment (afbws.deal.amend.request.v1#/deal_edit) — per-role leg edits plus whole-value overrides for sizing/execution_policy (replace wholesale, no partial-field merge).",
+      "additionalProperties": false,
+      "properties": {
+        "entry": { "$ref": "#/$defs/dealRoleEdit" },
+        "stop_loss": { "$ref": "#/$defs/dealRoleEdit" },
+        "take_profit": { "$ref": "#/$defs/dealRoleEdit" },
+        "sizing": { "$ref": "../common.v1.json#/$defs/sizing" },
+        "execution_policy": { "$ref": "../common.v1.json#/$defs/executionPolicy" }
+      }
+    },
     "dealResult": {
       "type": "object",
       "required": ["deal_id", "bf_id", "status", "accepted"],
@@ -269,7 +319,7 @@
 
     "amendRequest": {
       "type": "object",
-      "title": "Phase-B amend (plans/gentle-spinning-wigderson.md) — already the target shape in this migration, not a follow-up.",
+      "title": "Per-leg amend (tradeplan/deal separation Фаза B2) — deal_edit carries only the legs/fields actually overridden on the deal side; anything omitted keeps following its linked tradeplan.",
       "required": ["channel", "schema", "request_id", "deal_id"],
       "additionalProperties": false,
       "properties": {
@@ -277,10 +327,7 @@
         "schema": { "const": "afbws.deal.amend.request.v1" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
         "deal_id": { "$ref": "#/$defs/dealId" },
-        "deal_edit": {
-          "type": "object",
-          "description": "Plan-shaped editable projection (entry/sizing/stop_loss/take_profit/execution_policy fragments) — see the phase-B override rules. Left open here: the phase-B editable-plan shape is defined by the tradeplan schemas, not re-declared on this channel."
-        },
+        "deal_edit": { "$ref": "#/$defs/dealEdit" },
         "base_revision": { "type": "integer", "minimum": 1 }
       }
     },

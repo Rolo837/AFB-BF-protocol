@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 0e4073e7aa5752ca5c9c36175de1b87891390d3987954ba70b2cd4d5cd1614d5
+ * source-hash: d6dd1ea3484eaa740ac90221e92be20d98757042e0474026cd21e007355f66c9
  */
 
 /**
@@ -294,6 +294,13 @@ export type ConditionNode1 =
  */
 export type ConditionV1_Duration = number;
 /**
+ * AFB-side provenance of this leg's condition — which side last set it: `tradeplan` (still following the linked plan, default when absent) or `deal` (overridden directly on the deal, decoupled from further plan edits to this leg). BF does not interpret this field — round-trip only (persist as received, echo back unchanged); it exists purely for AFB's per-leg amend/override UI (tradeplan/deal separation Фаза B2).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2_LegSource".
+ */
+export type DealV2_LegSource = 'tradeplan' | 'deal';
+/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealPublicExitList".
  */
@@ -301,6 +308,7 @@ export type DealPublicExitList = {
   percent?: DecimalString;
   logic?: DealV2_LegJoin;
   condition: DealV2_ConditionNode;
+  source?: DealV2_LegSource;
 }[];
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -567,10 +575,18 @@ export type TradeplanV1_EntryCondition = TradeplanV1_MarketOrPriceCondition | Tr
  */
 export type TradeplanV1_Condition = TradeplanV1_PriceCondition | TradeplanV1_PrimitiveCondition;
 /**
+ * Stable identity of this leg across edits — the key overrides/carry-over (tradeplan/deal separation Фаза B2) use to match a plan leg to its compiled deal leg, never array position. Assigned once when a leg is created and never reused/reassigned; a plan predating this field falls back to a deterministic `legacy:{role}:{index}` synthetic id at compile time (see AFB backend/tradeplans/models.py) until migrated.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanV2_LegId".
+ */
+export type TradeplanV2_LegId = string;
+/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2_TpExitList".
  */
 export type TradeplanV2_TpExitList = {
+  leg_id?: TradeplanV2_LegId;
   percent?: DecimalString;
   logic?: DealV2_LegJoin;
   condition: TradeplanV2_TpConditionNode;
@@ -583,6 +599,7 @@ export type DealV2_ExitList = {
   percent?: DecimalString;
   logic?: DealV2_LegJoin;
   condition: DealV2_ConditionNode;
+  source?: DealV2_LegSource;
 }[];
 /**
  * Response to broker.get_catalog. Describes the shape BF's InstrumentRegistry/CatalogStore actually emits today (belphegor/brokers/catalog_store.py CatalogMeta.to_dict() for the meta form, get_catalog_slice() for the slice form) — deliberately permissive (additionalProperties: true throughout, required kept to the minimum AFB reads) since BrokerPort.get_catalog_meta()/get_catalog_slice() impose nothing on a broker plugin's exact dict shape. This is a PATCH-level description of existing wire behavior, not a new constraint on it.
@@ -1291,11 +1308,13 @@ export interface DealPublicDealV2 {
       percent?: DecimalString;
       logic?: DealV2_LegJoin;
       condition: DealV2_ConditionNode;
+      source?: DealV2_LegSource;
     },
     ...{
       percent?: DecimalString;
       logic?: DealV2_LegJoin;
       condition: DealV2_ConditionNode;
+      source?: DealV2_LegSource;
     }[]
   ];
   stop_loss?: DealPublicExitList;
@@ -1457,11 +1476,51 @@ export interface DealAmendRequest {
   schema: 'afbws.deal.amend.request.v1';
   request_id: AfbwsCommonV1_RequestId;
   deal_id: DealId;
-  /**
-   * Plan-shaped editable projection (entry/sizing/stop_loss/take_profit/execution_policy fragments) — see the phase-B override rules. Left open here: the phase-B editable-plan shape is defined by the tradeplan schemas, not re-declared on this channel.
-   */
-  deal_edit?: {};
+  deal_edit?: AfbwsDealChannelV1_DealEdit;
   base_revision?: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsDealChannelV1_DealEdit".
+ */
+export interface AfbwsDealChannelV1_DealEdit {
+  entry?: AfbwsDealChannelV1_DealRoleEdit;
+  stop_loss?: AfbwsDealChannelV1_DealRoleEdit;
+  take_profit?: AfbwsDealChannelV1_DealRoleEdit;
+  sizing?: DealSizing;
+  execution_policy?: DealExecutionPolicy;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsDealChannelV1_DealRoleEdit".
+ */
+export interface AfbwsDealChannelV1_DealRoleEdit {
+  edited?: AfbwsDealChannelV1_DealLegEdit[];
+  removed_indices?: number[];
+  /**
+   * Drop this leg's deal-level override (source reverts to tradeplan) — the leg immediately re-adopts whatever the linked plan currently holds for the matching leg_id.
+   */
+  reset_indices?: number[];
+  new_legs?: AfbwsDealChannelV1_DealNewLeg[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsDealChannelV1_DealLegEdit".
+ */
+export interface AfbwsDealChannelV1_DealLegEdit {
+  index: number;
+  condition?: DealV2_ConditionNode;
+  percent?: DecimalString;
+  logic?: DealV2_LegJoin;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsDealChannelV1_DealNewLeg".
+ */
+export interface AfbwsDealChannelV1_DealNewLeg {
+  condition: DealV2_ConditionNode;
+  percent?: DecimalString;
+  logic?: DealV2_LegJoin;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2349,11 +2408,13 @@ export interface TradePlanV2 {
    */
   entries: [
     {
+      leg_id?: TradeplanV2_LegId;
       percent?: DecimalString;
       logic?: DealV2_LegJoin;
       condition: TradeplanV2_TpConditionNode;
     },
     ...{
+      leg_id?: TradeplanV2_LegId;
       percent?: DecimalString;
       logic?: DealV2_LegJoin;
       condition: TradeplanV2_TpConditionNode;
@@ -2598,11 +2659,13 @@ export interface DealV2 {
       percent?: DecimalString;
       logic?: DealV2_LegJoin;
       condition: DealV2_ConditionNode;
+      source?: DealV2_LegSource;
     },
     ...{
       percent?: DecimalString;
       logic?: DealV2_LegJoin;
       condition: DealV2_ConditionNode;
+      source?: DealV2_LegSource;
     }[]
   ];
   stop_loss?: DealV2_ExitList;

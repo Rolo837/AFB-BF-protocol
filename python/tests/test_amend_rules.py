@@ -339,6 +339,28 @@ def test_editable_fields_for_terminal_allows_nothing():
     assert editable_fields_for(_ctx("closed", "idle")) == ()
 
 
+# --- entry leg `source` (tradeplan/deal separation Фаза B2) ------------------
+# A bare "Восстановить" (drop the deal-level override, condition unchanged)
+# must still register as an `entry` edit, so it reaches the phase gate.
+
+def test_v2_entry_source_only_change_is_detected_as_entry_edit():
+    d = _deal_v2()
+    d["entry"][0]["source"] = "deal"
+    new = copy.deepcopy(d)
+    new["entry"][0]["source"] = "tradeplan"
+    dec = evaluate_amend(d, new, _ctx("active", "awaiting_entry"))
+    assert dec.allowed is True
+    assert {v.field for v in dec.changed()} == {"entry"}
+
+
+def test_v2_entry_source_only_change_denied_while_holding():
+    d = _deal_v2()
+    d["entry"][0]["source"] = "deal"
+    new = copy.deepcopy(d)
+    new["entry"][0]["source"] = "tradeplan"
+    assert is_amend_allowed(d, new, _ctx("active", "holding")) is False
+
+
 def test_editable_fields_for_holding_only_protective_and_policy():
     fields = set(editable_fields_for(_ctx("active", "holding")))
     assert fields == {"stop_loss", "take_profit", "execution_policy"}
