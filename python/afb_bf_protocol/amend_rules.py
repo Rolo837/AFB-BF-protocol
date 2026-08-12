@@ -43,6 +43,7 @@ Invariants encoded here:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
 from typing import Any, Sequence
 
 from .deal_state import DealStatus, ExecutionPhase
@@ -154,54 +155,126 @@ def _sides(deal: dict[str, Any]) -> tuple[str, ...]:
     return (str(deal.get("direction") or ""),)
 
 
-def _canonical_entry_condition(condition: Any) -> Any:
-    """Immediate legs' ``right``/``op`` are structural placeholders with no
-    meaning (``condition.v1.json``'s ``immediateExpr`` convention —
-    ``condition_semantics.py`` never reads them either: dispatch is on
-    ``left.source == "immediate"`` alone). Comparing them verbatim causes a
-    false "entry changed" whenever their formatting drifts between compiler
-    versions/paths (observed: ``right.const`` ``"0"`` vs ``"0.0"``/``"0.00"``,
-    depending on whether the compiler took a price-rounding or a plain
-    decimal-normalization branch for the same semantic no-op value).
-    Canonicalize so any two immediate legs compare equal regardless of
-    ``right``/``op``/``id``/``duration``."""
-    if (
-        isinstance(condition, dict)
-        and isinstance(condition.get("left"), dict)
-        and condition["left"].get("source") == "immediate"
-    ):
+# Sources whose ``left.field`` is representation-only (see
+# ``_canonical_condition``): the AFB v2 compiler drops it for both.
+_FIELDLESS_SOURCES: frozenset[str] = frozenset({"price", "indicator"})
+
+
+def _canonical_condition(condition: Any) -> Any:
+    """One condition, reduced to what an executor actually acts on.
+
+    Two representation-only differences would otherwise read as real edits:
+
+    1. **Immediate legs.** Their ``right``/``op`` are structural placeholders
+       with no meaning (``condition.v1.json``'s ``immediateExpr`` convention —
+       ``condition_semantics.py`` never reads them either: dispatch is on
+       ``left.source == "immediate"`` alone). Comparing them verbatim caused a
+       false "entry changed" whenever their formatting drifted between
+       compiler versions/paths (observed: ``right.const`` ``"0"`` vs
+       ``"0.0"``/``"0.00"``). Canonicalized to the bare marker, so any two
+       immediate legs compare equal regardless of ``right``/``op``/``id``/
+       ``duration``.
+    2. **``left.field`` on a price or indicator leg.** ``condition.v1.json``'s
+       ``priceExpr`` only ever allows ``field: "last"``, so present-and-"last"
+       and absent mean exactly the same thing; for ``indicator`` the field is
+       likewise not part of what is evaluated. The afb.deal.v1 compiler
+       emitted it, the afb.deal.v2 compiler drops it for BOTH sources
+       (AFB ``backend/trade/service.py::_compile_v2_condition`` pops
+       ``left.field`` on ``price`` and on ``indicator``) — without this,
+       recompiling any deal stored in the v1 shape reported every such leg as
+       changed.
+
+    ``id`` and ``op`` are deliberately NOT canonicalized away on ordinary
+    legs: both compilers stamp identical ids (``entry_1``/``sl_1``), and
+    ``touch`` vs ``above`` is a genuine limit-vs-market difference."""
+    if not isinstance(condition, dict):
+        return condition
+    left = condition.get("left")
+    if isinstance(left, dict) and left.get("source") == "immediate":
         return {"left": {"source": "immediate"}}
+    if isinstance(left, dict) and left.get("source") in _FIELDLESS_SOURCES and "field" in left:
+        return {**condition, "left": {k: v for k, v in left.items() if k != "field"}}
     return condition
+
+
+def _canonical_percent(percent: Any, *, single: bool) -> Any:
+    """A leg's share of the role, comparable across producers.
+
+    On a role with exactly one leg, "no percent" and "100%" are the same
+    instruction, but the two producers disagree on which one they write: the
+    backend plan compiler emits ``percent`` only in split mode with 2+ legs
+    (AFB ``backend/trade/service.py``), while the frontend's
+    ``draftLegToDealLeg`` (``AFB/frontend/src/utils/dealLegAdapters.ts``)
+    emits it whenever the draft carries one — so ``None`` vs ``"100"`` on a
+    single-leg role is reachable and would otherwise read as a real edit.
+    Normalized to ``None`` here.
+
+    ``percent`` is a decimal *string* on the wire ("100", "100.0"), so the
+    100-check is numeric, never a string compare. Multi-leg roles are left
+    untouched: there every value is meaningful.
+    """
+    if percent is None:
+        return None
+    if not single:
+        return percent
+    try:
+        return None if Decimal(str(percent)) == 100 else percent
+    except (InvalidOperation, ValueError):
+        # Unparseable percent: keep it verbatim so a real difference still shows.
+        return percent
+
+
+def _canonical_legs(legs: Any) -> Any:
+    """A role's legs (entry/stop_loss/take_profit) in one canonical shape,
+    identical for afb.deal.v1 and afb.deal.v2 bodies.
+
+    v1 expressed a role as a single object (``entry``, ``risk.stop_loss``);
+    v2 expresses it as a list of legs carrying ``percent``/``logic``. Callers
+    normalize both into a list before getting here, and this flattens each
+    leg to ``{percent, logic, condition}``:
+
+    - ``percent``/``logic`` stay in the comparison — a pure grouping/bucketing
+      change is a real ``entry`` edit and must hit the same phase gate. The
+      one exception is a **single-leg role**, where ``percent`` is normalized
+      to ``None`` when absent or numerically 100 (see ``_canonical_percent``):
+      the whole role is that one leg either way, so absent and "100" are the
+      same instruction.
+    - ``source`` (deal.v2.json#/$defs/legSource) is deliberately EXCLUDED. It
+      is AFB-side provenance ("does this leg still follow its tradeplan leg"),
+      never executed by BF. Including it meant that the first recompile of any
+      deal stored before per-leg source existed stamped ``source:
+      "tradeplan"`` and thereby reported ``entry`` as changed — permanently
+      blocking stop-loss edits on a holding deal, with no way out (the gate
+      rejected the very write that would have persisted the new shape).
+    - the leg count is preserved, so a genuine 1→N split still reads as a
+      change.
+
+    The allow-list is the same for every role: ``_stops``/``_takes`` funnel
+    through here too, so a stop/take leg is compared on exactly
+    ``percent``/``logic``/``condition`` and anything else in the raw block
+    (``source``, ``leg_id``, future annotations) is dropped just like on
+    entry."""
+    legs = list(legs)
+    single = len(legs) == 1
+    return [
+        {
+            "percent": _canonical_percent((leg or {}).get("percent"), single=single),
+            "logic": (leg or {}).get("logic"),
+            "condition": _canonical_condition((leg or {}).get("condition")),
+        }
+        for leg in legs
+    ]
 
 
 def _entry_triggers(deal: dict[str, Any]) -> Any:
     """Entry condition(s), excluding ``side`` (governed separately) and the
     deprecated per-leg ``order`` block (BF-only concern, not part of the
-    deal). Includes each leg's ``percent`` and ``logic`` (the infix join to
-    the preceding leg — ``split``/``and``/``or``, absent/``None`` meaning
-    ``split``, see deal.v2.json#/$defs/legJoin) so a plain grouping/bucketing
-    change is treated as an ``entry`` edit, same phase gate as changing the
-    conditions themselves. Each leg's ``condition`` is canonicalized (see
-    ``_canonical_entry_condition``) so an immediate/market leg compares equal
-    regardless of its meaningless ``right``/``op`` placeholder formatting.
-    Also includes ``source`` (tradeplan/deal provenance, deal.v2.json#/$defs/
-    legSource, tradeplan/deal separation Фаза B2) — a bare "Восстановить"
-    (drop the deal-level override, no value change) still flips this field,
-    and without it here that no-value-change edit would compare equal to the
-    old deal and never reach the phase gate at all."""
+    deal). See ``_canonical_legs`` for the shared v1/v2 shape."""
     entry = deal.get("entry")
     if _is_v2(deal) and isinstance(entry, list):
-        return [
-            {
-                "percent": (e or {}).get("percent"),
-                "logic": (e or {}).get("logic"),
-                "source": (e or {}).get("source"),
-                "condition": _canonical_entry_condition((e or {}).get("condition")),
-            }
-            for e in entry
-        ]
+        return _canonical_legs(entry)
     if isinstance(entry, dict):
-        return [{"condition": _canonical_entry_condition(entry.get("condition"))}]
+        return _canonical_legs([entry])
     return []
 
 
@@ -211,18 +284,18 @@ def _sizing(deal: dict[str, Any]) -> Any:
 
 def _stops(deal: dict[str, Any]) -> Any:
     if _is_v2(deal):
-        return deal.get("stop_loss") or []
+        return _canonical_legs(deal.get("stop_loss") or [])
     risk = deal.get("risk") if isinstance(deal.get("risk"), dict) else {}
     sl = risk.get("stop_loss")
-    return [sl] if sl else []
+    return _canonical_legs([sl]) if sl else []
 
 
 def _takes(deal: dict[str, Any]) -> Any:
     if _is_v2(deal):
-        return deal.get("take_profit") or []
+        return _canonical_legs(deal.get("take_profit") or [])
     risk = deal.get("risk") if isinstance(deal.get("risk"), dict) else {}
     tp = risk.get("take_profit")
-    return [tp] if tp else []
+    return _canonical_legs([tp]) if tp else []
 
 
 def _policy(deal: dict[str, Any]) -> Any:

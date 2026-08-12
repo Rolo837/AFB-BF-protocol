@@ -339,26 +339,130 @@ def test_editable_fields_for_terminal_allows_nothing():
     assert editable_fields_for(_ctx("closed", "idle")) == ()
 
 
-# --- entry leg `source` (tradeplan/deal separation Фаза B2) ------------------
-# A bare "Восстановить" (drop the deal-level override, condition unchanged)
-# must still register as an `entry` edit, so it reaches the phase gate.
+# --- representation-only churn must NOT read as an edit ----------------------
+# Регрессии на живые сделки: гейт отклонял amend при полностью идентичных
+# ценах — только из-за того, что сохранённое тело и свежая компиляция
+# описывают одно и то же в разной ФОРМЕ. Так как `entry` заморожен в
+# `holding`, это выглядело как тотальный запрет двигать линию стоп-лосса.
 
-def test_v2_entry_source_only_change_is_detected_as_entry_edit():
-    d = _deal_v2()
-    d["entry"][0]["source"] = "deal"
-    new = copy.deepcopy(d)
-    new["entry"][0]["source"] = "tradeplan"
-    dec = evaluate_amend(d, new, _ctx("active", "awaiting_entry"))
+def test_v1_body_vs_v2_recompile_same_prices_is_not_a_change():
+    """Сделка `deal-bd33-4411-b9e5`: тело осталось afb.deal.v1 (план на диске
+    был v1), рекомпиляция даёт afb.deal.v2. Роль как один объект против роли
+    как списка ног, плюс `left.field` который v1-компилятор писал, а
+    v2-компилятор выбрасывает. Цены при этом те же."""
+    old_v1 = {
+        "schema": "afb.deal.v1", "deal_id": "deal-x", "revision": 2,
+        "target": _deal_v1()["target"], "direction": "long",
+        "entry": {"condition": {
+            "node_type": "event", "id": "entry_1", "op": "above",
+            "left": {"source": "price", "field": "last"}, "right": {"const": "2308.5"}}},
+        "sizing": {"mode": "risk_factor", "value": "0.5"},
+        "risk": {"stop_loss": {"condition": {
+            "node_type": "event", "id": "sl_1", "op": "below",
+            "left": {"source": "price", "field": "last"}, "right": {"const": "2235.5"}}}},
+        "execution_policy": {"margin_trading": False},
+    }
+    new_v2 = {
+        "schema": "afb.deal.v2", "deal_id": "deal-x", "revision": 3,
+        "target": _deal_v1()["target"], "direction": "long",
+        "entry": [{"condition": {
+            "node_type": "event", "id": "entry_1", "op": "above",
+            "left": {"source": "price"}, "right": {"const": "2308.5"}}, "source": "tradeplan"}],
+        "stop_loss": [{"condition": {
+            "node_type": "event", "id": "sl_1", "op": "below",
+            "left": {"source": "price"}, "right": {"const": "2235.5"}}, "source": "tradeplan"}],
+        "take_profit": [],
+        "sizing": {"mode": "risk_factor", "value": "0.5"},
+        "execution_policy": {"margin_trading": False},
+    }
+    dec = evaluate_amend(old_v1, new_v2, _ctx("active", "holding"))
+    assert dec.changed() == []
     assert dec.allowed is True
-    assert {v.field for v in dec.changed()} == {"entry"}
 
 
-def test_v2_entry_source_only_change_denied_while_holding():
+def test_per_leg_source_stamp_alone_is_not_a_change():
+    """Сделка `deal-39b6-48ed-bcf6` (active/holding): её ноги сохранены до
+    появления per-leg `source`, и первая же рекомпиляция ставит
+    `source: "tradeplan"`. Раньше это давало вечный дедлок — гейт отклонял
+    ровно ту запись, которая привела бы форму в порядок."""
     d = _deal_v2()
-    d["entry"][0]["source"] = "deal"
     new = copy.deepcopy(d)
     new["entry"][0]["source"] = "tradeplan"
-    assert is_amend_allowed(d, new, _ctx("active", "holding")) is False
+    new["stop_loss"][0]["source"] = "tradeplan"
+    dec = evaluate_amend(d, new, _ctx("active", "holding"))
+    assert dec.changed() == []
+    assert dec.allowed is True
+
+
+def test_single_leg_percent_100_equals_absent():
+    """Плановый компилятор пишет `percent` только при split и 2+ ногах, а
+    фронтовый draftLegToDealLeg — всегда. На однoногой роли «нет percent» и
+    «100 %» это одна и та же инструкция."""
+    d = _deal_v2()
+    d["entry"][0].pop("percent", None)
+    new = copy.deepcopy(d)
+    new["entry"][0]["percent"] = "100"
+    assert evaluate_amend(d, new, _ctx("active", "holding")).changed() == []
+
+
+def test_single_leg_percent_other_than_100_is_a_change():
+    d = _deal_v2()
+    d["entry"][0].pop("percent", None)
+    new = copy.deepcopy(d)
+    new["entry"][0]["percent"] = "50"
+    assert {v.field for v in evaluate_amend(d, new, _ctx("active", "holding")).changed()} == {"entry"}
+
+
+def test_indicator_left_field_is_canonicalized_away():
+    """`left.field` выбрасывается v2-компилятором и у price, и у indicator."""
+    d = _deal_v2()
+    d["entry"][0]["condition"] = {
+        "node_type": "event", "id": "entry_1", "op": "above",
+        "left": {"source": "indicator", "type": "wma", "field": "last"}, "right": {"const": "5"},
+    }
+    new = copy.deepcopy(d)
+    del new["entry"][0]["condition"]["left"]["field"]
+    assert evaluate_amend(d, new, _ctx("active", "holding")).changed() == []
+
+
+# --- ...но настоящие изменения по-прежнему видны и по-прежнему гейтятся -------
+
+def test_real_stop_edit_still_allowed_while_holding():
+    d = _deal_v2()
+    new = copy.deepcopy(d)
+    new["stop_loss"][0]["condition"]["right"]["const"] = "96"
+    dec = evaluate_amend(d, new, _ctx("active", "holding"))
+    assert {v.field for v in dec.changed()} == {"stop_loss"}
+    assert dec.allowed is True
+
+
+def test_real_entry_edit_still_rejected_while_holding():
+    d = _deal_v2()
+    new = copy.deepcopy(d)
+    new["entry"][0]["condition"]["right"]["const"] = "101"
+    dec = evaluate_amend(d, new, _ctx("active", "holding"))
+    assert dec.allowed is False
+    assert [(v.field, v.reason) for v in dec.rejected()] == [("entry", "entry_locked_after_fill")]
+
+
+def test_leg_count_change_survives_normalization():
+    """Нормализация формы не должна скрыть настоящее 1→N разбиение роли."""
+    d = _deal_v2()
+    new = copy.deepcopy(d)
+    new["stop_loss"].append({"condition": {
+        "node_type": "event", "id": "sl_2", "op": "below",
+        "left": {"source": "price"}, "right": {"const": "90"}}})
+    assert {v.field for v in evaluate_amend(d, new, _ctx("active", "holding")).changed()} == {"stop_loss"}
+
+
+def test_price_op_change_is_still_semantic():
+    """touch (лимитная заявка) против above (рыночная) — настоящее различие,
+    канонизировать `op` нельзя."""
+    d = _deal_v2()
+    d["entry"][0]["condition"]["op"] = "above"
+    new = copy.deepcopy(d)
+    new["entry"][0]["condition"]["op"] = "touch"
+    assert {v.field for v in evaluate_amend(d, new, _ctx("active", "awaiting_entry")).changed()} == {"entry"}
 
 
 def test_editable_fields_for_holding_only_protective_and_policy():
