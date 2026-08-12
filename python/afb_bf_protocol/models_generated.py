@@ -177,37 +177,9 @@ AfbwsCommonV1RequestId: TypeAlias = str
 AfbwsCommonV1Root: TypeAlias = Any
 
 
-class AfbwsDealChannelV1DealEdit(TypedDict):
-    entry: NotRequired[AfbwsDealChannelV1DealRoleEdit]
-    stop_loss: NotRequired[AfbwsDealChannelV1DealRoleEdit]
-    take_profit: NotRequired[AfbwsDealChannelV1DealRoleEdit]
-    sizing: NotRequired[DealSizing]
-    execution_policy: NotRequired[DealExecutionPolicy]
-
-
-class AfbwsDealChannelV1DealLegEdit(TypedDict):
-    index: int
-    condition: NotRequired[DealV2ConditionNode]
-    percent: NotRequired[DecimalString]
-    logic: NotRequired[DealV2LegJoin]
-
-
-class AfbwsDealChannelV1DealNewLeg(TypedDict):
-    condition: DealV2ConditionNode
-    percent: NotRequired[DecimalString]
-    logic: NotRequired[DealV2LegJoin]
-
-
 class AfbwsDealChannelV1DealRealizedPnl(TypedDict):
     value: str | None
     degraded: Literal["missing_price", "missing_step_price"] | None
-
-
-class AfbwsDealChannelV1DealRoleEdit(TypedDict):
-    edited: NotRequired[list[AfbwsDealChannelV1DealLegEdit]]
-    removed_indices: NotRequired[list[int]]
-    reset_indices: NotRequired[list[int]]
-    new_legs: NotRequired[list[AfbwsDealChannelV1DealNewLeg]]
 
 
 class AfbwsGpChannelV1SyncPush(TypedDict):
@@ -973,7 +945,7 @@ class DealAmendRequest(TypedDict):
     schema: Literal["afbws.deal.amend.request.v1"]
     request_id: AfbwsCommonV1RequestId
     deal_id: DealId
-    deal_edit: NotRequired[AfbwsDealChannelV1DealEdit]
+    deal_edit: NotRequired[DealEdit]
     base_revision: NotRequired[int]
 
 
@@ -1013,6 +985,14 @@ class DealDetail(TypedDict):
     updated_at: str
     deal: DealPublicV1
     editable_fields: list[DealAmendField]
+
+
+class DealEdit(TypedDict):
+    entry: NotRequired[DealRoleEdit]
+    stop_loss: NotRequired[DealRoleEdit]
+    take_profit: NotRequired[DealRoleEdit]
+    sizing: NotRequired[DealSizing]
+    execution_policy: NotRequired[DealExecutionPolicy]
 
 
 class DealErrorResponse(TypedDict):
@@ -1074,6 +1054,13 @@ class DealInstrument(TypedDict):
     step_price: NotRequired[DecimalString]
 
 
+class DealLegEdit(TypedDict):
+    index: int
+    condition: NotRequired[DealV2ConditionNode]
+    percent: NotRequired[DecimalString]
+    logic: NotRequired[DealV2LegJoin]
+
+
 class DealListRequest(TypedDict):
     channel: Literal["deal"]
     schema: Literal["afbws.deal.list.request.v1"]
@@ -1085,6 +1072,12 @@ class DealListResponse(TypedDict):
     schema: Literal["afbws.deal.list.response.v1"]
     request_id: AfbwsCommonV1RequestId
     items: list[DealSummary]
+
+
+class DealNewLeg(TypedDict):
+    condition: DealV2ConditionNode
+    percent: NotRequired[DecimalString]
+    logic: NotRequired[DealV2LegJoin]
 
 
 class DealOperationItem(TypedDict):
@@ -1253,6 +1246,13 @@ class DealResult(TypedDict):
     item: NotRequired[DealSummary | DealDetail]
     code: NotRequired[str]
     message: NotRequired[str]
+
+
+class DealRoleEdit(TypedDict):
+    edited: NotRequired[list[DealLegEdit]]
+    removed_indices: NotRequired[list[int]]
+    reset_indices: NotRequired[list[int]]
+    new_legs: NotRequired[list[DealNewLeg]]
 
 
 class DealSizing(TypedDict):

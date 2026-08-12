@@ -1476,38 +1476,38 @@ export interface DealAmendRequest {
   schema: 'afbws.deal.amend.request.v1';
   request_id: AfbwsCommonV1_RequestId;
   deal_id: DealId;
-  deal_edit?: AfbwsDealChannelV1_DealEdit;
+  deal_edit?: DealEdit;
   base_revision?: number;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsDealChannelV1_DealEdit".
+ * via the `definition` "DealEdit".
  */
-export interface AfbwsDealChannelV1_DealEdit {
-  entry?: AfbwsDealChannelV1_DealRoleEdit;
-  stop_loss?: AfbwsDealChannelV1_DealRoleEdit;
-  take_profit?: AfbwsDealChannelV1_DealRoleEdit;
+export interface DealEdit {
+  entry?: DealRoleEdit;
+  stop_loss?: DealRoleEdit;
+  take_profit?: DealRoleEdit;
   sizing?: DealSizing;
   execution_policy?: DealExecutionPolicy;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsDealChannelV1_DealRoleEdit".
+ * via the `definition` "DealRoleEdit".
  */
-export interface AfbwsDealChannelV1_DealRoleEdit {
-  edited?: AfbwsDealChannelV1_DealLegEdit[];
+export interface DealRoleEdit {
+  edited?: DealLegEdit[];
   removed_indices?: number[];
   /**
    * Drop this leg's deal-level override (source reverts to tradeplan) — the leg immediately re-adopts whatever the linked plan currently holds for the matching leg_id.
    */
   reset_indices?: number[];
-  new_legs?: AfbwsDealChannelV1_DealNewLeg[];
+  new_legs?: DealNewLeg[];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsDealChannelV1_DealLegEdit".
+ * via the `definition` "DealLegEdit".
  */
-export interface AfbwsDealChannelV1_DealLegEdit {
+export interface DealLegEdit {
   index: number;
   condition?: DealV2_ConditionNode;
   percent?: DecimalString;
@@ -1515,9 +1515,9 @@ export interface AfbwsDealChannelV1_DealLegEdit {
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsDealChannelV1_DealNewLeg".
+ * via the `definition` "DealNewLeg".
  */
-export interface AfbwsDealChannelV1_DealNewLeg {
+export interface DealNewLeg {
   condition: DealV2_ConditionNode;
   percent?: DecimalString;
   logic?: DealV2_LegJoin;
