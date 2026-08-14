@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 86959c44a30e172e51bea63cc5f1351807215d2dcd3af1e0328fe24f49559167
+ * source-hash: d0d58ca280de97dd9904d0196dfedf27f6aafa4e5bfe188c3d249ac299589e97
  */
 
 /**
@@ -380,7 +380,7 @@ export type GpV1 = {
   tradeplan_id?: string;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. `list`/`get`/`resolve`/`detail` are open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `pool`/`apply` are manager-only: `pool` browses candidate instruments (from the daily MOEX/ISS refresh or a connector's own broker.get_catalog) that are not yet part of the curated set; `apply` is the sole write — a bulk, all-or-nothing replace of the whole curated set (items + groups + assets), never a per-item mutation. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. `list`/`get`/`resolve`/`detail` are open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `pool`/`apply` are manager-only: `pool` browses candidate instruments (from the daily MOEX/ISS refresh or a connector's own broker.get_catalog) that are not yet part of the curated set; `apply` is the sole write — a bulk, all-or-nothing replace of the whole curated set (items + groups + assets), never a per-item mutation. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 adds `catalog`/`commit`/`user`, which express the catalog as arbitrary, freely overlapping SETS (see catalogSetEntry/setMembership) instead of the single-parent group tree, plus an independent futures-series axis (catalogSeries) in place of `asset`: `catalog` is the full snapshot in that form for any authenticated caller, `commit` is the manager-only, CAS-guarded delta write against a `base_revision` (a stale revision comes back as `conflict` with the current one in errorResponse.details), and `user` is the personal-sets/overlay operation of phase 3 — declared here so clients can be written against the final shape, while the phase 2 backend answers it with `unsupported_action`. `list` and `apply` are deprecated by that trio: the backend keeps serving `list` for frontends that predate `catalog`, but stops serving `apply` (`unsupported_action`) — `commit` is the only write. `get`/`pool`/`resolve`/`detail` are unchanged.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentChannelV1Message".
@@ -398,6 +398,12 @@ export type InstrumentChannelV1Message =
   | InstrumentResolveResponse
   | InstrumentDetailRequest
   | InstrumentDetailResponse
+  | InstrumentCatalogRequest
+  | InstrumentCatalogResponse
+  | InstrumentCommitRequest
+  | InstrumentCommitResponse
+  | InstrumentUserRequest
+  | InstrumentUserResponse
   | InstrumentErrorResponse;
 /**
  * AFB-side canonical instrument — like afb.gp.v1/afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. One broker-agnostic shape for every market class (stock/futures/currency/index); class-specific fields are gated by `market` via the `allOf`/`if` blocks below (forbidden, not just absent, for classes they don't apply to), but the wire type stays a single schema. `ticker` is the canonical identity: bare SECID for MOEX (e.g. "SBER"), `EXCHANGE:TICKER` for everything else (e.g. "XNAS:AAPL") — `exchange`/`board`/`market` are still carried as explicit fields so nothing but one shared parser (AFB backend/instruments/identity.py, frontend utils/instrumentId.ts) ever splits the string. `group`/`asset` place the instrument in the curated catalog tree (config/instruments.yaml) that AFB users actually see — `group: null` means not yet distributed into a group, the flat-list replacement for the old `lost` bucket. `source` says who refreshes this record's trading params ("moex" for the daily ISS refresh, a broker id like "finam" for instruments obtained from that broker's catalog) — it is NOT a broker binding: which connector can actually trade this instrument, and under what broker-native symbol, is resolved at publish time (see deal.v1.json's target.instrument + BF's own catalog), never persisted here.
@@ -1804,6 +1810,8 @@ export interface GpErrorDetails {
   locked_scopes?: ('entry' | 'stop_loss' | 'take_profit')[];
 }
 /**
+ * DEPRECATED since federated-catalog phase 2 — superseded by `catalog`, which returns the same listings organized as overlapping sets plus a `catalog_revision` to commit against. Still served by the backend for frontends that predate `catalog`; the group/asset shape it answers with is the legacy projection of the set model, not its authoritative form. New clients must use `catalog`.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentListRequest".
  */
@@ -1915,6 +1923,8 @@ export interface InstrumentPoolSliceResponse {
   items: InstrumentV1[];
 }
 /**
+ * DEPRECATED since federated-catalog phase 2 and no longer served — the backend answers it with `unsupported_action`. Its whole-set replace cannot express overlapping sets and has no concurrency guard; `commit` replaces it with a CAS delta on `base_revision`. Kept in the schema only so an older frontend's request still parses into a typed error instead of `invalid_schema`.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentApplyRequest".
  */
@@ -2010,6 +2020,285 @@ export interface InstrumentDetailResponse {
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentCatalogRequest".
+ */
+export interface InstrumentCatalogRequest {
+  channel: 'instrument';
+  schema: 'afbws.instrument.catalog.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+}
+/**
+ * `memberships` is the only authoritative statement of which sets a listing belongs to. The `group` field inside `items[]` is a legacy leftover carried for compatibility with clients still on `list` — it is NOT read in this form and must not be interpreted as membership. A listing that appears in `items` with no membership edge at all is normal (nothing forces a listing into a set) and stays visible to a manager. `series` is the independent futures-series axis, replacing the old `assets` map.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentCatalogResponse".
+ */
+export interface InstrumentCatalogResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.catalog.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Revision of the global catalog this snapshot was taken at — send it back as commitRequest.base_revision.
+   */
+  catalog_revision: number;
+  items: InstrumentV1[];
+  sets: InstrumentCatalogSetEntry[];
+  memberships: InstrumentSetMembership[];
+  series: InstrumentCatalogSeriesMap;
+  user?: InstrumentUserState;
+}
+/**
+ * Sets overlap by design: a listing may belong to any number of them, or to none. `set_id` is the stable identity, generated by the server and never chosen by a client; `key` is the readable slug, unique within scope+owner. The old system/global division is gone — every non-personal set is `global` and is curated by a manager; `user` sets are the personal selections of phase 3 and are the only ones carrying `owner_user_id`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentCatalogSetEntry".
+ */
+export interface InstrumentCatalogSetEntry {
+  /**
+   * Stable server-generated id — the only handle memberships and edits refer to.
+   */
+  set_id: string;
+  /**
+   * Readable slug, unique within scope+owner.
+   */
+  key: string;
+  /**
+   * `global` — manager-curated, visible to everyone; `user` — personal (phase 3). "system" is not part of this form and is never emitted.
+   */
+  scope: 'global' | 'user';
+  name: string;
+  sort_order: number;
+  /**
+   * An archived set stays addressable (history, links) but is hidden from ordinary pickers.
+   */
+  archived: boolean;
+  /**
+   * Owner of a scope="user" set; null/absent for global sets.
+   */
+  owner_user_id?: string | null;
+}
+/**
+ * The authoritative record of membership in the phase 2 form: nothing else (least of all instrument.v1's legacy `group`) decides which sets a listing belongs to.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentSetMembership".
+ */
+export interface InstrumentSetMembership {
+  set_id: string;
+  /**
+   * Canonical wire ticker, exactly as in instrument.v1.json — case-sensitive, never normalized.
+   */
+  ticker: string;
+  /**
+   * Position of this member inside its set.
+   */
+  sort_order: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentCatalogSeriesMap".
+ */
+export interface InstrumentCatalogSeriesMap {
+  [k: string]: InstrumentCatalogSeries;
+}
+/**
+ * An axis of its own, independent of sets: it groups the successive expirations of one futures contract and is unaffected by set membership.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentCatalogSeries".
+ */
+export interface InstrumentCatalogSeries {
+  name: string | null;
+  sort_order?: number;
+  /**
+   * Canonical ticker of the underlying instrument, when the series has one.
+   */
+  underlying_ticker?: string | null;
+}
+/**
+ * Phase 3 payload, declared now so clients can be written against the final shape. The phase 2 backend never emits it and rejects `user` requests with `unsupported_action`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentUserState".
+ */
+export interface InstrumentUserState {
+  /**
+   * Revision of the PERSONAL aggregate — counted separately from catalog_revision.
+   */
+  revision: number;
+  /**
+   * The caller's own sets — every entry has scope: "user".
+   */
+  sets: InstrumentCatalogSetEntry[];
+  /**
+   * Membership edges of the personal sets.
+   */
+  memberships: InstrumentSetMembership[];
+  /**
+   * Sets (global or personal) the caller hid from their own view.
+   */
+  hidden_set_ids: string[];
+  /**
+   * Personal ordering of set_ids; sets not listed here follow the listed ones in their server sort_order.
+   */
+  order: string[];
+}
+/**
+ * Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction: sets, then remove_sets, then members, then listings/archive_listings, then series.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentCommitRequest".
+ */
+export interface InstrumentCommitRequest {
+  channel: 'instrument';
+  schema: 'afbws.instrument.commit.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * The catalog_revision these edits were built on (CAS guard).
+   */
+  base_revision: number;
+  sets?: InstrumentSetUpsert[];
+  /**
+   * set_ids to delete outright (their membership edges go with them); archiving instead is a setUpsert with archived: true.
+   */
+  remove_sets?: string[];
+  members?: InstrumentMembersEdit[];
+  /**
+   * Upsert of the instrument records themselves, by `ticker`. The element's `group` field is IGNORED here — membership is expressed only through `members`; clients send `group: null`. instrument.v1 is reused verbatim for its class gating (futures-only expiration/step_price/margin/futoi_code, `isin` for stock only), which is exactly what a listing write has to enforce.
+   */
+  listings?: InstrumentV1[];
+  archive_listings?: InstrumentListingArchival[];
+  series?: InstrumentSeriesUpsert[];
+  /**
+   * Operator's note for this commit — stored verbatim in catalog_audit.reason.
+   */
+  reason?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentSetUpsert".
+ */
+export interface InstrumentSetUpsert {
+  /**
+   * Existing set to update; omit to create a new one.
+   */
+  set_id?: string;
+  /**
+   * Requested slug; ignored on create if it collides, the server owns uniqueness within scope+owner.
+   */
+  key?: string;
+  name: string;
+  sort_order?: number;
+  archived?: boolean;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentMembersEdit".
+ */
+export interface InstrumentMembersEdit {
+  set_id: string;
+  /**
+   * Canonical tickers to add; adding an already-present ticker is a no-op, not an error.
+   */
+  add?: string[];
+  /**
+   * Canonical tickers to drop from this set — removing the last set of a listing does not delete the listing.
+   */
+  remove?: string[];
+  /**
+   * The FULL member order of this set after add/remove — not a partial reshuffle.
+   */
+  order?: string[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentListingArchival".
+ */
+export interface InstrumentListingArchival {
+  ticker: string;
+  /**
+   * Free-form note stored with the audit entry (e.g. "expired", "delisted").
+   */
+  reason?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentSeriesUpsert".
+ */
+export interface InstrumentSeriesUpsert {
+  series_code: string;
+  name?: string | null;
+  sort_order?: number;
+  underlying_ticker?: string | null;
+}
+/**
+ * `catalog_revision` is already the new one. A rejected commit is an errorResponse instead — there is no partially-applied outcome.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentCommitResponse".
+ */
+export interface InstrumentCommitResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.commit.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  catalog_revision: number;
+  items: InstrumentV1[];
+  sets: InstrumentCatalogSetEntry[];
+  memberships: InstrumentSetMembership[];
+  series: InstrumentCatalogSeriesMap;
+  applied?: {
+    [k: string]: number;
+  };
+  user?: InstrumentUserState;
+}
+/**
+ * `base_revision` here is the revision of the PERSONAL aggregate (userState.revision), not the global catalog_revision — personal edits never conflict with a manager's commit. Sets created through this operation are implicitly scope: "user" and owned by the caller; a `set_id` naming a global set is rejected. An empty request is legal and just reads the current personal state back.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentUserRequest".
+ */
+export interface InstrumentUserRequest {
+  channel: 'instrument';
+  schema: 'afbws.instrument.user.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * userState.revision the edits were built on (CAS guard); a mismatch is `conflict` with details.user_revision.
+   */
+  base_revision: number;
+  /**
+   * Personal sets to create or update — scope is implied, never sent.
+   */
+  sets?: InstrumentSetUpsert[];
+  /**
+   * Personal set_ids to delete.
+   */
+  remove_sets?: string[];
+  members?: InstrumentMembersEdit[];
+  /**
+   * Replaces the whole hidden list, not a delta.
+   */
+  hidden_set_ids?: string[];
+  /**
+   * Replaces the whole personal ordering, not a delta.
+   */
+  order?: string[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentUserResponse".
+ */
+export interface InstrumentUserResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.user.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * The new personal revision — same value as user.revision, hoisted for symmetry with catalog_revision.
+   */
+  user_revision: number;
+  user: InstrumentUserState;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentErrorResponse".
  */
 export interface InstrumentErrorResponse {
@@ -2018,6 +2307,25 @@ export interface InstrumentErrorResponse {
   request_id: AfbwsCommonV1_RequestId;
   code: AfbwsCommonV1_ErrorCode;
   message: string;
+  details?: InstrumentErrorDetails;
+}
+/**
+ * Populated on `conflict` (stale base_revision: `catalog_revision` for commit, `user_revision` for user — re-fetch, re-apply, retry) and on `validation_error` (`set_ids`/`tickers` name the offending rows). Absent for errors that carry no such context.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentErrorDetails".
+ */
+export interface InstrumentErrorDetails {
+  /**
+   * The server's current global catalog revision.
+   */
+  catalog_revision?: number;
+  /**
+   * The caller's current personal-aggregate revision.
+   */
+  user_revision?: number;
+  set_ids?: string[];
+  tickers?: string[];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
