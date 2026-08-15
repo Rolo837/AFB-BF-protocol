@@ -42,21 +42,70 @@ _USER_SET = {
     "archived": False,
     "owner_user_id": "u-42",
 }
-_MEMBERSHIP = {"set_id": "set-blue-chips", "ticker": "SBER", "sort_order": 0}
 _SERIES_MAP = {"Si": {"name": "Доллар США", "sort_order": 1, "underlying_ticker": None}}
+
+# --- phase 2.5 (assets between a listing and a set) fixtures ----------------
+
+_ASSET = {
+    "asset_id": "asset-brent",
+    "key": "brent",
+    "name": "Нефть Brent",
+    "reference_series_code": "BR",
+    "archived": False,
+}
+_SBER_ASSET = {
+    "asset_id": "asset-sber",
+    "key": "sber",
+    "name": "Сбербанк",
+    "reference_series_code": None,
+    "archived": False,
+}
+_ASSET_MEMBER = {"asset_id": "asset-brent", "member_type": "series", "member_ref": "BR", "sort_order": 0}
+_ASSET_MEMBERS = [
+    _ASSET_MEMBER,
+    {"asset_id": "asset-brent", "member_type": "series", "member_ref": "BRM", "sort_order": 1},
+    {"asset_id": "asset-sber", "member_type": "listing", "member_ref": "SBER", "sort_order": 0},
+]
+# A set holds ASSETS since phase 2.5 — never tickers.
+_MEMBERSHIP = {"set_id": "set-blue-chips", "asset_id": "asset-sber", "sort_order": 0}
 _USER_STATE = {
     "revision": 3,
     "sets": [_USER_SET],
-    "memberships": [{"set_id": "set-mine", "ticker": "SBER", "sort_order": 0}],
+    "memberships": [{"set_id": "set-mine", "asset_id": "asset-sber", "sort_order": 0}],
     "hidden_set_ids": ["set-blue-chips"],
     "order": ["set-mine", "set-blue-chips"],
 }
 _SNAPSHOT = {
     "catalog_revision": 17,
     "items": [_ITEM],
+    "assets": [_ASSET, _SBER_ASSET],
+    "asset_members": _ASSET_MEMBERS,
     "sets": [_SET],
     "memberships": [_MEMBERSHIP],
     "series": _SERIES_MAP,
+}
+
+# --- phase 2.5 (catalog sources / on-demand refresh) fixtures ---------------
+
+_SOURCE = {
+    "source_id": "moex",
+    "kind": "moex",
+    "title": "MOEX ISS",
+    "available": True,
+    "last_refresh_at": "2026-08-14T03:15:00Z",
+    "listing_count": 540,
+}
+_REPORT = {
+    "applied": True,
+    "revision_before": 17,
+    "revision_after": 18,
+    "added": ["MISX:RFUD:BRV6"],
+    "updated": ["MISX:TQBR:SBER"],
+    "resurrected": [],
+    "archived": [{"key": "MISX:RFUD:BRU6", "reason": "expired"}],
+    "new_series": ["BRM"],
+    "absent_from_catalog": ["MISX:TQBR:OZON"],
+    "rows_without_series": ["MISX:RFUD:ZZU6"],
 }
 
 
@@ -305,7 +354,7 @@ def test_set_membership_requires_sort_order(registry):
     from jsonschema import ValidationError
 
     with pytest.raises(ValidationError):
-        _validator("setMembership", registry).validate({"set_id": "set-blue-chips", "ticker": "SBER"})
+        _validator("setMembership", registry).validate({"set_id": "set-blue-chips", "asset_id": "asset-sber"})
 
 
 def test_set_membership_rejects_unknown_property(registry):
@@ -313,6 +362,79 @@ def test_set_membership_rejects_unknown_property(registry):
 
     with pytest.raises(ValidationError):
         _validator("setMembership", registry).validate({**_MEMBERSHIP, "group": "Stocks"})
+
+
+def test_set_membership_names_an_asset_not_a_ticker(registry):
+    """Phase 2.5 correction: a set holds assets. The phase 2 shape (`ticker`)
+    is not accepted any more — and `asset_id` is not optional."""
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("setMembership", registry).validate(
+            {"set_id": "set-blue-chips", "ticker": "SBER", "sort_order": 0}
+        )
+
+
+# --- phase 2.5: catalogAsset / assetMember ----------------------------------
+
+def test_catalog_asset_valid(registry):
+    _validator("catalogAsset", registry).validate(_ASSET)  # does not raise
+    _validator("catalogAsset", registry).validate(_SBER_ASSET)  # null reference series
+
+
+def test_catalog_asset_requires_identity_name_and_archived(registry):
+    from jsonschema import ValidationError
+
+    for missing in ("asset_id", "key", "name", "archived"):
+        payload = {k: v for k, v in _ASSET.items() if k != missing}
+        with pytest.raises(ValidationError):
+            _validator("catalogAsset", registry).validate(payload)
+
+
+def test_catalog_asset_reference_series_is_optional(registry):
+    payload = {k: v for k, v in _ASSET.items() if k != "reference_series_code"}
+    _validator("catalogAsset", registry).validate(payload)  # does not raise
+
+
+def test_catalog_asset_has_no_scope_or_owner(registry):
+    """Assets are always global — phase 3 personal sets reuse the same ones."""
+    from jsonschema import ValidationError
+
+    for extra in ({"scope": "user"}, {"owner_user_id": "u-42"}):
+        with pytest.raises(ValidationError):
+            _validator("catalogAsset", registry).validate({**_ASSET, **extra})
+
+
+def test_asset_member_valid_for_both_kinds(registry):
+    for member in _ASSET_MEMBERS:
+        _validator("assetMember", registry).validate(member)  # does not raise
+
+
+def test_asset_member_type_outside_enum_rejected(registry):
+    """Only two kinds of member exist: a listing, or a whole series."""
+    from jsonschema import ValidationError
+
+    for bad in ("contract", "asset", "set", ""):
+        with pytest.raises(ValidationError):
+            _validator("assetMember", registry).validate({**_ASSET_MEMBER, "member_type": bad})
+
+
+def test_asset_member_requires_every_field(registry):
+    from jsonschema import ValidationError
+
+    for missing in ("asset_id", "member_type", "member_ref", "sort_order"):
+        payload = {k: v for k, v in _ASSET_MEMBER.items() if k != missing}
+        with pytest.raises(ValidationError):
+            _validator("assetMember", registry).validate(payload)
+
+
+def test_asset_member_has_no_separate_ticker_and_series_fields(registry):
+    """One polymorphic `member_ref`, not a ticker column plus a series column."""
+    from jsonschema import ValidationError
+
+    for extra in ({"ticker": "SBER"}, {"series_code": "BR"}):
+        with pytest.raises(ValidationError):
+            _validator("assetMember", registry).validate({**_ASSET_MEMBER, **extra})
 
 
 def test_catalog_series_and_map_valid(registry):
@@ -383,12 +505,27 @@ def test_catalog_response_valid(registry):
 
 
 def test_catalog_response_listing_without_membership_is_valid(registry):
-    """A listing in no set at all is normal — it stays visible to a manager."""
+    """A listing in no asset, and an asset in no set, are normal states — both
+    stay in the snapshot and stay visible to a manager."""
     msg = {
         "channel": "instrument", "schema": "afbws.instrument.catalog.response.v1", "request_id": "r1",
-        **_SNAPSHOT, "items": [{**_ITEM, "group": None}], "memberships": [],
+        **_SNAPSHOT, "items": [{**_ITEM, "group": None}], "asset_members": [], "memberships": [],
     }
     _validator("catalogResponse", registry).validate(msg)  # does not raise
+
+
+def test_catalog_response_requires_the_asset_level(registry):
+    """Phase 2.5: a snapshot without assets cannot express membership at all,
+    since `memberships` now points at asset_ids."""
+    from jsonschema import ValidationError
+
+    for missing in ("assets", "asset_members"):
+        msg = {
+            "channel": "instrument", "schema": "afbws.instrument.catalog.response.v1", "request_id": "r1",
+            **{k: v for k, v in _SNAPSHOT.items() if k != missing},
+        }
+        with pytest.raises(ValidationError):
+            _validator("catalogResponse", registry).validate(msg)
 
 
 def test_catalog_response_optional_user_overlay(registry):
@@ -411,13 +548,26 @@ def test_catalog_response_requires_catalog_revision(registry):
         _validator("catalogResponse", registry).validate(msg)
 
 
-def test_catalog_response_rejects_legacy_groups_assets(registry):
-    """The legacy group/asset projection has no place in the new form."""
+def test_catalog_response_rejects_legacy_groups(registry):
+    """The legacy group projection has no place in the new form."""
     from jsonschema import ValidationError
 
     msg = {
         "channel": "instrument", "schema": "afbws.instrument.catalog.response.v1", "request_id": "r1",
-        **_SNAPSHOT, "groups": [{"key": "Stocks", "name": "Акции"}], "assets": {},
+        **_SNAPSHOT, "groups": [{"key": "Stocks", "name": "Акции"}],
+    }
+    with pytest.raises(ValidationError):
+        _validator("catalogResponse", registry).validate(msg)
+
+
+def test_catalog_response_assets_is_not_the_legacy_asset_map(registry):
+    """The name is reused for a different level: `assets` here is the array of
+    curated assets, not the old series_code -> {name} map of `list`."""
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.catalog.response.v1", "request_id": "r1",
+        **_SNAPSHOT, "assets": {"BR": {"name": "Нефть"}},
     }
     with pytest.raises(ValidationError):
         _validator("catalogResponse", registry).validate(msg)
@@ -465,7 +615,24 @@ def test_commit_request_full_delta_valid(registry):
             {"set_id": "set-blue-chips", "key": "blue-chips", "name": "Голубые фишки", "sort_order": 10, "archived": False},
         ],
         "remove_sets": ["set-old"],
-        "members": [{"set_id": "set-blue-chips", "add": ["GAZP"], "remove": ["LKOH"], "order": ["SBER", "GAZP"]}],
+        "assets": [
+            {"name": "Нефть Brent"},
+            {
+                "asset_id": "asset-brent", "key": "brent", "name": "Нефть Brent",
+                "reference_series_code": "BR", "archived": False,
+                "members": [
+                    {"member_type": "series", "member_ref": "BR"},
+                    {"member_type": "series", "member_ref": "BRM"},
+                ],
+            },
+        ],
+        "remove_assets": ["asset-obsolete"],
+        "members": [
+            {
+                "set_id": "set-blue-chips", "add": ["asset-gazp"], "remove": ["asset-lkoh"],
+                "order": ["asset-sber", "asset-gazp"],
+            }
+        ],
         "listings": [{**_ITEM, "group": None}],
         "archive_listings": [{"ticker": "SIU5", "reason": "expired"}],
         "series": [{"series_code": "Si", "name": "Доллар США", "sort_order": 1, "underlying_ticker": None}],
@@ -521,12 +688,70 @@ def test_set_upsert_rejects_scope_and_owner(registry):
             _validator("setUpsert", registry).validate({"name": "Новая", **extra})
 
 
+def test_asset_upsert_create_without_asset_id(registry):
+    _validator("assetUpsert", registry).validate({"name": "Нефть Brent"})  # does not raise
+    _validator("assetUpsert", registry).validate(
+        {
+            "asset_id": "asset-brent", "key": "brent", "name": "Нефть Brent",
+            "reference_series_code": None, "archived": True, "members": [],
+        }
+    )  # does not raise
+
+
+def test_asset_upsert_requires_name(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("assetUpsert", registry).validate({"asset_id": "asset-brent", "archived": True})
+
+
+def test_asset_upsert_members_carry_no_asset_id_or_order(registry):
+    """Composition is stated whole: the asset is implied, the position is the
+    array index."""
+    from jsonschema import ValidationError
+
+    for extra in ({"asset_id": "asset-brent"}, {"sort_order": 0}):
+        with pytest.raises(ValidationError):
+            _validator("assetMemberInput", registry).validate(
+                {"member_type": "series", "member_ref": "BR", **extra}
+            )
+
+
+def test_asset_member_input_valid_and_gated_by_type(registry):
+    from jsonschema import ValidationError
+
+    _validator("assetMemberInput", registry).validate({"member_type": "listing", "member_ref": "SBER"})
+    with pytest.raises(ValidationError):
+        _validator("assetMemberInput", registry).validate({"member_type": "contract", "member_ref": "BRV6"})
+    with pytest.raises(ValidationError):
+        _validator("assetMemberInput", registry).validate({"member_type": "series"})
+
+
+def test_asset_upsert_rejects_unknown_property(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("assetUpsert", registry).validate({"name": "Нефть Brent", "set_id": "set-commodities"})
+
+
+def test_commit_request_remove_assets_is_a_list_of_ids(registry):
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.commit.request.v1", "request_id": "r1",
+        "base_revision": 17, "remove_assets": ["asset-obsolete"],
+    }
+    _validator("commitRequest", registry).validate(msg)  # does not raise
+    with pytest.raises(ValidationError):
+        _validator("commitRequest", registry).validate({**msg, "remove_assets": [{"asset_id": "asset-obsolete"}]})
+
+
 def test_members_edit_requires_set_id(registry):
     from jsonschema import ValidationError
 
     _validator("membersEdit", registry).validate({"set_id": "set-blue-chips"})  # does not raise
     with pytest.raises(ValidationError):
-        _validator("membersEdit", registry).validate({"add": ["SBER"]})
+        _validator("membersEdit", registry).validate({"add": ["asset-sber"]})
 
 
 def test_members_edit_rejects_unknown_property(registry):
@@ -582,7 +807,7 @@ def test_commit_response_applied_counts_must_be_integers(registry):
 def test_commit_response_requires_the_whole_snapshot(registry):
     from jsonschema import ValidationError
 
-    for missing in ("catalog_revision", "items", "sets", "memberships", "series"):
+    for missing in ("catalog_revision", "items", "assets", "asset_members", "sets", "memberships", "series"):
         msg = {
             "channel": "instrument", "schema": "afbws.instrument.commit.response.v1", "request_id": "r1",
             **{k: v for k, v in _SNAPSHOT.items() if k != missing},
@@ -681,6 +906,187 @@ def test_user_response_carries_no_catalog_revision(registry):
         _validator("userResponse", registry).validate(msg)
 
 
+# --- phase 2.5: sources (manager-only registry of catalog feeds) ------------
+
+def test_sources_request_valid(registry):
+    msg = {"channel": "instrument", "schema": "afbws.instrument.sources.request.v1", "request_id": "r1"}
+    _validator("sourcesRequest", registry).validate(msg)  # does not raise
+
+
+def test_sources_request_rejects_filters(registry):
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.sources.request.v1", "request_id": "r1",
+        "kind": "moex",
+    }
+    with pytest.raises(ValidationError):
+        _validator("sourcesRequest", registry).validate(msg)
+
+
+def test_sources_response_valid(registry):
+    broker = {
+        "source_id": "arena", "kind": "broker", "title": "Arena", "available": False,
+        "last_refresh_at": None, "listing_count": 0,
+    }
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.sources.response.v1", "request_id": "r1",
+        "sources": [_SOURCE, broker],
+    }
+    _validator("sourcesResponse", registry).validate(msg)  # does not raise
+
+
+def test_sources_response_empty_registry_valid(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.sources.response.v1", "request_id": "r1",
+        "sources": [],
+    }
+    _validator("sourcesResponse", registry).validate(msg)  # does not raise
+
+
+def test_catalog_source_requires_every_state_field(registry):
+    """An unavailable source is still listed, so every state field must be
+    present — a client must never have to guess why nothing updates."""
+    from jsonschema import ValidationError
+
+    for missing in ("source_id", "kind", "title", "available", "last_refresh_at", "listing_count"):
+        payload = {k: v for k, v in _SOURCE.items() if k != missing}
+        with pytest.raises(ValidationError):
+            _validator("catalogSource", registry).validate(payload)
+
+
+def test_catalog_source_kind_outside_enum_rejected(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("catalogSource", registry).validate({**_SOURCE, "kind": "iss"})
+
+
+def test_catalog_source_listing_count_not_negative(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("catalogSource", registry).validate({**_SOURCE, "listing_count": -1})
+
+
+# --- phase 2.5: refresh (on-demand catalog update, with dry run) ------------
+
+def test_refresh_request_valid_with_and_without_dry_run(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.refresh.request.v1", "request_id": "r1",
+        "source_id": "moex",
+    }
+    _validator("refreshRequest", registry).validate(msg)  # does not raise
+    _validator("refreshRequest", registry).validate({**msg, "dry_run": True})  # does not raise
+
+
+def test_refresh_request_without_source_id_rejected(registry):
+    """There is no implicit default source — the manager picks one."""
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.refresh.request.v1", "request_id": "r1",
+        "dry_run": True,
+    }
+    with pytest.raises(ValidationError):
+        _validator("refreshRequest", registry).validate(msg)
+
+
+def test_refresh_request_dry_run_must_be_boolean(registry):
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.refresh.request.v1", "request_id": "r1",
+        "source_id": "moex", "dry_run": "true",
+    }
+    with pytest.raises(ValidationError):
+        _validator("refreshRequest", registry).validate(msg)
+
+
+def test_refresh_report_valid(registry):
+    _validator("refreshReport", registry).validate(_REPORT)  # does not raise
+    _validator("refreshReport", registry).validate(
+        {**_REPORT, "changes": {"listings_added": 1, "listings_archived": 1}}
+    )  # does not raise
+
+
+def test_refresh_report_requires_every_section(registry):
+    from jsonschema import ValidationError
+
+    for missing in _REPORT:
+        payload = {k: v for k, v in _REPORT.items() if k != missing}
+        with pytest.raises(ValidationError):
+            _validator("refreshReport", registry).validate(payload)
+
+
+def test_refresh_report_dry_run_shape(registry):
+    """A preview reports the same plan, just unapplied and with the revision
+    standing still."""
+    payload = {**_REPORT, "applied": False, "revision_after": 17}
+    _validator("refreshReport", registry).validate(payload)  # does not raise
+
+
+def test_refresh_report_archived_carries_the_reason(registry):
+    from jsonschema import ValidationError
+
+    _validator("refreshArchivedEntry", registry).validate({"key": "MISX:RFUD:BRU6", "reason": "expired"})
+    for bad in ({"key": "MISX:RFUD:BRU6"}, {"reason": "expired"}, {"key": "MISX:RFUD:BRU6", "reason": ""}):
+        with pytest.raises(ValidationError):
+            _validator("refreshArchivedEntry", registry).validate(bad)
+    with pytest.raises(ValidationError):
+        _validator("refreshReport", registry).validate({**_REPORT, "archived": ["MISX:RFUD:BRU6"]})
+
+
+def test_refresh_report_changes_must_be_integer_counts(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("refreshReport", registry).validate({**_REPORT, "changes": {"listings_added": "1"}})
+
+
+def test_refresh_report_rejects_dropped_inherited_membership(registry):
+    """A series belongs to an asset whole, so refresh no longer guesses set
+    membership — the field that reported those guesses is gone."""
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("refreshReport", registry).validate(
+            {**_REPORT, "inherited_membership": [["MISX:RFUD:BRV6", "set-commodities"]]}
+        )
+
+
+def test_refresh_response_valid(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.refresh.response.v1", "request_id": "r1",
+        "source_id": "moex", "dry_run": False, "report": _REPORT,
+    }
+    _validator("refreshResponse", registry).validate(msg)  # does not raise
+
+
+def test_refresh_response_echoes_the_mode(registry):
+    """The echo is what tells a preview from a write — both fields required."""
+    from jsonschema import ValidationError
+
+    for missing in ("source_id", "dry_run", "report"):
+        msg = {
+            "channel": "instrument", "schema": "afbws.instrument.refresh.response.v1", "request_id": "r1",
+            **{k: v for k, v in {"source_id": "moex", "dry_run": True, "report": _REPORT}.items() if k != missing},
+        }
+        with pytest.raises(ValidationError):
+            _validator("refreshResponse", registry).validate(msg)
+
+
+def test_refresh_response_does_not_inline_the_report(registry):
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.refresh.response.v1", "request_id": "r1",
+        "source_id": "moex", "dry_run": False, **_REPORT,
+    }
+    with pytest.raises(ValidationError):
+        _validator("refreshResponse", registry).validate(msg)
+
+
 # --- error ---------------------------------------------------------------
 
 def test_error_response_minimal_valid(registry):
@@ -746,6 +1152,7 @@ def test_error_details_full_shape_valid(registry):
         "catalog_revision": 19,
         "user_revision": 4,
         "set_ids": ["set-blue-chips"],
+        "asset_ids": ["asset-sber"],
         "tickers": ["SBER"],
     }
     _validator("errorDetails", registry).validate(details)  # does not raise
@@ -787,7 +1194,28 @@ def test_every_phase2_message_is_reachable_from_the_channel_oneof():
         "catalogRequest", "catalogResponse",
         "commitRequest", "commitResponse",
         "userRequest", "userResponse",
+        "sourcesRequest", "sourcesResponse",
+        "refreshRequest", "refreshResponse",
     } <= branches
+
+
+def test_the_asset_level_is_wired_through_both_snapshots():
+    """catalog and commit answer with the same shape — a client that can read
+    one can read the other."""
+    defs = _channel_doc()["$defs"]
+    for name in ("catalogResponse", "commitResponse"):
+        required = set(defs[name]["required"])
+        assert {"assets", "asset_members"} <= required, name
+        assert defs[name]["properties"]["assets"]["items"]["$ref"] == "#/$defs/catalogAsset", name
+        assert defs[name]["properties"]["asset_members"]["items"]["$ref"] == "#/$defs/assetMember", name
+
+
+def test_set_membership_no_longer_mentions_a_ticker():
+    """The phase 2 shape is corrected, not kept alongside: exactly one way to
+    say what a set holds."""
+    membership = _channel_doc()["$defs"]["setMembership"]
+    assert "ticker" not in membership["properties"]
+    assert "asset_id" in membership["required"]
 
 
 def test_legacy_list_and_apply_are_kept_but_marked_deprecated():
@@ -807,6 +1235,9 @@ def test_no_phase2_def_allows_additional_properties():
         "catalogRequest", "catalogResponse", "commitRequest", "commitResponse",
         "setUpsert", "membersEdit", "listingArchival", "seriesUpsert",
         "userRequest", "userResponse",
+        "catalogAsset", "assetMember", "assetMemberInput", "assetUpsert",
+        "catalogSource", "sourcesRequest", "sourcesResponse",
+        "refreshRequest", "refreshResponse", "refreshReport", "refreshArchivedEntry",
     ):
         assert defs[name].get("additionalProperties") is False, name
 

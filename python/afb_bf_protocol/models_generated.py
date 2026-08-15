@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: d0d58ca280de97dd9904d0196dfedf27f6aafa4e5bfe188c3d249ac299589e97
+# source-hash: 48fcad531a955a9c682fc8c27e37cd7870b7cf1103f36f465e01bdfe7a29d565
 
 from __future__ import annotations
 
@@ -1903,7 +1903,48 @@ class InstrumentAsset(TypedDict):
     name: str | None
 
 
+class InstrumentAssetMember(TypedDict):
+    """
+    Both member kinds share ONE running `sort_order`, so an asset holding a share and two futures series has a single order rather than one per kind. A series is a member whole: every expiration it ever gets is part of the asset by definition, which is exactly what lets the daily refresh add contracts without touching membership. The flip side is an invariant the server enforces: a futures contract may NOT be a `listing` member of an asset whose member its series already is — there is no way to address one contract apart from its series, and no way to pull one out.
+    """
+
+    asset_id: str
+    member_type: Literal["listing", "series"]
+    member_ref: str
+    sort_order: int
+
+
+class InstrumentAssetMemberInput(TypedDict):
+    member_type: Literal["listing", "series"]
+    member_ref: str
+
+
+class InstrumentAssetUpsert(TypedDict):
+    """
+    Scalars behave as a patch — an omitted field keeps its stored value — while `members`, when present, is the WHOLE composition in its final order, exactly like membersEdit.order. Composition has no add/remove form on purpose: an asset holds a handful of members that a manager edits as one picture, and a full statement removes any question about what an absent element means. Omit `members` to leave the composition untouched; send `[]` to empty the asset without deleting it.
+    """
+
+    asset_id: NotRequired[str]
+    key: NotRequired[str]
+    name: str
+    reference_series_code: NotRequired[str | None]
+    archived: NotRequired[bool]
+    members: NotRequired[list[InstrumentAssetMemberInput]]
+
+
 InstrumentAssets: TypeAlias = dict[str, InstrumentAsset]
+
+
+class InstrumentCatalogAsset(TypedDict):
+    """
+    An asset is a small bundle of instruments that share a pricing source and therefore tell one economic story: "Brent oil" is the BR-* and BRM-* series together, "Sberbank" is the share plus its futures series. Two jobs justify the level. It is the unit sets are built from, so a set survives expirations without being re-edited; and it is the carrier of reference data (MOEX positions, HHI), so analytics have one place to attach to instead of guessing which contract of which series to read. Assets are always global — the personal sets of phase 3 are assembled from the same manager-curated assets, which is what keeps that phase thin. An asset that is in no set is a normal state: it shows up as unassigned for a manager and is invisible to everyone else.
+    """
+
+    asset_id: str
+    key: str
+    name: str
+    reference_series_code: NotRequired[str | None]
+    archived: bool
 
 
 class InstrumentCatalogRequest(TypedDict):
@@ -1914,7 +1955,7 @@ class InstrumentCatalogRequest(TypedDict):
 
 class InstrumentCatalogResponse(TypedDict):
     """
-    `memberships` is the only authoritative statement of which sets a listing belongs to. The `group` field inside `items[]` is a legacy leftover carried for compatibility with clients still on `list` — it is NOT read in this form and must not be interpreted as membership. A listing that appears in `items` with no membership edge at all is normal (nothing forces a listing into a set) and stays visible to a manager. `series` is the independent futures-series axis, replacing the old `assets` map.
+    Read as two joins: `asset_members` says which listings and series make up each asset, `memberships` says which assets are in each set — together they are the only authoritative statement of how the catalog is organized. The `group` field inside `items[]` is a legacy leftover carried for compatibility with clients still on `list`; it is NOT read in this form and must not be interpreted as membership. Dangling levels are normal, not defects: a listing in no asset, and an asset in no set, both stay in the snapshot and stay visible to a manager (that is how newly refreshed rows surface for curation). `series` is the independent futures-series axis, replacing the old `assets` map — note that it is unrelated to the phase 2.5 `assets` array, which is the curated level above it.
     """
 
     channel: Literal["instrument"]
@@ -1922,6 +1963,8 @@ class InstrumentCatalogResponse(TypedDict):
     request_id: AfbwsCommonV1RequestId
     catalog_revision: int
     items: list[InstrumentV1]
+    assets: list[InstrumentCatalogAsset]
+    asset_members: list[InstrumentAssetMember]
     sets: list[InstrumentCatalogSetEntry]
     memberships: list[InstrumentSetMembership]
     series: InstrumentCatalogSeriesMap
@@ -1961,9 +2004,21 @@ class InstrumentCatalogSetEntry(TypedDict):
     owner_user_id: NotRequired[str | None]
 
 
+class InstrumentCatalogSource(TypedDict):
+    """
+    The registry is assembled, not stored: the MOEX/ISS entry comes from the market-source configuration, broker entries from the connectors currently registered. An unavailable source is still listed — the point of the operation is to show WHY nothing is updating (ISS unreachable, connector offline) rather than to hide the row.
+    """
+
+    source_id: str
+    kind: Literal["moex", "broker"]
+    available: bool
+    last_refresh_at: str | None
+    listing_count: int
+
+
 class InstrumentCommitRequest(TypedDict):
     """
-    Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction: sets, then remove_sets, then members, then listings/archive_listings, then series.
+    Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `sets`, `remove_sets`, `assets`, `remove_assets`, `members`, `listings`/`archive_listings`, `series`. The order is what makes a whole reorganization expressible in one commit — a set created here can be filled by `members` in the same request, and an asset created here can be put into that set, because both exist by the time `members` runs.
     """
 
     channel: Literal["instrument"]
@@ -1972,6 +2027,8 @@ class InstrumentCommitRequest(TypedDict):
     base_revision: int
     sets: NotRequired[list[InstrumentSetUpsert]]
     remove_sets: NotRequired[list[str]]
+    assets: NotRequired[list[InstrumentAssetUpsert]]
+    remove_assets: NotRequired[list[str]]
     members: NotRequired[list[InstrumentMembersEdit]]
     listings: NotRequired[list[InstrumentV1]]
     archive_listings: NotRequired[list[InstrumentListingArchival]]
@@ -1989,6 +2046,8 @@ class InstrumentCommitResponse(TypedDict):
     request_id: AfbwsCommonV1RequestId
     catalog_revision: int
     items: list[InstrumentV1]
+    assets: list[InstrumentCatalogAsset]
+    asset_members: list[InstrumentAssetMember]
     sets: list[InstrumentCatalogSetEntry]
     memberships: list[InstrumentSetMembership]
     series: InstrumentCatalogSeriesMap
@@ -2015,12 +2074,13 @@ class InstrumentDetailResponse(TypedDict):
 
 class InstrumentErrorDetails(TypedDict):
     """
-    Populated on `conflict` (stale base_revision: `catalog_revision` for commit, `user_revision` for user — re-fetch, re-apply, retry) and on `validation_error` (`set_ids`/`tickers` name the offending rows). Absent for errors that carry no such context.
+    Populated on `conflict` (stale base_revision: `catalog_revision` for commit, `user_revision` for user — re-fetch, re-apply, retry) and on `validation_error` (`set_ids`/`asset_ids`/`tickers` name the offending rows — one list per level, since a rejected edit can be about a set, an asset or a listing). Absent for errors that carry no such context.
     """
 
     catalog_revision: NotRequired[int]
     user_revision: NotRequired[int]
     set_ids: NotRequired[list[str]]
+    asset_ids: NotRequired[list[str]]
     tickers: NotRequired[list[str]]
 
 
@@ -2118,6 +2178,58 @@ InstrumentPoolResponse: TypeAlias = (
 )
 
 
+class InstrumentRefreshArchivedEntry(TypedDict):
+    """
+    Archival is the part of a refresh that a manager cannot undo by re-running it, so the reason travels with the key instead of being left in the server log.
+    """
+
+    key: str
+    reason: str
+
+
+class InstrumentRefreshReport(TypedDict):
+    """
+    Lists rather than counts, because the interesting cases are individually reviewable: which contracts got archived, which rows the source offered that the catalog does not carry. Every element is a catalog instrument key in its composite form (`MIC:BOARD:TICKER`) — the wire `ticker` of instrument.v1 collapses to the bare local symbol for MOEX and could not tell two boards apart, and a report is precisely where that ambiguity is unacceptable. `new_series` holds series_codes instead. The three trailing lists are diagnostics, not changes: they say what the refresh deliberately did NOT do.
+    """
+
+    applied: bool
+    revision_before: int
+    revision_after: int
+    added: list[str]
+    updated: list[str]
+    resurrected: list[str]
+    archived: list[InstrumentRefreshArchivedEntry]
+    new_series: list[str]
+    absent_from_catalog: list[str]
+    rows_without_series: list[str]
+    changes: NotRequired[dict[str, int]]
+
+
+class InstrumentRefreshRequest(TypedDict):
+    """
+    `dry_run` exists because the planning step is already separate from the write: a preview runs the very same planner and returns the very same report, it just never commits. That is the only difference between the two modes — a manager can always look before archiving a few dozen expired contracts.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.refresh.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    source_id: str
+    dry_run: NotRequired[bool]
+
+
+class InstrumentRefreshResponse(TypedDict):
+    """
+    A refresh that could not run at all (unknown or offline source, stale catalog under a concurrent commit) is an errorResponse instead — a report always describes a plan that was built successfully.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.refresh.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    source_id: str
+    dry_run: bool
+    report: InstrumentRefreshReport
+
+
 class InstrumentResolveRequest(TypedDict):
     channel: Literal["instrument"]
     schema: Literal["afbws.instrument.resolve.request.v1"]
@@ -2145,11 +2257,11 @@ class InstrumentSeriesUpsert(TypedDict):
 
 class InstrumentSetMembership(TypedDict):
     """
-    The authoritative record of membership in the phase 2 form: nothing else (least of all instrument.v1's legacy `group`) decides which sets a listing belongs to.
+    A set contains ASSETS, never listings directly: "Commodities" holds "Brent oil", and the instruments follow from the asset (see assetMember). That indirection is what keeps membership stable across expirations — a contract born in the daily refresh joins through its series' asset and needs no membership edit of its own. This is the authoritative record of set membership; nothing else (least of all instrument.v1's legacy `group`) decides which sets an asset belongs to. Corrected in phase 2.5: the edge used to name a `ticker`, from before assets existed.
     """
 
     set_id: str
-    ticker: str
+    asset_id: str
     sort_order: int
 
 
@@ -2159,6 +2271,19 @@ class InstrumentSetUpsert(TypedDict):
     name: str
     sort_order: NotRequired[int]
     archived: NotRequired[bool]
+
+
+class InstrumentSourcesRequest(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.sources.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+
+
+class InstrumentSourcesResponse(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.sources.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    sources: list[InstrumentCatalogSource]
 
 
 class InstrumentUserRequest(TypedDict):
@@ -2204,6 +2329,10 @@ InstrumentChannelV1Message: TypeAlias = (
     | InstrumentCommitResponse
     | InstrumentUserRequest
     | InstrumentUserResponse
+    | InstrumentSourcesRequest
+    | InstrumentSourcesResponse
+    | InstrumentRefreshRequest
+    | InstrumentRefreshResponse
     | InstrumentErrorResponse
 )
 
