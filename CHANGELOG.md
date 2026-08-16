@@ -2,6 +2,18 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.5.6 — 2026-08-16
+
+PATCH (`afbws/instrument.channel.v1.json` — только канал AFB-бэкенд↔AFB-фронтенд, не входит в `spec/asyncapi.yaml` и не пересекает провод AFB↔BF). **Breaking только для не-production операций `instrument.catalog` / `instrument.pool` (и согласованной формы `commit` snapshot/members input).** Рабочие проекции `list.v1` / `list.v2`, support-id `afbws.instrument.channel.v1`, schema const `*.v1` и провод AFB↔BF `afb.execution.v1` не менялись. Кураторских клиентов catalog/pool в production нет — форма пересобрана под модалку «Активы».
+
+- **`catalog.response.v1`**: UI-снимок одной формы для user и manager (полноту режет backend). Поля: `catalog_revision`; упорядоченные `sets[]` (`catalogSetView`: metadata + вложенный `asset_ids`); `assets[]` с упорядоченными `members[]` вида `{kind: listing|series, code, label, market}` (`kind=listing` не бывает `market=futures`); `items` (`afb.instrument.v1`); `series`. Параллельные массивы `memberships` / `asset_members` с провода catalog/commit убраны. Phase-3 `userState.sets` остаётся `catalogSetEntry` без `asset_ids`; членство там только через `memberships`.
+- **`pool.request.v1`**: больше не meta/slice и не `exchange`+`market` required. Опциональные `query` / `kind` / `market` / `limit` (1–200, default 50) / `cursor`. `source` опционален и совместим только с const `"moex"` — bf_id невалиден, импорт каталога BF не обслуживается. `cursor` привязан к тому же `query`/`kind`/`market` и к конкретному pool snapshot; несовпадение или устаревание — `validation_error`/`conflict`. `total` — число совпадений после фильтров и до paging.
+- **`pool.response.v1`**: `source`, `fetched_at`, `total`, `next_cursor`, discriminated `entries` `listing|series`. Listing — обёртка `{kind: listing, listing: InstrumentV1}` (карточка + commit-upsert as-is, `market` не `futures`). Series — `{kind, code, name, source: moex, market: futures, underlying}`. Фьючерсы в pool — строки series, не экспирации.
+- **`commit`**: CAS `base_revision` обязателен как раньше. `listings` по-прежнему `instrument.v1` (копия `poolListingEntry.listing`); `seriesUpsert` сохранён (`code`→`series_code`, `underlying`→`underlying_ticker`). `assetMemberInput` согласован с catalog/pool identity: `{kind, code}` вместо `{member_type, member_ref}`. Ответ commit — та же nested-форма, что catalog.
+- **`ts/tools/generate-models.mjs`** — имена `InstrumentCatalogAssetMember`, `InstrumentCatalogSetView`, `InstrumentPoolListingEntry`, `InstrumentPoolSeriesEntry`, `InstrumentPoolEntry`; удалены `InstrumentPoolMetaResponse` / `InstrumentPoolSliceResponse`.
+- **Сгенерировано** (`afb-bf-protocol-generate`): TypeScript/Python-модели и зеркало схем.
+- **Версии**: bump до `2.5.6` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`; `PROTOCOL_VERSION = "afb.execution.v1"` не менялся.
+
 ## v2.5.5 — 2026-08-16
 
 PATCH (`afbws/instrument.channel.v1.json` — только канал AFB-бэкенд↔AFB-фронтенд, не входит в `spec/asyncapi.yaml` и не пересекает провод AFB↔BF): разделены ежедневный рабочий снимок и менеджерская курирующая форма каталога. `catalog` сохраняет имя, но теперь явно доступен только менеджеру (тот же gate, что у `commit`); для любого авторизованного пользователя добавлен `list` v2. Legacy-`list` v1 не удалён: он остаётся в схеме, обслуживается и помечен `DEPRECATED`. Это PATCH, не MAJOR; версия провода остаётся `afb.execution.v1`.

@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/instrument.channel.v1.json",
   "x-afbws-support-id": "afbws.instrument.channel.v1",
   "title": "instrument channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. The daily working snapshot for any authenticated caller is `list` v2; `list` v1 remains served but is deprecated. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the full manager curation snapshot; `catalog`/`commit`/`pool`/`sources`/`refresh` all require the same manager gate. `pool` browses candidate instruments (from the daily MOEX/ISS refresh or a connector's own broker.get_catalog) that are not yet curated. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Deprecated `apply` remains declared only so old requests parse, but is not served (`unsupported_action`). `user` is the personal-sets/overlay operation of phase 3 and likewise remains declared but returns `unsupported_action`. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see catalogSetEntry/setMembership) instead of the single-parent group tree, plus an independent futures-series axis (catalogSeries) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset + assetMember) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — \"Brent oil\" is the BR-* and BRM-* series together — and it, not the ticker, is what a set contains (setMembership carries `asset_id`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. The daily working snapshot for any authenticated caller is `list` v2; `list` v1 remains served but is deprecated. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager sees archived and unassigned, user sees only live sets and the assets in them). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. Deprecated `apply` remains declared only so old requests parse, but is not served (`unsupported_action`). `user` is the personal-sets/overlay operation of phase 3 and likewise remains declared but returns `unsupported_action`. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see catalogSetEntry) instead of the single-parent group tree, plus an independent futures-series axis (catalogSeries) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — \"Brent oil\" is the BR-* and BRM-* series together — and it, not the ticker, is what a set contains (`sets[].asset_ids`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves; they do not emit parallel `memberships`/`asset_members` arrays. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.",
   "type": "object",
   "oneOf": [
     { "$ref": "#/$defs/listRequest" },
@@ -135,8 +135,8 @@
     },
     "catalogSetEntry": {
       "type": "object",
-      "title": "One catalog set — an arbitrary, freely overlapping selection of instruments (phase 2 replacement for the single-parent `group`).",
-      "description": "Sets overlap by design: a listing may belong to any number of them, or to none. `set_id` is the stable identity, generated by the server and never chosen by a client; `key` is the readable slug, unique within scope+owner. The old system/global division is gone — every non-personal set is `global` and is curated by a manager; `user` sets are the personal selections of phase 3 and are the only ones carrying `owner_user_id`.",
+      "title": "Set metadata — identity, scope, name and archive flag, without nested membership.",
+      "description": "Sets overlap by design: an asset may belong to any number of them, or to none. `set_id` is the stable identity, generated by the server and never chosen by a client; `key` is the readable slug, unique within scope+owner. The old system/global division is gone — every non-personal set is `global` and is curated by a manager; `user` sets are the personal selections of phase 3 and are the only ones carrying `owner_user_id`. This object is metadata only: it does not carry `asset_ids`. Catalog/commit snapshots use catalogSetView (metadata + ordered `asset_ids`). Phase-3 `userState.sets` uses this metadata object and states membership only via `userState.memberships` (setMembership edges) — the two representations are not mixed.",
       "required": ["set_id", "key", "scope", "name", "sort_order", "archived"],
       "additionalProperties": false,
       "properties": {
@@ -149,10 +149,31 @@
         "owner_user_id": { "type": ["string", "null"], "description": "Owner of a scope=\"user\" set; null/absent for global sets." }
       }
     },
+    "catalogSetView": {
+      "type": "object",
+      "title": "Catalog/commit snapshot set — metadata plus nested membership as ordered asset_ids.",
+      "description": "The UI snapshot form of a set. Same identity fields as catalogSetEntry, plus required `asset_ids` in display order. Catalog and commit responses use this object and do not emit a parallel `memberships` array. Not used by phase-3 userState, which keeps edge memberships on catalogSetEntry metadata.",
+      "required": ["set_id", "key", "scope", "name", "sort_order", "archived", "asset_ids"],
+      "additionalProperties": false,
+      "properties": {
+        "set_id": { "type": "string", "minLength": 1, "description": "Stable server-generated id — the only handle memberships and edits refer to." },
+        "key": { "type": "string", "minLength": 1, "description": "Readable slug, unique within scope+owner." },
+        "scope": { "enum": ["global", "user"], "description": "`global` — manager-curated, visible to everyone; `user` — personal (phase 3). \"system\" is not part of this form and is never emitted." },
+        "name": { "type": "string", "minLength": 1 },
+        "sort_order": { "type": "integer" },
+        "archived": { "type": "boolean", "description": "An archived set stays addressable (history, links) but is hidden from ordinary pickers." },
+        "owner_user_id": { "type": ["string", "null"], "description": "Owner of a scope=\"user\" set; null/absent for global sets." },
+        "asset_ids": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Member assets in this set's display order. An empty array is a valid empty set."
+        }
+      }
+    },
     "setMembership": {
       "type": "object",
       "title": "Membership edge — this asset is in this set, at this position.",
-      "description": "A set contains ASSETS, never listings directly: \"Commodities\" holds \"Brent oil\", and the instruments follow from the asset (see assetMember). That indirection is what keeps membership stable across expirations — a contract born in the daily refresh joins through its series' asset and needs no membership edit of its own. This is the authoritative record of set membership; nothing else (least of all instrument.v1's legacy `group`) decides which sets an asset belongs to. Corrected in phase 2.5: the edge used to name a `ticker`, from before assets existed.",
+      "description": "Storage / phase-3 overlay form of a set→asset edge. Catalog and commit snapshots nest the same fact as `sets[].asset_ids` (array order = sort_order) and do not emit this object. A set contains ASSETS, never listings directly: \"Commodities\" holds \"Brent oil\", and the instruments follow from the asset. That indirection is what keeps membership stable across expirations. Corrected in phase 2.5: the edge used to name a `ticker`, from before assets existed.",
       "required": ["set_id", "asset_id", "sort_order"],
       "additionalProperties": false,
       "properties": {
@@ -164,21 +185,49 @@
     "catalogAsset": {
       "type": "object",
       "title": "A curated asset — the level between one listing and a set.",
-      "description": "An asset is a small bundle of instruments that share a pricing source and therefore tell one economic story: \"Brent oil\" is the BR-* and BRM-* series together, \"Sberbank\" is the share plus its futures series. Two jobs justify the level. It is the unit sets are built from, so a set survives expirations without being re-edited; and it is the carrier of reference data (MOEX positions, HHI), so analytics have one place to attach to instead of guessing which contract of which series to read. Assets are always global — the personal sets of phase 3 are assembled from the same manager-curated assets, which is what keeps that phase thin. An asset that is in no set is a normal state: it shows up as unassigned for a manager and is invisible to everyone else.",
-      "required": ["asset_id", "key", "name", "archived"],
+      "description": "An asset is a small bundle of instruments that share a pricing source and therefore tell one economic story: \"Brent oil\" is the BR-* and BRM-* series together, \"Sberbank\" is the share plus its futures series. Two jobs justify the level. It is the unit sets are built from, so a set survives expirations without being re-edited; and it is the carrier of reference data (MOEX positions, HHI), so analytics have one place to attach to instead of guessing which contract of which series to read. Assets are always global — the personal sets of phase 3 are assembled from the same manager-curated assets, which is what keeps that phase thin. An asset that is in no set is a normal state: it shows up as unassigned for a manager and is omitted from a user's catalog snapshot. Composition is nested as ordered `members`; catalog/commit snapshots do not emit a parallel `asset_members` array.",
+      "required": ["asset_id", "key", "name", "archived", "members"],
       "additionalProperties": false,
       "properties": {
         "asset_id": { "type": "string", "minLength": 1, "description": "Stable server-generated id — the only handle memberships, members and edits refer to." },
         "key": { "type": "string", "minLength": 1, "description": "Readable slug, unique across assets (all assets are global, so there is no scope to qualify it with)." },
         "name": { "type": "string", "minLength": 1 },
         "reference_series_code": { "type": ["string", "null"], "description": "Which of the asset's series reference data is taken from when it holds more than one; null when the asset has no series or the manager has not chosen. It points at a series, not at a contract — the MOEX analytics code itself stays on the series and is not duplicated here." },
-        "archived": { "type": "boolean", "description": "An archived asset stays addressable (history, links) but is hidden from ordinary pickers — same rule as an archived set." }
+        "archived": { "type": "boolean", "description": "An archived asset stays addressable (history, links) but is hidden from ordinary pickers — same rule as an archived set." },
+        "members": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/catalogAssetMember" },
+          "description": "Full composition in display order. Array position is the order. Send `[]` for an empty asset."
+        }
       }
+    },
+    "catalogAssetMember": {
+      "type": "object",
+      "title": "One ordered member of a catalog asset, nested on catalogAsset.members.",
+      "description": "Array position is the display order. `code` is the canonical ticker for `listing` and the series_code for `series`. `label` and `market` are denormalized for plaques so the Groups/Assets UI does not have to join `items`/`series`. A series member is whole: every expiration belongs to the asset. `kind=listing` is never a futures contract (`market` must not be `futures`); futures join an asset only as `kind=series`. The server still enforces that a futures contract may not be a listing member of an asset that already contains its series.",
+      "required": ["kind", "code", "label", "market"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["listing", "series"] },
+        "code": { "type": "string", "minLength": 1, "description": "Canonical ticker for `listing`, series_code for `series` — case-sensitive, never normalized." },
+        "label": { "type": "string", "description": "Display label for plaques (shortname/name; backend may fall back to code)." },
+        "market": { "enum": ["stock", "futures", "currency", "index"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "series" } }, "required": ["kind"] },
+          "then": { "properties": { "market": { "const": "futures" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "listing" } }, "required": ["kind"] },
+          "then": { "properties": { "market": { "enum": ["stock", "currency", "index"] } } }
+        }
+      ]
     },
     "assetMember": {
       "type": "object",
       "title": "Composition edge — this listing, or this whole series, is part of this asset, at this position.",
-      "description": "Both member kinds share ONE running `sort_order`, so an asset holding a share and two futures series has a single order rather than one per kind. A series is a member whole: every expiration it ever gets is part of the asset by definition, which is exactly what lets the daily refresh add contracts without touching membership. The flip side is an invariant the server enforces: a futures contract may NOT be a `listing` member of an asset whose member its series already is — there is no way to address one contract apart from its series, and no way to pull one out.",
+      "description": "Storage-oriented composition edge (asset_id + member_type + member_ref + sort_order). Catalog and commit snapshots nest the same fact as `assets[].members` (`kind`/`code`/`label`/`market`, array order = sort_order) and do not emit this object. Both member kinds share ONE running `sort_order`. A series is a member whole. The server enforces that a futures contract may NOT be a `listing` member of an asset whose member its series already is.",
       "required": ["asset_id", "member_type", "member_ref", "sort_order"],
       "additionalProperties": false,
       "properties": {
@@ -208,12 +257,12 @@
     "userState": {
       "type": "object",
       "title": "The caller's personal catalog overlay: own sets, own memberships, hidden sets, personal ordering.",
-      "description": "Phase 3 payload, declared now so clients can be written against the final shape. The phase 2 backend never emits it and rejects `user` requests with `unsupported_action`.",
+      "description": "Phase 3 payload, declared now so clients can be written against the final shape. The phase 2 backend never emits it and rejects `user` requests with `unsupported_action`. `sets[]` are catalogSetEntry metadata only — no nested `asset_ids`. Membership of personal sets is stated solely by `memberships` (setMembership edges) pointing at the same global assets a manager curates.",
       "required": ["revision", "sets", "memberships", "hidden_set_ids", "order"],
       "additionalProperties": false,
       "properties": {
         "revision": { "type": "integer", "minimum": 0, "description": "Revision of the PERSONAL aggregate — counted separately from catalog_revision." },
-        "sets": { "type": "array", "items": { "$ref": "#/$defs/catalogSetEntry" }, "description": "The caller's own sets — every entry has scope: \"user\"." },
+        "sets": { "type": "array", "items": { "$ref": "#/$defs/catalogSetEntry" }, "description": "The caller's own sets as metadata — every entry has scope: \"user\". Membership is `memberships`, not `asset_ids`." },
         "memberships": { "type": "array", "items": { "$ref": "#/$defs/setMembership" }, "description": "Membership edges of the personal sets — pointing at the same global assets a manager curates; a user never owns an asset of their own." },
         "hidden_set_ids": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Sets (global or personal) the caller hid from their own view." },
         "order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Personal ordering of set_ids; sets not listed here follow the listed ones in their server sort_order." }
@@ -222,7 +271,7 @@
     "listRequest": {
       "type": "object",
       "title": "No filters — returns the full curated set (as legacy securities/list + setup/get_assign combined).",
-      "description": "DEPRECATED since federated-catalog phase 2 — still served by the backend for old frontends. The group/asset shape it answers with is a legacy projection, not the authoritative form. New working-catalog clients must use `list` v2; `catalog` is the manager-only curation snapshot.",
+      "description": "DEPRECATED since federated-catalog phase 2 — still served by the backend for old frontends. The group/asset shape it answers with is a legacy projection, not the authoritative form. New working-catalog clients must use `list` v2. `catalog` is the Assets-modal UI snapshot (same form for any authenticated caller; completeness is role-based) and is not a replacement for `list`.",
       "required": ["channel", "schema", "request_id"],
       "additionalProperties": false,
       "properties": {
@@ -295,63 +344,92 @@
     },
     "poolRequest": {
       "type": "object",
-      "title": "manager only. `exchange`/`market` both present -> a slice; both absent -> just the meta (exchanges/markets available from this source).",
-      "required": ["channel", "schema", "request_id", "source"],
+      "title": "manager only. Page the backend MOEX universe; there is no meta/slice split and no exchange selector.",
+      "description": "Source is MOEX-only in this revision: omit `source` or send \"moex\". A bf_id is invalid — broker pool is not served. `kind` selects listing vs series rows; `market` filters by class. `kind=listing` cannot be paired with `market=futures` (futures are series rows); `kind=series` cannot be paired with a non-futures market. `limit` defaults to 50 and is capped at 200. `cursor` is an opaque token bound to the same `query`/`kind`/`market` filter tuple and to the pool snapshot that produced it (see `fetched_at`); a mismatched or stale cursor is `validation_error` or `conflict`, not a silent restart at the first page.",
+      "required": ["channel", "schema", "request_id"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "instrument" },
         "schema": { "const": "afbws.instrument.pool.request.v1" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
-        "source": { "type": "string", "minLength": 1, "description": "\"moex\" for the daily ISS-fed candidate pool, or a bf_id to browse that connector's own broker.get_catalog." },
-        "exchange": { "type": "string", "minLength": 1 },
-        "market": { "type": "string", "minLength": 1 },
-        "query": { "type": "string", "description": "Optional substring filter over ticker/name. Applied server-side for source=\"moex\" (a local, in-memory scan); a broker source ignores it today and returns the full slice — the client filters client-side, same as it already does for the curated list (see TickersService.tsx)." }
-      }
-    },
-    "poolResponse": {
-      "type": "object",
-      "oneOf": [
-        { "$ref": "#/$defs/poolMetaResponse" },
-        { "$ref": "#/$defs/poolSliceResponse" }
+        "source": { "const": "moex", "description": "Only MOEX is served. Omit or send \"moex\"; any other value (including a bf_id) is invalid." },
+        "query": { "type": "string", "maxLength": 200, "description": "Optional substring filter over ticker, short/full name, and series code/name. Applied server-side against the in-memory MOEX snapshot." },
+        "kind": { "enum": ["listing", "series"], "description": "`listing` — non-futures instruments; `series` — futures series rows, not expirations." },
+        "market": { "enum": ["stock", "futures", "currency", "index"] },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50, "description": "Page size. Default 50 when omitted, maximum 200. Bounds are enforced by this schema." },
+        "cursor": { "type": "string", "minLength": 1, "maxLength": 512, "description": "Opaque page cursor from a previous next_cursor of THIS filter (`query`/`kind`/`market`) against the same pool snapshot. Omit on the first page. Reusing a cursor after the snapshot is refreshed, or with a different filter tuple, is `validation_error` or `conflict` — the client must restart from the first page." }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "listing" } }, "required": ["kind", "market"] },
+          "then": { "properties": { "market": { "enum": ["stock", "currency", "index"] } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "series" } }, "required": ["kind", "market"] },
+          "then": { "properties": { "market": { "const": "futures" } } }
+        }
       ]
     },
-    "poolMetaResponse": {
+    "poolListingEntry": {
       "type": "object",
-      "required": ["channel", "schema", "request_id", "source", "exchanges", "markets"],
+      "title": "A non-futures listing card that can be committed as instrument.v1.",
+      "description": "Wraps the canonical listing so a pending draft copies `listing` into commitRequest.listings unchanged (send `group: null`). Futures do not appear here — they are poolSeriesEntry rows. `listing.market` must not be `futures`.",
+      "required": ["kind", "listing"],
       "additionalProperties": false,
       "properties": {
-        "channel": { "const": "instrument" },
-        "schema": { "const": "afbws.instrument.pool.response.v1" },
-        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
-        "source": { "type": "string", "minLength": 1 },
-        "exchanges": { "type": "array", "items": { "type": "string" } },
-        "markets": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["exchange", "market"],
-            "additionalProperties": false,
+        "kind": { "const": "listing" },
+        "listing": { "$ref": "../instrument.v1.json" }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["listing"] },
+          "then": {
             "properties": {
-              "exchange": { "type": "string" },
-              "market": { "type": "string" }
+              "listing": {
+                "properties": { "market": { "enum": ["stock", "currency", "index"] } }
+              }
             }
           }
         }
+      ]
+    },
+    "poolSeriesEntry": {
+      "type": "object",
+      "title": "A futures series row in the MOEX pool — not an individual expiration.",
+      "description": "Maps to seriesUpsert on commit: `code` → `series_code`, `underlying` → `underlying_ticker`. The backend materializes active contracts from the MOEX snapshot in the same commit that upserts the series.",
+      "required": ["kind", "code", "name", "source", "market"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "const": "series" },
+        "code": { "type": "string", "minLength": 1, "description": "series_code. Maps to seriesUpsert.series_code on commit." },
+        "name": { "type": ["string", "null"] },
+        "source": { "const": "moex" },
+        "market": { "const": "futures" },
+        "underlying": { "type": ["string", "null"], "description": "Underlying ticker when the series has one. Maps to seriesUpsert.underlying_ticker on commit." }
       }
     },
-    "poolSliceResponse": {
+    "poolEntry": {
+      "title": "One page row: a non-futures listing, or a futures series.",
+      "oneOf": [
+        { "$ref": "#/$defs/poolListingEntry" },
+        { "$ref": "#/$defs/poolSeriesEntry" }
+      ]
+    },
+    "poolResponse": {
       "type": "object",
-      "title": "Candidate rows, normalized into the canonical shape with group: null (not yet distributed).",
-      "required": ["channel", "schema", "request_id", "source", "exchange", "market", "items"],
+      "title": "One page of the MOEX candidate universe.",
+      "description": "Replaces the former meta/slice pair. `entries` is a mixed listing|series page. `total` is the match count AFTER `query`/`kind`/`market` filters and BEFORE paging (`entries.length` ≤ `limit`, never a substitute for `total`). `next_cursor` is bound to the same filter tuple and to the snapshot identified by `fetched_at`; null means this page is the last. `fetched_at` is when the backend snapshot was taken, not when this page was built.",
+      "required": ["channel", "schema", "request_id", "source", "fetched_at", "total", "next_cursor", "entries"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "instrument" },
         "schema": { "const": "afbws.instrument.pool.response.v1" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
-        "source": { "type": "string", "minLength": 1 },
-        "exchange": { "type": "string" },
-        "market": { "type": "string" },
-        "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } }
+        "source": { "const": "moex" },
+        "fetched_at": { "type": "string", "format": "date-time", "description": "When the backend MOEX snapshot was fetched, ISO-8601 UTC." },
+        "total": { "type": "integer", "minimum": 0, "description": "Count of matches after `query`/`kind`/`market` filters and before paging. Independent of `limit` and of `entries.length`." },
+        "next_cursor": { "type": ["string", "null"], "description": "Opaque cursor for the next page of THIS filter against the snapshot in `fetched_at`; null when this page is the last. Echo it back only with the same `query`/`kind`/`market`." },
+        "entries": { "type": "array", "items": { "$ref": "#/$defs/poolEntry" } }
       }
     },
     "applyRequest": {
@@ -385,8 +463,8 @@
     },
     "catalogRequest": {
       "type": "object",
-      "title": "Manager-only full curation snapshot in the set-based phase 2 form. No filters, no paging.",
-      "description": "Requires the same manager gate as `commit`; ordinary authenticated callers use `list` v2 for their working snapshot.",
+      "title": "UI catalog snapshot for any authenticated caller. No filters, no paging.",
+      "description": "The wire form is identical for a user and a manager; completeness (archived/unassigned) is applied server-side from the caller's role. Ordinary working-panel clients keep using `list` v2 — `catalog` is the Assets-modal snapshot.",
       "required": ["channel", "schema", "request_id"],
       "additionalProperties": false,
       "properties": {
@@ -397,20 +475,18 @@
     },
     "catalogResponse": {
       "type": "object",
-      "title": "The authoritative snapshot: listings, assets, sets, both kinds of edge and the futures series, stamped with the revision to commit against.",
-      "description": "This body is the manager curation snapshot. Read it as two joins: `asset_members` says which listings and series make up each asset, `memberships` says which assets are in each set — together they are the only authoritative statement of how the catalog is organized. The `group` field inside `items[]` is a legacy leftover carried for compatibility with clients still on `list`; it is NOT read in this form and must not be interpreted as membership. Dangling levels are normal, not defects: a listing in no asset, and an asset in no set, both stay in the snapshot and stay visible to a manager (that is how newly refreshed rows surface for curation). `series` is the independent futures-series axis, replacing the old `assets` map — note that it is unrelated to the phase 2.5 `assets` array, which is the curated level above it.",
-      "required": ["channel", "schema", "request_id", "catalog_revision", "items", "assets", "asset_members", "sets", "memberships", "series"],
+      "title": "UI snapshot of the curated catalog: ordered sets, assets with nested members, items and series.",
+      "description": "Same form for every authenticated caller; the backend varies completeness (a manager sees archived and unassigned entities, a user sees only live sets and the assets that belong to them). Membership is `sets[].asset_ids` in display order. Composition is `assets[].members` (`kind`/`code`/`label`/`market`) in display order. There are no parallel `memberships` or `asset_members` arrays. `items` are the canonical instrument records (including materialized futures contracts); `series` is the futures-series axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `sets[].asset_ids`.",
+      "required": ["channel", "schema", "request_id", "catalog_revision", "sets", "assets", "items", "series"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "instrument" },
         "schema": { "const": "afbws.instrument.catalog.response.v1" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
         "catalog_revision": { "type": "integer", "minimum": 0, "description": "Revision of the global catalog this snapshot was taken at — send it back as commitRequest.base_revision." },
+        "sets": { "type": "array", "items": { "$ref": "#/$defs/catalogSetView" }, "description": "Sets in display order. Each entry is catalogSetView: metadata plus `asset_ids` in that set's display order." },
+        "assets": { "type": "array", "items": { "$ref": "#/$defs/catalogAsset" }, "description": "Curated assets, each with nested `members` in display order." },
         "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
-        "assets": { "type": "array", "items": { "$ref": "#/$defs/catalogAsset" } },
-        "asset_members": { "type": "array", "items": { "$ref": "#/$defs/assetMember" } },
-        "sets": { "type": "array", "items": { "$ref": "#/$defs/catalogSetEntry" } },
-        "memberships": { "type": "array", "items": { "$ref": "#/$defs/setMembership" } },
         "series": { "$ref": "#/$defs/catalogSeriesMap" },
         "user": { "$ref": "#/$defs/userState" }
       }
@@ -430,12 +506,13 @@
     },
     "assetMemberInput": {
       "type": "object",
-      "title": "One member of an asset as a client states it — the edge without its asset_id (implied by the enclosing assetUpsert) and without sort_order (implied by array position).",
-      "required": ["member_type", "member_ref"],
+      "title": "One member of an asset as a client states it — identity only; order is array position, asset_id is implied.",
+      "description": "Same discriminator and identity as catalogAssetMember (`kind`+`code`). `label` and `market` are snapshot-only and are not written — the server derives them from items/series. A contract listed here whose series is also listed is rejected.",
+      "required": ["kind", "code"],
       "additionalProperties": false,
       "properties": {
-        "member_type": { "enum": ["listing", "series"] },
-        "member_ref": { "type": "string", "minLength": 1, "description": "Canonical wire ticker for `listing`, series_code for `series` — case-sensitive, never normalized." }
+        "kind": { "enum": ["listing", "series"] },
+        "code": { "type": "string", "minLength": 1, "description": "Canonical ticker for `listing`, series_code for `series` — case-sensitive, never normalized." }
       }
     },
     "assetUpsert": {
@@ -450,7 +527,7 @@
         "name": { "type": "string", "minLength": 1 },
         "reference_series_code": { "type": ["string", "null"], "description": "Series reference data is taken from; null clears the choice." },
         "archived": { "type": "boolean" },
-        "members": { "type": "array", "items": { "$ref": "#/$defs/assetMemberInput" }, "description": "The FULL composition of the asset, in the order it should end up in — not a partial edit. A contract listed here whose series is also listed is rejected (see assetMember)." }
+        "members": { "type": "array", "items": { "$ref": "#/$defs/assetMemberInput" }, "description": "The FULL composition of the asset, in the order it should end up in — not a partial edit. Each element is `{kind, code}` (same identity as catalogAssetMember / a pool entry). A contract listed here whose series is also listed is rejected." }
       }
     },
     "membersEdit": {
@@ -478,6 +555,7 @@
     "seriesUpsert": {
       "type": "object",
       "title": "Create-or-update of one futures series, keyed by its series_code.",
+      "description": "Write form for a pool series row: copy `code` → `series_code`, `name` → `name`, `underlying` → `underlying_ticker`. `sort_order` is catalog-only and has no pool counterpart.",
       "required": ["series_code"],
       "additionalProperties": false,
       "properties": {
@@ -490,7 +568,7 @@
     "commitRequest": {
       "type": "object",
       "title": "manager only. The single write of the phase 2 catalog: a delta applied atomically on top of `base_revision`, never a whole-set replace.",
-      "description": "Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `sets`, `remove_sets`, `assets`, `remove_assets`, `members`, `listings`/`archive_listings`, `series`. The order is what makes a whole reorganization expressible in one commit — a set created here can be filled by `members` in the same request, and an asset created here can be put into that set, because both exist by the time `members` runs.",
+      "description": "Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `sets`, `remove_sets`, `assets`, `remove_assets`, `members`, `listings`/`archive_listings`, `series`. The server plans the whole delta before applying, so a listing or series upserted in this same request may be referenced from `assets[].members` even though those sections are written later — that is how a pending pool entry and the asset composition that contains it travel atomically. A set created here can be filled by `members` in the same request, and an asset created here can be put into that set, because both exist by the time `members` runs.",
       "required": ["channel", "schema", "request_id", "base_revision"],
       "additionalProperties": false,
       "properties": {
@@ -506,29 +584,27 @@
         "listings": {
           "type": "array",
           "items": { "$ref": "../instrument.v1.json" },
-          "description": "Upsert of the instrument records themselves, by `ticker`. The element's `group` field is IGNORED here — membership is expressed only through `members`; clients send `group: null`. instrument.v1 is reused verbatim for its class gating (futures-only expiration/step_price/margin/futoi_code, `isin` for stock only), which is exactly what a listing write has to enforce."
+          "description": "Upsert of the instrument records themselves, by `ticker`. Copy a pool listing entry's `listing` here unchanged. The element's `group` field is IGNORED — membership is expressed only through `members`; clients send `group: null`. instrument.v1 is reused verbatim for its class gating (futures-only expiration/step_price/margin/futoi_code, `isin` for stock only), which is exactly what a listing write has to enforce."
         },
         "archive_listings": { "type": "array", "items": { "$ref": "#/$defs/listingArchival" } },
-        "series": { "type": "array", "items": { "$ref": "#/$defs/seriesUpsert" } },
+        "series": { "type": "array", "items": { "$ref": "#/$defs/seriesUpsert" }, "description": "Upsert of futures series. Copy a pending pool series row here (`code` → `series_code`, `underlying` → `underlying_ticker`). The backend materializes that series' active contracts from the MOEX snapshot in the same transaction." },
         "reason": { "type": "string", "description": "Operator's note for this commit — stored verbatim in catalog_audit.reason." }
       }
     },
     "commitResponse": {
       "type": "object",
-      "title": "The full post-commit snapshot (same shape as catalogResponse), so a client never has to re-read after a successful write.",
+      "title": "The full post-commit snapshot (same nested UI shape as catalogResponse), so a client never has to re-read after a successful write.",
       "description": "`catalog_revision` is already the new one. A rejected commit is an errorResponse instead — there is no partially-applied outcome.",
-      "required": ["channel", "schema", "request_id", "catalog_revision", "items", "assets", "asset_members", "sets", "memberships", "series"],
+      "required": ["channel", "schema", "request_id", "catalog_revision", "sets", "assets", "items", "series"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "instrument" },
         "schema": { "const": "afbws.instrument.commit.response.v1" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
         "catalog_revision": { "type": "integer", "minimum": 0 },
-        "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
+        "sets": { "type": "array", "items": { "$ref": "#/$defs/catalogSetView" } },
         "assets": { "type": "array", "items": { "$ref": "#/$defs/catalogAsset" } },
-        "asset_members": { "type": "array", "items": { "$ref": "#/$defs/assetMember" } },
-        "sets": { "type": "array", "items": { "$ref": "#/$defs/catalogSetEntry" } },
-        "memberships": { "type": "array", "items": { "$ref": "#/$defs/setMembership" } },
+        "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
         "series": { "$ref": "#/$defs/catalogSeriesMap" },
         "applied": {
           "type": "object",
@@ -576,7 +652,7 @@
       "required": ["source_id", "kind", "title", "available", "last_refresh_at", "listing_count"],
       "additionalProperties": false,
       "properties": {
-        "source_id": { "type": "string", "minLength": 1, "description": "Handle to pass to refreshRequest — \"moex\" for the ISS feed, a bf_id for a connector's own catalog. Same vocabulary as poolRequest.source." },
+        "source_id": { "type": "string", "minLength": 1, "description": "Handle to pass to refreshRequest — \"moex\" for the ISS feed, a bf_id for a connector's own catalog. Pool browsing in this revision only accepts source \"moex\"; refresh may still list broker rows as unavailable/unsupported." },
         "kind": { "enum": ["moex", "broker"], "description": "What kind of feed this is, so a client can label and group sources without parsing source_id." },
         "title": { "type": "string", "minLength": 1, "description": "Human-readable name for the picker (\"MOEX ISS\", the connector's display name)." },
         "available": { "type": "boolean", "description": "Whether a refresh could run right now — the feed is configured and reachable for `moex`, the connector is online for `broker`." },
