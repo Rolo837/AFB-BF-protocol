@@ -23,6 +23,29 @@ _ITEM = {
 
 _POOL_ITEM = {**_ITEM, "group": None, "source": "arena"}
 
+# --- list v2 (daily working snapshot) fixtures -----------------------------
+
+_PUBLIC_LISTING = {
+    "ticker": "SBER",
+    "asset_id": "asset:SBER",
+    "exchange": "MOEX",
+    "board": "TQBR",
+    "market": "stock",
+    "name": "Сбербанк",
+    "shortname": "Сбер",
+    "lot_size": 10,
+    "price_step": "0.01",
+    "prev_close": "317.42",
+    "decimals": 2,
+    "currency": "RUB",
+    "isin": "RU0009029540",
+}
+_LIST_V2_SNAPSHOT = {
+    "sets": [{"set_id": "global:Stocks", "name": "Акции", "asset_ids": ["asset:SBER"]}],
+    "assets": [{"asset_id": "asset:SBER", "name": "Сбербанк"}],
+    "items": [_PUBLIC_LISTING],
+}
+
 # --- phase 2 (federated catalog: sets/memberships/series) fixtures ----------
 
 _SET = {
@@ -141,6 +164,73 @@ def test_list_response_missing_groups_rejected(registry):
     }
     with pytest.raises(ValidationError):
         _validator("listResponse", registry).validate(msg)
+
+
+def test_list_v2_request_no_filters(registry):
+    msg = {"channel": "instrument", "schema": "afbws.instrument.list.request.v2", "request_id": "r1"}
+    _validator("listRequestV2", registry).validate(msg)  # does not raise
+
+
+def test_list_v2_response_plan_example_valid(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.list.response.v2", "request_id": "r1",
+        **_LIST_V2_SNAPSHOT,
+    }
+    _validator("listResponseV2", registry).validate(msg)  # does not raise
+
+
+def test_list_v2_response_missing_sets_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.list.response.v2", "request_id": "r1",
+        **{k: v for k, v in _LIST_V2_SNAPSHOT.items() if k != "sets"},
+    }
+    with pytest.raises(ValidationError):
+        _validator("listResponseV2", registry).validate(msg)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("asset_members", []),
+        ("series", {}),
+        ("catalog_revision", 17),
+    ],
+)
+def test_list_v2_response_rejects_manager_internals(registry, field, value):
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.list.response.v2", "request_id": "r1",
+        **_LIST_V2_SNAPSHOT, field: value,
+    }
+    with pytest.raises(ValidationError):
+        _validator("listResponseV2", registry).validate(msg)
+
+
+@pytest.mark.parametrize("field", ["schema", "group", "source", "futoi_code"])
+def test_public_listing_rejects_catalog_internal_fields(registry, field):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("publicListing", registry).validate({**_PUBLIC_LISTING, field: "forbidden"})
+
+
+def test_public_listing_keeps_market_class_gating(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("publicListing", registry).validate({**_PUBLIC_LISTING, "expiration": "2026-09-17"})
+
+    future = {
+        **_PUBLIC_LISTING,
+        "ticker": "SRU6",
+        "market": "futures",
+    }
+    future.pop("isin")
+    with pytest.raises(ValidationError):
+        _validator("publicListing", registry).validate({**future, "isin": "RU0009029540"})
 
 
 # --- get ---------------------------------------------------------------
@@ -494,6 +584,15 @@ def test_catalog_request_rejects_filters(registry):
     }
     with pytest.raises(ValidationError):
         _validator("catalogRequest", registry).validate(msg)
+
+
+def test_catalog_request_is_documented_as_manager_only():
+    catalog_request = _channel_doc()["$defs"]["catalogRequest"]
+    text = " ".join(
+        (catalog_request.get("title", ""), catalog_request.get("description", ""))
+    ).lower()
+    assert "manager" in text
+    assert "any authenticated" not in text
 
 
 def test_catalog_response_valid(registry):
@@ -1236,6 +1335,7 @@ def test_no_phase2_def_allows_additional_properties():
         "setUpsert", "membersEdit", "listingArchival", "seriesUpsert",
         "userRequest", "userResponse",
         "catalogAsset", "assetMember", "assetMemberInput", "assetUpsert",
+        "publicListing", "listSetV2", "listAssetV2", "listRequestV2", "listResponseV2",
         "catalogSource", "sourcesRequest", "sourcesResponse",
         "refreshRequest", "refreshResponse", "refreshReport", "refreshArchivedEntry",
     ):

@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 48fcad531a955a9c682fc8c27e37cd7870b7cf1103f36f465e01bdfe7a29d565
+# source-hash: 6f81913da17f5a6bd24e8805e5f3a694025aceef39f4621e318123e55fc4e60c
 
 from __future__ import annotations
 
@@ -1948,6 +1948,10 @@ class InstrumentCatalogAsset(TypedDict):
 
 
 class InstrumentCatalogRequest(TypedDict):
+    """
+    Requires the same manager gate as `commit`; ordinary authenticated callers use `list` v2 for their working snapshot.
+    """
+
     channel: Literal["instrument"]
     schema: Literal["afbws.instrument.catalog.request.v1"]
     request_id: AfbwsCommonV1RequestId
@@ -1955,7 +1959,7 @@ class InstrumentCatalogRequest(TypedDict):
 
 class InstrumentCatalogResponse(TypedDict):
     """
-    Read as two joins: `asset_members` says which listings and series make up each asset, `memberships` says which assets are in each set — together they are the only authoritative statement of how the catalog is organized. The `group` field inside `items[]` is a legacy leftover carried for compatibility with clients still on `list`; it is NOT read in this form and must not be interpreted as membership. Dangling levels are normal, not defects: a listing in no asset, and an asset in no set, both stay in the snapshot and stay visible to a manager (that is how newly refreshed rows surface for curation). `series` is the independent futures-series axis, replacing the old `assets` map — note that it is unrelated to the phase 2.5 `assets` array, which is the curated level above it.
+    This body is the manager curation snapshot. Read it as two joins: `asset_members` says which listings and series make up each asset, `memberships` says which assets are in each set — together they are the only authoritative statement of how the catalog is organized. The `group` field inside `items[]` is a legacy leftover carried for compatibility with clients still on `list`; it is NOT read in this form and must not be interpreted as membership. Dangling levels are normal, not defects: a listing in no asset, and an asset in no set, both stay in the snapshot and stay visible to a manager (that is how newly refreshed rows surface for curation). `series` is the independent futures-series axis, replacing the old `assets` map — note that it is unrelated to the phase 2.5 `assets` array, which is the curated level above it.
     """
 
     channel: Literal["instrument"]
@@ -2113,13 +2117,28 @@ class InstrumentGroup(TypedDict):
     order: NotRequired[int | None]
 
 
+class InstrumentListAssetV2(TypedDict):
+    asset_id: str
+    name: str
+
+
 class InstrumentListRequest(TypedDict):
     """
-    DEPRECATED since federated-catalog phase 2 — superseded by `catalog`, which returns the same listings organized as overlapping sets plus a `catalog_revision` to commit against. Still served by the backend for frontends that predate `catalog`; the group/asset shape it answers with is the legacy projection of the set model, not its authoritative form. New clients must use `catalog`.
+    DEPRECATED since federated-catalog phase 2 — still served by the backend for old frontends. The group/asset shape it answers with is a legacy projection, not the authoritative form. New working-catalog clients must use `list` v2; `catalog` is the manager-only curation snapshot.
     """
 
     channel: Literal["instrument"]
     schema: Literal["afbws.instrument.list.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+
+
+class InstrumentListRequestV2(TypedDict):
+    """
+    Returns the complete public working snapshot used by ordinary authenticated clients; the request has no filters.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.list.request.v2"]
     request_id: AfbwsCommonV1RequestId
 
 
@@ -2130,6 +2149,25 @@ class InstrumentListResponse(TypedDict):
     items: list[InstrumentV1]
     groups: list[InstrumentGroup]
     assets: InstrumentAssets
+
+
+class InstrumentListResponseV2(TypedDict):
+    """
+    The working shape keeps the list v1 genre (sets + assets + flat items), but `assets` are curated assets rather than the legacy ISS series map and each `items` entry is an already-expanded publicListing — clients must not join series or futoi data. The relation is M:N: one row exists in `assets[]`, the same `asset_id` may occur in several `sets[].asset_ids`, and listing cards must not be duplicated for that reason. Manager internals are omitted: no archived/unassigned/catalog_revision/memberships/asset_members/series. There is no manager-defined order inside an asset; clients sort futures by expiration and all other listings by name/ticker.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.list.response.v2"]
+    request_id: AfbwsCommonV1RequestId
+    sets: list[InstrumentListSetV2]
+    assets: list[InstrumentListAssetV2]
+    items: list[InstrumentPublicListing]
+
+
+class InstrumentListSetV2(TypedDict):
+    set_id: str
+    name: str
+    asset_ids: list[str]
 
 
 class InstrumentListingArchival(TypedDict):
@@ -2176,6 +2214,25 @@ class InstrumentPoolSliceResponse(TypedDict):
 InstrumentPoolResponse: TypeAlias = (
     InstrumentPoolMetaResponse | InstrumentPoolSliceResponse
 )
+
+
+class InstrumentPublicListing(TypedDict):
+    ticker: str
+    asset_id: str
+    exchange: str
+    board: str
+    market: Literal["stock", "futures", "currency", "index"]
+    name: NotRequired[str | None]
+    shortname: NotRequired[str | None]
+    lot_size: NotRequired[int | None]
+    price_step: NotRequired[DecimalString]
+    prev_close: NotRequired[DecimalString]
+    decimals: NotRequired[int | None]
+    currency: NotRequired[str | None]
+    expiration: NotRequired[str]
+    margin: NotRequired[DecimalString]
+    step_price: NotRequired[DecimalString]
+    isin: NotRequired[str]
 
 
 class InstrumentRefreshArchivedEntry(TypedDict):
@@ -2313,6 +2370,8 @@ class InstrumentUserResponse(TypedDict):
 InstrumentChannelV1Message: TypeAlias = (
     InstrumentListRequest
     | InstrumentListResponse
+    | InstrumentListRequestV2
+    | InstrumentListResponseV2
     | InstrumentGetRequest
     | InstrumentGetResponse
     | InstrumentPoolRequest

@@ -2,6 +2,19 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.5.5 — 2026-08-16
+
+PATCH (`afbws/instrument.channel.v1.json` — только канал AFB-бэкенд↔AFB-фронтенд, не входит в `spec/asyncapi.yaml` и не пересекает провод AFB↔BF): разделены ежедневный рабочий снимок и менеджерская курирующая форма каталога. `catalog` сохраняет имя, но теперь явно доступен только менеджеру (тот же gate, что у `commit`); для любого авторизованного пользователя добавлен `list` v2. Legacy-`list` v1 не удалён: он остаётся в схеме, обслуживается и помечен `DEPRECATED`. Это PATCH, не MAJOR; версия провода остаётся `afb.execution.v1`.
+
+- **`spec/schemas/afbws/instrument.channel.v1.json`**:
+  - `list` v2 (`afbws.instrument.list.request.v2` / `afbws.instrument.list.response.v2`) — полный рабочий снимок без фильтров: `sets[]` (`set_id`, `name`, упорядоченный `asset_ids`), `assets[]` (`asset_id`, `name`) и плоские `items[]`.
+  - `publicListing` — уже развёрнутая публичная торговая проекция листинга для панели тикеров и расчётов торгового плана: канонические venue/market-поля, `asset_id`, торговые параметры и прежний class-gating (`expiration`/`step_price`/`margin` только для futures, `isin` только для stock). Менеджерские и внутренние поля (`schema`, `group`, `source`, `futoi_code`, `key`, `scope`, `archived`, `sort_order`, `reference_series_code`, ISS-`asset`) отсутствуют.
+  - Рабочий ответ не отдаёт `catalog_revision`, `memberships`, `asset_members`, `series`, архивные и нераспределённые сущности. Одна строка актива переиспользуется несколькими подборками; карточки листингов не дублируются. Внутри актива менеджерского порядка нет: futures клиент сортирует по экспирации, остальные инструменты — по имени/тикеру.
+  - `catalog` (`afbws.instrument.catalog.request/response.v1`) остаётся полной курирующей формой со всеми внутренними секциями и `sort_order`, но документирован как manager-only. `commit`/`pool`/`sources`/`refresh` также manager-only; `apply` и Phase 3 `user` по-прежнему отвечают `unsupported_action`; `get`/`resolve`/`detail` не менялись.
+- **`ts/tools/generate-models.mjs`** — явные имена TS-типов `InstrumentPublicListing`, `InstrumentListSetV2`, `InstrumentListAssetV2`, `InstrumentListRequestV2`, `InstrumentListResponseV2`.
+- **Сгенерировано** (`afb-bf-protocol-generate`): TypeScript/Python-модели и зеркало схем.
+- **Версии**: bump до `2.5.5` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`; `PROTOCOL_VERSION = "afb.execution.v1"` не менялся.
+
 ## v2.5.4 — 2026-08-15
 
 PATCH (`afbws/instrument.channel.v1.json` — канал AFB-бэкенд↔AFB-фронтенд, не входит в `spec/asyncapi.yaml` и не пересекает провод AFB↔BF, `VERSIONING.md §2`): в модель каталога добавлен пропущенный уровень — **актив**, а канал `instrument` получил операции источников каталога. Актив — небольшой набор инструментов с общим источником ценообразования («Нефть Brent» = серии `BR-*` + `BRM-*`): он, а не тикер, лежит в подборке и он же несёт справочные данные (позиции, HHI). Серия входит в актив **целиком**, поэтому контракт, приехавший с суточным обновлением, принадлежит подборкам по определению, а не по эвристике совпадения. Актив всегда глобальный — личные подборки Фазы 3 собираются из тех же менеджерских активов. Пустая подборка, актив вне подборок и листинг вне активов — нормальные состояния, они остаются в снимке и видны менеджеру.
