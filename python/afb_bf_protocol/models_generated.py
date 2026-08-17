@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 7ac69b43a5bb51792fb3514f326df0f0682c584966ea3f80e6d7f74cf4940632
+# source-hash: d9ff99ae1d2bf5e22e07ceac890141f1605642f64e7f753a1ffa2909f3308cc9
 
 from __future__ import annotations
 
@@ -1925,14 +1925,12 @@ class InstrumentAssetMemberInput(TypedDict):
 
 class InstrumentAssetUpsert(TypedDict):
     """
-    Scalars behave as a patch — an omitted field keeps its stored value — while `members`, when present, is the WHOLE composition in its final order, exactly like membersEdit.order. Composition has no add/remove form on purpose: an asset holds a handful of members that a manager edits as one picture, and a full statement removes any question about what an absent element means. Omit `members` to leave the composition untouched; send `[]` to empty the asset without deleting it.
+    The client mints `asset_id` itself (same generateId style as deal/primitive ids; for a non-empty asset the first block is the code of its first `members[]` entry). Scalars otherwise behave as a patch — an omitted field keeps its stored value — while `members`, when present, is the WHOLE composition in its final order, exactly like membersEdit.order. Composition has no add/remove form on purpose: an asset holds a handful of members that a manager edits as one picture, and a full statement removes any question about what an absent element means. Omit `members` to leave the composition untouched; send `[]` to empty the asset without deleting it.
     """
 
-    asset_id: NotRequired[str]
-    key: NotRequired[str]
+    asset_id: str
     name: str
     reference_series_code: NotRequired[str | None]
-    archived: NotRequired[bool]
     members: NotRequired[list[InstrumentAssetMemberInput]]
 
 
@@ -1945,10 +1943,8 @@ class InstrumentCatalogAsset(TypedDict):
     """
 
     asset_id: str
-    key: str
     name: str
     reference_series_code: NotRequired[str | None]
-    archived: bool
     members: list[InstrumentCatalogAssetMember]
 
 
@@ -1965,7 +1961,7 @@ class InstrumentCatalogAssetMember(TypedDict):
 
 class InstrumentCatalogRequest(TypedDict):
     """
-    The wire form is identical for a user and a manager; completeness (archived/unassigned) is applied server-side from the caller's role. Ordinary working-panel clients keep using `list` v2 — `catalog` is the Assets-modal snapshot.
+    The wire form is identical for a user and a manager; completeness (unassigned assets) is applied server-side from the caller's role — sets/assets no longer carry an archived flag, so the only completeness axis left is whether an asset belongs to any set. Ordinary working-panel clients keep using `list` v2 — `catalog` is the Assets-modal snapshot.
     """
 
     channel: Literal["instrument"]
@@ -1975,7 +1971,7 @@ class InstrumentCatalogRequest(TypedDict):
 
 class InstrumentCatalogResponse(TypedDict):
     """
-    Same form for every authenticated caller; the backend varies completeness (a manager sees archived and unassigned entities, a user sees only live sets and the assets that belong to them). Membership is `sets[].asset_ids` in display order. Composition is `assets[].members` (`kind`/`code`/`label`/`market`) in display order. There are no parallel `memberships` or `asset_members` arrays. `items` are the canonical instrument records (including materialized futures contracts); `series` is the futures-series axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `sets[].asset_ids`.
+    Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Membership is `sets[].asset_ids` in display order. Composition is `assets[].members` (`kind`/`code`/`label`/`market`) in display order. There are no parallel `memberships` or `asset_members` arrays. `items` are the canonical instrument records (including materialized futures contracts); `series` is the futures-series axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `sets[].asset_ids`.
     """
 
     channel: Literal["instrument"]
@@ -2010,15 +2006,13 @@ class InstrumentCatalogSet(TypedDict):
 
 class InstrumentCatalogSetEntry(TypedDict):
     """
-    Sets overlap by design: an asset may belong to any number of them, or to none. `set_id` is the stable identity, generated by the server and never chosen by a client; `key` is the readable slug, unique within scope+owner. The old system/global division is gone — every non-personal set is `global` and is curated by a manager; `user` sets are the personal selections of phase 3 and are the only ones carrying `owner_user_id`. This object is metadata only: it does not carry `asset_ids`. Catalog/commit snapshots use catalogSetView (metadata + ordered `asset_ids`). Phase-3 `userState.sets` uses this metadata object and states membership only via `userState.memberships` (setMembership edges) — the two representations are not mixed.
+    Sets overlap by design: an asset may belong to any number of them, or to none. `set_id` is the stable identity — an opaque id minted by the client on create (see setUpsert) and stored as-is; the server never rewrites it. The old system/global division is gone — every non-personal set is `global` and is curated by a manager; `user` sets are the personal selections of phase 3 and are the only ones carrying `owner_user_id`. This object is metadata only: it does not carry `asset_ids`. Catalog/commit snapshots use catalogSetView (metadata + ordered `asset_ids`). Phase-3 `userState.sets` uses this metadata object and states membership only via `userState.memberships` (setMembership edges) — the two representations are not mixed.
     """
 
     set_id: str
-    key: str
     scope: Literal["global", "user"]
     name: str
     sort_order: int
-    archived: bool
     owner_user_id: NotRequired[str | None]
 
 
@@ -2028,11 +2022,9 @@ class InstrumentCatalogSetView(TypedDict):
     """
 
     set_id: str
-    key: str
     scope: Literal["global", "user"]
     name: str
     sort_order: int
-    archived: bool
     owner_user_id: NotRequired[str | None]
     asset_ids: list[str]
 
@@ -2051,7 +2043,7 @@ class InstrumentCatalogSource(TypedDict):
 
 class InstrumentCommitRequest(TypedDict):
     """
-    Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `sets`, `remove_sets`, `assets`, `remove_assets`, `members`, `listings`/`archive_listings`, `series`. The server plans the whole delta before applying, so a listing or series upserted in this same request may be referenced from `assets[].members` even though those sections are written later — that is how a pending pool entry and the asset composition that contains it travel atomically. A set created here can be filled by `members` in the same request, and an asset created here can be put into that set, because both exist by the time `members` runs.
+    Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `sets`, `remove_sets`, `assets`, `remove_assets`, `members`, `listings`/`archive_listings`, `series`. The server plans the whole delta before applying, so a listing or series upserted in this same request may be referenced from `assets[].members` even though those sections are written later — that is how a pending pool entry and the asset composition that contains it travel atomically. A set created here can be filled by `members` in the same request, and an asset created here can be put into that set, because both exist by the time `members` runs — `members`/other same-commit references use the same client-minted `set_id`/`asset_id` the `setUpsert`/`assetUpsert` entry carries. `set_id` and `asset_id` are always client-minted opaque ids (setUpsert/assetUpsert), never generated by the server: a `set_id`/`asset_id` absent from the base snapshot is an INSERT, one already present is an UPDATE, and the server never rewrites an id it is given.
     """
 
     channel: Literal["instrument"]
@@ -2139,6 +2131,10 @@ class InstrumentGetResponse(TypedDict):
 
 
 class InstrumentGroup(TypedDict):
+    """
+    `key` is no longer a readable slug — since the federated-catalog client-ids change, the backend emits the set's opaque `set_id` here (catalogSetEntry.set_id). Legacy v1 clients treat it as an unstructured handle, so the format change is invisible to them; new code should use `list` v2 / `catalog` instead of parsing this field.
+    """
+
     key: str
     name: str
     order: NotRequired[int | None]
@@ -2376,11 +2372,13 @@ class InstrumentSetMembership(TypedDict):
 
 
 class InstrumentSetUpsert(TypedDict):
-    set_id: NotRequired[str]
-    key: NotRequired[str]
+    """
+    The client mints `set_id` itself (same generateId style as deal/primitive ids) and never leaves it to the server. A create is simply a `set_id` the server does not yet know; a `set_id` collision on what the client meant as a create is a `validation_error`, not a silent update.
+    """
+
+    set_id: str
     name: str
     sort_order: NotRequired[int]
-    archived: NotRequired[bool]
 
 
 class InstrumentSourcesRequest(TypedDict):

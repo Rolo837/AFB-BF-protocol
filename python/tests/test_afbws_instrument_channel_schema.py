@@ -51,20 +51,16 @@ _LIST_V2_SNAPSHOT = {
 
 _SET_META = {
     "set_id": "set-blue-chips",
-    "key": "blue-chips",
     "scope": "global",
     "name": "Голубые фишки",
     "sort_order": 10,
-    "archived": False,
 }
 _SET = {**_SET_META, "asset_ids": ["asset-sber"]}
 _USER_SET = {
     "set_id": "set-mine",
-    "key": "mine",
     "scope": "user",
     "name": "Мои",
     "sort_order": 0,
-    "archived": False,
     "owner_user_id": "u-42",
 }
 _SERIES_MAP = {"Si": {"name": "Доллар США", "sort_order": 1, "underlying_ticker": None}}
@@ -77,18 +73,14 @@ _CATALOG_MEMBER_SBER = {"kind": "listing", "code": "SBER", "label": "Сбер", 
 
 _ASSET = {
     "asset_id": "asset-brent",
-    "key": "brent",
     "name": "Нефть Brent",
     "reference_series_code": "BR",
-    "archived": False,
     "members": [_CATALOG_MEMBER_BR, _CATALOG_MEMBER_BRM],
 }
 _SBER_ASSET = {
     "asset_id": "asset-sber",
-    "key": "sber",
     "name": "Сбербанк",
     "reference_series_code": None,
-    "archived": False,
     "members": [_CATALOG_MEMBER_SBER],
 }
 _ASSET_MEMBER = {"asset_id": "asset-brent", "member_type": "series", "member_ref": "BR", "sort_order": 0}
@@ -657,7 +649,7 @@ def test_catalog_set_entry_scope_system_rejected(registry):
 def test_catalog_set_entry_requires_identity_fields(registry):
     from jsonschema import ValidationError
 
-    for missing in ("set_id", "key", "scope", "name", "sort_order", "archived"):
+    for missing in ("set_id", "scope", "name", "sort_order"):
         payload = {k: v for k, v in _SET_META.items() if k != missing}
         with pytest.raises(ValidationError):
             _validator("catalogSetEntry", registry).validate(payload)
@@ -681,7 +673,7 @@ def test_catalog_set_view_requires_asset_ids(registry):
 
     with pytest.raises(ValidationError):
         _validator("catalogSetView", registry).validate(_SET_META)
-    for missing in ("set_id", "key", "scope", "name", "sort_order", "archived", "asset_ids"):
+    for missing in ("set_id", "scope", "name", "sort_order", "asset_ids"):
         payload = {k: v for k, v in _SET.items() if k != missing}
         with pytest.raises(ValidationError):
             _validator("catalogSetView", registry).validate(payload)
@@ -734,10 +726,10 @@ def test_catalog_asset_valid(registry):
     _validator("catalogAsset", registry).validate(_SBER_ASSET)  # null reference series
 
 
-def test_catalog_asset_requires_identity_name_archived_and_members(registry):
+def test_catalog_asset_requires_identity_name_and_members(registry):
     from jsonschema import ValidationError
 
-    for missing in ("asset_id", "key", "name", "archived", "members"):
+    for missing in ("asset_id", "name", "members"):
         payload = {k: v for k, v in _ASSET.items() if k != missing}
         with pytest.raises(ValidationError):
             _validator("catalogAsset", registry).validate(payload)
@@ -1052,6 +1044,7 @@ def test_commit_request_atomic_pending_pool_and_composition(registry):
         "listings": [listing],
         "series": [{"series_code": "BR", "name": "Нефть Brent", "underlying_ticker": "BR"}],
         "assets": [{
+            "asset_id": "BR-41d4-a716",
             "name": "Нефть Brent",
             "members": [
                 {"kind": "listing", "code": "SBER"},
@@ -1067,15 +1060,15 @@ def test_commit_request_full_delta_valid(registry):
         "channel": "instrument", "schema": "afbws.instrument.commit.request.v1", "request_id": "r1",
         "base_revision": 17,
         "sets": [
-            {"name": "Новая подборка"},
-            {"set_id": "set-blue-chips", "key": "blue-chips", "name": "Голубые фишки", "sort_order": 10, "archived": False},
+            {"set_id": "set-new", "name": "Новая подборка"},
+            {"set_id": "set-blue-chips", "name": "Голубые фишки", "sort_order": 10},
         ],
         "remove_sets": ["set-old"],
         "assets": [
-            {"name": "Нефть Brent"},
+            {"asset_id": "asset-brent-new", "name": "Нефть Brent"},
             {
-                "asset_id": "asset-brent", "key": "brent", "name": "Нефть Brent",
-                "reference_series_code": "BR", "archived": False,
+                "asset_id": "asset-brent", "name": "Нефть Brent",
+                "reference_series_code": "BR",
                 "members": [
                     {"kind": "series", "code": "BR"},
                     {"kind": "series", "code": "BRM"},
@@ -1121,11 +1114,19 @@ def test_commit_request_listings_keep_instrument_class_gating(registry):
         _validator("commitRequest", registry).validate(msg)
 
 
-def test_set_upsert_create_without_set_id(registry):
-    _validator("setUpsert", registry).validate({"name": "Новая"})  # does not raise
+def test_set_upsert_requires_set_id(registry):
+    """set_id is always client-minted — a setUpsert without one (the old
+    server-generates-on-create shape) is rejected, not treated as a create."""
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("setUpsert", registry).validate({"name": "Новая"})
     _validator("setUpsert", registry).validate(
-        {"set_id": "set-blue-chips", "key": "blue-chips", "name": "Голубые фишки", "sort_order": 10, "archived": True}
-    )  # does not raise
+        {"set_id": "set-new", "name": "Новая"}
+    )  # does not raise — server INSERTs since set-new is unknown in the base snapshot
+    _validator("setUpsert", registry).validate(
+        {"set_id": "set-blue-chips", "name": "Голубые фишки", "sort_order": 10}
+    )  # does not raise — server UPDATEs since set-blue-chips is known
 
 
 def test_set_upsert_requires_name(registry):
@@ -1144,21 +1145,29 @@ def test_set_upsert_rejects_scope_and_owner(registry):
             _validator("setUpsert", registry).validate({"name": "Новая", **extra})
 
 
-def test_asset_upsert_create_without_asset_id(registry):
-    _validator("assetUpsert", registry).validate({"name": "Нефть Brent"})  # does not raise
+def test_asset_upsert_requires_asset_id(registry):
+    """asset_id is always client-minted — an assetUpsert without one (the old
+    server-generates-on-create shape) is rejected, not treated as a create."""
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("assetUpsert", registry).validate({"name": "Нефть Brent"})
+    _validator("assetUpsert", registry).validate(
+        {"asset_id": "asset-brent-new", "name": "Нефть Brent"}
+    )  # does not raise — server INSERTs since asset-brent-new is unknown in the base snapshot
     _validator("assetUpsert", registry).validate(
         {
-            "asset_id": "asset-brent", "key": "brent", "name": "Нефть Brent",
-            "reference_series_code": None, "archived": True, "members": [],
+            "asset_id": "asset-brent", "name": "Нефть Brent",
+            "reference_series_code": None, "members": [],
         }
-    )  # does not raise
+    )  # does not raise — server UPDATEs since asset-brent is known
 
 
 def test_asset_upsert_requires_name(registry):
     from jsonschema import ValidationError
 
     with pytest.raises(ValidationError):
-        _validator("assetUpsert", registry).validate({"asset_id": "asset-brent", "archived": True})
+        _validator("assetUpsert", registry).validate({"asset_id": "asset-brent"})
 
 
 def test_asset_upsert_members_carry_no_asset_id_or_order(registry):
@@ -1299,7 +1308,7 @@ def test_user_request_full_valid(registry):
     msg = {
         "channel": "instrument", "schema": "afbws.instrument.user.request.v1", "request_id": "r1",
         "base_revision": 3,
-        "sets": [{"name": "Мои"}],
+        "sets": [{"set_id": "set-mine", "name": "Мои"}],
         "remove_sets": ["set-old-personal"],
         "members": [{"set_id": "set-mine", "add": ["SBER"]}],
         "hidden_set_ids": ["set-blue-chips"],
