@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: d9ff99ae1d2bf5e22e07ceac890141f1605642f64e7f753a1ffa2909f3308cc9
+# source-hash: 91930319dbb8c97bad61c75c716bffb8339fa1635e7545ee7e6cf0d7d23e320f
 
 from __future__ import annotations
 
@@ -1877,6 +1877,12 @@ class Instrument2(TypedDict):
     market: NotRequired[str]
 
 
+class InstrumentAcceptSuggestion(TypedDict):
+    suggestion_id: str
+    asset_id: str
+    collection_id: NotRequired[str]
+
+
 class InstrumentApplyRequest(TypedDict):
     """
     DEPRECATED since federated-catalog phase 2 and no longer served — the backend answers it with `unsupported_action`. Its whole-set replace cannot express overlapping sets and has no concurrency guard; `commit` replaces it with a CAS delta on `base_revision`. Kept in the schema only so an older frontend's request still parses into a typed error instead of `invalid_schema`.
@@ -1923,6 +1929,45 @@ class InstrumentAssetMemberInput(TypedDict):
     code: str
 
 
+class InstrumentAssetSetUpsert(TypedDict):
+    """
+    Server derives scope/owner — client sends only set_id, name, and optional sort_order/visibility_tier (default on server: user).
+    """
+
+    set_id: str
+    name: str
+    sort_order: NotRequired[int]
+    visibility_tier: NotRequired[Literal["manager", "user", "guest"]]
+
+
+class InstrumentAssetSetView(TypedDict):
+    """
+    True asset set (Наборы): metadata plus ordered `asset_ids`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.
+    """
+
+    set_id: str
+    scope: Literal["global", "user"]
+    name: str
+    sort_order: int
+    owner_user_id: NotRequired[str | None]
+    asset_ids: list[str]
+    visibility_tier: NotRequired[Literal["manager", "user", "guest"]]
+
+
+class InstrumentAssetSuggestion(TypedDict):
+    suggestion_id: str
+    subject_type: Literal["listing", "series"]
+    subject_ref: str
+    reason: str
+    status: Literal["pending", "accepted", "rejected", "stale"]
+    proposed_name: NotRequired[str]
+    proposed_collection_id: NotRequired[str | None]
+    fingerprint: NotRequired[str]
+    created_at: NotRequired[str]
+    last_seen_at: NotRequired[str]
+    resolved_asset_id: NotRequired[str]
+
+
 class InstrumentAssetUpsert(TypedDict):
     """
     The client mints `asset_id` itself (same generateId style as deal/primitive ids; for a non-empty asset the first block is the code of its first `members[]` entry). Scalars otherwise behave as a patch — an omitted field keeps its stored value — while `members`, when present, is the WHOLE composition in its final order, exactly like membersEdit.order. Composition has no add/remove form on purpose: an asset holds a handful of members that a manager edits as one picture, and a full statement removes any question about what an absent element means. Omit `members` to leave the composition untouched; send `[]` to empty the asset without deleting it.
@@ -1932,6 +1977,8 @@ class InstrumentAssetUpsert(TypedDict):
     name: str
     reference_series_code: NotRequired[str | None]
     members: NotRequired[list[InstrumentAssetMemberInput]]
+    collection_id: NotRequired[str]
+    collection_sort_order: NotRequired[int]
 
 
 InstrumentAssets: TypeAlias = dict[str, InstrumentAsset]
@@ -1946,6 +1993,8 @@ class InstrumentCatalogAsset(TypedDict):
     name: str
     reference_series_code: NotRequired[str | None]
     members: list[InstrumentCatalogAssetMember]
+    collection_id: NotRequired[str]
+    collection_sort_order: NotRequired[int]
 
 
 class InstrumentCatalogAssetMember(TypedDict):
@@ -1982,6 +2031,9 @@ class InstrumentCatalogResponse(TypedDict):
     assets: list[InstrumentCatalogAsset]
     items: list[InstrumentV1]
     series: InstrumentCatalogSeriesMap
+    collections: NotRequired[list[InstrumentCollection]]
+    asset_sets: NotRequired[list[InstrumentAssetSetView]]
+    suggestions: NotRequired[list[InstrumentAssetSuggestion]]
     user: NotRequired[InstrumentUserState]
 
 
@@ -2006,7 +2058,7 @@ class InstrumentCatalogSet(TypedDict):
 
 class InstrumentCatalogSetEntry(TypedDict):
     """
-    Sets overlap by design: an asset may belong to any number of them, or to none. `set_id` is the stable identity — an opaque id minted by the client on create (see setUpsert) and stored as-is; the server never rewrites it. The old system/global division is gone — every non-personal set is `global` and is curated by a manager; `user` sets are the personal selections of phase 3 and are the only ones carrying `owner_user_id`. This object is metadata only: it does not carry `asset_ids`. Catalog/commit snapshots use catalogSetView (metadata + ordered `asset_ids`). Phase-3 `userState.sets` uses this metadata object and states membership only via `userState.memberships` (setMembership edges) — the two representations are not mixed.
+    DEPRECATED compatibility projection of collections — Sets overlap by design: an asset may belong to any number of them, or to none. `set_id` is the stable identity — an opaque id minted by the client on create (see setUpsert) and stored as-is; the server never rewrites it. The old system/global division is gone — every non-personal set is `global` and is curated by a manager; `user` sets are the personal selections of phase 3 and are the only ones carrying `owner_user_id`. This object is metadata only: it does not carry `asset_ids`. Catalog/commit snapshots use catalogSetView (metadata + ordered `asset_ids`). Phase-3 `userState.sets` uses this metadata object and states membership only via `userState.memberships` (setMembership edges) — the two representations are not mixed.
     """
 
     set_id: str
@@ -2014,11 +2066,12 @@ class InstrumentCatalogSetEntry(TypedDict):
     name: str
     sort_order: int
     owner_user_id: NotRequired[str | None]
+    visibility_tier: NotRequired[Literal["manager", "user", "guest"]]
 
 
 class InstrumentCatalogSetView(TypedDict):
     """
-    The UI snapshot form of a set. Same identity fields as catalogSetEntry, plus required `asset_ids` in display order. Catalog and commit responses use this object and do not emit a parallel `memberships` array. Not used by phase-3 userState, which keeps edge memberships on catalogSetEntry metadata.
+    DEPRECATED compatibility projection of collections. The UI snapshot form of a set. Same identity fields as catalogSetEntry, plus required `asset_ids` in display order. Catalog and commit responses use this object and do not emit a parallel `memberships` array. Not used by phase-3 userState, which keeps edge memberships on catalogSetEntry metadata.
     """
 
     set_id: str
@@ -2027,6 +2080,7 @@ class InstrumentCatalogSetView(TypedDict):
     sort_order: int
     owner_user_id: NotRequired[str | None]
     asset_ids: list[str]
+    visibility_tier: NotRequired[Literal["manager", "user", "guest"]]
 
 
 class InstrumentCatalogSource(TypedDict):
@@ -2039,6 +2093,24 @@ class InstrumentCatalogSource(TypedDict):
     available: bool
     last_refresh_at: str | None
     listing_count: int
+    inventory_count: NotRequired[int]
+    last_error: NotRequired[str]
+    inventory_revision: NotRequired[int]
+
+
+class InstrumentCollection(TypedDict):
+    collection_id: str
+    parent_id: NotRequired[str | None]
+    name: str
+    sort_order: int
+    pending: NotRequired[bool]
+
+
+class InstrumentCollectionUpsert(TypedDict):
+    collection_id: str
+    parent_id: NotRequired[str | None]
+    name: str
+    sort_order: NotRequired[int]
 
 
 class InstrumentCommitRequest(TypedDict):
@@ -2058,6 +2130,13 @@ class InstrumentCommitRequest(TypedDict):
     listings: NotRequired[list[InstrumentV1]]
     archive_listings: NotRequired[list[InstrumentListingArchival]]
     series: NotRequired[list[InstrumentSeriesUpsert]]
+    collections: NotRequired[list[InstrumentCollectionUpsert]]
+    remove_collections: NotRequired[list[str]]
+    asset_sets: NotRequired[list[InstrumentAssetSetUpsert]]
+    remove_asset_sets: NotRequired[list[str]]
+    asset_set_members: NotRequired[list[InstrumentMembersEdit]]
+    accept_suggestions: NotRequired[list[InstrumentAcceptSuggestion]]
+    reject_suggestions: NotRequired[list[str]]
     reason: NotRequired[str]
 
 
@@ -2074,6 +2153,9 @@ class InstrumentCommitResponse(TypedDict):
     assets: list[InstrumentCatalogAsset]
     items: list[InstrumentV1]
     series: InstrumentCatalogSeriesMap
+    collections: NotRequired[list[InstrumentCollection]]
+    asset_sets: NotRequired[list[InstrumentAssetSetView]]
+    suggestions: NotRequired[list[InstrumentAssetSuggestion]]
     applied: NotRequired[dict[str, int]]
     user: NotRequired[InstrumentUserState]
 
@@ -2105,6 +2187,8 @@ class InstrumentErrorDetails(TypedDict):
     set_ids: NotRequired[list[str]]
     asset_ids: NotRequired[list[str]]
     tickers: NotRequired[list[str]]
+    collection_ids: NotRequired[list[str]]
+    suggestion_ids: NotRequired[list[str]]
 
 
 class InstrumentErrorResponse(TypedDict):
@@ -2140,9 +2224,72 @@ class InstrumentGroup(TypedDict):
     order: NotRequired[int | None]
 
 
+class InstrumentInventoryListingEntry(TypedDict):
+    kind: Literal["listing"]
+    instrument_type: Literal["stock", "currency", "index", "futures"]
+    instrument_key: str
+    ticker: str
+    exchange: str
+    board: str
+    market: Literal["stock", "futures", "currency", "index"]
+    source: str
+    name: NotRequired[str | None]
+    shortname: NotRequired[str | None]
+    lifecycle: NotRequired[str]
+    series_code: NotRequired[str]
+
+
+class InstrumentInventoryRequest(TypedDict):
+    """
+    Filterable, paged browse of the complete MOEX (or other source) instrument universe — distinct from the curated `pool` candidate list. `limit` defaults to 50, capped at 200.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.inventory.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    source: NotRequired[str]
+    market: NotRequired[Literal["stock", "futures", "currency", "index"]]
+    board: NotRequired[str]
+    instrument_type: NotRequired[
+        Literal["stock", "currency", "index", "futures", "series"]
+    ]
+    query: NotRequired[str]
+    limit: NotRequired[int]
+    cursor: NotRequired[str]
+
+
+class InstrumentInventoryResponse(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.inventory.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    total: int
+    next_cursor: str | None
+    inventory_revision: int
+    entries: list[InstrumentInventoryEntry]
+    source: NotRequired[str]
+    fetched_at: NotRequired[str]
+
+
+class InstrumentInventorySeriesEntry(TypedDict):
+    kind: Literal["series"]
+    instrument_type: Literal["series"]
+    series_code: str
+    source: str
+    market: Literal["futures"]
+    name: NotRequired[str | None]
+    underlying: NotRequired[str | None]
+
+
+InstrumentInventoryEntry: TypeAlias = (
+    InstrumentInventoryListingEntry | InstrumentInventorySeriesEntry
+)
+
+
 class InstrumentListAssetV2(TypedDict):
     asset_id: str
     name: str
+    collection_id: NotRequired[str]
+    collection_sort_order: NotRequired[int]
 
 
 class InstrumentListRequest(TypedDict):
@@ -2185,6 +2332,8 @@ class InstrumentListResponseV2(TypedDict):
     sets: list[InstrumentListSetV2]
     assets: list[InstrumentListAssetV2]
     items: list[InstrumentPublicListing]
+    collections: NotRequired[list[InstrumentCollection]]
+    asset_sets: NotRequired[list[InstrumentAssetSetView]]
 
 
 class InstrumentListSetV2(TypedDict):
@@ -2305,6 +2454,9 @@ class InstrumentRefreshReport(TypedDict):
     absent_from_catalog: list[str]
     rows_without_series: list[str]
     changes: NotRequired[dict[str, int]]
+    suggestion_ids: NotRequired[list[str]]
+    inventory_revision_before: NotRequired[int]
+    inventory_revision_after: NotRequired[int]
 
 
 class InstrumentRefreshRequest(TypedDict):
@@ -2443,6 +2595,8 @@ InstrumentChannelV1Message: TypeAlias = (
     | InstrumentSourcesResponse
     | InstrumentRefreshRequest
     | InstrumentRefreshResponse
+    | InstrumentInventoryRequest
+    | InstrumentInventoryResponse
     | InstrumentErrorResponse
 )
 

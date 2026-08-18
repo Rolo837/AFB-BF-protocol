@@ -129,6 +129,56 @@ _REPORT = {
     "rows_without_series": ["MISX:RFUD:ZZU6"],
 }
 
+# --- catalog reorg (collections / asset_sets / inventory / suggestions) ------
+
+_COLLECTION = {
+    "collection_id": "col-stocks",
+    "parent_id": None,
+    "name": "Акции",
+    "sort_order": 0,
+    "pending": False,
+}
+_ASSET_SET_GLOBAL = {
+    "set_id": "set-blue",
+    "scope": "global",
+    "name": "Голубые",
+    "sort_order": 1,
+    "asset_ids": ["asset-sber"],
+    "visibility_tier": "manager",
+}
+_ASSET_SET_USER = {
+    "set_id": "set-mine",
+    "scope": "user",
+    "name": "Мои",
+    "sort_order": 0,
+    "owner_user_id": "u-42",
+    "asset_ids": [],
+}
+_INVENTORY_LISTING = {
+    "kind": "listing",
+    "instrument_type": "stock",
+    "instrument_key": "MISX:TQBR:SBER",
+    "ticker": "SBER",
+    "exchange": "MOEX",
+    "board": "TQBR",
+    "market": "stock",
+    "source": "moex",
+}
+_INVENTORY_SERIES = {
+    "kind": "series",
+    "instrument_type": "series",
+    "series_code": "BR",
+    "source": "moex",
+    "market": "futures",
+}
+_SUGGESTION = {
+    "suggestion_id": "sug-1",
+    "subject_type": "series",
+    "subject_ref": "BRM",
+    "reason": "new_series",
+    "status": "pending",
+}
+
 
 def _validator(def_name: str, registry):
     from jsonschema import Draft202012Validator
@@ -240,7 +290,7 @@ _LIST_V2_DEF_NAMES = (
     "listRequestV2",
     "listResponseV2",
 )
-_LIST_V2_DEFS_SHA256 = "2f68d76445a1b00ab602117b34bf3bc96e9d4edc12a756355e2002412e0dc674"
+_LIST_V2_DEFS_SHA256 = "8e22871197ce1a4d32d4c596eb2a07dd175316cb5b86625dbb96900e6c90da2b"
 
 
 def test_list_v2_defs_are_byte_stable_against_v2_5_5():
@@ -1679,6 +1729,7 @@ def test_support_id_and_message_schema_consts_stay_v1():
         "userRequest", "userResponse",
         "sourcesRequest", "sourcesResponse",
         "refreshRequest", "refreshResponse",
+        "inventoryRequest", "inventoryResponse",
     } <= branches
 
 
@@ -1727,6 +1778,9 @@ def test_no_phase2_def_allows_additional_properties():
     defs = _channel_doc()["$defs"]
     for name in (
         "catalogSetEntry", "catalogSetView", "setMembership", "catalogSeries", "userState", "errorDetails",
+        "collection", "collectionUpsert", "assetSetView", "assetSetUpsert",
+        "inventoryRequest", "inventoryListingEntry", "inventorySeriesEntry", "inventoryResponse",
+        "assetSuggestion", "acceptSuggestion",
         "catalogRequest", "catalogResponse", "commitRequest", "commitResponse",
         "setUpsert", "membersEdit", "listingArchival", "seriesUpsert",
         "userRequest", "userResponse",
@@ -1762,3 +1816,305 @@ def test_no_binding_field_on_the_curated_entity():
     doc = json.loads(schema_path.read_text())
     props = set(doc.get("properties", {}))
     assert not (props & {"bindings", "venues", "bf_id", "broker_symbol", "binding"})
+
+
+# --- catalog reorg: collection / assetSet / inventory / suggestions -----------
+
+def test_collection_valid_and_required(registry):
+    _validator("collection", registry).validate(_COLLECTION)  # does not raise
+    _validator("collection", registry).validate({k: v for k, v in _COLLECTION.items() if k != "pending"})
+
+
+def test_collection_missing_required_rejected(registry):
+    from jsonschema import ValidationError
+
+    for missing in ("collection_id", "name", "sort_order"):
+        with pytest.raises(ValidationError):
+            _validator("collection", registry).validate(
+                {k: v for k, v in _COLLECTION.items() if k != missing}
+            )
+
+
+def test_collection_rejects_unknown_property(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("collection", registry).validate({**_COLLECTION, "extra": True})
+
+
+def test_collection_upsert_valid(registry):
+    _validator("collectionUpsert", registry).validate(
+        {"collection_id": "col-stocks", "name": "Акции", "sort_order": 0}
+    )
+
+
+def test_collection_upsert_missing_name_rejected(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("collectionUpsert", registry).validate({"collection_id": "col-stocks"})
+
+
+def test_asset_set_view_global_requires_visibility_tier(registry):
+    from jsonschema import ValidationError
+
+    _validator("assetSetView", registry).validate(_ASSET_SET_GLOBAL)
+    without = {k: v for k, v in _ASSET_SET_GLOBAL.items() if k != "visibility_tier"}
+    with pytest.raises(ValidationError):
+        _validator("assetSetView", registry).validate(without)
+
+
+def test_asset_set_view_user_forbids_visibility_tier(registry):
+    from jsonschema import ValidationError
+
+    _validator("assetSetView", registry).validate(_ASSET_SET_USER)
+    with pytest.raises(ValidationError):
+        _validator("assetSetView", registry).validate({**_ASSET_SET_USER, "visibility_tier": "user"})
+
+
+def test_asset_set_view_user_requires_owner(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("assetSetView", registry).validate(
+            {k: v for k, v in _ASSET_SET_USER.items() if k != "owner_user_id"}
+        )
+
+
+def test_asset_set_upsert_valid(registry):
+    _validator("assetSetUpsert", registry).validate({"set_id": "set-new", "name": "Новая"})
+    _validator("assetSetUpsert", registry).validate(
+        {"set_id": "set-new", "name": "Новая", "visibility_tier": "manager"}
+    )
+
+
+def test_asset_set_upsert_rejects_scope(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("assetSetUpsert", registry).validate(
+            {"set_id": "set-new", "name": "Новая", "scope": "global"}
+        )
+
+
+def test_inventory_request_minimal_valid(registry):
+    msg = {"channel": "instrument", "schema": "afbws.instrument.inventory.request.v1", "request_id": "r1"}
+    _validator("inventoryRequest", registry).validate(msg)
+
+
+def test_inventory_request_full_filters_valid(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.inventory.request.v1", "request_id": "r1",
+        "source": "moex", "market": "stock", "board": "TQBR", "instrument_type": "stock",
+        "query": "sber", "limit": 100, "cursor": "page-2",
+    }
+    _validator("inventoryRequest", registry).validate(msg)
+
+
+def test_inventory_request_limit_bounds(registry):
+    from jsonschema import ValidationError
+
+    for limit in (0, 201):
+        with pytest.raises(ValidationError):
+            _validator("inventoryRequest", registry).validate({
+                "channel": "instrument", "schema": "afbws.instrument.inventory.request.v1",
+                "request_id": "r1", "limit": limit,
+            })
+
+
+def test_inventory_listing_entry_valid(registry):
+    _validator("inventoryListingEntry", registry).validate(_INVENTORY_LISTING)
+    future = {
+        **{k: v for k, v in _INVENTORY_LISTING.items() if k not in ("isin",)},
+        "instrument_type": "futures",
+        "ticker": "BRV6",
+        "market": "futures",
+        "board": "RFUD",
+    }
+    _validator("inventoryListingEntry", registry).validate(future)
+
+
+def test_inventory_listing_entry_rejects_series_instrument_type(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("inventoryListingEntry", registry).validate(
+            {**_INVENTORY_LISTING, "instrument_type": "series"}
+        )
+
+
+def test_inventory_listing_entry_futures_requires_futures_market(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("inventoryListingEntry", registry).validate(
+            {**_INVENTORY_LISTING, "instrument_type": "futures", "market": "stock"}
+        )
+
+
+def test_inventory_series_entry_valid(registry):
+    _validator("inventorySeriesEntry", registry).validate(_INVENTORY_SERIES)
+
+
+def test_inventory_series_entry_rejects_wrong_market(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("inventorySeriesEntry", registry).validate({**_INVENTORY_SERIES, "market": "stock"})
+
+
+def test_inventory_entry_discriminator(registry):
+    from jsonschema import ValidationError
+
+    _validator("inventoryEntry", registry).validate(_INVENTORY_LISTING)
+    _validator("inventoryEntry", registry).validate(_INVENTORY_SERIES)
+    with pytest.raises(ValidationError):
+        _validator("inventoryEntry", registry).validate({"kind": "contract"})
+
+
+def test_inventory_response_valid(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.inventory.response.v1", "request_id": "r1",
+        "total": 2, "next_cursor": "next", "inventory_revision": 5,
+        "entries": [_INVENTORY_LISTING, _INVENTORY_SERIES],
+        "source": "moex", "fetched_at": "2026-08-18T12:00:00Z",
+    }
+    _validator("inventoryResponse", registry).validate(msg)
+
+
+def test_inventory_response_requires_revision_and_entries(registry):
+    from jsonschema import ValidationError
+
+    base = {
+        "channel": "instrument", "schema": "afbws.instrument.inventory.response.v1", "request_id": "r1",
+        "total": 0, "next_cursor": None, "inventory_revision": 0, "entries": [],
+    }
+    for missing in ("inventory_revision", "entries", "total", "next_cursor"):
+        with pytest.raises(ValidationError):
+            _validator("inventoryResponse", registry).validate(
+                {k: v for k, v in base.items() if k != missing}
+            )
+
+
+def test_asset_suggestion_valid(registry):
+    _validator("assetSuggestion", registry).validate(_SUGGESTION)
+    _validator("assetSuggestion", registry).validate({
+        **_SUGGESTION,
+        "proposed_name": "Brent mini",
+        "proposed_collection_id": None,
+        "fingerprint": "abc",
+        "created_at": "2026-08-18T10:00:00Z",
+        "last_seen_at": "2026-08-18T11:00:00Z",
+        "resolved_asset_id": "asset-brm",
+    })
+
+
+def test_asset_suggestion_missing_required_rejected(registry):
+    from jsonschema import ValidationError
+
+    for missing in ("suggestion_id", "subject_type", "subject_ref", "reason", "status"):
+        with pytest.raises(ValidationError):
+            _validator("assetSuggestion", registry).validate(
+                {k: v for k, v in _SUGGESTION.items() if k != missing}
+            )
+
+
+def test_accept_suggestion_valid(registry):
+    _validator("acceptSuggestion", registry).validate(
+        {"suggestion_id": "sug-1", "asset_id": "asset-brm"}
+    )
+    _validator("acceptSuggestion", registry).validate(
+        {"suggestion_id": "sug-1", "asset_id": "asset-brm", "collection_id": "col-commodities"}
+    )
+
+
+def test_accept_suggestion_requires_both_ids(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("acceptSuggestion", registry).validate({"suggestion_id": "sug-1"})
+
+
+def test_catalog_response_with_collections_asset_sets_suggestions(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.catalog.response.v1", "request_id": "r1",
+        **_SNAPSHOT,
+        "collections": [_COLLECTION],
+        "asset_sets": [_ASSET_SET_GLOBAL],
+        "suggestions": [_SUGGESTION],
+    }
+    _validator("catalogResponse", registry).validate(msg)
+
+
+def test_catalog_response_without_new_sections_still_valid(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.catalog.response.v1", "request_id": "r1",
+        **_SNAPSHOT,
+    }
+    _validator("catalogResponse", registry).validate(msg)
+
+
+def test_commit_request_with_asset_sets_and_accept_suggestions(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.commit.request.v1", "request_id": "r1",
+        "base_revision": 17,
+        "asset_sets": [{"set_id": "set-new", "name": "Новая"}],
+        "asset_set_members": [{"set_id": "set-new", "add": ["asset-sber"]}],
+        "accept_suggestions": [{"suggestion_id": "sug-1", "asset_id": "asset-brm"}],
+        "reject_suggestions": ["sug-2"],
+        "collections": [{"collection_id": "col-new", "name": "Новая категория"}],
+        "remove_collections": ["col-old"],
+        "remove_asset_sets": ["set-old"],
+    }
+    _validator("commitRequest", registry).validate(msg)
+
+
+def test_commit_request_legacy_without_new_sections_valid(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.commit.request.v1", "request_id": "r1",
+        "base_revision": 17,
+        "sets": [{"set_id": "set-blue-chips", "name": "Голубые фишки"}],
+    }
+    _validator("commitRequest", registry).validate(msg)
+
+
+def test_catalog_asset_optional_collection_fields(registry):
+    _validator("catalogAsset", registry).validate(_ASSET)
+    _validator("catalogAsset", registry).validate({
+        **_ASSET, "collection_id": "col-commodities", "collection_sort_order": 3,
+    })
+
+
+def test_list_v2_response_optional_collections_and_asset_sets(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.list.response.v2", "request_id": "r1",
+        **_LIST_V2_SNAPSHOT,
+        "collections": [_COLLECTION],
+        "asset_sets": [_ASSET_SET_GLOBAL],
+    }
+    _validator("listResponseV2", registry).validate(msg)
+
+
+def test_refresh_report_optional_suggestion_and_inventory_revisions(registry):
+    _validator("refreshReport", registry).validate({
+        **_REPORT,
+        "suggestion_ids": ["sug-1"],
+        "inventory_revision_before": 4,
+        "inventory_revision_after": 5,
+    })
+
+
+def test_catalog_source_optional_inventory_fields(registry):
+    _validator("catalogSource", registry).validate({
+        **_SOURCE,
+        "inventory_count": 12000,
+        "last_error": "timeout",
+        "inventory_revision": 5,
+    })
+
+
+def test_error_details_collection_and_suggestion_ids(registry):
+    _validator("errorDetails", registry).validate({
+        "collection_ids": ["col-stocks"],
+        "suggestion_ids": ["sug-1"],
+    })

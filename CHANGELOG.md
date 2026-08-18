@@ -2,6 +2,22 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.5.8 — 2026-08-18
+
+PATCH (`afbws/instrument.channel.v1.json` — только канал AFB-бэкенд↔AFB-фронтенд, additive). Каталог реорганизован на три оси: `collections` (дерево Каталога), `asset_sets` (Наборы активов), `inventory` (полный биржевой инвентарь). `catalog`/`commit` дополнены опциональными `collections`, `asset_sets`, `suggestions`; `commit` — секции `collections`, `asset_sets`, `accept_suggestions`/`reject_suggestions`. Legacy `sets`/`catalogSetView` помечены deprecated compatibility projection. Версия провода `afb.execution.v1` не менялась, BF не затронут.
+
+- **`spec/schemas/afbws/instrument.channel.v1.json`**: новые `$defs` `collection`, `collectionUpsert`, `assetSetView`, `assetSetUpsert`, `inventoryRequest`/`inventoryResponse`, `assetSuggestion`, `acceptSuggestion`; опциональные поля `collection_id`/`collection_sort_order` на активах.
+- **Сгенерировано** (`afb-bf-protocol-generate`): TypeScript/Python-модели и зеркало схем.
+- **Версии**: bump до `2.5.8` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`; `PROTOCOL_VERSION = "afb.execution.v1"` не менялся.
+
+## v2.5.7 — 2026-08-17
+
+PATCH (`afbws/instrument.channel.v1.json` — только канал AFB-бэкенд↔AFB-фронтенд, не входит в `spec/asyncapi.yaml` и не пересекает провод AFB↔BF). Клиентские opaque `set_id`/`asset_id` заменяют серверный slug: поля `key` и `archived` убраны из `catalogSetEntry` / `catalogSetView` / `catalogAsset` и из write-форм `setUpsert` / `assetUpsert`. `set_id` и `asset_id` обязательны и минтятся клиентом (тот же `generateId`, что у сделок и примитивов); сервер их не переписывает — id нет в снимке → INSERT, есть → UPDATE. Legacy `list` v1 `groups[].key` теперь несёт opaque `set_id`. Видимость, которую раньше давал `archived: true`, выражается отсутствием членства (`remove_sets` / `remove_assets`), а не флагом. Версия провода `afb.execution.v1` не менялась, BF не затронут.
+
+- **`spec/schemas/afbws/instrument.channel.v1.json`**: `set_id`/`asset_id` — единственный стабильный handle; `key`/`archived` удалены из snapshot- и upsert-форм.
+- **Сгенерировано** (`afb-bf-protocol-generate`): TypeScript/Python-модели и зеркало схем.
+- **Версии**: bump до `2.5.7` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`; `PROTOCOL_VERSION = "afb.execution.v1"` не менялся.
+
 ## v2.5.6 — 2026-08-16
 
 PATCH (`afbws/instrument.channel.v1.json` — только канал AFB-бэкенд↔AFB-фронтенд, не входит в `spec/asyncapi.yaml` и не пересекает провод AFB↔BF). **Breaking только для не-production операций `instrument.catalog` / `instrument.pool` (и согласованной формы `commit` snapshot/members input).** Рабочие проекции `list.v1` / `list.v2`, support-id `afbws.instrument.channel.v1`, schema const `*.v1` и провод AFB↔BF `afb.execution.v1` не менялись. Кураторских клиентов catalog/pool в production нет — форма пересобрана под модалку «Активы».

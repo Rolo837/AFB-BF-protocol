@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: d9ff99ae1d2bf5e22e07ceac890141f1605642f64e7f753a1ffa2909f3308cc9
+ * source-hash: 91930319dbb8c97bad61c75c716bffb8339fa1635e7545ee7e6cf0d7d23e320f
  */
 
 /**
@@ -380,7 +380,7 @@ export type GpV1 = {
   tradeplan_id?: string;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. The daily working snapshot for any authenticated caller is `list` v2; `list` v1 remains served but is deprecated. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. Deprecated `apply` remains declared only so old requests parse, but is not served (`unsupported_action`). `user` is the personal-sets/overlay operation of phase 3 and likewise remains declared but returns `unsupported_action`. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see catalogSetEntry) instead of the single-parent group tree, plus an independent futures-series axis (catalogSeries) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — "Brent oil" is the BR-* and BRM-* series together — and it, not the ticker, is what a set contains (`sets[].asset_ids`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves; they do not emit parallel `memberships`/`asset_members` arrays. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. The daily working snapshot for any authenticated caller is `list` v2; `list` v1 remains served but is deprecated. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `asset_sets` are named Sets of assets (not the category tree). `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. Deprecated `apply` remains declared only so old requests parse, but is not served (`unsupported_action`). `user` is the personal-sets/overlay operation of phase 3 and likewise remains declared but returns `unsupported_action`. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see catalogSetEntry) instead of the single-parent group tree, plus an independent futures-series axis (catalogSeries) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — "Brent oil" is the BR-* and BRM-* series together — and it, not the ticker, is what a set contains (`sets[].asset_ids`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves; they do not emit parallel `memberships`/`asset_members` arrays. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentChannelV1Message".
@@ -410,6 +410,8 @@ export type InstrumentChannelV1Message =
   | InstrumentSourcesResponse
   | InstrumentRefreshRequest
   | InstrumentRefreshResponse
+  | InstrumentInventoryRequest
+  | InstrumentInventoryResponse
   | InstrumentErrorResponse;
 /**
  * AFB-side canonical instrument — like afb.gp.v1/afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. One broker-agnostic shape for every market class (stock/futures/currency/index); class-specific fields are gated by `market` via the `allOf`/`if` blocks below (forbidden, not just absent, for classes they don't apply to), but the wire type stays a single schema. `ticker` is the canonical identity: bare SECID for MOEX (e.g. "SBER"), `EXCHANGE:TICKER` for everything else (e.g. "XNAS:AAPL") — `exchange`/`board`/`market` are still carried as explicit fields so nothing but one shared parser (AFB backend/instruments/identity.py, frontend utils/instrumentId.ts) ever splits the string. `group`/`asset` place the instrument in the curated catalog tree (config/instruments.yaml) that AFB users actually see — `group: null` means not yet distributed into a group, the flat-list replacement for the old `lost` bucket. `source` says who refreshes this record's trading params ("moex" for the daily ISS refresh, a broker id like "finam" for instruments obtained from that broker's catalog) — it is NOT a broker binding: which connector can actually trade this instrument, and under what broker-native symbol, is resolved at publish time (see deal.v1.json's target.instrument + BF's own catalog), never persisted here.
@@ -496,6 +498,26 @@ export type InstrumentPublicListing = {
   isin?: string;
 };
 /**
+ * True asset set (Наборы): metadata plus ordered `asset_ids`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentAssetSetView".
+ */
+export type InstrumentAssetSetView = {
+  [k: string]: unknown;
+} & {
+  set_id: string;
+  scope: 'global' | 'user';
+  name: string;
+  sort_order: number;
+  owner_user_id?: string | null;
+  /**
+   * Member assets in display order.
+   */
+  asset_ids: string[];
+  visibility_tier?: 'manager' | 'user' | 'guest';
+};
+/**
  * Source is MOEX-only in this revision: omit `source` or send "moex". A bf_id is invalid — broker pool is not served. `kind` selects listing vs series rows; `market` filters by class. `kind=listing` cannot be paired with `market=futures` (futures are series rows); `kind=series` cannot be paired with a non-futures market. `limit` defaults to 50 and is capped at 200. `cursor` is an opaque token bound to the same `query`/`kind`/`market` filter tuple and to the pool snapshot that produced it (see `fetched_at`); a mismatched or stale cursor is `validation_error` or `conflict`, not a silent restart at the first page.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -565,6 +587,31 @@ export type InstrumentCatalogAssetMember = {
    */
   label: string;
   market: 'stock' | 'futures' | 'currency' | 'index';
+};
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentInventoryEntry".
+ */
+export type InstrumentInventoryEntry = InstrumentInventoryListingEntry | InstrumentInventorySeriesEntry;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentInventoryListingEntry".
+ */
+export type InstrumentInventoryListingEntry = {
+  [k: string]: unknown;
+} & {
+  kind: 'listing';
+  instrument_type: 'stock' | 'currency' | 'index' | 'futures';
+  instrument_key: string;
+  ticker: string;
+  exchange: string;
+  board: string;
+  market: 'stock' | 'futures' | 'currency' | 'index';
+  source: string;
+  name?: string | null;
+  shortname?: string | null;
+  lifecycle?: string;
+  series_code?: string;
 };
 /**
  * Manager view of a BF connector config record — reuses link.user.v1.json#/$defs/sharedFields (via $ref, not redeclared, so the two views can't drift apart) plus ACL/key management fields. Never carries `connected`/`daemon`/session runtime — see link.status.v1.json.
@@ -1986,6 +2033,8 @@ export interface InstrumentListResponseV2 {
   sets: InstrumentListSetV2[];
   assets: InstrumentListAssetV2[];
   items: InstrumentPublicListing[];
+  collections?: InstrumentCollection[];
+  asset_sets?: InstrumentAssetSetView[];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2006,6 +2055,28 @@ export interface InstrumentListSetV2 {
 export interface InstrumentListAssetV2 {
   asset_id: string;
   name: string;
+  /**
+   * Optional in schema; required in backend responses after catalog v6.
+   */
+  collection_id?: string;
+  /**
+   * Optional in schema; required in backend responses after catalog v6.
+   */
+  collection_sort_order?: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentCollection".
+ */
+export interface InstrumentCollection {
+  collection_id: string;
+  parent_id?: string | null;
+  name: string;
+  sort_order: number;
+  /**
+   * system_pending / _unclassified bucket.
+   */
+  pending?: boolean;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2203,10 +2274,13 @@ export interface InstrumentCatalogResponse {
   assets: InstrumentCatalogAsset[];
   items: InstrumentV1[];
   series: InstrumentCatalogSeriesMap;
+  collections?: InstrumentCollection[];
+  asset_sets?: InstrumentAssetSetView[];
+  suggestions?: InstrumentAssetSuggestion[];
   user?: InstrumentUserState;
 }
 /**
- * The UI snapshot form of a set. Same identity fields as catalogSetEntry, plus required `asset_ids` in display order. Catalog and commit responses use this object and do not emit a parallel `memberships` array. Not used by phase-3 userState, which keeps edge memberships on catalogSetEntry metadata.
+ * DEPRECATED compatibility projection of collections. The UI snapshot form of a set. Same identity fields as catalogSetEntry, plus required `asset_ids` in display order. Catalog and commit responses use this object and do not emit a parallel `memberships` array. Not used by phase-3 userState, which keeps edge memberships on catalogSetEntry metadata.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentCatalogSetView".
@@ -2230,6 +2304,7 @@ export interface InstrumentCatalogSetView {
    * Member assets in this set's display order. An empty array is a valid empty set.
    */
   asset_ids: string[];
+  visibility_tier?: 'manager' | 'user' | 'guest';
 }
 /**
  * An asset is a small bundle of instruments that share a pricing source and therefore tell one economic story: "Brent oil" is the BR-* and BRM-* series together, "Sberbank" is the share plus its futures series. Two jobs justify the level. It is the unit sets are built from, so a set survives expirations without being re-edited; and it is the carrier of reference data (MOEX positions, HHI), so analytics have one place to attach to instead of guessing which contract of which series to read. Assets are always global — the personal sets of phase 3 are assembled from the same manager-curated assets, which is what keeps that phase thin. An asset that is in no set is a normal state: it shows up as unassigned for a manager and is omitted from a user's catalog snapshot. Composition is nested as ordered `members`; catalog/commit snapshots do not emit a parallel `asset_members` array.
@@ -2251,6 +2326,14 @@ export interface InstrumentCatalogAsset {
    * Full composition in display order. Array position is the order. Send `[]` for an empty asset.
    */
   members: InstrumentCatalogAssetMember[];
+  /**
+   * Optional in schema; required in backend responses after catalog v6.
+   */
+  collection_id?: string;
+  /**
+   * Optional in schema; required in backend responses after catalog v6.
+   */
+  collection_sort_order?: number;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2272,6 +2355,23 @@ export interface InstrumentCatalogSeries {
    * Canonical ticker of the underlying instrument, when the series has one.
    */
   underlying_ticker?: string | null;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentAssetSuggestion".
+ */
+export interface InstrumentAssetSuggestion {
+  suggestion_id: string;
+  subject_type: 'listing' | 'series';
+  subject_ref: string;
+  reason: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'stale';
+  proposed_name?: string;
+  proposed_collection_id?: string | null;
+  fingerprint?: string;
+  created_at?: string;
+  last_seen_at?: string;
+  resolved_asset_id?: string;
 }
 /**
  * Phase 3 payload, declared now so clients can be written against the final shape. The phase 2 backend never emits it and rejects `user` requests with `unsupported_action`. `sets[]` are catalogSetEntry metadata only — no nested `asset_ids`. Membership of personal sets is stated solely by `memberships` (setMembership edges) pointing at the same global assets a manager curates.
@@ -2302,7 +2402,7 @@ export interface InstrumentUserState {
   order: string[];
 }
 /**
- * Sets overlap by design: an asset may belong to any number of them, or to none. `set_id` is the stable identity — an opaque id minted by the client on create (see setUpsert) and stored as-is; the server never rewrites it. The old system/global division is gone — every non-personal set is `global` and is curated by a manager; `user` sets are the personal selections of phase 3 and are the only ones carrying `owner_user_id`. This object is metadata only: it does not carry `asset_ids`. Catalog/commit snapshots use catalogSetView (metadata + ordered `asset_ids`). Phase-3 `userState.sets` uses this metadata object and states membership only via `userState.memberships` (setMembership edges) — the two representations are not mixed.
+ * DEPRECATED compatibility projection of collections — Sets overlap by design: an asset may belong to any number of them, or to none. `set_id` is the stable identity — an opaque id minted by the client on create (see setUpsert) and stored as-is; the server never rewrites it. The old system/global division is gone — every non-personal set is `global` and is curated by a manager; `user` sets are the personal selections of phase 3 and are the only ones carrying `owner_user_id`. This object is metadata only: it does not carry `asset_ids`. Catalog/commit snapshots use catalogSetView (metadata + ordered `asset_ids`). Phase-3 `userState.sets` uses this metadata object and states membership only via `userState.memberships` (setMembership edges) — the two representations are not mixed.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentCatalogSetEntry".
@@ -2322,6 +2422,7 @@ export interface InstrumentCatalogSetEntry {
    * Owner of a scope="user" set; null/absent for global sets.
    */
   owner_user_id?: string | null;
+  visibility_tier?: 'manager' | 'user' | 'guest';
 }
 /**
  * Storage / phase-3 overlay form of a set→asset edge. Catalog and commit snapshots nest the same fact as `sets[].asset_ids` (array order = sort_order) and do not emit this object. A set contains ASSETS, never listings directly: "Commodities" holds "Brent oil", and the instruments follow from the asset. That indirection is what keeps membership stable across expirations. Corrected in phase 2.5: the edge used to name a `ticker`, from before assets existed.
@@ -2374,6 +2475,13 @@ export interface InstrumentCommitRequest {
    * Upsert of futures series. Copy a pending pool series row here (`code` → `series_code`, `underlying` → `underlying_ticker`). The backend materializes that series' active contracts from the MOEX snapshot in the same transaction.
    */
   series?: InstrumentSeriesUpsert[];
+  collections?: InstrumentCollectionUpsert[];
+  remove_collections?: string[];
+  asset_sets?: InstrumentAssetSetUpsert[];
+  remove_asset_sets?: string[];
+  asset_set_members?: InstrumentMembersEdit[];
+  accept_suggestions?: InstrumentAcceptSuggestion[];
+  reject_suggestions?: string[];
   /**
    * Operator's note for this commit — stored verbatim in catalog_audit.reason.
    */
@@ -2413,6 +2521,8 @@ export interface InstrumentAssetUpsert {
    * The FULL composition of the asset, in the order it should end up in — not a partial edit. Each element is `{kind, code}` (same identity as catalogAssetMember / a pool entry). A contract listed here whose series is also listed is rejected.
    */
   members?: InstrumentAssetMemberInput[];
+  collection_id?: string;
+  collection_sort_order?: number;
 }
 /**
  * Same discriminator and identity as catalogAssetMember (`kind`+`code`). `label` and `market` are snapshot-only and are not written — the server derives them from items/series. A contract listed here whose series is also listed is rejected.
@@ -2470,6 +2580,40 @@ export interface InstrumentSeriesUpsert {
   underlying_ticker?: string | null;
 }
 /**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentCollectionUpsert".
+ */
+export interface InstrumentCollectionUpsert {
+  collection_id: string;
+  parent_id?: string | null;
+  name: string;
+  sort_order?: number;
+}
+/**
+ * Server derives scope/owner — client sends only set_id, name, and optional sort_order/visibility_tier (default on server: user).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentAssetSetUpsert".
+ */
+export interface InstrumentAssetSetUpsert {
+  set_id: string;
+  name: string;
+  sort_order?: number;
+  /**
+   * Optional; server default is user.
+   */
+  visibility_tier?: 'manager' | 'user' | 'guest';
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentAcceptSuggestion".
+ */
+export interface InstrumentAcceptSuggestion {
+  suggestion_id: string;
+  asset_id: string;
+  collection_id?: string;
+}
+/**
  * `catalog_revision` is already the new one. A rejected commit is an errorResponse instead — there is no partially-applied outcome.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2484,6 +2628,9 @@ export interface InstrumentCommitResponse {
   assets: InstrumentCatalogAsset[];
   items: InstrumentV1[];
   series: InstrumentCatalogSeriesMap;
+  collections?: InstrumentCollection[];
+  asset_sets?: InstrumentAssetSetView[];
+  suggestions?: InstrumentAssetSuggestion[];
   applied?: {
     [k: string]: number;
   };
@@ -2581,6 +2728,9 @@ export interface InstrumentCatalogSource {
    * How many catalogued listings currently name this source as the owner of their trading params — the size of what a refresh from here would touch, not the size of the source's own universe.
    */
   listing_count: number;
+  inventory_count?: number;
+  last_error?: string;
+  inventory_revision?: number;
 }
 /**
  * `dry_run` exists because the planning step is already separate from the write: a preview runs the very same planner and returns the very same report, it just never commits. That is the only difference between the two modes — a manager can always look before archiving a few dozen expired contracts.
@@ -2665,6 +2815,9 @@ export interface InstrumentRefreshReport {
   changes?: {
     [k: string]: number;
   };
+  suggestion_ids?: string[];
+  inventory_revision_before?: number;
+  inventory_revision_after?: number;
 }
 /**
  * Archival is the part of a refresh that a manager cannot undo by re-running it, so the reason travels with the key instead of being left in the server log.
@@ -2678,6 +2831,52 @@ export interface InstrumentRefreshArchivedEntry {
    * Why it was archived — e.g. expired, or absent from the source's answer.
    */
   reason: string;
+}
+/**
+ * Filterable, paged browse of the complete MOEX (or other source) instrument universe — distinct from the curated `pool` candidate list. `limit` defaults to 50, capped at 200.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentInventoryRequest".
+ */
+export interface InstrumentInventoryRequest {
+  channel: 'instrument';
+  schema: 'afbws.instrument.inventory.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  source?: string;
+  market?: 'stock' | 'futures' | 'currency' | 'index';
+  board?: string;
+  instrument_type?: 'stock' | 'currency' | 'index' | 'futures' | 'series';
+  query?: string;
+  limit?: number;
+  cursor?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentInventoryResponse".
+ */
+export interface InstrumentInventoryResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.inventory.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  total: number;
+  next_cursor: string | null;
+  inventory_revision: number;
+  entries: InstrumentInventoryEntry[];
+  source?: string;
+  fetched_at?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentInventorySeriesEntry".
+ */
+export interface InstrumentInventorySeriesEntry {
+  kind: 'series';
+  instrument_type: 'series';
+  series_code: string;
+  source: string;
+  market: 'futures';
+  name?: string | null;
+  underlying?: string | null;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2709,6 +2908,8 @@ export interface InstrumentErrorDetails {
   set_ids?: string[];
   asset_ids?: string[];
   tickers?: string[];
+  collection_ids?: string[];
+  suggestion_ids?: string[];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
