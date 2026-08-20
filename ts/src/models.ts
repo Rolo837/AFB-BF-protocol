@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 91930319dbb8c97bad61c75c716bffb8339fa1635e7545ee7e6cf0d7d23e320f
+ * source-hash: 80b8e5eeb7690bff0293524b8478aec26a7235ab558798e4c857d4aa25d887cb
  */
 
 /**
@@ -380,22 +380,16 @@ export type GpV1 = {
   tradeplan_id?: string;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. The daily working snapshot for any authenticated caller is `list` v2; `list` v1 remains served but is deprecated. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `asset_sets` are named Sets of assets (not the category tree). `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. Deprecated `apply` remains declared only so old requests parse, but is not served (`unsupported_action`). `user` is the personal-sets/overlay operation of phase 3 and likewise remains declared but returns `unsupported_action`. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see catalogSetEntry) instead of the single-parent group tree, plus an independent futures-series axis (catalogSeries) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — "Brent oil" is the BR-* and BRM-* series together — and it, not the ticker, is what a set contains (`sets[].asset_ids`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves; they do not emit parallel `memberships`/`asset_members` arrays. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. `catalog` is the one read snapshot of the curated catalog for any authenticated caller. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `asset_sets` are named Sets of assets (not the category tree). `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. `user` is the caller's personal-sets/overlay operation and is served. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see assetSetView) instead of the single-parent group tree, plus an independent futures-series axis (catalogSeries) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — "Brent oil" is the BR-* and BRM-* series together — and it, not the ticker, is what a set contains (`asset_sets[].asset_ids`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves — an asset set carries its ordered `asset_ids`, an asset its ordered `members`. Order is carried by array position everywhere on the wire: no entity has an order field, and a write restates a full order through the dedicated `asset_set_order`/`collection_order`/`order` sections of `commit`. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentChannelV1Message".
  */
 export type InstrumentChannelV1Message =
-  | InstrumentListRequest
-  | InstrumentListResponse
-  | InstrumentListRequestV2
-  | InstrumentListResponseV2
   | InstrumentGetRequest
   | InstrumentGetResponse
   | InstrumentPoolRequest
   | InstrumentPoolResponse
-  | InstrumentApplyRequest
-  | InstrumentApplyResponse
   | InstrumentResolveRequest
   | InstrumentResolveResponse
   | InstrumentDetailRequest
@@ -468,56 +462,6 @@ export type InstrumentV1 = {
   source: string;
 };
 /**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentPublicListing".
- */
-export type InstrumentPublicListing = {
-  [k: string]: unknown;
-} & {
-  ticker: string;
-  asset_id: string;
-  exchange: string;
-  board: string;
-  market: 'stock' | 'futures' | 'currency' | 'index';
-  name?: string | null;
-  shortname?: string | null;
-  lot_size?: number | null;
-  price_step?: DecimalString;
-  prev_close?: DecimalString;
-  decimals?: number | null;
-  currency?: string | null;
-  /**
-   * Futures only.
-   */
-  expiration?: string;
-  margin?: DecimalString;
-  step_price?: DecimalString;
-  /**
-   * Stock only.
-   */
-  isin?: string;
-};
-/**
- * True asset set (Наборы): metadata plus ordered `asset_ids`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentAssetSetView".
- */
-export type InstrumentAssetSetView = {
-  [k: string]: unknown;
-} & {
-  set_id: string;
-  scope: 'global' | 'user';
-  name: string;
-  sort_order: number;
-  owner_user_id?: string | null;
-  /**
-   * Member assets in display order.
-   */
-  asset_ids: string[];
-  visibility_tier?: 'manager' | 'user' | 'guest';
-};
-/**
  * Source is MOEX-only in this revision: omit `source` or send "moex". A bf_id is invalid — broker pool is not served. `kind` selects listing vs series rows; `market` filters by class. `kind=listing` cannot be paired with `market=futures` (futures are series rows); `kind=series` cannot be paired with a non-futures market. `limit` defaults to 50 and is capped at 200. `cursor` is an opaque token bound to the same `query`/`kind`/`market` filter tuple and to the pool snapshot that produced it (see `fetched_at`); a mismatched or stale cursor is `validation_error` or `conflict`, not a silent restart at the first page.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -587,6 +531,25 @@ export type InstrumentCatalogAssetMember = {
    */
   label: string;
   market: 'stock' | 'futures' | 'currency' | 'index';
+};
+/**
+ * True asset set (Наборы): metadata plus ordered `asset_ids`. The set's own display position is its position in `asset_sets[]` (and in `userState.sets[]` for a personal set) — there is no order field on the wire; a commit restates that order wholesale through `commitRequest.asset_set_order`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentAssetSetView".
+ */
+export type InstrumentAssetSetView = {
+  [k: string]: unknown;
+} & {
+  set_id: string;
+  scope: 'global' | 'user';
+  name: string;
+  owner_user_id?: string | null;
+  /**
+   * Member assets in display order.
+   */
+  asset_ids: string[];
+  visibility_tier?: 'manager' | 'user' | 'guest';
 };
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1959,126 +1922,6 @@ export interface GpErrorDetails {
   locked_scopes?: ('entry' | 'stop_loss' | 'take_profit')[];
 }
 /**
- * DEPRECATED since federated-catalog phase 2 — still served by the backend for old frontends. The group/asset shape it answers with is a legacy projection, not the authoritative form. New working-catalog clients must use `list` v2. `catalog` is the Assets-modal UI snapshot (same form for any authenticated caller; completeness is role-based) and is not a replacement for `list`.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentListRequest".
- */
-export interface InstrumentListRequest {
-  channel: 'instrument';
-  schema: 'afbws.instrument.list.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentListResponse".
- */
-export interface InstrumentListResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.list.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  items: InstrumentV1[];
-  groups: InstrumentGroup[];
-  assets: InstrumentAssets;
-}
-/**
- * `key` is no longer a readable slug — since the federated-catalog client-ids change, the backend emits the set's opaque `set_id` here (catalogSetEntry.set_id). Legacy v1 clients treat it as an unstructured handle, so the format change is invisible to them; new code should use `list` v2 / `catalog` instead of parsing this field.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentGroup".
- */
-export interface InstrumentGroup {
-  /**
-   * The set's set_id, emitted under the legacy field name.
-   */
-  key: string;
-  name: string;
-  order?: number | null;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentAssets".
- */
-export interface InstrumentAssets {
-  [k: string]: InstrumentAsset;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentAsset".
- */
-export interface InstrumentAsset {
-  name: string | null;
-}
-/**
- * Returns the complete public working snapshot used by ordinary authenticated clients; the request has no filters.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentListRequestV2".
- */
-export interface InstrumentListRequestV2 {
-  channel: 'instrument';
-  schema: 'afbws.instrument.list.request.v2';
-  request_id: AfbwsCommonV1_RequestId;
-}
-/**
- * The working shape keeps the list v1 genre (sets + assets + flat items), but `assets` are curated assets rather than the legacy ISS series map and each `items` entry is an already-expanded publicListing — clients must not join series or futoi data. The relation is M:N: one row exists in `assets[]`, the same `asset_id` may occur in several `sets[].asset_ids`, and listing cards must not be duplicated for that reason. Manager internals are omitted: no archived/unassigned/catalog_revision/memberships/asset_members/series. There is no manager-defined order inside an asset; clients sort futures by expiration and all other listings by name/ticker.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentListResponseV2".
- */
-export interface InstrumentListResponseV2 {
-  channel: 'instrument';
-  schema: 'afbws.instrument.list.response.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  sets: InstrumentListSetV2[];
-  assets: InstrumentListAssetV2[];
-  items: InstrumentPublicListing[];
-  collections?: InstrumentCollection[];
-  asset_sets?: InstrumentAssetSetView[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentListSetV2".
- */
-export interface InstrumentListSetV2 {
-  set_id: string;
-  name: string;
-  /**
-   * Asset display order inside this set.
-   */
-  asset_ids: string[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentListAssetV2".
- */
-export interface InstrumentListAssetV2 {
-  asset_id: string;
-  name: string;
-  /**
-   * Optional in schema; required in backend responses after catalog v6.
-   */
-  collection_id?: string;
-  /**
-   * Optional in schema; required in backend responses after catalog v6.
-   */
-  collection_sort_order?: number;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCollection".
- */
-export interface InstrumentCollection {
-  collection_id: string;
-  parent_id?: string | null;
-  name: string;
-  sort_order: number;
-  /**
-   * system_pending / _unclassified bucket.
-   */
-  pending?: boolean;
-}
-/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentGetRequest".
  */
@@ -2142,32 +1985,6 @@ export interface InstrumentPoolSeriesEntry {
    * Underlying ticker when the series has one. Maps to seriesUpsert.underlying_ticker on commit.
    */
   underlying?: string | null;
-}
-/**
- * DEPRECATED since federated-catalog phase 2 and no longer served — the backend answers it with `unsupported_action`. Its whole-set replace cannot express overlapping sets and has no concurrency guard; `commit` replaces it with a CAS delta on `base_revision`. Kept in the schema only so an older frontend's request still parses into a typed error instead of `invalid_schema`.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentApplyRequest".
- */
-export interface InstrumentApplyRequest {
-  channel: 'instrument';
-  schema: 'afbws.instrument.apply.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  items: InstrumentV1[];
-  groups: InstrumentGroup[];
-  assets: InstrumentAssets;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentApplyResponse".
- */
-export interface InstrumentApplyResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.apply.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  items: InstrumentV1[];
-  groups: InstrumentGroup[];
-  assets: InstrumentAssets;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2240,7 +2057,7 @@ export interface InstrumentDetailResponse {
   };
 }
 /**
- * The wire form is identical for a user and a manager; completeness (unassigned assets) is applied server-side from the caller's role — sets/assets no longer carry an archived flag, so the only completeness axis left is whether an asset belongs to any set. Ordinary working-panel clients keep using `list` v2 — `catalog` is the Assets-modal snapshot.
+ * The wire form is identical for a user and a manager; completeness (unassigned assets) is applied server-side from the caller's role — sets/assets no longer carry an archived flag, so the only completeness axis left is whether an asset belongs to any set. `catalog` is the Assets-modal snapshot and the only read of the curated catalog.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentCatalogRequest".
@@ -2251,7 +2068,7 @@ export interface InstrumentCatalogRequest {
   request_id: AfbwsCommonV1_RequestId;
 }
 /**
- * Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Membership is `sets[].asset_ids` in display order. Composition is `assets[].members` (`kind`/`code`/`label`/`market`) in display order. There are no parallel `memberships` or `asset_members` arrays. `items` are the canonical instrument records (including materialized futures contracts); `series` is the futures-series axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `sets[].asset_ids`.
+ * Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Membership is `asset_sets[].asset_ids` in display order. Composition is `assets[].members` (`kind`/`code`/`label`/`market`) in display order. Order is always array position — no entity on this wire carries an order field. `items` are the canonical instrument records (including materialized futures contracts); `series` is the futures-series axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `asset_sets[].asset_ids`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentCatalogResponse".
@@ -2265,10 +2082,6 @@ export interface InstrumentCatalogResponse {
    */
   catalog_revision: number;
   /**
-   * Sets in display order. Each entry is catalogSetView: metadata plus `asset_ids` in that set's display order.
-   */
-  sets: InstrumentCatalogSetView[];
-  /**
    * Curated assets, each with nested `members` in display order.
    */
   assets: InstrumentCatalogAsset[];
@@ -2280,41 +2093,14 @@ export interface InstrumentCatalogResponse {
   user?: InstrumentUserState;
 }
 /**
- * DEPRECATED compatibility projection of collections. The UI snapshot form of a set. Same identity fields as catalogSetEntry, plus required `asset_ids` in display order. Catalog and commit responses use this object and do not emit a parallel `memberships` array. Not used by phase-3 userState, which keeps edge memberships on catalogSetEntry metadata.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCatalogSetView".
- */
-export interface InstrumentCatalogSetView {
-  /**
-   * Opaque id, minted by the client on create and never rewritten by the server — the only handle memberships and edits refer to.
-   */
-  set_id: string;
-  /**
-   * `global` — manager-curated, visible to everyone; `user` — personal (phase 3). "system" is not part of this form and is never emitted.
-   */
-  scope: 'global' | 'user';
-  name: string;
-  sort_order: number;
-  /**
-   * Owner of a scope="user" set; null/absent for global sets.
-   */
-  owner_user_id?: string | null;
-  /**
-   * Member assets in this set's display order. An empty array is a valid empty set.
-   */
-  asset_ids: string[];
-  visibility_tier?: 'manager' | 'user' | 'guest';
-}
-/**
- * An asset is a small bundle of instruments that share a pricing source and therefore tell one economic story: "Brent oil" is the BR-* and BRM-* series together, "Sberbank" is the share plus its futures series. Two jobs justify the level. It is the unit sets are built from, so a set survives expirations without being re-edited; and it is the carrier of reference data (MOEX positions, HHI), so analytics have one place to attach to instead of guessing which contract of which series to read. Assets are always global — the personal sets of phase 3 are assembled from the same manager-curated assets, which is what keeps that phase thin. An asset that is in no set is a normal state: it shows up as unassigned for a manager and is omitted from a user's catalog snapshot. Composition is nested as ordered `members`; catalog/commit snapshots do not emit a parallel `asset_members` array.
+ * An asset is a small bundle of instruments that share a pricing source and therefore tell one economic story: "Brent oil" is the BR-* and BRM-* series together, "Sberbank" is the share plus its futures series. Two jobs justify the level. It is the unit sets are built from, so a set survives expirations without being re-edited; and it is the carrier of reference data (MOEX positions, HHI), so analytics have one place to attach to instead of guessing which contract of which series to read. Assets are always global — the personal sets of phase 3 are assembled from the same manager-curated assets, which is what keeps that phase thin. An asset that is in no set is a normal state: it shows up as unassigned for a manager and is omitted from a user's catalog snapshot. Composition is nested as ordered `members` on the asset itself; array position is the order.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentCatalogAsset".
  */
 export interface InstrumentCatalogAsset {
   /**
-   * Opaque id, minted by the client on create and never rewritten by the server — the only handle memberships, members and edits refer to.
+   * Opaque id, minted by the client on create and never rewritten by the server — the only handle set membership, members and edits refer to.
    */
   asset_id: string;
   name: string;
@@ -2327,13 +2113,9 @@ export interface InstrumentCatalogAsset {
    */
   members: InstrumentCatalogAssetMember[];
   /**
-   * Optional in schema; required in backend responses after catalog v6.
+   * The collection this asset lives in — an asset belongs to exactly one. Optional in schema; required in backend responses after catalog v6. Position inside the collection is carried by the order of `assets[]`: the assets of one collection come consecutively, and the collections themselves follow the order of `collections[]`.
    */
   collection_id?: string;
-  /**
-   * Optional in schema; required in backend responses after catalog v6.
-   */
-  collection_sort_order?: number;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2343,18 +2125,32 @@ export interface InstrumentCatalogSeriesMap {
   [k: string]: InstrumentCatalogSeries;
 }
 /**
- * An axis of its own, independent of sets: it groups the successive expirations of one futures contract and is unaffected by set membership.
+ * An axis of its own, independent of sets: it groups the successive expirations of one futures contract and is unaffected by set membership. Carries no order: `series` is a JSON object (catalogSeriesMap), and the order of an object's members is not semantic. Should the series axis ever need an order, the right move is to turn `series` into an array — not to bring an order field back.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentCatalogSeries".
  */
 export interface InstrumentCatalogSeries {
   name: string | null;
-  sort_order?: number;
   /**
    * Canonical ticker of the underlying instrument, when the series has one.
    */
   underlying_ticker?: string | null;
+}
+/**
+ * Order is carried by array position: `collections[]` already arrives in the order the tree is drawn in (the children of one `parent_id` follow one another), so there is no order field on the wire. A commit restates that order wholesale through `commitRequest.collection_order`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentCollection".
+ */
+export interface InstrumentCollection {
+  collection_id: string;
+  parent_id?: string | null;
+  name: string;
+  /**
+   * system_pending / _unclassified bucket.
+   */
+  pending?: boolean;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2374,7 +2170,7 @@ export interface InstrumentAssetSuggestion {
   resolved_asset_id?: string;
 }
 /**
- * Phase 3 payload, declared now so clients can be written against the final shape. The phase 2 backend never emits it and rejects `user` requests with `unsupported_action`. `sets[]` are catalogSetEntry metadata only — no nested `asset_ids`. Membership of personal sets is stated solely by `memberships` (setMembership edges) pointing at the same global assets a manager curates.
+ * The caller's personal overlay, served next to the global catalog. `sets[]` are full assetSetView objects — every entry has scope "user" and carries its own membership inline as ordered `asset_ids`; there is no parallel membership array. Personal sets are assembled from the same global assets a manager curates: a user never owns an asset of their own.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentUserState".
@@ -2385,64 +2181,20 @@ export interface InstrumentUserState {
    */
   revision: number;
   /**
-   * The caller's own sets as metadata — every entry has scope: "user". Membership is `memberships`, not `asset_ids`.
+   * The caller's own sets — every entry has scope: "user" and states its membership inline as ordered `asset_ids`. Set order is the order of this array.
    */
-  sets: InstrumentCatalogSetEntry[];
-  /**
-   * Membership edges of the personal sets — pointing at the same global assets a manager curates; a user never owns an asset of their own.
-   */
-  memberships: InstrumentSetMembership[];
+  sets: InstrumentAssetSetView[];
   /**
    * Sets (global or personal) the caller hid from their own view.
    */
   hidden_set_ids: string[];
   /**
-   * Personal ordering of set_ids; sets not listed here follow the listed ones in their server sort_order.
+   * Personal ordering of set_ids; sets not listed here follow the listed ones in the server's order.
    */
   order: string[];
 }
 /**
- * DEPRECATED compatibility projection of collections — Sets overlap by design: an asset may belong to any number of them, or to none. `set_id` is the stable identity — an opaque id minted by the client on create (see setUpsert) and stored as-is; the server never rewrites it. The old system/global division is gone — every non-personal set is `global` and is curated by a manager; `user` sets are the personal selections of phase 3 and are the only ones carrying `owner_user_id`. This object is metadata only: it does not carry `asset_ids`. Catalog/commit snapshots use catalogSetView (metadata + ordered `asset_ids`). Phase-3 `userState.sets` uses this metadata object and states membership only via `userState.memberships` (setMembership edges) — the two representations are not mixed.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCatalogSetEntry".
- */
-export interface InstrumentCatalogSetEntry {
-  /**
-   * Opaque id, minted by the client on create and never rewritten by the server — the only handle memberships and edits refer to.
-   */
-  set_id: string;
-  /**
-   * `global` — manager-curated, visible to everyone; `user` — personal (phase 3). "system" is not part of this form and is never emitted.
-   */
-  scope: 'global' | 'user';
-  name: string;
-  sort_order: number;
-  /**
-   * Owner of a scope="user" set; null/absent for global sets.
-   */
-  owner_user_id?: string | null;
-  visibility_tier?: 'manager' | 'user' | 'guest';
-}
-/**
- * Storage / phase-3 overlay form of a set→asset edge. Catalog and commit snapshots nest the same fact as `sets[].asset_ids` (array order = sort_order) and do not emit this object. A set contains ASSETS, never listings directly: "Commodities" holds "Brent oil", and the instruments follow from the asset. That indirection is what keeps membership stable across expirations. Corrected in phase 2.5: the edge used to name a `ticker`, from before assets existed.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentSetMembership".
- */
-export interface InstrumentSetMembership {
-  set_id: string;
-  /**
-   * The member asset — catalogAsset.asset_id, never a ticker or a series_code.
-   */
-  asset_id: string;
-  /**
-   * Position of this member inside its set.
-   */
-  sort_order: number;
-}
-/**
- * Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `sets`, `remove_sets`, `assets`, `remove_assets`, `members`, `listings`/`archive_listings`, `series`. The server plans the whole delta before applying, so a listing or series upserted in this same request may be referenced from `assets[].members` even though those sections are written later — that is how a pending pool entry and the asset composition that contains it travel atomically. A set created here can be filled by `members` in the same request, and an asset created here can be put into that set, because both exist by the time `members` runs — `members`/other same-commit references use the same client-minted `set_id`/`asset_id` the `setUpsert`/`assetUpsert` entry carries. `set_id` and `asset_id` are always client-minted opaque ids (setUpsert/assetUpsert), never generated by the server: a `set_id`/`asset_id` absent from the base snapshot is an INSERT, one already present is an UPDATE, and the server never rewrites an id it is given.
+ * Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `asset_sets`, `remove_asset_sets`, `assets`, `remove_assets`, `asset_set_members`, `listings`/`archive_listings`, `series`, `collections`, `remove_collections`, `collection_members`. The server plans the whole delta before applying, so a listing or series upserted in this same request may be referenced from `assets[].members` even though those sections are written later — that is how a pending pool entry and the asset composition that contains it travel atomically. A set created here can be filled by `asset_set_members` in the same request, and an asset created here can be put into that set, because both exist by the time `asset_set_members` runs — `asset_set_members`/other same-commit references use the same client-minted `set_id`/`asset_id` the `assetSetUpsert`/`assetUpsert` entry carries. Order is never a field on an entity: `asset_set_order`, `collection_order`, and the `order` of `asset_set_members`/`collection_members` each state a FULL final order, and every read snapshot carries order as array position. `set_id` and `asset_id` are always client-minted opaque ids (assetSetUpsert/assetUpsert), never generated by the server: a `set_id`/`asset_id` absent from the base snapshot is an INSERT, one already present is an UPDATE, and the server never rewrites an id it is given.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentCommitRequest".
@@ -2455,19 +2207,13 @@ export interface InstrumentCommitRequest {
    * The catalog_revision these edits were built on (CAS guard).
    */
   base_revision: number;
-  sets?: InstrumentSetUpsert[];
-  /**
-   * set_ids to delete outright (their membership edges go with them). There is no archive flag — a hidden-but-addressable set is a phase-3 userState.hidden_set_ids concern, not a catalog one.
-   */
-  remove_sets?: string[];
   assets?: InstrumentAssetUpsert[];
   /**
    * asset_ids to delete outright. The deletion takes the asset's set memberships and its composition edges with it, but touches neither the listings nor the series that were its members — they survive uncurated and reappear as unassigned. There is no archive flag for assets.
    */
   remove_assets?: string[];
-  members?: InstrumentMembersEdit[];
   /**
-   * Upsert of the instrument records themselves, by `ticker`. Copy a pool listing entry's `listing` here unchanged. The element's `group` field is IGNORED — membership is expressed only through `members`; clients send `group: null`. instrument.v1 is reused verbatim for its class gating (futures-only expiration/step_price/margin/futoi_code, `isin` for stock only), which is exactly what a listing write has to enforce.
+   * Upsert of the instrument records themselves, by `ticker`. Copy a pool listing entry's `listing` here unchanged. The element's `group` field is IGNORED — membership is expressed only through `asset_set_members`; clients send `group: null`. instrument.v1 is reused verbatim for its class gating (futures-only expiration/step_price/margin/futoi_code, `isin` for stock only), which is exactly what a listing write has to enforce.
    */
   listings?: InstrumentV1[];
   archive_listings?: InstrumentListingArchival[];
@@ -2476,30 +2222,40 @@ export interface InstrumentCommitRequest {
    */
   series?: InstrumentSeriesUpsert[];
   collections?: InstrumentCollectionUpsert[];
+  /**
+   * collection_ids to delete outright. The assets that were in them are not deleted — they land in the system `_unclassified` bucket.
+   */
   remove_collections?: string[];
+  /**
+   * The FULL final order of collection_ids — not a partial reshuffle. The list is FLAT: a collection carries one global order key in storage, not a position inside its parent, so parents and children are ordered in the same sequence. Collections absent from the list keep their relative position after the listed ones.
+   */
+  collection_order?: string[];
+  /**
+   * Which assets belong to which collection, and in what order inside it. An asset belongs to exactly one collection, so an `add` here also moves it out of its previous one.
+   */
+  collection_members?: InstrumentCollectionMembersEdit[];
+  /**
+   * Asset sets to create or update — identity and name only; the order of the sets is `asset_set_order`.
+   */
   asset_sets?: InstrumentAssetSetUpsert[];
+  /**
+   * set_ids to delete outright (their membership goes with them). There is no archive flag — a hidden-but-addressable set is a userState.hidden_set_ids concern, not a catalog one.
+   */
   remove_asset_sets?: string[];
+  /**
+   * Membership delta of the asset sets, in asset_ids, with the full resulting order per set.
+   */
   asset_set_members?: InstrumentMembersEdit[];
+  /**
+   * The FULL final order of set_ids — not a partial reshuffle. Sets absent from the list keep their relative position after the listed ones.
+   */
+  asset_set_order?: string[];
   accept_suggestions?: InstrumentAcceptSuggestion[];
   reject_suggestions?: string[];
   /**
    * Operator's note for this commit — stored verbatim in catalog_audit.reason.
    */
   reason?: string;
-}
-/**
- * The client mints `set_id` itself (same generateId style as deal/primitive ids) and never leaves it to the server. A create is simply a `set_id` the server does not yet know; a `set_id` collision on what the client meant as a create is a `validation_error`, not a silent update.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentSetUpsert".
- */
-export interface InstrumentSetUpsert {
-  /**
-   * Client-minted opaque id. Unknown in the current snapshot -> INSERT (create); known -> UPDATE.
-   */
-  set_id: string;
-  name: string;
-  sort_order?: number;
 }
 /**
  * The client mints `asset_id` itself (same generateId style as deal/primitive ids; for a non-empty asset the first block is the code of its first `members[]` entry). Scalars otherwise behave as a patch — an omitted field keeps its stored value — while `members`, when present, is the WHOLE composition in its final order, exactly like membersEdit.order. Composition has no add/remove form on purpose: an asset holds a handful of members that a manager edits as one picture, and a full statement removes any question about what an absent element means. Omit `members` to leave the composition untouched; send `[]` to empty the asset without deleting it.
@@ -2521,8 +2277,10 @@ export interface InstrumentAssetUpsert {
    * The FULL composition of the asset, in the order it should end up in — not a partial edit. Each element is `{kind, code}` (same identity as catalogAssetMember / a pool entry). A contract listed here whose series is also listed is rejected.
    */
   members?: InstrumentAssetMemberInput[];
+  /**
+   * The collection this asset moves into. Position inside that collection is not stated here — send `commitRequest.collection_members` to fix it.
+   */
   collection_id?: string;
-  collection_sort_order?: number;
 }
 /**
  * Same discriminator and identity as catalogAssetMember (`kind`+`code`). `label` and `market` are snapshot-only and are not written — the server derives them from items/series. A contract listed here whose series is also listed is rejected.
@@ -2536,6 +2294,74 @@ export interface InstrumentAssetMemberInput {
    * Canonical ticker for `listing`, series_code for `series` — case-sensitive, never normalized.
    */
   code: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentListingArchival".
+ */
+export interface InstrumentListingArchival {
+  ticker: string;
+  /**
+   * Free-form note stored with the audit entry (e.g. "expired", "delisted").
+   */
+  reason?: string;
+}
+/**
+ * Write form for a pool series row: copy `code` → `series_code`, `name` → `name`, `underlying` → `underlying_ticker`. The series axis carries no order — `series` is a map, not a list.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentSeriesUpsert".
+ */
+export interface InstrumentSeriesUpsert {
+  series_code: string;
+  name?: string | null;
+  underlying_ticker?: string | null;
+}
+/**
+ * Identity and naming only — position is not stated here; send `commitRequest.collection_order` to fix the order of the tree.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentCollectionUpsert".
+ */
+export interface InstrumentCollectionUpsert {
+  collection_id: string;
+  parent_id?: string | null;
+  name: string;
+}
+/**
+ * An asset lives in exactly ONE collection, so `add` here also states membership: an asset added to a collection leaves the one it was in. Assets that fall out of a collection without being added to another land in the system `_unclassified` bucket. `order`, when present, must list the collection's full membership after add/remove.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentCollectionMembersEdit".
+ */
+export interface InstrumentCollectionMembersEdit {
+  collection_id: string;
+  /**
+   * asset_ids to put into this collection; adding an already-present asset is a no-op, not an error.
+   */
+  add?: string[];
+  /**
+   * asset_ids to drop from this collection — an asset that ends up in no collection is not deleted, it lands in the system `_unclassified` bucket.
+   */
+  remove?: string[];
+  /**
+   * The FULL asset_id order of this collection after add/remove — not a partial reshuffle.
+   */
+  order?: string[];
+}
+/**
+ * Server derives scope/owner — client sends only set_id, name and an optional visibility_tier (default on server: user). Position is not stated here; send `commitRequest.asset_set_order` to fix the order of the sets.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentAssetSetUpsert".
+ */
+export interface InstrumentAssetSetUpsert {
+  set_id: string;
+  name: string;
+  /**
+   * Optional; server default is user.
+   */
+  visibility_tier?: 'manager' | 'user' | 'guest';
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2558,54 +2384,6 @@ export interface InstrumentMembersEdit {
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentListingArchival".
- */
-export interface InstrumentListingArchival {
-  ticker: string;
-  /**
-   * Free-form note stored with the audit entry (e.g. "expired", "delisted").
-   */
-  reason?: string;
-}
-/**
- * Write form for a pool series row: copy `code` → `series_code`, `name` → `name`, `underlying` → `underlying_ticker`. `sort_order` is catalog-only and has no pool counterpart.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentSeriesUpsert".
- */
-export interface InstrumentSeriesUpsert {
-  series_code: string;
-  name?: string | null;
-  sort_order?: number;
-  underlying_ticker?: string | null;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCollectionUpsert".
- */
-export interface InstrumentCollectionUpsert {
-  collection_id: string;
-  parent_id?: string | null;
-  name: string;
-  sort_order?: number;
-}
-/**
- * Server derives scope/owner — client sends only set_id, name, and optional sort_order/visibility_tier (default on server: user).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentAssetSetUpsert".
- */
-export interface InstrumentAssetSetUpsert {
-  set_id: string;
-  name: string;
-  sort_order?: number;
-  /**
-   * Optional; server default is user.
-   */
-  visibility_tier?: 'manager' | 'user' | 'guest';
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentAcceptSuggestion".
  */
 export interface InstrumentAcceptSuggestion {
@@ -2624,7 +2402,6 @@ export interface InstrumentCommitResponse {
   schema: 'afbws.instrument.commit.response.v1';
   request_id: AfbwsCommonV1_RequestId;
   catalog_revision: number;
-  sets: InstrumentCatalogSetView[];
   assets: InstrumentCatalogAsset[];
   items: InstrumentV1[];
   series: InstrumentCatalogSeriesMap;
@@ -2651,14 +2428,14 @@ export interface InstrumentUserRequest {
    */
   base_revision: number;
   /**
-   * Personal sets to create or update — scope is implied, never sent.
+   * Personal sets to create or update — scope is implied, never sent. `visibility_tier` is FORBIDDEN in this operation and is rejected with `validation_error`: a personal set has scope `user`, and the tier is meaningful only for global sets.
    */
-  sets?: InstrumentSetUpsert[];
+  sets?: InstrumentAssetSetUpsert[];
   /**
    * Personal set_ids to delete.
    */
-  remove_sets?: string[];
-  members?: InstrumentMembersEdit[];
+  remove_asset_sets?: string[];
+  asset_set_members?: InstrumentMembersEdit[];
   /**
    * Replaces the whole hidden list, not a delta.
    */
@@ -2910,36 +2687,6 @@ export interface InstrumentErrorDetails {
   tickers?: string[];
   collection_ids?: string[];
   suggestion_ids?: string[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCatalogSet".
- */
-export interface InstrumentCatalogSet {
-  items: InstrumentV1[];
-  groups: InstrumentGroup[];
-  assets: InstrumentAssets;
-}
-/**
- * Storage-oriented composition edge (asset_id + member_type + member_ref + sort_order). Catalog and commit snapshots nest the same fact as `assets[].members` (`kind`/`code`/`label`/`market`, array order = sort_order) and do not emit this object. Both member kinds share ONE running `sort_order`. A series is a member whole. The server enforces that a futures contract may NOT be a `listing` member of an asset whose member its series already is.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentAssetMember".
- */
-export interface InstrumentAssetMember {
-  asset_id: string;
-  /**
-   * `listing` — one instrument record; `series` — a whole futures series with all its expirations.
-   */
-  member_type: 'listing' | 'series';
-  /**
-   * Canonical wire ticker (exactly as in instrument.v1.json) for `listing`, series_code for `series` — case-sensitive, never normalized.
-   */
-  member_ref: string;
-  /**
-   * Position inside the asset, counted across both member types.
-   */
-  sort_order: number;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

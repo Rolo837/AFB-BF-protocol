@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 91930319dbb8c97bad61c75c716bffb8339fa1635e7545ee7e6cf0d7d23e320f
+# source-hash: 80b8e5eeb7690bff0293524b8478aec26a7235ab558798e4c857d4aa25d887cb
 
 from __future__ import annotations
 
@@ -1883,43 +1883,6 @@ class InstrumentAcceptSuggestion(TypedDict):
     collection_id: NotRequired[str]
 
 
-class InstrumentApplyRequest(TypedDict):
-    """
-    DEPRECATED since federated-catalog phase 2 and no longer served — the backend answers it with `unsupported_action`. Its whole-set replace cannot express overlapping sets and has no concurrency guard; `commit` replaces it with a CAS delta on `base_revision`. Kept in the schema only so an older frontend's request still parses into a typed error instead of `invalid_schema`.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.apply.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    items: list[InstrumentV1]
-    groups: list[InstrumentGroup]
-    assets: InstrumentAssets
-
-
-class InstrumentApplyResponse(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.apply.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    items: list[InstrumentV1]
-    groups: list[InstrumentGroup]
-    assets: InstrumentAssets
-
-
-class InstrumentAsset(TypedDict):
-    name: str | None
-
-
-class InstrumentAssetMember(TypedDict):
-    """
-    Storage-oriented composition edge (asset_id + member_type + member_ref + sort_order). Catalog and commit snapshots nest the same fact as `assets[].members` (`kind`/`code`/`label`/`market`, array order = sort_order) and do not emit this object. Both member kinds share ONE running `sort_order`. A series is a member whole. The server enforces that a futures contract may NOT be a `listing` member of an asset whose member its series already is.
-    """
-
-    asset_id: str
-    member_type: Literal["listing", "series"]
-    member_ref: str
-    sort_order: int
-
-
 class InstrumentAssetMemberInput(TypedDict):
     """
     Same discriminator and identity as catalogAssetMember (`kind`+`code`). `label` and `market` are snapshot-only and are not written — the server derives them from items/series. A contract listed here whose series is also listed is rejected.
@@ -1931,24 +1894,22 @@ class InstrumentAssetMemberInput(TypedDict):
 
 class InstrumentAssetSetUpsert(TypedDict):
     """
-    Server derives scope/owner — client sends only set_id, name, and optional sort_order/visibility_tier (default on server: user).
+    Server derives scope/owner — client sends only set_id, name and an optional visibility_tier (default on server: user). Position is not stated here; send `commitRequest.asset_set_order` to fix the order of the sets.
     """
 
     set_id: str
     name: str
-    sort_order: NotRequired[int]
     visibility_tier: NotRequired[Literal["manager", "user", "guest"]]
 
 
 class InstrumentAssetSetView(TypedDict):
     """
-    True asset set (Наборы): metadata plus ordered `asset_ids`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.
+    True asset set (Наборы): metadata plus ordered `asset_ids`. The set's own display position is its position in `asset_sets[]` (and in `userState.sets[]` for a personal set) — there is no order field on the wire; a commit restates that order wholesale through `commitRequest.asset_set_order`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.
     """
 
     set_id: str
     scope: Literal["global", "user"]
     name: str
-    sort_order: int
     owner_user_id: NotRequired[str | None]
     asset_ids: list[str]
     visibility_tier: NotRequired[Literal["manager", "user", "guest"]]
@@ -1978,15 +1939,11 @@ class InstrumentAssetUpsert(TypedDict):
     reference_series_code: NotRequired[str | None]
     members: NotRequired[list[InstrumentAssetMemberInput]]
     collection_id: NotRequired[str]
-    collection_sort_order: NotRequired[int]
-
-
-InstrumentAssets: TypeAlias = dict[str, InstrumentAsset]
 
 
 class InstrumentCatalogAsset(TypedDict):
     """
-    An asset is a small bundle of instruments that share a pricing source and therefore tell one economic story: "Brent oil" is the BR-* and BRM-* series together, "Sberbank" is the share plus its futures series. Two jobs justify the level. It is the unit sets are built from, so a set survives expirations without being re-edited; and it is the carrier of reference data (MOEX positions, HHI), so analytics have one place to attach to instead of guessing which contract of which series to read. Assets are always global — the personal sets of phase 3 are assembled from the same manager-curated assets, which is what keeps that phase thin. An asset that is in no set is a normal state: it shows up as unassigned for a manager and is omitted from a user's catalog snapshot. Composition is nested as ordered `members`; catalog/commit snapshots do not emit a parallel `asset_members` array.
+    An asset is a small bundle of instruments that share a pricing source and therefore tell one economic story: "Brent oil" is the BR-* and BRM-* series together, "Sberbank" is the share plus its futures series. Two jobs justify the level. It is the unit sets are built from, so a set survives expirations without being re-edited; and it is the carrier of reference data (MOEX positions, HHI), so analytics have one place to attach to instead of guessing which contract of which series to read. Assets are always global — the personal sets of phase 3 are assembled from the same manager-curated assets, which is what keeps that phase thin. An asset that is in no set is a normal state: it shows up as unassigned for a manager and is omitted from a user's catalog snapshot. Composition is nested as ordered `members` on the asset itself; array position is the order.
     """
 
     asset_id: str
@@ -1994,7 +1951,6 @@ class InstrumentCatalogAsset(TypedDict):
     reference_series_code: NotRequired[str | None]
     members: list[InstrumentCatalogAssetMember]
     collection_id: NotRequired[str]
-    collection_sort_order: NotRequired[int]
 
 
 class InstrumentCatalogAssetMember(TypedDict):
@@ -2010,7 +1966,7 @@ class InstrumentCatalogAssetMember(TypedDict):
 
 class InstrumentCatalogRequest(TypedDict):
     """
-    The wire form is identical for a user and a manager; completeness (unassigned assets) is applied server-side from the caller's role — sets/assets no longer carry an archived flag, so the only completeness axis left is whether an asset belongs to any set. Ordinary working-panel clients keep using `list` v2 — `catalog` is the Assets-modal snapshot.
+    The wire form is identical for a user and a manager; completeness (unassigned assets) is applied server-side from the caller's role — sets/assets no longer carry an archived flag, so the only completeness axis left is whether an asset belongs to any set. `catalog` is the Assets-modal snapshot and the only read of the curated catalog.
     """
 
     channel: Literal["instrument"]
@@ -2020,14 +1976,13 @@ class InstrumentCatalogRequest(TypedDict):
 
 class InstrumentCatalogResponse(TypedDict):
     """
-    Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Membership is `sets[].asset_ids` in display order. Composition is `assets[].members` (`kind`/`code`/`label`/`market`) in display order. There are no parallel `memberships` or `asset_members` arrays. `items` are the canonical instrument records (including materialized futures contracts); `series` is the futures-series axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `sets[].asset_ids`.
+    Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Membership is `asset_sets[].asset_ids` in display order. Composition is `assets[].members` (`kind`/`code`/`label`/`market`) in display order. Order is always array position — no entity on this wire carries an order field. `items` are the canonical instrument records (including materialized futures contracts); `series` is the futures-series axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `asset_sets[].asset_ids`.
     """
 
     channel: Literal["instrument"]
     schema: Literal["afbws.instrument.catalog.response.v1"]
     request_id: AfbwsCommonV1RequestId
     catalog_revision: int
-    sets: list[InstrumentCatalogSetView]
     assets: list[InstrumentCatalogAsset]
     items: list[InstrumentV1]
     series: InstrumentCatalogSeriesMap
@@ -2039,48 +1994,14 @@ class InstrumentCatalogResponse(TypedDict):
 
 class InstrumentCatalogSeries(TypedDict):
     """
-    An axis of its own, independent of sets: it groups the successive expirations of one futures contract and is unaffected by set membership.
+    An axis of its own, independent of sets: it groups the successive expirations of one futures contract and is unaffected by set membership. Carries no order: `series` is a JSON object (catalogSeriesMap), and the order of an object's members is not semantic. Should the series axis ever need an order, the right move is to turn `series` into an array — not to bring an order field back.
     """
 
     name: str | None
-    sort_order: NotRequired[int]
     underlying_ticker: NotRequired[str | None]
 
 
 InstrumentCatalogSeriesMap: TypeAlias = dict[str, InstrumentCatalogSeries]
-
-
-class InstrumentCatalogSet(TypedDict):
-    items: list[InstrumentV1]
-    groups: list[InstrumentGroup]
-    assets: InstrumentAssets
-
-
-class InstrumentCatalogSetEntry(TypedDict):
-    """
-    DEPRECATED compatibility projection of collections — Sets overlap by design: an asset may belong to any number of them, or to none. `set_id` is the stable identity — an opaque id minted by the client on create (see setUpsert) and stored as-is; the server never rewrites it. The old system/global division is gone — every non-personal set is `global` and is curated by a manager; `user` sets are the personal selections of phase 3 and are the only ones carrying `owner_user_id`. This object is metadata only: it does not carry `asset_ids`. Catalog/commit snapshots use catalogSetView (metadata + ordered `asset_ids`). Phase-3 `userState.sets` uses this metadata object and states membership only via `userState.memberships` (setMembership edges) — the two representations are not mixed.
-    """
-
-    set_id: str
-    scope: Literal["global", "user"]
-    name: str
-    sort_order: int
-    owner_user_id: NotRequired[str | None]
-    visibility_tier: NotRequired[Literal["manager", "user", "guest"]]
-
-
-class InstrumentCatalogSetView(TypedDict):
-    """
-    DEPRECATED compatibility projection of collections. The UI snapshot form of a set. Same identity fields as catalogSetEntry, plus required `asset_ids` in display order. Catalog and commit responses use this object and do not emit a parallel `memberships` array. Not used by phase-3 userState, which keeps edge memberships on catalogSetEntry metadata.
-    """
-
-    set_id: str
-    scope: Literal["global", "user"]
-    name: str
-    sort_order: int
-    owner_user_id: NotRequired[str | None]
-    asset_ids: list[str]
-    visibility_tier: NotRequired[Literal["manager", "user", "guest"]]
 
 
 class InstrumentCatalogSource(TypedDict):
@@ -2099,42 +2020,59 @@ class InstrumentCatalogSource(TypedDict):
 
 
 class InstrumentCollection(TypedDict):
+    """
+    Order is carried by array position: `collections[]` already arrives in the order the tree is drawn in (the children of one `parent_id` follow one another), so there is no order field on the wire. A commit restates that order wholesale through `commitRequest.collection_order`.
+    """
+
     collection_id: str
     parent_id: NotRequired[str | None]
     name: str
-    sort_order: int
     pending: NotRequired[bool]
 
 
+class InstrumentCollectionMembersEdit(TypedDict):
+    """
+    An asset lives in exactly ONE collection, so `add` here also states membership: an asset added to a collection leaves the one it was in. Assets that fall out of a collection without being added to another land in the system `_unclassified` bucket. `order`, when present, must list the collection's full membership after add/remove.
+    """
+
+    collection_id: str
+    add: NotRequired[list[str]]
+    remove: NotRequired[list[str]]
+    order: NotRequired[list[str]]
+
+
 class InstrumentCollectionUpsert(TypedDict):
+    """
+    Identity and naming only — position is not stated here; send `commitRequest.collection_order` to fix the order of the tree.
+    """
+
     collection_id: str
     parent_id: NotRequired[str | None]
     name: str
-    sort_order: NotRequired[int]
 
 
 class InstrumentCommitRequest(TypedDict):
     """
-    Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `sets`, `remove_sets`, `assets`, `remove_assets`, `members`, `listings`/`archive_listings`, `series`. The server plans the whole delta before applying, so a listing or series upserted in this same request may be referenced from `assets[].members` even though those sections are written later — that is how a pending pool entry and the asset composition that contains it travel atomically. A set created here can be filled by `members` in the same request, and an asset created here can be put into that set, because both exist by the time `members` runs — `members`/other same-commit references use the same client-minted `set_id`/`asset_id` the `setUpsert`/`assetUpsert` entry carries. `set_id` and `asset_id` are always client-minted opaque ids (setUpsert/assetUpsert), never generated by the server: a `set_id`/`asset_id` absent from the base snapshot is an INSERT, one already present is an UPDATE, and the server never rewrites an id it is given.
+    Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `asset_sets`, `remove_asset_sets`, `assets`, `remove_assets`, `asset_set_members`, `listings`/`archive_listings`, `series`, `collections`, `remove_collections`, `collection_members`. The server plans the whole delta before applying, so a listing or series upserted in this same request may be referenced from `assets[].members` even though those sections are written later — that is how a pending pool entry and the asset composition that contains it travel atomically. A set created here can be filled by `asset_set_members` in the same request, and an asset created here can be put into that set, because both exist by the time `asset_set_members` runs — `asset_set_members`/other same-commit references use the same client-minted `set_id`/`asset_id` the `assetSetUpsert`/`assetUpsert` entry carries. Order is never a field on an entity: `asset_set_order`, `collection_order`, and the `order` of `asset_set_members`/`collection_members` each state a FULL final order, and every read snapshot carries order as array position. `set_id` and `asset_id` are always client-minted opaque ids (assetSetUpsert/assetUpsert), never generated by the server: a `set_id`/`asset_id` absent from the base snapshot is an INSERT, one already present is an UPDATE, and the server never rewrites an id it is given.
     """
 
     channel: Literal["instrument"]
     schema: Literal["afbws.instrument.commit.request.v1"]
     request_id: AfbwsCommonV1RequestId
     base_revision: int
-    sets: NotRequired[list[InstrumentSetUpsert]]
-    remove_sets: NotRequired[list[str]]
     assets: NotRequired[list[InstrumentAssetUpsert]]
     remove_assets: NotRequired[list[str]]
-    members: NotRequired[list[InstrumentMembersEdit]]
     listings: NotRequired[list[InstrumentV1]]
     archive_listings: NotRequired[list[InstrumentListingArchival]]
     series: NotRequired[list[InstrumentSeriesUpsert]]
     collections: NotRequired[list[InstrumentCollectionUpsert]]
     remove_collections: NotRequired[list[str]]
+    collection_order: NotRequired[list[str]]
+    collection_members: NotRequired[list[InstrumentCollectionMembersEdit]]
     asset_sets: NotRequired[list[InstrumentAssetSetUpsert]]
     remove_asset_sets: NotRequired[list[str]]
     asset_set_members: NotRequired[list[InstrumentMembersEdit]]
+    asset_set_order: NotRequired[list[str]]
     accept_suggestions: NotRequired[list[InstrumentAcceptSuggestion]]
     reject_suggestions: NotRequired[list[str]]
     reason: NotRequired[str]
@@ -2149,7 +2087,6 @@ class InstrumentCommitResponse(TypedDict):
     schema: Literal["afbws.instrument.commit.response.v1"]
     request_id: AfbwsCommonV1RequestId
     catalog_revision: int
-    sets: list[InstrumentCatalogSetView]
     assets: list[InstrumentCatalogAsset]
     items: list[InstrumentV1]
     series: InstrumentCatalogSeriesMap
@@ -2214,16 +2151,6 @@ class InstrumentGetResponse(TypedDict):
     item: InstrumentV1
 
 
-class InstrumentGroup(TypedDict):
-    """
-    `key` is no longer a readable slug — since the federated-catalog client-ids change, the backend emits the set's opaque `set_id` here (catalogSetEntry.set_id). Legacy v1 clients treat it as an unstructured handle, so the format change is invisible to them; new code should use `list` v2 / `catalog` instead of parsing this field.
-    """
-
-    key: str
-    name: str
-    order: NotRequired[int | None]
-
-
 class InstrumentInventoryListingEntry(TypedDict):
     kind: Literal["listing"]
     instrument_type: Literal["stock", "currency", "index", "futures"]
@@ -2283,63 +2210,6 @@ class InstrumentInventorySeriesEntry(TypedDict):
 InstrumentInventoryEntry: TypeAlias = (
     InstrumentInventoryListingEntry | InstrumentInventorySeriesEntry
 )
-
-
-class InstrumentListAssetV2(TypedDict):
-    asset_id: str
-    name: str
-    collection_id: NotRequired[str]
-    collection_sort_order: NotRequired[int]
-
-
-class InstrumentListRequest(TypedDict):
-    """
-    DEPRECATED since federated-catalog phase 2 — still served by the backend for old frontends. The group/asset shape it answers with is a legacy projection, not the authoritative form. New working-catalog clients must use `list` v2. `catalog` is the Assets-modal UI snapshot (same form for any authenticated caller; completeness is role-based) and is not a replacement for `list`.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.list.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-
-
-class InstrumentListRequestV2(TypedDict):
-    """
-    Returns the complete public working snapshot used by ordinary authenticated clients; the request has no filters.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.list.request.v2"]
-    request_id: AfbwsCommonV1RequestId
-
-
-class InstrumentListResponse(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.list.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    items: list[InstrumentV1]
-    groups: list[InstrumentGroup]
-    assets: InstrumentAssets
-
-
-class InstrumentListResponseV2(TypedDict):
-    """
-    The working shape keeps the list v1 genre (sets + assets + flat items), but `assets` are curated assets rather than the legacy ISS series map and each `items` entry is an already-expanded publicListing — clients must not join series or futoi data. The relation is M:N: one row exists in `assets[]`, the same `asset_id` may occur in several `sets[].asset_ids`, and listing cards must not be duplicated for that reason. Manager internals are omitted: no archived/unassigned/catalog_revision/memberships/asset_members/series. There is no manager-defined order inside an asset; clients sort futures by expiration and all other listings by name/ticker.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.list.response.v2"]
-    request_id: AfbwsCommonV1RequestId
-    sets: list[InstrumentListSetV2]
-    assets: list[InstrumentListAssetV2]
-    items: list[InstrumentPublicListing]
-    collections: NotRequired[list[InstrumentCollection]]
-    asset_sets: NotRequired[list[InstrumentAssetSetView]]
-
-
-class InstrumentListSetV2(TypedDict):
-    set_id: str
-    name: str
-    asset_ids: list[str]
 
 
 class InstrumentListingArchival(TypedDict):
@@ -2408,25 +2278,6 @@ class InstrumentPoolSeriesEntry(TypedDict):
 
 
 InstrumentPoolEntry: TypeAlias = InstrumentPoolListingEntry | InstrumentPoolSeriesEntry
-
-
-class InstrumentPublicListing(TypedDict):
-    ticker: str
-    asset_id: str
-    exchange: str
-    board: str
-    market: Literal["stock", "futures", "currency", "index"]
-    name: NotRequired[str | None]
-    shortname: NotRequired[str | None]
-    lot_size: NotRequired[int | None]
-    price_step: NotRequired[DecimalString]
-    prev_close: NotRequired[DecimalString]
-    decimals: NotRequired[int | None]
-    currency: NotRequired[str | None]
-    expiration: NotRequired[str]
-    margin: NotRequired[DecimalString]
-    step_price: NotRequired[DecimalString]
-    isin: NotRequired[str]
 
 
 class InstrumentRefreshArchivedEntry(TypedDict):
@@ -2504,33 +2355,12 @@ class InstrumentResolveResponse(TypedDict):
 
 class InstrumentSeriesUpsert(TypedDict):
     """
-    Write form for a pool series row: copy `code` → `series_code`, `name` → `name`, `underlying` → `underlying_ticker`. `sort_order` is catalog-only and has no pool counterpart.
+    Write form for a pool series row: copy `code` → `series_code`, `name` → `name`, `underlying` → `underlying_ticker`. The series axis carries no order — `series` is a map, not a list.
     """
 
     series_code: str
     name: NotRequired[str | None]
-    sort_order: NotRequired[int]
     underlying_ticker: NotRequired[str | None]
-
-
-class InstrumentSetMembership(TypedDict):
-    """
-    Storage / phase-3 overlay form of a set→asset edge. Catalog and commit snapshots nest the same fact as `sets[].asset_ids` (array order = sort_order) and do not emit this object. A set contains ASSETS, never listings directly: "Commodities" holds "Brent oil", and the instruments follow from the asset. That indirection is what keeps membership stable across expirations. Corrected in phase 2.5: the edge used to name a `ticker`, from before assets existed.
-    """
-
-    set_id: str
-    asset_id: str
-    sort_order: int
-
-
-class InstrumentSetUpsert(TypedDict):
-    """
-    The client mints `set_id` itself (same generateId style as deal/primitive ids) and never leaves it to the server. A create is simply a `set_id` the server does not yet know; a `set_id` collision on what the client meant as a create is a `validation_error`, not a silent update.
-    """
-
-    set_id: str
-    name: str
-    sort_order: NotRequired[int]
 
 
 class InstrumentSourcesRequest(TypedDict):
@@ -2555,9 +2385,9 @@ class InstrumentUserRequest(TypedDict):
     schema: Literal["afbws.instrument.user.request.v1"]
     request_id: AfbwsCommonV1RequestId
     base_revision: int
-    sets: NotRequired[list[InstrumentSetUpsert]]
-    remove_sets: NotRequired[list[str]]
-    members: NotRequired[list[InstrumentMembersEdit]]
+    sets: NotRequired[list[InstrumentAssetSetUpsert]]
+    remove_asset_sets: NotRequired[list[str]]
+    asset_set_members: NotRequired[list[InstrumentMembersEdit]]
     hidden_set_ids: NotRequired[list[str]]
     order: NotRequired[list[str]]
 
@@ -2571,16 +2401,10 @@ class InstrumentUserResponse(TypedDict):
 
 
 InstrumentChannelV1Message: TypeAlias = (
-    InstrumentListRequest
-    | InstrumentListResponse
-    | InstrumentListRequestV2
-    | InstrumentListResponseV2
-    | InstrumentGetRequest
+    InstrumentGetRequest
     | InstrumentGetResponse
     | InstrumentPoolRequest
     | InstrumentPoolResponse
-    | InstrumentApplyRequest
-    | InstrumentApplyResponse
     | InstrumentResolveRequest
     | InstrumentResolveResponse
     | InstrumentDetailRequest
@@ -2603,12 +2427,11 @@ InstrumentChannelV1Message: TypeAlias = (
 
 class InstrumentUserState(TypedDict):
     """
-    Phase 3 payload, declared now so clients can be written against the final shape. The phase 2 backend never emits it and rejects `user` requests with `unsupported_action`. `sets[]` are catalogSetEntry metadata only — no nested `asset_ids`. Membership of personal sets is stated solely by `memberships` (setMembership edges) pointing at the same global assets a manager curates.
+    The caller's personal overlay, served next to the global catalog. `sets[]` are full assetSetView objects — every entry has scope "user" and carries its own membership inline as ordered `asset_ids`; there is no parallel membership array. Personal sets are assembled from the same global assets a manager curates: a user never owns an asset of their own.
     """
 
     revision: int
-    sets: list[InstrumentCatalogSetEntry]
-    memberships: list[InstrumentSetMembership]
+    sets: list[InstrumentAssetSetView]
     hidden_set_ids: list[str]
     order: list[str]
 

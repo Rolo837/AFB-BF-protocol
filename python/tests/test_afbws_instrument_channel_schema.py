@@ -5,7 +5,6 @@ not part of the afb.execution.v1 AFB<->BF wire. Replaces legacy
 `account/get_catalog`+`get_instrument`+`resolve_instrument`."""
 from __future__ import annotations
 
-import hashlib
 import json
 
 import pytest
@@ -24,48 +23,11 @@ _ITEM = {
 
 _POOL_ITEM = {**_ITEM, "group": None, "source": "arena"}
 
-# --- list v2 (daily working snapshot) fixtures -----------------------------
+# --- federated catalog: assets / series fixtures ----------------------------
 
-_PUBLIC_LISTING = {
-    "ticker": "SBER",
-    "asset_id": "asset:SBER",
-    "exchange": "MOEX",
-    "board": "TQBR",
-    "market": "stock",
-    "name": "Сбербанк",
-    "shortname": "Сбер",
-    "lot_size": 10,
-    "price_step": "0.01",
-    "prev_close": "317.42",
-    "decimals": 2,
-    "currency": "RUB",
-    "isin": "RU0009029540",
-}
-_LIST_V2_SNAPSHOT = {
-    "sets": [{"set_id": "global:Stocks", "name": "Акции", "asset_ids": ["asset:SBER"]}],
-    "assets": [{"asset_id": "asset:SBER", "name": "Сбербанк"}],
-    "items": [_PUBLIC_LISTING],
-}
+_SERIES_MAP = {"Si": {"name": "Доллар США", "underlying_ticker": None}}
 
-# --- phase 2 (federated catalog: sets/memberships/series) fixtures ----------
-
-_SET_META = {
-    "set_id": "set-blue-chips",
-    "scope": "global",
-    "name": "Голубые фишки",
-    "sort_order": 10,
-}
-_SET = {**_SET_META, "asset_ids": ["asset-sber"]}
-_USER_SET = {
-    "set_id": "set-mine",
-    "scope": "user",
-    "name": "Мои",
-    "sort_order": 0,
-    "owner_user_id": "u-42",
-}
-_SERIES_MAP = {"Si": {"name": "Доллар США", "sort_order": 1, "underlying_ticker": None}}
-
-# --- phase 2.5 (assets between a listing and a set) fixtures ----------------
+# --- assets (the level between a listing and a set) fixtures ----------------
 
 _CATALOG_MEMBER_BR = {"kind": "series", "code": "BR", "label": "Нефть Brent", "market": "futures"}
 _CATALOG_MEMBER_BRM = {"kind": "series", "code": "BRM", "label": "Нефть Brent mini", "market": "futures"}
@@ -83,30 +45,14 @@ _SBER_ASSET = {
     "reference_series_code": None,
     "members": [_CATALOG_MEMBER_SBER],
 }
-_ASSET_MEMBER = {"asset_id": "asset-brent", "member_type": "series", "member_ref": "BR", "sort_order": 0}
-_ASSET_MEMBERS = [
-    _ASSET_MEMBER,
-    {"asset_id": "asset-brent", "member_type": "series", "member_ref": "BRM", "sort_order": 1},
-    {"asset_id": "asset-sber", "member_type": "listing", "member_ref": "SBER", "sort_order": 0},
-]
-# A set holds ASSETS since phase 2.5 — never tickers.
-_MEMBERSHIP = {"set_id": "set-blue-chips", "asset_id": "asset-sber", "sort_order": 0}
-_USER_STATE = {
-    "revision": 3,
-    "sets": [_USER_SET],
-    "memberships": [{"set_id": "set-mine", "asset_id": "asset-sber", "sort_order": 0}],
-    "hidden_set_ids": ["set-blue-chips"],
-    "order": ["set-mine", "set-blue-chips"],
-}
 _SNAPSHOT = {
     "catalog_revision": 17,
-    "sets": [_SET],
     "assets": [_ASSET, _SBER_ASSET],
     "items": [_ITEM],
     "series": _SERIES_MAP,
 }
 
-# --- phase 2.5 (catalog sources / on-demand refresh) fixtures ---------------
+# --- catalog sources / on-demand refresh fixtures ---------------------------
 
 _SOURCE = {
     "source_id": "moex",
@@ -135,14 +81,12 @@ _COLLECTION = {
     "collection_id": "col-stocks",
     "parent_id": None,
     "name": "Акции",
-    "sort_order": 0,
     "pending": False,
 }
 _ASSET_SET_GLOBAL = {
     "set_id": "set-blue",
     "scope": "global",
     "name": "Голубые",
-    "sort_order": 1,
     "asset_ids": ["asset-sber"],
     "visibility_tier": "manager",
 }
@@ -150,9 +94,15 @@ _ASSET_SET_USER = {
     "set_id": "set-mine",
     "scope": "user",
     "name": "Мои",
-    "sort_order": 0,
     "owner_user_id": "u-42",
-    "asset_ids": [],
+    "asset_ids": ["asset-sber"],
+}
+# The personal overlay: own sets, carrying their membership inline.
+_USER_STATE = {
+    "revision": 3,
+    "sets": [_ASSET_SET_USER],
+    "hidden_set_ids": ["set-blue"],
+    "order": ["set-mine", "set-blue"],
 }
 _INVENTORY_LISTING = {
     "kind": "listing",
@@ -184,133 +134,6 @@ def _validator(def_name: str, registry):
     from jsonschema import Draft202012Validator
 
     return Draft202012Validator({"$ref": f"{CHANNEL_ID}#/$defs/{def_name}"}, registry=registry)
-
-
-# --- list ------------------------------------------------------------------
-
-def test_list_request_no_filters(registry):
-    msg = {"channel": "instrument", "schema": "afbws.instrument.list.request.v1", "request_id": "r1"}
-    _validator("listRequest", registry).validate(msg)  # does not raise
-
-
-def test_list_response_valid(registry):
-    msg = {
-        "channel": "instrument", "schema": "afbws.instrument.list.response.v1", "request_id": "r1",
-        "items": [_ITEM],
-        "groups": [{"key": "Stocks", "name": "Акции", "order": 3}],
-        "assets": {"SBER": {"name": "Сбербанк"}},
-    }
-    _validator("listResponse", registry).validate(msg)  # does not raise
-
-
-def test_list_response_missing_groups_rejected(registry):
-    from jsonschema import ValidationError
-
-    msg = {
-        "channel": "instrument", "schema": "afbws.instrument.list.response.v1", "request_id": "r1",
-        "items": [_ITEM], "assets": {},
-    }
-    with pytest.raises(ValidationError):
-        _validator("listResponse", registry).validate(msg)
-
-
-def test_list_v2_request_no_filters(registry):
-    msg = {"channel": "instrument", "schema": "afbws.instrument.list.request.v2", "request_id": "r1"}
-    _validator("listRequestV2", registry).validate(msg)  # does not raise
-
-
-def test_list_v2_response_plan_example_valid(registry):
-    msg = {
-        "channel": "instrument", "schema": "afbws.instrument.list.response.v2", "request_id": "r1",
-        **_LIST_V2_SNAPSHOT,
-    }
-    _validator("listResponseV2", registry).validate(msg)  # does not raise
-
-
-def test_list_v2_response_missing_sets_rejected(registry):
-    from jsonschema import ValidationError
-
-    msg = {
-        "channel": "instrument", "schema": "afbws.instrument.list.response.v2", "request_id": "r1",
-        **{k: v for k, v in _LIST_V2_SNAPSHOT.items() if k != "sets"},
-    }
-    with pytest.raises(ValidationError):
-        _validator("listResponseV2", registry).validate(msg)
-
-
-@pytest.mark.parametrize(
-    ("field", "value"),
-    [
-        ("asset_members", []),
-        ("series", {}),
-        ("catalog_revision", 17),
-    ],
-)
-def test_list_v2_response_rejects_manager_internals(registry, field, value):
-    from jsonschema import ValidationError
-
-    msg = {
-        "channel": "instrument", "schema": "afbws.instrument.list.response.v2", "request_id": "r1",
-        **_LIST_V2_SNAPSHOT, field: value,
-    }
-    with pytest.raises(ValidationError):
-        _validator("listResponseV2", registry).validate(msg)
-
-
-@pytest.mark.parametrize("field", ["schema", "group", "source", "futoi_code"])
-def test_public_listing_rejects_catalog_internal_fields(registry, field):
-    from jsonschema import ValidationError
-
-    with pytest.raises(ValidationError):
-        _validator("publicListing", registry).validate({**_PUBLIC_LISTING, field: "forbidden"})
-
-
-def test_public_listing_keeps_market_class_gating(registry):
-    from jsonschema import ValidationError
-
-    with pytest.raises(ValidationError):
-        _validator("publicListing", registry).validate({**_PUBLIC_LISTING, "expiration": "2026-09-17"})
-
-    future = {
-        **_PUBLIC_LISTING,
-        "ticker": "SRU6",
-        "market": "futures",
-    }
-    future.pop("isin")
-    with pytest.raises(ValidationError):
-        _validator("publicListing", registry).validate({**future, "isin": "RU0009029540"})
-
-
-# Canonical sha256 of the five list.v2 $defs as of v2.5.5. Catalog/pool
-# redesign must not touch this projection.
-_LIST_V2_DEF_NAMES = (
-    "publicListing",
-    "listSetV2",
-    "listAssetV2",
-    "listRequestV2",
-    "listResponseV2",
-)
-_LIST_V2_DEFS_SHA256 = "8e22871197ce1a4d32d4c596eb2a07dd175316cb5b86625dbb96900e6c90da2b"
-
-
-def test_list_v2_defs_are_byte_stable_against_v2_5_5():
-    defs = {name: _channel_doc()["$defs"][name] for name in _LIST_V2_DEF_NAMES}
-    digest = hashlib.sha256(
-        json.dumps(defs, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-    ).hexdigest()
-    assert digest == _LIST_V2_DEFS_SHA256
-
-
-def test_list_v2_schema_consts_and_required_fields_unchanged():
-    defs = _channel_doc()["$defs"]
-    assert defs["listRequestV2"]["properties"]["schema"]["const"] == "afbws.instrument.list.request.v2"
-    assert defs["listResponseV2"]["properties"]["schema"]["const"] == "afbws.instrument.list.response.v2"
-    assert defs["publicListing"]["required"] == ["ticker", "asset_id", "exchange", "board", "market"]
-    assert defs["listSetV2"]["required"] == ["set_id", "name", "asset_ids"]
-    assert defs["listAssetV2"]["required"] == ["asset_id", "name"]
-    assert "members" not in defs["listAssetV2"]["properties"]
-    assert "memberships" not in defs["listResponseV2"]["properties"]
-    assert "catalog_revision" not in defs["listResponseV2"]["properties"]
 
 
 # --- get ---------------------------------------------------------------
@@ -574,36 +397,6 @@ def test_pool_entry_discriminator_rejects_unknown_kind(registry):
         })
 
 
-# --- apply (manager only, bulk-replace) -------------------------------------
-
-def test_apply_request_and_response_valid(registry):
-    payload = {
-        "items": [_ITEM],
-        "groups": [{"key": "Stocks", "name": "Акции"}],
-        "assets": {"SBER": {"name": "Сбербанк"}},
-    }
-    req = {
-        "channel": "instrument", "schema": "afbws.instrument.apply.request.v1", "request_id": "r1",
-        **payload,
-    }
-    _validator("applyRequest", registry).validate(req)  # does not raise
-    resp = {
-        "channel": "instrument", "schema": "afbws.instrument.apply.response.v1", "request_id": "r1",
-        **payload,
-    }
-    _validator("applyResponse", registry).validate(resp)  # does not raise
-
-
-def test_apply_request_unassigned_item_null_group(registry):
-    payload = {
-        "items": [{**_ITEM, "group": None}],
-        "groups": [{"key": "Stocks", "name": "Акции"}],
-        "assets": {},
-    }
-    req = {"channel": "instrument", "schema": "afbws.instrument.apply.request.v1", "request_id": "r1", **payload}
-    _validator("applyRequest", registry).validate(req)  # does not raise
-
-
 # --- resolve -----------------------------------------------------------
 
 def test_resolve_request_draft_or_tradeplan_id(registry):
@@ -681,95 +474,7 @@ def test_detail_response_missing_broker_instrument_rejected(registry):
         _validator("detailResponse", registry).validate(msg)
 
 
-# --- phase 2: catalogSetEntry / setMembership / series / userState ---------
-
-def test_catalog_set_entry_global_and_user_valid(registry):
-    _validator("catalogSetEntry", registry).validate(_SET_META)  # does not raise
-    _validator("catalogSetEntry", registry).validate(_USER_SET)  # does not raise
-
-
-def test_catalog_set_entry_scope_system_rejected(registry):
-    """The system/global division is gone — only global|user exist in this form."""
-    from jsonschema import ValidationError
-
-    with pytest.raises(ValidationError):
-        _validator("catalogSetEntry", registry).validate({**_SET_META, "scope": "system"})
-
-
-def test_catalog_set_entry_requires_identity_fields(registry):
-    from jsonschema import ValidationError
-
-    for missing in ("set_id", "scope", "name", "sort_order"):
-        payload = {k: v for k, v in _SET_META.items() if k != missing}
-        with pytest.raises(ValidationError):
-            _validator("catalogSetEntry", registry).validate(payload)
-
-
-def test_catalog_set_entry_rejects_nested_asset_ids(registry):
-    """userState membership is edges only — catalogSetEntry must not also carry asset_ids."""
-    from jsonschema import ValidationError
-
-    with pytest.raises(ValidationError):
-        _validator("catalogSetEntry", registry).validate(_SET)
-
-
-def test_catalog_set_view_valid(registry):
-    _validator("catalogSetView", registry).validate(_SET)  # does not raise
-    _validator("catalogSetView", registry).validate({**_SET, "asset_ids": []})
-
-
-def test_catalog_set_view_requires_asset_ids(registry):
-    from jsonschema import ValidationError
-
-    with pytest.raises(ValidationError):
-        _validator("catalogSetView", registry).validate(_SET_META)
-    for missing in ("set_id", "scope", "name", "sort_order", "asset_ids"):
-        payload = {k: v for k, v in _SET.items() if k != missing}
-        with pytest.raises(ValidationError):
-            _validator("catalogSetView", registry).validate(payload)
-
-
-def test_catalog_set_entry_rejects_unknown_property(registry):
-    from jsonschema import ValidationError
-
-    with pytest.raises(ValidationError):
-        _validator("catalogSetEntry", registry).validate({**_SET_META, "parent_id": "x"})
-
-
-def test_catalog_set_entry_owner_user_id_nullable(registry):
-    _validator("catalogSetEntry", registry).validate({**_SET_META, "owner_user_id": None})  # does not raise
-
-
-def test_set_membership_valid(registry):
-    _validator("setMembership", registry).validate(_MEMBERSHIP)  # does not raise
-
-
-def test_set_membership_requires_sort_order(registry):
-    from jsonschema import ValidationError
-
-    with pytest.raises(ValidationError):
-        _validator("setMembership", registry).validate({"set_id": "set-blue-chips", "asset_id": "asset-sber"})
-
-
-def test_set_membership_rejects_unknown_property(registry):
-    from jsonschema import ValidationError
-
-    with pytest.raises(ValidationError):
-        _validator("setMembership", registry).validate({**_MEMBERSHIP, "group": "Stocks"})
-
-
-def test_set_membership_names_an_asset_not_a_ticker(registry):
-    """Phase 2.5 correction: a set holds assets. The phase 2 shape (`ticker`)
-    is not accepted any more — and `asset_id` is not optional."""
-    from jsonschema import ValidationError
-
-    with pytest.raises(ValidationError):
-        _validator("setMembership", registry).validate(
-            {"set_id": "set-blue-chips", "ticker": "SBER", "sort_order": 0}
-        )
-
-
-# --- phase 2.5: catalogAsset / assetMember ----------------------------------
+# --- catalogAsset / catalogAssetMember --------------------------------------
 
 def test_catalog_asset_valid(registry):
     _validator("catalogAsset", registry).validate(_ASSET)  # does not raise
@@ -791,7 +496,7 @@ def test_catalog_asset_reference_series_is_optional(registry):
 
 
 def test_catalog_asset_has_no_scope_or_owner(registry):
-    """Assets are always global — phase 3 personal sets reuse the same ones."""
+    """Assets are always global — personal sets reuse the very same ones."""
     from jsonschema import ValidationError
 
     for extra in ({"scope": "user"}, {"owner_user_id": "u-42"}):
@@ -839,38 +544,6 @@ def test_catalog_asset_member_rejects_old_edge_fields(registry):
             _validator("catalogAssetMember", registry).validate({**_CATALOG_MEMBER_SBER, **extra})
 
 
-def test_asset_member_valid_for_both_kinds(registry):
-    for member in _ASSET_MEMBERS:
-        _validator("assetMember", registry).validate(member)  # does not raise
-
-
-def test_asset_member_type_outside_enum_rejected(registry):
-    """Only two kinds of member exist: a listing, or a whole series."""
-    from jsonschema import ValidationError
-
-    for bad in ("contract", "asset", "set", ""):
-        with pytest.raises(ValidationError):
-            _validator("assetMember", registry).validate({**_ASSET_MEMBER, "member_type": bad})
-
-
-def test_asset_member_requires_every_field(registry):
-    from jsonschema import ValidationError
-
-    for missing in ("asset_id", "member_type", "member_ref", "sort_order"):
-        payload = {k: v for k, v in _ASSET_MEMBER.items() if k != missing}
-        with pytest.raises(ValidationError):
-            _validator("assetMember", registry).validate(payload)
-
-
-def test_asset_member_has_no_separate_ticker_and_series_fields(registry):
-    """One polymorphic `member_ref`, not a ticker column plus a series column."""
-    from jsonschema import ValidationError
-
-    for extra in ({"ticker": "SBER"}, {"series_code": "BR"}):
-        with pytest.raises(ValidationError):
-            _validator("assetMember", registry).validate({**_ASSET_MEMBER, **extra})
-
-
 def test_catalog_series_and_map_valid(registry):
     _validator("catalogSeries", registry).validate({"name": None})  # does not raise
     _validator("catalogSeriesMap", registry).validate(_SERIES_MAP)  # does not raise
@@ -881,7 +554,7 @@ def test_catalog_series_requires_name(registry):
     from jsonschema import ValidationError
 
     with pytest.raises(ValidationError):
-        _validator("catalogSeries", registry).validate({"sort_order": 1})
+        _validator("catalogSeries", registry).validate({"underlying_ticker": None})
 
 
 def test_catalog_series_map_rejects_unknown_property_in_value(registry):
@@ -895,20 +568,26 @@ def test_user_state_valid(registry):
     _validator("userState", registry).validate(_USER_STATE)  # does not raise
 
 
-def test_user_state_sets_reject_nested_asset_ids(registry):
-    """Phase 3 overlay must not duplicate membership as sets[].asset_ids."""
+def test_user_state_sets_carry_their_membership_inline(registry):
+    """The overlay states membership as sets[].asset_ids — assetSetView, the
+    same object the global catalog uses. There is no parallel edge array."""
     from jsonschema import ValidationError
 
+    _validator("userState", registry).validate(
+        {**_USER_STATE, "sets": [{**_ASSET_SET_USER, "asset_ids": ["asset-sber", "asset-brent"]}]}
+    )  # does not raise
+    with pytest.raises(ValidationError):
+        _validator("userState", registry).validate({**_USER_STATE, "memberships": []})
     with pytest.raises(ValidationError):
         _validator("userState", registry).validate(
-            {**_USER_STATE, "sets": [{**_USER_SET, "asset_ids": ["asset-sber"]}]}
+            {**_USER_STATE, "sets": [{k: v for k, v in _ASSET_SET_USER.items() if k != "asset_ids"}]}
         )
 
 
 def test_user_state_requires_every_section(registry):
     from jsonschema import ValidationError
 
-    for missing in ("revision", "sets", "memberships", "hidden_set_ids", "order"):
+    for missing in ("revision", "sets", "hidden_set_ids", "order"):
         payload = {k: v for k, v in _USER_STATE.items() if k != missing}
         with pytest.raises(ValidationError):
             _validator("userState", registry).validate(payload)
@@ -921,7 +600,7 @@ def test_user_state_revision_not_negative(registry):
         _validator("userState", registry).validate({**_USER_STATE, "revision": -1})
 
 
-# --- phase 2: catalog (snapshot in the set-based form) ----------------------
+# --- catalog (the curated snapshot) -----------------------------------------
 
 def test_catalog_request_valid(registry):
     msg = {"channel": "instrument", "schema": "afbws.instrument.catalog.request.v1", "request_id": "r1"}
@@ -958,13 +637,14 @@ def test_catalog_response_valid(registry):
     _validator("catalogResponse", registry).validate(msg)  # does not raise
 
 
-def test_catalog_response_rejects_metadata_only_set(registry):
-    """catalog/commit snapshots require catalogSetView (nested asset_ids), not catalogSetEntry."""
+def test_catalog_response_has_no_legacy_sets_section(registry):
+    """Named sets live in `asset_sets` only — the old shadow `sets` section is
+    gone, and a snapshot that still carries one is rejected outright."""
     from jsonschema import ValidationError
 
     msg = {
         "channel": "instrument", "schema": "afbws.instrument.catalog.response.v1", "request_id": "r1",
-        **_SNAPSHOT, "sets": [_SET_META],
+        **_SNAPSHOT, "sets": [_ASSET_SET_GLOBAL],
     }
     with pytest.raises(ValidationError):
         _validator("catalogResponse", registry).validate(msg)
@@ -974,10 +654,11 @@ def test_catalog_response_listing_without_membership_is_valid(registry):
     """A listing in no asset, and an asset in no set, are normal states — both
     stay in the manager snapshot. Nested arrays are empty rather than omitted."""
     empty_asset = {**_SBER_ASSET, "members": []}
-    empty_set = {**_SET, "asset_ids": []}
+    empty_set = {**_ASSET_SET_GLOBAL, "asset_ids": []}
     msg = {
         "channel": "instrument", "schema": "afbws.instrument.catalog.response.v1", "request_id": "r1",
-        **_SNAPSHOT, "items": [{**_ITEM, "group": None}], "assets": [empty_asset], "sets": [empty_set],
+        **_SNAPSHOT, "items": [{**_ITEM, "group": None}], "assets": [empty_asset],
+        "asset_sets": [empty_set],
     }
     _validator("catalogResponse", registry).validate(msg)  # does not raise
 
@@ -985,7 +666,7 @@ def test_catalog_response_listing_without_membership_is_valid(registry):
 def test_catalog_response_requires_nested_assets_not_parallel_edges(registry):
     from jsonschema import ValidationError
 
-    for missing in ("assets", "sets"):
+    for missing in ("assets",):
         msg = {
             "channel": "instrument", "schema": "afbws.instrument.catalog.response.v1", "request_id": "r1",
             **{k: v for k, v in _SNAPSHOT.items() if k != missing},
@@ -1007,7 +688,7 @@ def test_catalog_response_rejects_parallel_membership_arrays(registry):
 
 
 def test_catalog_response_optional_user_overlay(registry):
-    """Declared now, not emitted by the phase 2 backend — but it must validate."""
+    """The personal overlay rides along with the global snapshot."""
     msg = {
         "channel": "instrument", "schema": "afbws.instrument.catalog.response.v1", "request_id": "r1",
         **_SNAPSHOT, "user": _USER_STATE,
@@ -1051,7 +732,7 @@ def test_catalog_response_assets_is_not_the_legacy_asset_map(registry):
         _validator("catalogResponse", registry).validate(msg)
 
 
-# --- phase 2: commit (manager-only CAS delta) -------------------------------
+# --- commit (manager-only CAS delta) ----------------------------------------
 
 def test_commit_request_minimal_is_just_a_base_revision(registry):
     msg = {
@@ -1109,11 +790,12 @@ def test_commit_request_full_delta_valid(registry):
     msg = {
         "channel": "instrument", "schema": "afbws.instrument.commit.request.v1", "request_id": "r1",
         "base_revision": 17,
-        "sets": [
+        "asset_sets": [
             {"set_id": "set-new", "name": "Новая подборка"},
-            {"set_id": "set-blue-chips", "name": "Голубые фишки", "sort_order": 10},
+            {"set_id": "set-blue-chips", "name": "Голубые фишки", "visibility_tier": "user"},
         ],
-        "remove_sets": ["set-old"],
+        "remove_asset_sets": ["set-old"],
+        "asset_set_order": ["set-blue-chips", "set-new"],
         "assets": [
             {"asset_id": "asset-brent-new", "name": "Нефть Brent"},
             {
@@ -1126,15 +808,24 @@ def test_commit_request_full_delta_valid(registry):
             },
         ],
         "remove_assets": ["asset-obsolete"],
-        "members": [
+        "asset_set_members": [
             {
                 "set_id": "set-blue-chips", "add": ["asset-gazp"], "remove": ["asset-lkoh"],
                 "order": ["asset-sber", "asset-gazp"],
             }
         ],
+        "collections": [{"collection_id": "col-commodities", "name": "Сырьё"}],
+        "remove_collections": ["col-old"],
+        "collection_order": ["col-stocks", "col-commodities"],
+        "collection_members": [
+            {
+                "collection_id": "col-commodities", "add": ["asset-brent"], "remove": ["asset-gold"],
+                "order": ["asset-brent"],
+            }
+        ],
         "listings": [{**_ITEM, "group": None}],
         "archive_listings": [{"ticker": "SIU5", "reason": "expired"}],
-        "series": [{"series_code": "Si", "name": "Доллар США", "sort_order": 1, "underlying_ticker": None}],
+        "series": [{"series_code": "Si", "name": "Доллар США", "underlying_ticker": None}],
         "reason": "Пересборка подборок",
     }
     _validator("commitRequest", registry).validate(msg)  # does not raise
@@ -1164,35 +855,37 @@ def test_commit_request_listings_keep_instrument_class_gating(registry):
         _validator("commitRequest", registry).validate(msg)
 
 
-def test_set_upsert_requires_set_id(registry):
-    """set_id is always client-minted — a setUpsert without one (the old
+def test_asset_set_upsert_requires_a_client_minted_set_id(registry):
+    """set_id is always client-minted — an upsert without one (the old
     server-generates-on-create shape) is rejected, not treated as a create."""
     from jsonschema import ValidationError
 
     with pytest.raises(ValidationError):
-        _validator("setUpsert", registry).validate({"name": "Новая"})
-    _validator("setUpsert", registry).validate(
+        _validator("assetSetUpsert", registry).validate({"name": "Новая"})
+    _validator("assetSetUpsert", registry).validate(
         {"set_id": "set-new", "name": "Новая"}
     )  # does not raise — server INSERTs since set-new is unknown in the base snapshot
-    _validator("setUpsert", registry).validate(
-        {"set_id": "set-blue-chips", "name": "Голубые фишки", "sort_order": 10}
+    _validator("assetSetUpsert", registry).validate(
+        {"set_id": "set-blue-chips", "name": "Голубые фишки"}
     )  # does not raise — server UPDATEs since set-blue-chips is known
 
 
-def test_set_upsert_requires_name(registry):
+def test_asset_set_upsert_requires_name(registry):
     from jsonschema import ValidationError
 
     with pytest.raises(ValidationError):
-        _validator("setUpsert", registry).validate({"set_id": "set-blue-chips", "sort_order": 3})
+        _validator("assetSetUpsert", registry).validate({"set_id": "set-blue-chips"})
 
 
-def test_set_upsert_rejects_scope_and_owner(registry):
-    """scope/owner are the server's business, never a client's."""
+def test_asset_set_upsert_states_no_position(registry):
+    """Order left the entity: it is stated once, wholesale, in
+    commitRequest.asset_set_order."""
     from jsonschema import ValidationError
 
-    for extra in ({"scope": "global"}, {"owner_user_id": "u-42"}):
-        with pytest.raises(ValidationError):
-            _validator("setUpsert", registry).validate({"name": "Новая", **extra})
+    with pytest.raises(ValidationError):
+        _validator("assetSetUpsert", registry).validate(
+            {"set_id": "set-blue-chips", "name": "Голубые фишки", "sort_order": 10}
+        )
 
 
 def test_asset_upsert_requires_asset_id(registry):
@@ -1305,7 +998,7 @@ def test_commit_response_is_a_full_snapshot(registry):
     msg = {
         "channel": "instrument", "schema": "afbws.instrument.commit.response.v1", "request_id": "r1",
         **_SNAPSHOT, "catalog_revision": 18,
-        "applied": {"sets_upserted": 2, "memberships_added": 1, "listings_archived": 0},
+        "applied": {"asset_sets_upserted": 2, "asset_set_members_added": 1, "listings_archived": 0},
     }
     _validator("commitResponse", registry).validate(msg)  # does not raise
 
@@ -1324,7 +1017,7 @@ def test_commit_response_applied_counts_must_be_integers(registry):
 def test_commit_response_requires_the_whole_snapshot(registry):
     from jsonschema import ValidationError
 
-    for missing in ("catalog_revision", "items", "assets", "sets", "series"):
+    for missing in ("catalog_revision", "items", "assets", "series"):
         msg = {
             "channel": "instrument", "schema": "afbws.instrument.commit.response.v1", "request_id": "r1",
             **{k: v for k, v in _SNAPSHOT.items() if k != missing},
@@ -1344,7 +1037,7 @@ def test_commit_response_does_not_accept_catalog_schema_id(registry):
         _validator("commitResponse", registry).validate(msg)
 
 
-# --- phase 2: user (personal sets/overlay; unsupported_action until phase 3) -
+# --- user (the caller's own personal sets and overlay) ----------------------
 
 def test_user_request_minimal_valid(registry):
     msg = {
@@ -1359,8 +1052,8 @@ def test_user_request_full_valid(registry):
         "channel": "instrument", "schema": "afbws.instrument.user.request.v1", "request_id": "r1",
         "base_revision": 3,
         "sets": [{"set_id": "set-mine", "name": "Мои"}],
-        "remove_sets": ["set-old-personal"],
-        "members": [{"set_id": "set-mine", "add": ["SBER"]}],
+        "remove_asset_sets": ["set-old-personal"],
+        "asset_set_members": [{"set_id": "set-mine", "add": ["asset-sber"]}],
         "hidden_set_ids": ["set-blue-chips"],
         "order": ["set-mine", "set-blue-chips"],
     }
@@ -1423,7 +1116,7 @@ def test_user_response_carries_no_catalog_revision(registry):
         _validator("userResponse", registry).validate(msg)
 
 
-# --- phase 2.5: sources (manager-only registry of catalog feeds) ------------
+# --- sources (manager-only registry of catalog feeds) -----------------------
 
 def test_sources_request_valid(registry):
     msg = {"channel": "instrument", "schema": "afbws.instrument.sources.request.v1", "request_id": "r1"}
@@ -1486,7 +1179,7 @@ def test_catalog_source_listing_count_not_negative(registry):
         _validator("catalogSource", registry).validate({**_SOURCE, "listing_count": -1})
 
 
-# --- phase 2.5: refresh (on-demand catalog update, with dry run) ------------
+# --- refresh (on-demand catalog update, with dry run) -----------------------
 
 def test_refresh_request_valid_with_and_without_dry_run(registry):
     msg = {
@@ -1654,9 +1347,9 @@ def test_error_response_conflict_carries_current_catalog_revision(registry):
     _validator("errorResponse", registry).validate(msg)  # does not raise
 
 
-def test_error_response_unsupported_action_for_apply_and_user(registry):
-    """Phase 2: `apply` is no longer served and `user` is not served yet."""
-    for message in ("apply is superseded by commit", "user sets arrive in phase 3"):
+def test_error_response_unsupported_action_code(registry):
+    """An operation the backend does not serve answers with this code."""
+    for message in ("this build serves no broker pool", "not available for this caller"):
         msg = {
             "channel": "instrument", "schema": "afbws.instrument.error.response.v1", "request_id": "r1",
             "code": "unsupported_action", "message": message,
@@ -1716,8 +1409,8 @@ def test_support_id_and_message_schema_consts_stay_v1():
         ("poolResponse", "afbws.instrument.pool.response.v1"),
         ("commitRequest", "afbws.instrument.commit.request.v1"),
         ("commitResponse", "afbws.instrument.commit.response.v1"),
-        ("listRequestV2", "afbws.instrument.list.request.v2"),
-        ("listResponseV2", "afbws.instrument.list.response.v2"),
+        ("userRequest", "afbws.instrument.user.request.v1"),
+        ("userResponse", "afbws.instrument.user.response.v1"),
     ):
         assert defs[name]["properties"]["schema"]["const"] == const
     assert "poolMetaResponse" not in defs
@@ -1739,53 +1432,49 @@ def test_the_asset_level_is_wired_through_both_snapshots():
     defs = _channel_doc()["$defs"]
     for name in ("catalogResponse", "commitResponse"):
         required = set(defs[name]["required"])
-        assert {"assets", "sets", "items", "series", "catalog_revision"} <= required, name
+        assert {"assets", "items", "series", "catalog_revision"} <= required, name
         assert "asset_members" not in required, name
         assert "memberships" not in required, name
         assert "asset_members" not in defs[name]["properties"], name
         assert "memberships" not in defs[name]["properties"], name
+        assert "sets" not in defs[name]["properties"], name
         assert defs[name]["properties"]["assets"]["items"]["$ref"] == "#/$defs/catalogAsset", name
-        assert defs[name]["properties"]["sets"]["items"]["$ref"] == "#/$defs/catalogSetView", name
+        assert defs[name]["properties"]["asset_sets"]["items"]["$ref"] == "#/$defs/assetSetView", name
     assert "members" in defs["catalogAsset"]["required"]
     assert defs["catalogAsset"]["properties"]["members"]["items"]["$ref"] == "#/$defs/catalogAssetMember"
-    assert "asset_ids" in defs["catalogSetView"]["required"]
-    assert "asset_ids" not in defs["catalogSetEntry"].get("properties", {})
-    assert defs["userState"]["properties"]["sets"]["items"]["$ref"] == "#/$defs/catalogSetEntry"
+    assert "asset_ids" in defs["assetSetView"]["required"]
+    assert defs["userState"]["properties"]["sets"]["items"]["$ref"] == "#/$defs/assetSetView"
 
 
-def test_set_membership_no_longer_mentions_a_ticker():
-    """The phase 2 shape is corrected, not kept alongside: exactly one way to
-    say what a set holds."""
-    membership = _channel_doc()["$defs"]["setMembership"]
-    assert "ticker" not in membership["properties"]
-    assert "asset_id" in membership["required"]
+def test_the_dead_operations_are_gone():
+    """`list` v1/v2 and `apply` were removed, not merely deprecated: nothing
+    half-deleted may stay behind in $defs or in the message union."""
+    doc = _channel_doc()
+    defs = doc["$defs"]
+    for name in (
+        "listRequest", "listResponse", "listRequestV2", "listResponseV2",
+        "listSetV2", "listAssetV2", "publicListing",
+        "applyRequest", "applyResponse",
+        "group", "asset", "assets", "catalogSet",
+        "assetMember", "assetMembers",
+        "catalogSetEntry", "catalogSetView", "setUpsert", "setMembership",
+    ):
+        assert name not in defs, name
+    branches = {b["$ref"].rsplit("/", 1)[-1] for b in doc["oneOf"]}
+    assert not any(b.startswith(("list", "apply")) for b in branches), branches
 
 
-def test_legacy_list_and_apply_are_kept_but_marked_deprecated():
-    """Additive change: the legacy pair stays in the schema (old frontends keep
-    parsing), it is only documented as deprecated."""
-    defs = _channel_doc()["$defs"]
-    for name in ("listRequest", "listResponse", "applyRequest", "applyResponse"):
-        assert name in defs
-    for name in ("listRequest", "applyRequest"):
-        assert "DEPRECATED" in defs[name].get("description", "")
-    list_req = defs["listRequest"].get("description", "").lower()
-    assert "manager-only" not in list_req
-    assert "list` v2" in defs["listRequest"].get("description", "") or "list v2" in list_req
-
-
-def test_no_phase2_def_allows_additional_properties():
+def test_no_channel_def_allows_additional_properties():
     defs = _channel_doc()["$defs"]
     for name in (
-        "catalogSetEntry", "catalogSetView", "setMembership", "catalogSeries", "userState", "errorDetails",
+        "catalogSeries", "userState", "errorDetails",
         "collection", "collectionUpsert", "assetSetView", "assetSetUpsert",
         "inventoryRequest", "inventoryListingEntry", "inventorySeriesEntry", "inventoryResponse",
         "assetSuggestion", "acceptSuggestion",
         "catalogRequest", "catalogResponse", "commitRequest", "commitResponse",
-        "setUpsert", "membersEdit", "listingArchival", "seriesUpsert",
+        "membersEdit", "collectionMembersEdit", "listingArchival", "seriesUpsert",
         "userRequest", "userResponse",
-        "catalogAsset", "catalogAssetMember", "assetMember", "assetMemberInput", "assetUpsert",
-        "publicListing", "listSetV2", "listAssetV2", "listRequestV2", "listResponseV2",
+        "catalogAsset", "catalogAssetMember", "assetMemberInput", "assetUpsert",
         "poolRequest", "poolResponse", "poolListingEntry", "poolSeriesEntry",
         "catalogSource", "sourcesRequest", "sourcesResponse",
         "refreshRequest", "refreshResponse", "refreshReport", "refreshArchivedEntry",
@@ -1828,7 +1517,7 @@ def test_collection_valid_and_required(registry):
 def test_collection_missing_required_rejected(registry):
     from jsonschema import ValidationError
 
-    for missing in ("collection_id", "name", "sort_order"):
+    for missing in ("collection_id", "name"):
         with pytest.raises(ValidationError):
             _validator("collection", registry).validate(
                 {k: v for k, v in _COLLECTION.items() if k != missing}
@@ -1844,7 +1533,7 @@ def test_collection_rejects_unknown_property(registry):
 
 def test_collection_upsert_valid(registry):
     _validator("collectionUpsert", registry).validate(
-        {"collection_id": "col-stocks", "name": "Акции", "sort_order": 0}
+        {"collection_id": "col-stocks", "name": "Акции", "parent_id": None}
     )
 
 
@@ -1888,13 +1577,15 @@ def test_asset_set_upsert_valid(registry):
     )
 
 
-def test_asset_set_upsert_rejects_scope(registry):
+def test_asset_set_upsert_rejects_scope_and_owner(registry):
+    """scope/owner are the server's business, never a client's."""
     from jsonschema import ValidationError
 
-    with pytest.raises(ValidationError):
-        _validator("assetSetUpsert", registry).validate(
-            {"set_id": "set-new", "name": "Новая", "scope": "global"}
-        )
+    for extra in ({"scope": "global"}, {"owner_user_id": "u-42"}):
+        with pytest.raises(ValidationError):
+            _validator("assetSetUpsert", registry).validate(
+                {"set_id": "set-new", "name": "Новая", **extra}
+            )
 
 
 def test_inventory_request_minimal_valid(registry):
@@ -2069,30 +1760,123 @@ def test_commit_request_with_asset_sets_and_accept_suggestions(registry):
     _validator("commitRequest", registry).validate(msg)
 
 
-def test_commit_request_legacy_without_new_sections_valid(registry):
+def test_commit_request_order_sections_are_full_orders(registry):
+    """Position left the entities: a commit states the whole resulting order in
+    its own section, the same idiom membersEdit.order already used."""
+    from jsonschema import ValidationError
+
     msg = {
         "channel": "instrument", "schema": "afbws.instrument.commit.request.v1", "request_id": "r1",
         "base_revision": 17,
-        "sets": [{"set_id": "set-blue-chips", "name": "Голубые фишки"}],
+        "asset_set_order": ["set-blue", "set-mine"],
+        "collection_order": ["col-stocks", "col-commodities"],
+        "collection_members": [{"collection_id": "col-stocks", "order": ["asset-sber"]}],
     }
-    _validator("commitRequest", registry).validate(msg)
+    _validator("commitRequest", registry).validate(msg)  # does not raise
+    for bad in ({"asset_set_order": [""]}, {"collection_order": [7]}, {"asset_set_order": "set-blue"}):
+        with pytest.raises(ValidationError):
+            _validator("commitRequest", registry).validate({**msg, **bad})
 
 
-def test_catalog_asset_optional_collection_fields(registry):
+def test_collection_members_edit_shape(registry):
+    """Same delta shape as membersEdit, keyed by collection_id and holding
+    asset_ids — an asset belongs to exactly one collection."""
+    from jsonschema import ValidationError
+
+    _validator("collectionMembersEdit", registry).validate({"collection_id": "col-stocks"})
+    _validator("collectionMembersEdit", registry).validate({
+        "collection_id": "col-stocks",
+        "add": ["asset-gazp"], "remove": ["asset-lkoh"], "order": ["asset-sber", "asset-gazp"],
+    })  # does not raise
+    with pytest.raises(ValidationError):
+        _validator("collectionMembersEdit", registry).validate({"add": ["asset-sber"]})
+    with pytest.raises(ValidationError):
+        _validator("collectionMembersEdit", registry).validate(
+            {"collection_id": "col-stocks", "set_id": "set-blue"}
+        )
+    with pytest.raises(ValidationError):
+        _validator("collectionMembersEdit", registry).validate(
+            {"collection_id": "col-stocks", "sort_order": 1}
+        )
+
+
+def test_user_request_speaks_the_asset_set_vocabulary():
+    """The personal operation uses the same shapes and section names as commit:
+    assetSetUpsert, remove_asset_sets, asset_set_members."""
+    defs = _channel_doc()["$defs"]
+    user_request = defs["userRequest"]
+    props = user_request["properties"]
+    assert props["sets"]["items"]["$ref"] == "#/$defs/assetSetUpsert"
+    assert "remove_asset_sets" in props
+    assert "asset_set_members" in props
+    assert props["asset_set_members"]["items"]["$ref"] == "#/$defs/membersEdit"
+    for gone in ("remove_sets", "members"):
+        assert gone not in props, gone
+    # visibility_tier is a global-set notion; the personal operation rejects it.
+    assert "visibility_tier" in props["sets"]["description"]
+    assert "validation_error" in props["sets"]["description"]
+
+
+def test_no_wire_entity_carries_an_order_field():
+    """Order is array position everywhere; the only order on the wire is the
+    full-order sections of a write."""
+    defs = _channel_doc()["$defs"]
+    for name, schema in defs.items():
+        props = schema.get("properties", {})
+        assert "sort_order" not in props, name
+        assert "collection_sort_order" not in props, name
+
+
+def test_every_local_ref_resolves():
+    """Nothing half-deleted: every `#/$defs/...` in the document points at a
+    $def that exists."""
+    doc = _channel_doc()
+    names = set(doc["$defs"])
+    dangling = []
+
+    def walk(node, path):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "$ref" and isinstance(value, str) and value.startswith("#/$defs/"):
+                    if value.rsplit("/", 1)[-1] not in names:
+                        dangling.append((path, value))
+                else:
+                    walk(value, f"{path}/{key}")
+        elif isinstance(node, list):
+            for index, value in enumerate(node):
+                walk(value, f"{path}/{index}")
+
+    walk(doc, "")
+    assert dangling == []
+
+
+def test_commit_request_rejects_the_removed_shadow_sections(registry):
+    """`sets`/`remove_sets`/`members` were the deprecated twins of the
+    asset_set_* sections; a commit that still sends one is rejected."""
+    from jsonschema import ValidationError
+
+    for extra in (
+        {"sets": [{"set_id": "set-blue-chips", "name": "Голубые фишки"}]},
+        {"remove_sets": ["set-old"]},
+        {"members": [{"set_id": "set-blue-chips", "add": ["asset-sber"]}]},
+    ):
+        msg = {
+            "channel": "instrument", "schema": "afbws.instrument.commit.request.v1", "request_id": "r1",
+            "base_revision": 17, **extra,
+        }
+        with pytest.raises(ValidationError):
+            _validator("commitRequest", registry).validate(msg)
+
+
+def test_catalog_asset_optional_collection_id_without_a_position(registry):
+    """An asset names its collection; where it sits inside it is the order of
+    `assets[]`, not a field."""
+    from jsonschema import ValidationError
+
     _validator("catalogAsset", registry).validate(_ASSET)
-    _validator("catalogAsset", registry).validate({
-        **_ASSET, "collection_id": "col-commodities", "collection_sort_order": 3,
-    })
-
-
-def test_list_v2_response_optional_collections_and_asset_sets(registry):
-    msg = {
-        "channel": "instrument", "schema": "afbws.instrument.list.response.v2", "request_id": "r1",
-        **_LIST_V2_SNAPSHOT,
-        "collections": [_COLLECTION],
-        "asset_sets": [_ASSET_SET_GLOBAL],
-    }
-    _validator("listResponseV2", registry).validate(msg)
+    _validator("catalogAsset", registry).validate({**_ASSET, "collection_id": "col-commodities"})
+    with pytest.raises(ValidationError):
+        _validator("catalogAsset", registry).validate({**_ASSET, "collection_sort_order": 3})
 
 
 def test_refresh_report_optional_suggestion_and_inventory_revisions(registry):

@@ -3,19 +3,13 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/instrument.channel.v1.json",
   "x-afbws-support-id": "afbws.instrument.channel.v1",
   "title": "instrument channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. The daily working snapshot for any authenticated caller is `list` v2; `list` v1 remains served but is deprecated. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `asset_sets` are named Sets of assets (not the category tree). `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. Deprecated `apply` remains declared only so old requests parse, but is not served (`unsupported_action`). `user` is the personal-sets/overlay operation of phase 3 and likewise remains declared but returns `unsupported_action`. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see catalogSetEntry) instead of the single-parent group tree, plus an independent futures-series axis (catalogSeries) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — \"Brent oil\" is the BR-* and BRM-* series together — and it, not the ticker, is what a set contains (`sets[].asset_ids`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves; they do not emit parallel `memberships`/`asset_members` arrays. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. `catalog` is the one read snapshot of the curated catalog for any authenticated caller. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `asset_sets` are named Sets of assets (not the category tree). `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. `user` is the caller's personal-sets/overlay operation and is served. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see assetSetView) instead of the single-parent group tree, plus an independent futures-series axis (catalogSeries) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — \"Brent oil\" is the BR-* and BRM-* series together — and it, not the ticker, is what a set contains (`asset_sets[].asset_ids`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves — an asset set carries its ordered `asset_ids`, an asset its ordered `members`. Order is carried by array position everywhere on the wire: no entity has an order field, and a write restates a full order through the dedicated `asset_set_order`/`collection_order`/`order` sections of `commit`. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.",
   "type": "object",
   "oneOf": [
-    { "$ref": "#/$defs/listRequest" },
-    { "$ref": "#/$defs/listResponse" },
-    { "$ref": "#/$defs/listRequestV2" },
-    { "$ref": "#/$defs/listResponseV2" },
     { "$ref": "#/$defs/getRequest" },
     { "$ref": "#/$defs/getResponse" },
     { "$ref": "#/$defs/poolRequest" },
     { "$ref": "#/$defs/poolResponse" },
-    { "$ref": "#/$defs/applyRequest" },
-    { "$ref": "#/$defs/applyResponse" },
     { "$ref": "#/$defs/resolveRequest" },
     { "$ref": "#/$defs/resolveResponse" },
     { "$ref": "#/$defs/detailRequest" },
@@ -35,181 +29,41 @@
     { "$ref": "#/$defs/errorResponse" }
   ],
   "$defs": {
-    "group": {
-      "type": "object",
-      "title": "Legacy `list` v1 group row.",
-      "description": "`key` is no longer a readable slug — since the federated-catalog client-ids change, the backend emits the set's opaque `set_id` here (catalogSetEntry.set_id). Legacy v1 clients treat it as an unstructured handle, so the format change is invisible to them; new code should use `list` v2 / `catalog` instead of parsing this field.",
-      "required": ["key", "name"],
-      "additionalProperties": false,
-      "properties": {
-        "key": { "type": "string", "minLength": 1, "description": "The set's set_id, emitted under the legacy field name." },
-        "name": { "type": "string", "minLength": 1 },
-        "order": { "type": ["integer", "null"] }
-      }
-    },
-    "asset": {
-      "type": "object",
-      "required": ["name"],
-      "additionalProperties": false,
-      "properties": {
-        "name": { "type": ["string", "null"] }
-      }
-    },
-    "assets": {
-      "type": "object",
-      "additionalProperties": { "$ref": "#/$defs/asset" }
-    },
-    "publicListing": {
-      "type": "object",
-      "title": "Public trading projection used by the ticker panel and trade-plan calculations.",
-      "required": ["ticker", "asset_id", "exchange", "board", "market"],
-      "additionalProperties": false,
-      "properties": {
-        "ticker": { "type": "string", "minLength": 1 },
-        "asset_id": { "type": "string", "minLength": 1 },
-        "exchange": { "type": "string", "minLength": 1 },
-        "board": { "type": "string" },
-        "market": { "enum": ["stock", "futures", "currency", "index"] },
-        "name": { "type": ["string", "null"] },
-        "shortname": { "type": ["string", "null"] },
-        "lot_size": { "type": ["integer", "null"], "minimum": 1 },
-        "price_step": { "$ref": "../common.v1.json#/$defs/decimalString" },
-        "prev_close": { "$ref": "../common.v1.json#/$defs/decimalString" },
-        "decimals": { "type": ["integer", "null"], "minimum": 0 },
-        "currency": { "type": ["string", "null"] },
-        "expiration": { "type": "string", "description": "Futures only." },
-        "margin": { "$ref": "../common.v1.json#/$defs/decimalString" },
-        "step_price": { "$ref": "../common.v1.json#/$defs/decimalString" },
-        "isin": { "type": "string", "description": "Stock only." }
-      },
-      "allOf": [
-        {
-          "if": { "properties": { "market": { "const": "futures" } }, "required": ["market"] },
-          "then": {},
-          "else": {
-            "properties": {
-              "expiration": false,
-              "step_price": false,
-              "margin": false
-            }
-          }
-        },
-        {
-          "if": { "properties": { "market": { "const": "stock" } }, "required": ["market"] },
-          "then": {},
-          "else": { "properties": { "isin": false } }
-        }
-      ]
-    },
-    "listSetV2": {
-      "type": "object",
-      "title": "One public working set; asset_ids array order is its display order.",
-      "required": ["set_id", "name", "asset_ids"],
-      "additionalProperties": false,
-      "properties": {
-        "set_id": { "type": "string", "minLength": 1 },
-        "name": { "type": "string", "minLength": 1 },
-        "asset_ids": {
-          "type": "array",
-          "items": { "type": "string", "minLength": 1 },
-          "description": "Asset display order inside this set."
-        }
-      }
-    },
-    "listAssetV2": {
-      "type": "object",
-      "title": "One curated public asset in the daily working snapshot.",
-      "required": ["asset_id", "name"],
-      "additionalProperties": false,
-      "properties": {
-        "asset_id": { "type": "string", "minLength": 1 },
-        "name": { "type": "string", "minLength": 1 },
-        "collection_id": { "type": "string", "minLength": 1, "description": "Optional in schema; required in backend responses after catalog v6." },
-        "collection_sort_order": { "type": "integer", "description": "Optional in schema; required in backend responses after catalog v6." }
-      }
-    },
-    "catalogSet": {
-      "title": "The curated instrument set — items + the groups/assets they're organized into.",
-      "type": "object",
-      "required": ["items", "groups", "assets"],
-      "additionalProperties": false,
-      "properties": {
-        "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
-        "groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
-        "assets": { "$ref": "#/$defs/assets" }
-      }
-    },
-    "catalogSetEntry": {
-      "type": "object",
-      "title": "Set metadata — identity, scope and name, without nested membership.",
-      "description": "DEPRECATED compatibility projection of collections — Sets overlap by design: an asset may belong to any number of them, or to none. `set_id` is the stable identity — an opaque id minted by the client on create (see setUpsert) and stored as-is; the server never rewrites it. The old system/global division is gone — every non-personal set is `global` and is curated by a manager; `user` sets are the personal selections of phase 3 and are the only ones carrying `owner_user_id`. This object is metadata only: it does not carry `asset_ids`. Catalog/commit snapshots use catalogSetView (metadata + ordered `asset_ids`). Phase-3 `userState.sets` uses this metadata object and states membership only via `userState.memberships` (setMembership edges) — the two representations are not mixed.",
-      "required": ["set_id", "scope", "name", "sort_order"],
-      "additionalProperties": false,
-      "properties": {
-        "set_id": { "type": "string", "minLength": 1, "description": "Opaque id, minted by the client on create and never rewritten by the server — the only handle memberships and edits refer to." },
-        "scope": { "enum": ["global", "user"], "description": "`global` — manager-curated, visible to everyone; `user` — personal (phase 3). \"system\" is not part of this form and is never emitted." },
-        "name": { "type": "string", "minLength": 1 },
-        "sort_order": { "type": "integer" },
-        "owner_user_id": { "type": ["string", "null"], "description": "Owner of a scope=\"user\" set; null/absent for global sets." },
-        "visibility_tier": { "enum": ["manager", "user", "guest"] }
-      }
-    },
-    "catalogSetView": {
-      "type": "object",
-      "title": "Catalog/commit snapshot set — metadata plus nested membership as ordered asset_ids.",
-      "description": "DEPRECATED compatibility projection of collections. The UI snapshot form of a set. Same identity fields as catalogSetEntry, plus required `asset_ids` in display order. Catalog and commit responses use this object and do not emit a parallel `memberships` array. Not used by phase-3 userState, which keeps edge memberships on catalogSetEntry metadata.",
-      "required": ["set_id", "scope", "name", "sort_order", "asset_ids"],
-      "additionalProperties": false,
-      "properties": {
-        "set_id": { "type": "string", "minLength": 1, "description": "Opaque id, minted by the client on create and never rewritten by the server — the only handle memberships and edits refer to." },
-        "scope": { "enum": ["global", "user"], "description": "`global` — manager-curated, visible to everyone; `user` — personal (phase 3). \"system\" is not part of this form and is never emitted." },
-        "name": { "type": "string", "minLength": 1 },
-        "sort_order": { "type": "integer" },
-        "owner_user_id": { "type": ["string", "null"], "description": "Owner of a scope=\"user\" set; null/absent for global sets." },
-        "asset_ids": {
-          "type": "array",
-          "items": { "type": "string", "minLength": 1 },
-          "description": "Member assets in this set's display order. An empty array is a valid empty set."
-        },
-        "visibility_tier": { "enum": ["manager", "user", "guest"] }
-      }
-    },
     "collection": {
       "type": "object",
-      "title": "A node in the Catalog category tree.",
-      "required": ["collection_id", "name", "sort_order"],
-      "additionalProperties": false,
-      "properties": {
-        "collection_id": { "type": "string", "minLength": 1 },
-        "parent_id": { "type": ["string", "null"] },
-        "name": { "type": "string", "minLength": 1 },
-        "sort_order": { "type": "integer" },
-        "pending": { "type": "boolean", "description": "system_pending / _unclassified bucket." }
-      }
-    },
-    "collectionUpsert": {
-      "type": "object",
-      "title": "Create-or-update of one collection inside a commit.",
+      "title": "A node in the Catalog category tree; its position in `collections[]` is its display order.",
+      "description": "Order is carried by array position: `collections[]` already arrives in the order the tree is drawn in (the children of one `parent_id` follow one another), so there is no order field on the wire. A commit restates that order wholesale through `commitRequest.collection_order`.",
       "required": ["collection_id", "name"],
       "additionalProperties": false,
       "properties": {
         "collection_id": { "type": "string", "minLength": 1 },
         "parent_id": { "type": ["string", "null"] },
         "name": { "type": "string", "minLength": 1 },
-        "sort_order": { "type": "integer" }
+        "pending": { "type": "boolean", "description": "system_pending / _unclassified bucket." }
+      }
+    },
+    "collectionUpsert": {
+      "type": "object",
+      "title": "Create-or-update of one collection inside a commit.",
+      "description": "Identity and naming only — position is not stated here; send `commitRequest.collection_order` to fix the order of the tree.",
+      "required": ["collection_id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "collection_id": { "type": "string", "minLength": 1 },
+        "parent_id": { "type": ["string", "null"] },
+        "name": { "type": "string", "minLength": 1 }
       }
     },
     "assetSetView": {
       "type": "object",
       "title": "A named set of assets — not the category tree.",
-      "description": "True asset set (Наборы): metadata plus ordered `asset_ids`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.",
-      "required": ["set_id", "scope", "name", "sort_order", "asset_ids"],
+      "description": "True asset set (Наборы): metadata plus ordered `asset_ids`. The set's own display position is its position in `asset_sets[]` (and in `userState.sets[]` for a personal set) — there is no order field on the wire; a commit restates that order wholesale through `commitRequest.asset_set_order`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.",
+      "required": ["set_id", "scope", "name", "asset_ids"],
       "additionalProperties": false,
       "properties": {
         "set_id": { "type": "string", "minLength": 1 },
         "scope": { "enum": ["global", "user"] },
         "name": { "type": "string", "minLength": 1 },
-        "sort_order": { "type": "integer" },
         "owner_user_id": { "type": ["string", "null"] },
         "asset_ids": {
           "type": "array",
@@ -235,36 +89,23 @@
     "assetSetUpsert": {
       "type": "object",
       "title": "Create-or-update of one asset set inside a commit.",
-      "description": "Server derives scope/owner — client sends only set_id, name, and optional sort_order/visibility_tier (default on server: user).",
+      "description": "Server derives scope/owner — client sends only set_id, name and an optional visibility_tier (default on server: user). Position is not stated here; send `commitRequest.asset_set_order` to fix the order of the sets.",
       "required": ["set_id", "name"],
       "additionalProperties": false,
       "properties": {
         "set_id": { "type": "string", "minLength": 1 },
         "name": { "type": "string", "minLength": 1 },
-        "sort_order": { "type": "integer" },
         "visibility_tier": { "enum": ["manager", "user", "guest"], "description": "Optional; server default is user." }
-      }
-    },
-    "setMembership": {
-      "type": "object",
-      "title": "Membership edge — this asset is in this set, at this position.",
-      "description": "Storage / phase-3 overlay form of a set→asset edge. Catalog and commit snapshots nest the same fact as `sets[].asset_ids` (array order = sort_order) and do not emit this object. A set contains ASSETS, never listings directly: \"Commodities\" holds \"Brent oil\", and the instruments follow from the asset. That indirection is what keeps membership stable across expirations. Corrected in phase 2.5: the edge used to name a `ticker`, from before assets existed.",
-      "required": ["set_id", "asset_id", "sort_order"],
-      "additionalProperties": false,
-      "properties": {
-        "set_id": { "type": "string", "minLength": 1 },
-        "asset_id": { "type": "string", "minLength": 1, "description": "The member asset — catalogAsset.asset_id, never a ticker or a series_code." },
-        "sort_order": { "type": "integer", "description": "Position of this member inside its set." }
       }
     },
     "catalogAsset": {
       "type": "object",
       "title": "A curated asset — the level between one listing and a set.",
-      "description": "An asset is a small bundle of instruments that share a pricing source and therefore tell one economic story: \"Brent oil\" is the BR-* and BRM-* series together, \"Sberbank\" is the share plus its futures series. Two jobs justify the level. It is the unit sets are built from, so a set survives expirations without being re-edited; and it is the carrier of reference data (MOEX positions, HHI), so analytics have one place to attach to instead of guessing which contract of which series to read. Assets are always global — the personal sets of phase 3 are assembled from the same manager-curated assets, which is what keeps that phase thin. An asset that is in no set is a normal state: it shows up as unassigned for a manager and is omitted from a user's catalog snapshot. Composition is nested as ordered `members`; catalog/commit snapshots do not emit a parallel `asset_members` array.",
+      "description": "An asset is a small bundle of instruments that share a pricing source and therefore tell one economic story: \"Brent oil\" is the BR-* and BRM-* series together, \"Sberbank\" is the share plus its futures series. Two jobs justify the level. It is the unit sets are built from, so a set survives expirations without being re-edited; and it is the carrier of reference data (MOEX positions, HHI), so analytics have one place to attach to instead of guessing which contract of which series to read. Assets are always global — the personal sets of phase 3 are assembled from the same manager-curated assets, which is what keeps that phase thin. An asset that is in no set is a normal state: it shows up as unassigned for a manager and is omitted from a user's catalog snapshot. Composition is nested as ordered `members` on the asset itself; array position is the order.",
       "required": ["asset_id", "name", "members"],
       "additionalProperties": false,
       "properties": {
-        "asset_id": { "type": "string", "minLength": 1, "description": "Opaque id, minted by the client on create and never rewritten by the server — the only handle memberships, members and edits refer to." },
+        "asset_id": { "type": "string", "minLength": 1, "description": "Opaque id, minted by the client on create and never rewritten by the server — the only handle set membership, members and edits refer to." },
         "name": { "type": "string", "minLength": 1 },
         "reference_series_code": { "type": ["string", "null"], "description": "Which of the asset's series reference data is taken from when it holds more than one; null when the asset has no series or the manager has not chosen. It points at a series, not at a contract — the MOEX analytics code itself stays on the series and is not duplicated here." },
         "members": {
@@ -272,8 +113,7 @@
           "items": { "$ref": "#/$defs/catalogAssetMember" },
           "description": "Full composition in display order. Array position is the order. Send `[]` for an empty asset."
         },
-        "collection_id": { "type": "string", "minLength": 1, "description": "Optional in schema; required in backend responses after catalog v6." },
-        "collection_sort_order": { "type": "integer", "description": "Optional in schema; required in backend responses after catalog v6." }
+        "collection_id": { "type": "string", "minLength": 1, "description": "The collection this asset lives in — an asset belongs to exactly one. Optional in schema; required in backend responses after catalog v6. Position inside the collection is carried by the order of `assets[]`: the assets of one collection come consecutively, and the collections themselves follow the order of `collections[]`." }
       }
     },
     "catalogAssetMember": {
@@ -299,28 +139,14 @@
         }
       ]
     },
-    "assetMember": {
-      "type": "object",
-      "title": "Composition edge — this listing, or this whole series, is part of this asset, at this position.",
-      "description": "Storage-oriented composition edge (asset_id + member_type + member_ref + sort_order). Catalog and commit snapshots nest the same fact as `assets[].members` (`kind`/`code`/`label`/`market`, array order = sort_order) and do not emit this object. Both member kinds share ONE running `sort_order`. A series is a member whole. The server enforces that a futures contract may NOT be a `listing` member of an asset whose member its series already is.",
-      "required": ["asset_id", "member_type", "member_ref", "sort_order"],
-      "additionalProperties": false,
-      "properties": {
-        "asset_id": { "type": "string", "minLength": 1 },
-        "member_type": { "enum": ["listing", "series"], "description": "`listing` — one instrument record; `series` — a whole futures series with all its expirations." },
-        "member_ref": { "type": "string", "minLength": 1, "description": "Canonical wire ticker (exactly as in instrument.v1.json) for `listing`, series_code for `series` — case-sensitive, never normalized." },
-        "sort_order": { "type": "integer", "description": "Position inside the asset, counted across both member types." }
-      }
-    },
     "catalogSeries": {
       "type": "object",
       "title": "A futures series (map value, keyed by series_code) — the phase 2 successor of `asset`.",
-      "description": "An axis of its own, independent of sets: it groups the successive expirations of one futures contract and is unaffected by set membership.",
+      "description": "An axis of its own, independent of sets: it groups the successive expirations of one futures contract and is unaffected by set membership. Carries no order: `series` is a JSON object (catalogSeriesMap), and the order of an object's members is not semantic. Should the series axis ever need an order, the right move is to turn `series` into an array — not to bring an order field back.",
       "required": ["name"],
       "additionalProperties": false,
       "properties": {
         "name": { "type": ["string", "null"] },
-        "sort_order": { "type": "integer" },
         "underlying_ticker": { "type": ["string", "null"], "description": "Canonical ticker of the underlying instrument, when the series has one." }
       }
     },
@@ -331,70 +157,15 @@
     },
     "userState": {
       "type": "object",
-      "title": "The caller's personal catalog overlay: own sets, own memberships, hidden sets, personal ordering.",
-      "description": "Phase 3 payload, declared now so clients can be written against the final shape. The phase 2 backend never emits it and rejects `user` requests with `unsupported_action`. `sets[]` are catalogSetEntry metadata only — no nested `asset_ids`. Membership of personal sets is stated solely by `memberships` (setMembership edges) pointing at the same global assets a manager curates.",
-      "required": ["revision", "sets", "memberships", "hidden_set_ids", "order"],
+      "title": "The caller's personal catalog overlay: own asset sets, hidden sets, personal ordering.",
+      "description": "The caller's personal overlay, served next to the global catalog. `sets[]` are full assetSetView objects — every entry has scope \"user\" and carries its own membership inline as ordered `asset_ids`; there is no parallel membership array. Personal sets are assembled from the same global assets a manager curates: a user never owns an asset of their own.",
+      "required": ["revision", "sets", "hidden_set_ids", "order"],
       "additionalProperties": false,
       "properties": {
         "revision": { "type": "integer", "minimum": 0, "description": "Revision of the PERSONAL aggregate — counted separately from catalog_revision." },
-        "sets": { "type": "array", "items": { "$ref": "#/$defs/catalogSetEntry" }, "description": "The caller's own sets as metadata — every entry has scope: \"user\". Membership is `memberships`, not `asset_ids`." },
-        "memberships": { "type": "array", "items": { "$ref": "#/$defs/setMembership" }, "description": "Membership edges of the personal sets — pointing at the same global assets a manager curates; a user never owns an asset of their own." },
+        "sets": { "type": "array", "items": { "$ref": "#/$defs/assetSetView" }, "description": "The caller's own sets — every entry has scope: \"user\" and states its membership inline as ordered `asset_ids`. Set order is the order of this array." },
         "hidden_set_ids": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Sets (global or personal) the caller hid from their own view." },
-        "order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Personal ordering of set_ids; sets not listed here follow the listed ones in their server sort_order." }
-      }
-    },
-    "listRequest": {
-      "type": "object",
-      "title": "No filters — returns the full curated set (as legacy securities/list + setup/get_assign combined).",
-      "description": "DEPRECATED since federated-catalog phase 2 — still served by the backend for old frontends. The group/asset shape it answers with is a legacy projection, not the authoritative form. New working-catalog clients must use `list` v2. `catalog` is the Assets-modal UI snapshot (same form for any authenticated caller; completeness is role-based) and is not a replacement for `list`.",
-      "required": ["channel", "schema", "request_id"],
-      "additionalProperties": false,
-      "properties": {
-        "channel": { "const": "instrument" },
-        "schema": { "const": "afbws.instrument.list.request.v1" },
-        "request_id": { "$ref": "common.v1.json#/$defs/requestId" }
-      }
-    },
-    "listResponse": {
-      "type": "object",
-      "required": ["channel", "schema", "request_id", "items", "groups", "assets"],
-      "additionalProperties": false,
-      "properties": {
-        "channel": { "const": "instrument" },
-        "schema": { "const": "afbws.instrument.list.response.v1" },
-        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
-        "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
-        "groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
-        "assets": { "$ref": "#/$defs/assets" }
-      }
-    },
-    "listRequestV2": {
-      "type": "object",
-      "title": "Daily working snapshot for any authenticated caller. No filters, no paging.",
-      "description": "Returns the complete public working snapshot used by ordinary authenticated clients; the request has no filters.",
-      "required": ["channel", "schema", "request_id"],
-      "additionalProperties": false,
-      "properties": {
-        "channel": { "const": "instrument" },
-        "schema": { "const": "afbws.instrument.list.request.v2" },
-        "request_id": { "$ref": "common.v1.json#/$defs/requestId" }
-      }
-    },
-    "listResponseV2": {
-      "type": "object",
-      "title": "Daily working snapshot: public sets, curated assets and expanded listings.",
-      "description": "The working shape keeps the list v1 genre (sets + assets + flat items), but `assets` are curated assets rather than the legacy ISS series map and each `items` entry is an already-expanded publicListing — clients must not join series or futoi data. The relation is M:N: one row exists in `assets[]`, the same `asset_id` may occur in several `sets[].asset_ids`, and listing cards must not be duplicated for that reason. Manager internals are omitted: no archived/unassigned/catalog_revision/memberships/asset_members/series. There is no manager-defined order inside an asset; clients sort futures by expiration and all other listings by name/ticker.",
-      "required": ["channel", "schema", "request_id", "sets", "assets", "items"],
-      "additionalProperties": false,
-      "properties": {
-        "channel": { "const": "instrument" },
-        "schema": { "const": "afbws.instrument.list.response.v2" },
-        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
-        "sets": { "type": "array", "items": { "$ref": "#/$defs/listSetV2" } },
-        "assets": { "type": "array", "items": { "$ref": "#/$defs/listAssetV2" } },
-        "items": { "type": "array", "items": { "$ref": "#/$defs/publicListing" } },
-        "collections": { "type": "array", "items": { "$ref": "#/$defs/collection" } },
-        "asset_sets": { "type": "array", "items": { "$ref": "#/$defs/assetSetView" } }
+        "order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Personal ordering of set_ids; sets not listed here follow the listed ones in the server's order." }
       }
     },
     "getRequest": {
@@ -623,39 +394,10 @@
         "collection_id": { "type": "string", "minLength": 1 }
       }
     },
-    "applyRequest": {
-      "type": "object",
-      "title": "manager only. Bulk replace of the whole curated set — validated and enriched (broker.get_instrument for source != moex rows missing trading params) atomically before write; never partial.",
-      "description": "DEPRECATED since federated-catalog phase 2 and no longer served — the backend answers it with `unsupported_action`. Its whole-set replace cannot express overlapping sets and has no concurrency guard; `commit` replaces it with a CAS delta on `base_revision`. Kept in the schema only so an older frontend's request still parses into a typed error instead of `invalid_schema`.",
-      "required": ["channel", "schema", "request_id", "items", "groups", "assets"],
-      "additionalProperties": false,
-      "properties": {
-        "channel": { "const": "instrument" },
-        "schema": { "const": "afbws.instrument.apply.request.v1" },
-        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
-        "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
-        "groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
-        "assets": { "$ref": "#/$defs/assets" }
-      }
-    },
-    "applyResponse": {
-      "type": "object",
-      "title": "The authoritative saved set, after enrichment.",
-      "required": ["channel", "schema", "request_id", "items", "groups", "assets"],
-      "additionalProperties": false,
-      "properties": {
-        "channel": { "const": "instrument" },
-        "schema": { "const": "afbws.instrument.apply.response.v1" },
-        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
-        "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
-        "groups": { "type": "array", "items": { "$ref": "#/$defs/group" } },
-        "assets": { "$ref": "#/$defs/assets" }
-      }
-    },
     "catalogRequest": {
       "type": "object",
       "title": "UI catalog snapshot for any authenticated caller. No filters, no paging.",
-      "description": "The wire form is identical for a user and a manager; completeness (unassigned assets) is applied server-side from the caller's role — sets/assets no longer carry an archived flag, so the only completeness axis left is whether an asset belongs to any set. Ordinary working-panel clients keep using `list` v2 — `catalog` is the Assets-modal snapshot.",
+      "description": "The wire form is identical for a user and a manager; completeness (unassigned assets) is applied server-side from the caller's role — sets/assets no longer carry an archived flag, so the only completeness axis left is whether an asset belongs to any set. `catalog` is the Assets-modal snapshot and the only read of the curated catalog.",
       "required": ["channel", "schema", "request_id"],
       "additionalProperties": false,
       "properties": {
@@ -666,16 +408,15 @@
     },
     "catalogResponse": {
       "type": "object",
-      "title": "UI snapshot of the curated catalog: ordered sets, assets with nested members, items and series.",
-      "description": "Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Membership is `sets[].asset_ids` in display order. Composition is `assets[].members` (`kind`/`code`/`label`/`market`) in display order. There are no parallel `memberships` or `asset_members` arrays. `items` are the canonical instrument records (including materialized futures contracts); `series` is the futures-series axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `sets[].asset_ids`.",
-      "required": ["channel", "schema", "request_id", "catalog_revision", "sets", "assets", "items", "series"],
+      "title": "UI snapshot of the curated catalog: collections, asset sets, assets with nested members, items and series.",
+      "description": "Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Membership is `asset_sets[].asset_ids` in display order. Composition is `assets[].members` (`kind`/`code`/`label`/`market`) in display order. Order is always array position — no entity on this wire carries an order field. `items` are the canonical instrument records (including materialized futures contracts); `series` is the futures-series axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `asset_sets[].asset_ids`.",
+      "required": ["channel", "schema", "request_id", "catalog_revision", "assets", "items", "series"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "instrument" },
         "schema": { "const": "afbws.instrument.catalog.response.v1" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
         "catalog_revision": { "type": "integer", "minimum": 0, "description": "Revision of the global catalog this snapshot was taken at — send it back as commitRequest.base_revision." },
-        "sets": { "type": "array", "items": { "$ref": "#/$defs/catalogSetView" }, "description": "Sets in display order. Each entry is catalogSetView: metadata plus `asset_ids` in that set's display order." },
         "assets": { "type": "array", "items": { "$ref": "#/$defs/catalogAsset" }, "description": "Curated assets, each with nested `members` in display order." },
         "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
         "series": { "$ref": "#/$defs/catalogSeriesMap" },
@@ -683,18 +424,6 @@
         "asset_sets": { "type": "array", "items": { "$ref": "#/$defs/assetSetView" } },
         "suggestions": { "type": "array", "items": { "$ref": "#/$defs/assetSuggestion" } },
         "user": { "$ref": "#/$defs/userState" }
-      }
-    },
-    "setUpsert": {
-      "type": "object",
-      "title": "Create-or-update of one set inside a commit. `set_id` is always required — a client-minted opaque id; the server INSERTs when it is unknown in the current snapshot, and UPDATEs when it already exists.",
-      "description": "The client mints `set_id` itself (same generateId style as deal/primitive ids) and never leaves it to the server. A create is simply a `set_id` the server does not yet know; a `set_id` collision on what the client meant as a create is a `validation_error`, not a silent update.",
-      "required": ["set_id", "name"],
-      "additionalProperties": false,
-      "properties": {
-        "set_id": { "type": "string", "minLength": 1, "description": "Client-minted opaque id. Unknown in the current snapshot -> INSERT (create); known -> UPDATE." },
-        "name": { "type": "string", "minLength": 1 },
-        "sort_order": { "type": "integer" }
       }
     },
     "assetMemberInput": {
@@ -719,8 +448,7 @@
         "name": { "type": "string", "minLength": 1 },
         "reference_series_code": { "type": ["string", "null"], "description": "Series reference data is taken from; null clears the choice." },
         "members": { "type": "array", "items": { "$ref": "#/$defs/assetMemberInput" }, "description": "The FULL composition of the asset, in the order it should end up in — not a partial edit. Each element is `{kind, code}` (same identity as catalogAssetMember / a pool entry). A contract listed here whose series is also listed is rejected." },
-        "collection_id": { "type": "string", "minLength": 1 },
-        "collection_sort_order": { "type": "integer" }
+        "collection_id": { "type": "string", "minLength": 1, "description": "The collection this asset moves into. Position inside that collection is not stated here — send `commitRequest.collection_members` to fix it." }
       }
     },
     "membersEdit": {
@@ -733,6 +461,19 @@
         "add": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "asset_ids to add; adding an already-present asset is a no-op, not an error." },
         "remove": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "asset_ids to drop from this set — an asset that ends up in no set is not deleted, it becomes unassigned." },
         "order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "The FULL asset_id order of this set after add/remove — not a partial reshuffle." }
+      }
+    },
+    "collectionMembersEdit": {
+      "type": "object",
+      "title": "Collection-membership delta for one collection, in asset_ids. add/remove are applied first, then `order` (when present) fixes the resulting positions.",
+      "description": "An asset lives in exactly ONE collection, so `add` here also states membership: an asset added to a collection leaves the one it was in. Assets that fall out of a collection without being added to another land in the system `_unclassified` bucket. `order`, when present, must list the collection's full membership after add/remove.",
+      "required": ["collection_id"],
+      "additionalProperties": false,
+      "properties": {
+        "collection_id": { "type": "string", "minLength": 1 },
+        "add": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "asset_ids to put into this collection; adding an already-present asset is a no-op, not an error." },
+        "remove": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "asset_ids to drop from this collection — an asset that ends up in no collection is not deleted, it lands in the system `_unclassified` bucket." },
+        "order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "The FULL asset_id order of this collection after add/remove — not a partial reshuffle." }
       }
     },
     "listingArchival": {
@@ -748,20 +489,19 @@
     "seriesUpsert": {
       "type": "object",
       "title": "Create-or-update of one futures series, keyed by its series_code.",
-      "description": "Write form for a pool series row: copy `code` → `series_code`, `name` → `name`, `underlying` → `underlying_ticker`. `sort_order` is catalog-only and has no pool counterpart.",
+      "description": "Write form for a pool series row: copy `code` → `series_code`, `name` → `name`, `underlying` → `underlying_ticker`. The series axis carries no order — `series` is a map, not a list.",
       "required": ["series_code"],
       "additionalProperties": false,
       "properties": {
         "series_code": { "type": "string", "minLength": 1 },
         "name": { "type": ["string", "null"] },
-        "sort_order": { "type": "integer" },
         "underlying_ticker": { "type": ["string", "null"] }
       }
     },
     "commitRequest": {
       "type": "object",
       "title": "manager only. The single write of the phase 2 catalog: a delta applied atomically on top of `base_revision`, never a whole-set replace.",
-      "description": "Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `sets`, `remove_sets`, `assets`, `remove_assets`, `members`, `listings`/`archive_listings`, `series`. The server plans the whole delta before applying, so a listing or series upserted in this same request may be referenced from `assets[].members` even though those sections are written later — that is how a pending pool entry and the asset composition that contains it travel atomically. A set created here can be filled by `members` in the same request, and an asset created here can be put into that set, because both exist by the time `members` runs — `members`/other same-commit references use the same client-minted `set_id`/`asset_id` the `setUpsert`/`assetUpsert` entry carries. `set_id` and `asset_id` are always client-minted opaque ids (setUpsert/assetUpsert), never generated by the server: a `set_id`/`asset_id` absent from the base snapshot is an INSERT, one already present is an UPDATE, and the server never rewrites an id it is given.",
+      "description": "Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `asset_sets`, `remove_asset_sets`, `assets`, `remove_assets`, `asset_set_members`, `listings`/`archive_listings`, `series`, `collections`, `remove_collections`, `collection_members`. The server plans the whole delta before applying, so a listing or series upserted in this same request may be referenced from `assets[].members` even though those sections are written later — that is how a pending pool entry and the asset composition that contains it travel atomically. A set created here can be filled by `asset_set_members` in the same request, and an asset created here can be put into that set, because both exist by the time `asset_set_members` runs — `asset_set_members`/other same-commit references use the same client-minted `set_id`/`asset_id` the `assetSetUpsert`/`assetUpsert` entry carries. Order is never a field on an entity: `asset_set_order`, `collection_order`, and the `order` of `asset_set_members`/`collection_members` each state a FULL final order, and every read snapshot carries order as array position. `set_id` and `asset_id` are always client-minted opaque ids (assetSetUpsert/assetUpsert), never generated by the server: a `set_id`/`asset_id` absent from the base snapshot is an INSERT, one already present is an UPDATE, and the server never rewrites an id it is given.",
       "required": ["channel", "schema", "request_id", "base_revision"],
       "additionalProperties": false,
       "properties": {
@@ -769,23 +509,23 @@
         "schema": { "const": "afbws.instrument.commit.request.v1" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
         "base_revision": { "type": "integer", "minimum": 0, "description": "The catalog_revision these edits were built on (CAS guard)." },
-        "sets": { "type": "array", "items": { "$ref": "#/$defs/setUpsert" } },
-        "remove_sets": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "set_ids to delete outright (their membership edges go with them). There is no archive flag — a hidden-but-addressable set is a phase-3 userState.hidden_set_ids concern, not a catalog one." },
         "assets": { "type": "array", "items": { "$ref": "#/$defs/assetUpsert" } },
         "remove_assets": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "asset_ids to delete outright. The deletion takes the asset's set memberships and its composition edges with it, but touches neither the listings nor the series that were its members — they survive uncurated and reappear as unassigned. There is no archive flag for assets." },
-        "members": { "type": "array", "items": { "$ref": "#/$defs/membersEdit" } },
         "listings": {
           "type": "array",
           "items": { "$ref": "../instrument.v1.json" },
-          "description": "Upsert of the instrument records themselves, by `ticker`. Copy a pool listing entry's `listing` here unchanged. The element's `group` field is IGNORED — membership is expressed only through `members`; clients send `group: null`. instrument.v1 is reused verbatim for its class gating (futures-only expiration/step_price/margin/futoi_code, `isin` for stock only), which is exactly what a listing write has to enforce."
+          "description": "Upsert of the instrument records themselves, by `ticker`. Copy a pool listing entry's `listing` here unchanged. The element's `group` field is IGNORED — membership is expressed only through `asset_set_members`; clients send `group: null`. instrument.v1 is reused verbatim for its class gating (futures-only expiration/step_price/margin/futoi_code, `isin` for stock only), which is exactly what a listing write has to enforce."
         },
         "archive_listings": { "type": "array", "items": { "$ref": "#/$defs/listingArchival" } },
         "series": { "type": "array", "items": { "$ref": "#/$defs/seriesUpsert" }, "description": "Upsert of futures series. Copy a pending pool series row here (`code` → `series_code`, `underlying` → `underlying_ticker`). The backend materializes that series' active contracts from the MOEX snapshot in the same transaction." },
         "collections": { "type": "array", "items": { "$ref": "#/$defs/collectionUpsert" } },
-        "remove_collections": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-        "asset_sets": { "type": "array", "items": { "$ref": "#/$defs/assetSetUpsert" } },
-        "remove_asset_sets": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-        "asset_set_members": { "type": "array", "items": { "$ref": "#/$defs/membersEdit" } },
+        "remove_collections": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "collection_ids to delete outright. The assets that were in them are not deleted — they land in the system `_unclassified` bucket." },
+        "collection_order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "The FULL final order of collection_ids — not a partial reshuffle. The list is FLAT: a collection carries one global order key in storage, not a position inside its parent, so parents and children are ordered in the same sequence. Collections absent from the list keep their relative position after the listed ones." },
+        "collection_members": { "type": "array", "items": { "$ref": "#/$defs/collectionMembersEdit" }, "description": "Which assets belong to which collection, and in what order inside it. An asset belongs to exactly one collection, so an `add` here also moves it out of its previous one." },
+        "asset_sets": { "type": "array", "items": { "$ref": "#/$defs/assetSetUpsert" }, "description": "Asset sets to create or update — identity and name only; the order of the sets is `asset_set_order`." },
+        "remove_asset_sets": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "set_ids to delete outright (their membership goes with them). There is no archive flag — a hidden-but-addressable set is a userState.hidden_set_ids concern, not a catalog one." },
+        "asset_set_members": { "type": "array", "items": { "$ref": "#/$defs/membersEdit" }, "description": "Membership delta of the asset sets, in asset_ids, with the full resulting order per set." },
+        "asset_set_order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "The FULL final order of set_ids — not a partial reshuffle. Sets absent from the list keep their relative position after the listed ones." },
         "accept_suggestions": { "type": "array", "items": { "$ref": "#/$defs/acceptSuggestion" } },
         "reject_suggestions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
         "reason": { "type": "string", "description": "Operator's note for this commit — stored verbatim in catalog_audit.reason." }
@@ -795,14 +535,13 @@
       "type": "object",
       "title": "The full post-commit snapshot (same nested UI shape as catalogResponse), so a client never has to re-read after a successful write.",
       "description": "`catalog_revision` is already the new one. A rejected commit is an errorResponse instead — there is no partially-applied outcome.",
-      "required": ["channel", "schema", "request_id", "catalog_revision", "sets", "assets", "items", "series"],
+      "required": ["channel", "schema", "request_id", "catalog_revision", "assets", "items", "series"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "instrument" },
         "schema": { "const": "afbws.instrument.commit.response.v1" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
         "catalog_revision": { "type": "integer", "minimum": 0 },
-        "sets": { "type": "array", "items": { "$ref": "#/$defs/catalogSetView" } },
         "assets": { "type": "array", "items": { "$ref": "#/$defs/catalogAsset" } },
         "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
         "series": { "$ref": "#/$defs/catalogSeriesMap" },
@@ -819,7 +558,7 @@
     },
     "userRequest": {
       "type": "object",
-      "title": "The caller's own personal sets and overlay — same delta shape as commit, but scoped to the caller. PHASE 3: the phase 2 backend answers `unsupported_action`.",
+      "title": "The caller's own personal sets and overlay — same delta shape as commit, but scoped to the caller.",
       "description": "`base_revision` here is the revision of the PERSONAL aggregate (userState.revision), not the global catalog_revision — personal edits never conflict with a manager's commit. Sets created through this operation are implicitly scope: \"user\" and owned by the caller; a `set_id` naming a global set is rejected. An empty request is legal and just reads the current personal state back.",
       "required": ["channel", "schema", "request_id", "base_revision"],
       "additionalProperties": false,
@@ -828,9 +567,9 @@
         "schema": { "const": "afbws.instrument.user.request.v1" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
         "base_revision": { "type": "integer", "minimum": 0, "description": "userState.revision the edits were built on (CAS guard); a mismatch is `conflict` with details.user_revision." },
-        "sets": { "type": "array", "items": { "$ref": "#/$defs/setUpsert" }, "description": "Personal sets to create or update — scope is implied, never sent." },
-        "remove_sets": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Personal set_ids to delete." },
-        "members": { "type": "array", "items": { "$ref": "#/$defs/membersEdit" } },
+        "sets": { "type": "array", "items": { "$ref": "#/$defs/assetSetUpsert" }, "description": "Personal sets to create or update — scope is implied, never sent. `visibility_tier` is FORBIDDEN in this operation and is rejected with `validation_error`: a personal set has scope `user`, and the tier is meaningful only for global sets." },
+        "remove_asset_sets": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Personal set_ids to delete." },
+        "asset_set_members": { "type": "array", "items": { "$ref": "#/$defs/membersEdit" } },
         "hidden_set_ids": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Replaces the whole hidden list, not a delta." },
         "order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Replaces the whole personal ordering, not a delta." }
       }
