@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 80b8e5eeb7690bff0293524b8478aec26a7235ab558798e4c857d4aa25d887cb
+ * source-hash: 3fba1bd373d258bc7d29e0473f4ef1269d73bedc25b16bbac4f23cb596ee36df
  */
 
 /**
@@ -380,7 +380,7 @@ export type GpV1 = {
   tradeplan_id?: string;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. `catalog` is the one read snapshot of the curated catalog for any authenticated caller. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `asset_sets` are named Sets of assets (not the category tree). `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. `user` is the caller's personal-sets/overlay operation and is served. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see assetSetView) instead of the single-parent group tree, plus an independent futures-series axis (catalogSeries) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — "Brent oil" is the BR-* and BRM-* series together — and it, not the ticker, is what a set contains (`asset_sets[].asset_ids`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves — an asset set carries its ordered `asset_ids`, an asset its ordered `members`. Order is carried by array position everywhere on the wire: no entity has an order field, and a write restates a full order through the dedicated `asset_set_order`/`collection_order`/`order` sections of `commit`. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. `catalog` is the one read snapshot of the curated catalog for any authenticated caller. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `asset_sets` are named Sets of assets (not the category tree). `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. `user` is the caller's personal-sets operation and is served. `favorites`/`paint` are the caller's colored favorites: `favorites` is read-only (the current list, in display order), `paint` is the write — an additive, CAS-free delta (`mark`/`unmark`/`order`) over instruments and assets, kept separate from `user` so a favorite click never spuriously conflicts with an open personal-sets edit. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see assetSetView) instead of the single-parent group tree, plus an independent futures-series axis (catalogSeries) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — "Brent oil" is the BR-* and BRM-* series together — and it, not the ticker, is what a set contains (`asset_sets[].asset_ids`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves — an asset set carries its ordered `asset_ids`, an asset its ordered `members`. Order is carried by array position everywhere on the wire: no entity has an order field, and a write restates a full order through the dedicated `asset_set_order`/`collection_order`/`order` sections of `commit`. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentChannelV1Message".
@@ -400,6 +400,10 @@ export type InstrumentChannelV1Message =
   | InstrumentCommitResponse
   | InstrumentUserRequest
   | InstrumentUserResponse
+  | AfbwsInstrumentChannelV1_FavoritesRequest
+  | AfbwsInstrumentChannelV1_FavoritesResponse
+  | AfbwsInstrumentChannelV1_PaintRequest
+  | AfbwsInstrumentChannelV1_PaintResponse
   | InstrumentSourcesRequest
   | InstrumentSourcesResponse
   | InstrumentRefreshRequest
@@ -551,6 +555,14 @@ export type InstrumentAssetSetView = {
   asset_ids: string[];
   visibility_tier?: 'manager' | 'user' | 'guest';
 };
+/**
+ * Canonical order: max_favorite_colors: N keeps the first N — yellow is always first, gray always last. Values are exactly the Chakra colorPalette names AFB's theme/accentPalettes.ts already uses; the frontend does not duplicate this list.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_FavoriteColor".
+ */
+export type AfbwsInstrumentChannelV1_FavoriteColor =
+  'yellow' | 'orange' | 'cyan' | 'purple' | 'pink' | 'teal' | 'blue' | 'green' | 'red' | 'gray';
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentInventoryEntry".
@@ -2170,7 +2182,7 @@ export interface InstrumentAssetSuggestion {
   resolved_asset_id?: string;
 }
 /**
- * The caller's personal overlay, served next to the global catalog. `sets[]` are full assetSetView objects — every entry has scope "user" and carries its own membership inline as ordered `asset_ids`; there is no parallel membership array. Personal sets are assembled from the same global assets a manager curates: a user never owns an asset of their own.
+ * The caller's personal overlay, served next to the global catalog. `asset_sets[]` are full assetSetView objects — every entry has scope "user" and carries its own membership inline as ordered `asset_ids`; there is no parallel membership array. Set order is the order of this array. Personal sets are assembled from the same global assets a manager curates: a user never owns an asset of their own.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentUserState".
@@ -2183,15 +2195,7 @@ export interface InstrumentUserState {
   /**
    * The caller's own sets — every entry has scope: "user" and states its membership inline as ordered `asset_ids`. Set order is the order of this array.
    */
-  sets: InstrumentAssetSetView[];
-  /**
-   * Sets (global or personal) the caller hid from their own view.
-   */
-  hidden_set_ids: string[];
-  /**
-   * Personal ordering of set_ids; sets not listed here follow the listed ones in the server's order.
-   */
-  order: string[];
+  asset_sets: InstrumentAssetSetView[];
 }
 /**
  * Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `asset_sets`, `remove_asset_sets`, `assets`, `remove_assets`, `asset_set_members`, `listings`/`archive_listings`, `series`, `collections`, `remove_collections`, `collection_members`. The server plans the whole delta before applying, so a listing or series upserted in this same request may be referenced from `assets[].members` even though those sections are written later — that is how a pending pool entry and the asset composition that contains it travel atomically. A set created here can be filled by `asset_set_members` in the same request, and an asset created here can be put into that set, because both exist by the time `asset_set_members` runs — `asset_set_members`/other same-commit references use the same client-minted `set_id`/`asset_id` the `assetSetUpsert`/`assetUpsert` entry carries. Order is never a field on an entity: `asset_set_order`, `collection_order`, and the `order` of `asset_set_members`/`collection_members` each state a FULL final order, and every read snapshot carries order as array position. `set_id` and `asset_id` are always client-minted opaque ids (assetSetUpsert/assetUpsert), never generated by the server: a `set_id`/`asset_id` absent from the base snapshot is an INSERT, one already present is an UPDATE, and the server never rewrites an id it is given.
@@ -2239,7 +2243,7 @@ export interface InstrumentCommitRequest {
    */
   asset_sets?: InstrumentAssetSetUpsert[];
   /**
-   * set_ids to delete outright (their membership goes with them). There is no archive flag — a hidden-but-addressable set is a userState.hidden_set_ids concern, not a catalog one.
+   * set_ids to delete outright (their membership goes with them). There is no archive flag.
    */
   remove_asset_sets?: string[];
   /**
@@ -2428,22 +2432,18 @@ export interface InstrumentUserRequest {
    */
   base_revision: number;
   /**
-   * Personal sets to create or update — scope is implied, never sent. `visibility_tier` is FORBIDDEN in this operation and is rejected with `validation_error`: a personal set has scope `user`, and the tier is meaningful only for global sets.
+   * Personal sets to create or update — identity and name only; the order of the sets is `asset_set_order`. Scope is implied, never sent. `visibility_tier` is FORBIDDEN in this operation and is rejected with `validation_error`: a personal set has scope `user`, and the tier is meaningful only for global sets.
    */
-  sets?: InstrumentAssetSetUpsert[];
+  asset_sets?: InstrumentAssetSetUpsert[];
   /**
    * Personal set_ids to delete.
    */
   remove_asset_sets?: string[];
   asset_set_members?: InstrumentMembersEdit[];
   /**
-   * Replaces the whole hidden list, not a delta.
+   * The FULL final order of the caller's own set_ids — not a partial reshuffle. Sets absent from the list keep their relative position after the listed ones.
    */
-  hidden_set_ids?: string[];
-  /**
-   * Replaces the whole personal ordering, not a delta.
-   */
-  order?: string[];
+  asset_set_order?: string[];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2458,6 +2458,84 @@ export interface InstrumentUserResponse {
    */
   user_revision: number;
   user: InstrumentUserState;
+}
+/**
+ * Carries no data beyond the envelope; there is no way to set or replace favorites through this operation — that is `paint`. Legal at any time, including right after a `paint` to read back the merged result.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_FavoritesRequest".
+ */
+export interface AfbwsInstrumentChannelV1_FavoritesRequest {
+  channel: 'instrument';
+  schema: 'afbws.instrument.favorites.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_FavoritesResponse".
+ */
+export interface AfbwsInstrumentChannelV1_FavoritesResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.favorites.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * In display order — position in the array is the order, nothing carries a sort key on the wire.
+   */
+  favorites: AfbwsInstrumentChannelV1_FavoriteEntry[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_FavoriteEntry".
+ */
+export interface AfbwsInstrumentChannelV1_FavoriteEntry {
+  kind: 'instrument' | 'asset';
+  key: string;
+  color: AfbwsInstrumentChannelV1_FavoriteColor;
+}
+/**
+ * Every section is optional and a list; an empty request is legal and a no-op — reading favorites back is `favorites`, not `paint`. `mark` paints one or more refs (repainting an already-favorited ref is legal — that is how its color changes); a ref repeated within the same `mark` list is applied in order, the last color wins. `unmark` removes one or more refs, idempotently — unmarking a ref that is not a favorite is a no-op, not an error. `order` REPLACES the caller's whole display order, the same idiom as commit's `asset_set_order` — not a partial reshuffle.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_PaintRequest".
+ */
+export interface AfbwsInstrumentChannelV1_PaintRequest {
+  channel: 'instrument';
+  schema: 'afbws.instrument.paint.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  mark?: AfbwsInstrumentChannelV1_FavoriteEntry[];
+  unmark?: AfbwsInstrumentChannelV1_FavoriteRef[];
+  order?: AfbwsInstrumentChannelV1_FavoriteRef[];
+}
+/**
+ * `key` is `instrument_key` for kind "instrument" and `asset_id` for kind "asset" — different identifier spaces, hence a dedicated field name rather than catalogAssetMember's `code`, which would invite the wrong join.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_FavoriteRef".
+ */
+export interface AfbwsInstrumentChannelV1_FavoriteRef {
+  kind: 'instrument' | 'asset';
+  key: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_PaintResponse".
+ */
+export interface AfbwsInstrumentChannelV1_PaintResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.paint.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Present iff the request had `mark` — one entry per ref that was marked or repainted.
+   */
+  marked?: AfbwsInstrumentChannelV1_FavoriteEntry[];
+  /**
+   * Present iff the request had `unmark` — only the refs that were actually favorites and got removed, not every ref named in the request.
+   */
+  unmarked?: AfbwsInstrumentChannelV1_FavoriteRef[];
+  /**
+   * Present iff the request had `order` — echoes the order that was applied.
+   */
+  order?: AfbwsInstrumentChannelV1_FavoriteRef[];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2668,7 +2746,7 @@ export interface InstrumentErrorResponse {
   details?: InstrumentErrorDetails;
 }
 /**
- * Populated on `conflict` (stale base_revision: `catalog_revision` for commit, `user_revision` for user — re-fetch, re-apply, retry) and on `validation_error` (`set_ids`/`asset_ids`/`tickers` name the offending rows — one list per level, since a rejected edit can be about a set, an asset or a listing). Absent for errors that carry no such context.
+ * Populated on `conflict` (stale base_revision: `catalog_revision` for commit, `user_revision` for user — re-fetch, re-apply, retry) and on `validation_error` (`set_ids`/`asset_ids`/`tickers`/`instrument_keys` name the offending rows — one list per level, since a rejected edit can be about a set, an asset or a listing; `limit` is populated instead when the rejection is a tier-limit overflow). Absent for errors that carry no such context.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentErrorDetails".
@@ -2687,6 +2765,18 @@ export interface InstrumentErrorDetails {
   tickers?: string[];
   collection_ids?: string[];
   suggestion_ids?: string[];
+  /**
+   * favorite/paint refs of kind "instrument" that failed to resolve.
+   */
+  instrument_keys?: string[];
+  limit?: {
+    /**
+     * The limit key, e.g. max_favorite_colors, max_asset_sets.
+     */
+    key: string;
+    allowed: number;
+    requested: number;
+  };
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

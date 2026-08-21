@@ -2,6 +2,28 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.5.10 — 2026-08-21
+
+PATCH (`afbws/instrument.channel.v1.json` — только канал AFB-бэкенд↔AFB-фронтенд). Два независимых хвоста в одном релизе: дочистка `user`/`userState`, оставшаяся неровной после `v2.5.9`, и новый протокол цветного избранного (`favorites`/`paint`).
+
+**Почему это PATCH.** Тот же довод, что у `v2.5.6`–`v2.5.9`: канал не входит в `spec/asyncapi.yaml`, не пересекает провод AFB↔BF, обе стороны (backend и фронтенд AFB) релизятся одним артефактом.
+
+- **`userRequest`/`userState` досогласованы с `commit`.** `sets` → `asset_sets` в обоих — `commit` и `remove_asset_sets`/`asset_set_members` уже говорили на этом языке, только само поле `sets` осталось от `v2.5.8`. `userState.required` соответственно тоже.
+- **Личный оверлей скрытия/порядка (`hidden_set_ids`, `order`) убран целиком** — из `userRequest` и из `userState` — а не только с записи. Ревизия задачи с автором протокола показала: скрытие набора у себя никогда не было реальной задачей, а хранившая оба поля таблица не добавляла ничего поверх уже существующих `instrument_set.sort_order` (порядок наборов) и `set_membership.sort_order` (порядок активов внутри набора). Единственная часть функциональности, которую стоило сохранить — переставить СВОИ ЛИЧНЫЕ наборы между собой — получила отдельную секцию.
+- **Новая секция `userRequest.asset_set_order: string[]`** — полный финальный порядок set_id личных наборов вызывающего, та же идиома, что и `commit.asset_set_order`. Наборы, не названные в списке, идут после названных в прежнем относительном порядке.
+- **`commitRequest.remove_asset_sets.description`** — снята ссылка на удалённый `userState.hidden_set_ids`.
+- **Новые операции `favorites` (чтение) и `paint` (запись) — цветное избранное.** Отдельные от `user` намеренно: `mark`/`unmark` идемпотентны и коммутативны, а CAS через `user.base_revision` выдавал бы спурьозный `conflict` открытой модалке личных наборов при каждом клике по звезде.
+  - `favoritesRequest` не несёт данных сверх конверта (`additionalProperties: false`, ноль полей кроме `channel`/`schema`/`request_id`) — структурно невозможно использовать эту операцию для установки/замены списка, только для чтения. `favoritesResponse.favorites: favoriteEntry[]` — в порядке отображения.
+  - `paintRequest` — три необязательные секции, **все списки**: `mark: favoriteEntry[]` (повтор `key` внутри списка — последний цвет побеждает), `unmark: favoriteRef[]` (снятие отметки с не-фаворита — no-op), `order: favoriteRef[]` (полная замена порядка, та же идиома full-order). Пустой запрос — легален и no-op. `paintResponse` эмитирует ровно те секции, что пришли в запросе, никогда не все три пустыми.
+  - `$defs favoriteRef` — `{kind: "instrument" | "asset", key}`. `key` — не `code`: для `kind="instrument"` это `instrument_key`, для `kind="asset"` — `asset_id`, разные пространства идентификаторов.
+  - `$defs favoriteColor` — enum из десяти: `yellow, orange, cyan, purple, pink, teal, blue, green, red, gray`, канонический порядок (`max_favorite_colors: N` берёт первые N). Значения совпадают с `theme/accentPalettes.ts` AFB.
+  - `errorDetails` — новые `instrument_keys` (нерезолвящиеся ссылки `kind="instrument"`) и `limit: {key, allowed, requested}` (отказ по лимиту тира — отклоняется вся дельта, не обрезается).
+- **Сгенерировано** (`afb-bf-protocol-generate`): TypeScript/Python-модели и зеркало схем `python/afb_bf_protocol/schemas/`.
+- **`python/tests/test_afbws_instrument_channel_schema.py`**: фикстуры и ассерты `userState`/`userRequest` переведены на `asset_sets`/`asset_set_order`; новые стражи `test_user_state_has_no_hide_or_order_overlay`, `test_favorites_request_is_read_only`, `test_paint_request_sections_are_all_lists`, `test_favorite_ref_kind_is_instrument_or_asset`, `test_favorites_and_paint_request_schema_consts_do_not_collide`, плюс valid/invalid-тесты на обе новые операции.
+- **Версии**: bump до `2.5.10` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`; `PROTOCOL_VERSION = "afb.execution.v1"` не менялся.
+
+**Не в этом релизе.** Реализация избранного на стороне AFB (`favorites.py`, миграция схемы `catalog.db` v6→v7 под `user_favorite_listing`/`user_favorite_asset`, фронтенд `TickersFavorites`/`FavoriteStar`/цвета) остаётся задачей следующей фазы — этот тег только фиксирует протокол, которым она будет пользоваться. Физический `DROP TABLE user_catalog_view` (backend AFB, схема `catalog.db`) тоже отложен — бьётся в ту же будущую миграцию v6→v7, что и добавление favorite-таблиц, чтобы не делать два схемных релиза подряд по одному и тому же поводу.
+
 ## v2.5.9 — 2026-08-20
 
 PATCH (`afbws/instrument.channel.v1.json` — только канал AFB-бэкенд↔AFB-фронтенд). Чистка накопленных хвостов схемы: удалены мёртвые операции `list` v1/v2 и `apply`, удалены теневые deprecated-поля, дублировавшие `asset_sets`, и **порядок ушёл с провода** — его несёт позиция элемента в массиве, а запись задаёт полный порядок отдельными секциями. Версия провода `afb.execution.v1` не менялась, BF не затронут.

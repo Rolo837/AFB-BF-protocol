@@ -97,12 +97,10 @@ _ASSET_SET_USER = {
     "owner_user_id": "u-42",
     "asset_ids": ["asset-sber"],
 }
-# The personal overlay: own sets, carrying their membership inline.
+# The caller's own sets, carrying their membership inline.
 _USER_STATE = {
     "revision": 3,
-    "sets": [_ASSET_SET_USER],
-    "hidden_set_ids": ["set-blue"],
-    "order": ["set-mine", "set-blue"],
+    "asset_sets": [_ASSET_SET_USER],
 }
 _INVENTORY_LISTING = {
     "kind": "listing",
@@ -569,25 +567,25 @@ def test_user_state_valid(registry):
 
 
 def test_user_state_sets_carry_their_membership_inline(registry):
-    """The overlay states membership as sets[].asset_ids — assetSetView, the
-    same object the global catalog uses. There is no parallel edge array."""
+    """The overlay states membership as asset_sets[].asset_ids — assetSetView,
+    the same object the global catalog uses. There is no parallel edge array."""
     from jsonschema import ValidationError
 
     _validator("userState", registry).validate(
-        {**_USER_STATE, "sets": [{**_ASSET_SET_USER, "asset_ids": ["asset-sber", "asset-brent"]}]}
+        {**_USER_STATE, "asset_sets": [{**_ASSET_SET_USER, "asset_ids": ["asset-sber", "asset-brent"]}]}
     )  # does not raise
     with pytest.raises(ValidationError):
         _validator("userState", registry).validate({**_USER_STATE, "memberships": []})
     with pytest.raises(ValidationError):
         _validator("userState", registry).validate(
-            {**_USER_STATE, "sets": [{k: v for k, v in _ASSET_SET_USER.items() if k != "asset_ids"}]}
+            {**_USER_STATE, "asset_sets": [{k: v for k, v in _ASSET_SET_USER.items() if k != "asset_ids"}]}
         )
 
 
 def test_user_state_requires_every_section(registry):
     from jsonschema import ValidationError
 
-    for missing in ("revision", "sets", "hidden_set_ids", "order"):
+    for missing in ("revision", "asset_sets"):
         payload = {k: v for k, v in _USER_STATE.items() if k != missing}
         with pytest.raises(ValidationError):
             _validator("userState", registry).validate(payload)
@@ -1037,7 +1035,7 @@ def test_commit_response_does_not_accept_catalog_schema_id(registry):
         _validator("commitResponse", registry).validate(msg)
 
 
-# --- user (the caller's own personal sets and overlay) ----------------------
+# --- user (the caller's own personal sets) -----------------------------------
 
 def test_user_request_minimal_valid(registry):
     msg = {
@@ -1051,11 +1049,10 @@ def test_user_request_full_valid(registry):
     msg = {
         "channel": "instrument", "schema": "afbws.instrument.user.request.v1", "request_id": "r1",
         "base_revision": 3,
-        "sets": [{"set_id": "set-mine", "name": "Мои"}],
+        "asset_sets": [{"set_id": "set-mine", "name": "Мои"}],
         "remove_asset_sets": ["set-old-personal"],
         "asset_set_members": [{"set_id": "set-mine", "add": ["asset-sber"]}],
-        "hidden_set_ids": ["set-blue-chips"],
-        "order": ["set-mine", "set-blue-chips"],
+        "asset_set_order": ["set-mine", "set-blue-chips"],
     }
     _validator("userRequest", registry).validate(msg)  # does not raise
 
@@ -1065,7 +1062,7 @@ def test_user_request_without_base_revision_rejected(registry):
 
     msg = {
         "channel": "instrument", "schema": "afbws.instrument.user.request.v1", "request_id": "r1",
-        "order": ["set-mine"],
+        "asset_set_order": ["set-mine"],
     }
     with pytest.raises(ValidationError):
         _validator("userRequest", registry).validate(msg)
@@ -1114,6 +1111,83 @@ def test_user_response_carries_no_catalog_revision(registry):
     }
     with pytest.raises(ValidationError):
         _validator("userResponse", registry).validate(msg)
+
+
+# --- favorites / paint (the caller's colored favorites) ----------------------
+
+_FAVORITE_ENTRY_SBER = {"kind": "instrument", "key": "MISX:TQBR:SBER", "color": "yellow"}
+_FAVORITE_REF_SBER = {"kind": "instrument", "key": "MISX:TQBR:SBER"}
+
+
+def test_favorites_request_valid(registry):
+    msg = {"channel": "instrument", "schema": "afbws.instrument.favorites.request.v1", "request_id": "r1"}
+    _validator("favoritesRequest", registry).validate(msg)  # does not raise
+
+
+def test_favorites_request_rejects_any_data_field(registry):
+    """`favorites` reads only — it cannot be (ab)used to set/replace the list."""
+    from jsonschema import ValidationError
+
+    for extra in ({"favorites": [_FAVORITE_ENTRY_SBER]}, {"mark": [_FAVORITE_ENTRY_SBER]}):
+        msg = {
+            "channel": "instrument", "schema": "afbws.instrument.favorites.request.v1", "request_id": "r1",
+            **extra,
+        }
+        with pytest.raises(ValidationError):
+            _validator("favoritesRequest", registry).validate(msg)
+
+
+def test_favorites_response_valid(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.favorites.response.v1", "request_id": "r1",
+        "favorites": [_FAVORITE_ENTRY_SBER, {"kind": "asset", "key": "asset-brent", "color": "gray"}],
+    }
+    _validator("favoritesResponse", registry).validate(msg)  # does not raise
+
+
+def test_paint_request_empty_is_valid(registry):
+    msg = {"channel": "instrument", "schema": "afbws.instrument.paint.request.v1", "request_id": "r1"}
+    _validator("paintRequest", registry).validate(msg)  # does not raise
+
+
+def test_paint_request_full_valid(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.paint.request.v1", "request_id": "r1",
+        "mark": [_FAVORITE_ENTRY_SBER, {"kind": "asset", "key": "asset-brent", "color": "cyan"}],
+        "unmark": [{"kind": "instrument", "key": "MISX:TQBR:GAZP"}],
+        "order": [_FAVORITE_REF_SBER],
+    }
+    _validator("paintRequest", registry).validate(msg)  # does not raise
+
+
+def test_paint_request_has_no_cas_guard(registry):
+    """No base_revision — mark/unmark/order are idempotent and commutative,
+    deliberately not compared-and-set against the personal-sets revision."""
+    assert "base_revision" not in _channel_doc()["$defs"]["paintRequest"]["properties"]
+
+
+def test_paint_request_rejects_singular_mark_or_unmark(registry):
+    """mark/unmark/order are always lists on the wire, never a bare object."""
+    from jsonschema import ValidationError
+
+    for extra in (
+        {"mark": _FAVORITE_ENTRY_SBER},
+        {"unmark": _FAVORITE_REF_SBER},
+    ):
+        msg = {
+            "channel": "instrument", "schema": "afbws.instrument.paint.request.v1", "request_id": "r1",
+            **extra,
+        }
+        with pytest.raises(ValidationError):
+            _validator("paintRequest", registry).validate(msg)
+
+
+def test_paint_response_echoes_only_sections_present(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.paint.response.v1", "request_id": "r1",
+        "marked": [_FAVORITE_ENTRY_SBER],
+    }
+    _validator("paintResponse", registry).validate(msg)  # does not raise
 
 
 # --- sources (manager-only registry of catalog feeds) -----------------------
@@ -1411,6 +1485,10 @@ def test_support_id_and_message_schema_consts_stay_v1():
         ("commitResponse", "afbws.instrument.commit.response.v1"),
         ("userRequest", "afbws.instrument.user.request.v1"),
         ("userResponse", "afbws.instrument.user.response.v1"),
+        ("favoritesRequest", "afbws.instrument.favorites.request.v1"),
+        ("favoritesResponse", "afbws.instrument.favorites.response.v1"),
+        ("paintRequest", "afbws.instrument.paint.request.v1"),
+        ("paintResponse", "afbws.instrument.paint.response.v1"),
     ):
         assert defs[name]["properties"]["schema"]["const"] == const
     assert "poolMetaResponse" not in defs
@@ -1420,6 +1498,8 @@ def test_support_id_and_message_schema_consts_stay_v1():
         "catalogRequest", "catalogResponse",
         "commitRequest", "commitResponse",
         "userRequest", "userResponse",
+        "favoritesRequest", "favoritesResponse",
+        "paintRequest", "paintResponse",
         "sourcesRequest", "sourcesResponse",
         "refreshRequest", "refreshResponse",
         "inventoryRequest", "inventoryResponse",
@@ -1443,7 +1523,7 @@ def test_the_asset_level_is_wired_through_both_snapshots():
     assert "members" in defs["catalogAsset"]["required"]
     assert defs["catalogAsset"]["properties"]["members"]["items"]["$ref"] == "#/$defs/catalogAssetMember"
     assert "asset_ids" in defs["assetSetView"]["required"]
-    assert defs["userState"]["properties"]["sets"]["items"]["$ref"] == "#/$defs/assetSetView"
+    assert defs["userState"]["properties"]["asset_sets"]["items"]["$ref"] == "#/$defs/assetSetView"
 
 
 def test_the_dead_operations_are_gone():
@@ -1474,6 +1554,8 @@ def test_no_channel_def_allows_additional_properties():
         "catalogRequest", "catalogResponse", "commitRequest", "commitResponse",
         "membersEdit", "collectionMembersEdit", "listingArchival", "seriesUpsert",
         "userRequest", "userResponse",
+        "favoriteRef", "favoriteEntry", "favoritesRequest", "favoritesResponse",
+        "paintRequest", "paintResponse",
         "catalogAsset", "catalogAssetMember", "assetMemberInput", "assetUpsert",
         "poolRequest", "poolResponse", "poolListingEntry", "poolSeriesEntry",
         "catalogSource", "sourcesRequest", "sourcesResponse",
@@ -1802,19 +1884,67 @@ def test_collection_members_edit_shape(registry):
 
 def test_user_request_speaks_the_asset_set_vocabulary():
     """The personal operation uses the same shapes and section names as commit:
-    assetSetUpsert, remove_asset_sets, asset_set_members."""
+    assetSetUpsert, remove_asset_sets, asset_set_members, asset_set_order."""
     defs = _channel_doc()["$defs"]
     user_request = defs["userRequest"]
     props = user_request["properties"]
-    assert props["sets"]["items"]["$ref"] == "#/$defs/assetSetUpsert"
+    assert props["asset_sets"]["items"]["$ref"] == "#/$defs/assetSetUpsert"
     assert "remove_asset_sets" in props
     assert "asset_set_members" in props
     assert props["asset_set_members"]["items"]["$ref"] == "#/$defs/membersEdit"
-    for gone in ("remove_sets", "members"):
+    assert props["asset_set_order"]["items"]["type"] == "string"
+    for gone in ("sets", "remove_sets", "members", "hidden_set_ids", "order"):
         assert gone not in props, gone
     # visibility_tier is a global-set notion; the personal operation rejects it.
-    assert "visibility_tier" in props["sets"]["description"]
-    assert "validation_error" in props["sets"]["description"]
+    assert "visibility_tier" in props["asset_sets"]["description"]
+    assert "validation_error" in props["asset_sets"]["description"]
+
+
+def test_user_state_has_no_hide_or_order_overlay():
+    """The personal hide/reorder overlay (hidden_set_ids/order, user_catalog_view)
+    was judged unnecessary and removed outright — not deferred, not kept
+    read-only. Reordering the caller's OWN sets is userRequest.asset_set_order."""
+    defs = _channel_doc()["$defs"]
+    for gone in ("hidden_set_ids", "order"):
+        assert gone not in defs["userState"]["properties"], gone
+        assert gone not in defs["userState"]["required"], gone
+
+
+def test_favorites_request_is_read_only():
+    """`favorites` cannot be used to set or replace favorites — only channel/
+    schema/request_id are recognized properties."""
+    defs = _channel_doc()["$defs"]
+    props = defs["favoritesRequest"]["properties"]
+    assert set(props) == {"channel", "schema", "request_id"}
+    assert defs["favoritesRequest"]["additionalProperties"] is False
+
+
+def test_paint_request_sections_are_all_lists():
+    defs = _channel_doc()["$defs"]
+    props = defs["paintRequest"]["properties"]
+    for name in ("mark", "unmark", "order"):
+        assert props[name]["type"] == "array", name
+    assert props["mark"]["items"]["$ref"] == "#/$defs/favoriteEntry"
+    assert props["unmark"]["items"]["$ref"] == "#/$defs/favoriteRef"
+    assert props["order"]["items"]["$ref"] == "#/$defs/favoriteRef"
+
+
+def test_favorite_ref_kind_is_instrument_or_asset():
+    defs = _channel_doc()["$defs"]
+    assert defs["favoriteRef"]["properties"]["kind"]["enum"] == ["instrument", "asset"]
+    assert defs["favoriteEntry"]["properties"]["kind"]["enum"] == ["instrument", "asset"]
+
+
+def test_favorites_and_paint_request_schema_consts_do_not_collide():
+    """`...favorites.request.v1` and `...paint.request.v1` differ by more than
+    one shared prefix fragment — but the historical trap in this file was
+    `favorite`/`favorites` sharing a prefix; guard the actual consts stay
+    distinct `$defs`, exact dict lookup, no startswith."""
+    defs = _channel_doc()["$defs"]
+    assert (
+        defs["favoritesRequest"]["properties"]["schema"]["const"]
+        != defs["paintRequest"]["properties"]["schema"]["const"]
+    )
 
 
 def test_no_wire_entity_carries_an_order_field():

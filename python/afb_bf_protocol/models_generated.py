@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 80b8e5eeb7690bff0293524b8478aec26a7235ab558798e4c857d4aa25d887cb
+# source-hash: 3fba1bd373d258bc7d29e0473f4ef1269d73bedc25b16bbac4f23cb596ee36df
 
 from __future__ import annotations
 
@@ -190,6 +190,65 @@ class AfbwsGpChannelV1SyncPush(TypedDict):
     channel: Literal["gp"]
     schema: Literal["afbws.gp.sync.push.v1"]
     items: list[GpV1]
+
+
+AfbwsInstrumentChannelV1FavoriteColor: TypeAlias = Literal[
+    "yellow", "orange", "cyan", "purple", "pink", "teal", "blue", "green", "red", "gray"
+]
+
+
+class AfbwsInstrumentChannelV1FavoriteEntry(TypedDict):
+    kind: Literal["instrument", "asset"]
+    key: str
+    color: AfbwsInstrumentChannelV1FavoriteColor
+
+
+class AfbwsInstrumentChannelV1FavoriteRef(TypedDict):
+    """
+    `key` is `instrument_key` for kind "instrument" and `asset_id` for kind "asset" — different identifier spaces, hence a dedicated field name rather than catalogAssetMember's `code`, which would invite the wrong join.
+    """
+
+    kind: Literal["instrument", "asset"]
+    key: str
+
+
+class AfbwsInstrumentChannelV1FavoritesRequest(TypedDict):
+    """
+    Carries no data beyond the envelope; there is no way to set or replace favorites through this operation — that is `paint`. Legal at any time, including right after a `paint` to read back the merged result.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.favorites.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+
+
+class AfbwsInstrumentChannelV1FavoritesResponse(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.favorites.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    favorites: list[AfbwsInstrumentChannelV1FavoriteEntry]
+
+
+class AfbwsInstrumentChannelV1PaintRequest(TypedDict):
+    """
+    Every section is optional and a list; an empty request is legal and a no-op — reading favorites back is `favorites`, not `paint`. `mark` paints one or more refs (repainting an already-favorited ref is legal — that is how its color changes); a ref repeated within the same `mark` list is applied in order, the last color wins. `unmark` removes one or more refs, idempotently — unmarking a ref that is not a favorite is a no-op, not an error. `order` REPLACES the caller's whole display order, the same idiom as commit's `asset_set_order` — not a partial reshuffle.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.paint.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    mark: NotRequired[list[AfbwsInstrumentChannelV1FavoriteEntry]]
+    unmark: NotRequired[list[AfbwsInstrumentChannelV1FavoriteRef]]
+    order: NotRequired[list[AfbwsInstrumentChannelV1FavoriteRef]]
+
+
+class AfbwsInstrumentChannelV1PaintResponse(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.paint.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    marked: NotRequired[list[AfbwsInstrumentChannelV1FavoriteEntry]]
+    unmarked: NotRequired[list[AfbwsInstrumentChannelV1FavoriteRef]]
+    order: NotRequired[list[AfbwsInstrumentChannelV1FavoriteRef]]
 
 
 class AfbwsTradeplanChannelV1ArchiveRequest(TypedDict):
@@ -2116,7 +2175,7 @@ class InstrumentDetailResponse(TypedDict):
 
 class InstrumentErrorDetails(TypedDict):
     """
-    Populated on `conflict` (stale base_revision: `catalog_revision` for commit, `user_revision` for user — re-fetch, re-apply, retry) and on `validation_error` (`set_ids`/`asset_ids`/`tickers` name the offending rows — one list per level, since a rejected edit can be about a set, an asset or a listing). Absent for errors that carry no such context.
+    Populated on `conflict` (stale base_revision: `catalog_revision` for commit, `user_revision` for user — re-fetch, re-apply, retry) and on `validation_error` (`set_ids`/`asset_ids`/`tickers`/`instrument_keys` name the offending rows — one list per level, since a rejected edit can be about a set, an asset or a listing; `limit` is populated instead when the rejection is a tier-limit overflow). Absent for errors that carry no such context.
     """
 
     catalog_revision: NotRequired[int]
@@ -2126,6 +2185,8 @@ class InstrumentErrorDetails(TypedDict):
     tickers: NotRequired[list[str]]
     collection_ids: NotRequired[list[str]]
     suggestion_ids: NotRequired[list[str]]
+    instrument_keys: NotRequired[list[str]]
+    limit: NotRequired[Limit]
 
 
 class InstrumentErrorResponse(TypedDict):
@@ -2385,11 +2446,10 @@ class InstrumentUserRequest(TypedDict):
     schema: Literal["afbws.instrument.user.request.v1"]
     request_id: AfbwsCommonV1RequestId
     base_revision: int
-    sets: NotRequired[list[InstrumentAssetSetUpsert]]
+    asset_sets: NotRequired[list[InstrumentAssetSetUpsert]]
     remove_asset_sets: NotRequired[list[str]]
     asset_set_members: NotRequired[list[InstrumentMembersEdit]]
-    hidden_set_ids: NotRequired[list[str]]
-    order: NotRequired[list[str]]
+    asset_set_order: NotRequired[list[str]]
 
 
 class InstrumentUserResponse(TypedDict):
@@ -2415,6 +2475,10 @@ InstrumentChannelV1Message: TypeAlias = (
     | InstrumentCommitResponse
     | InstrumentUserRequest
     | InstrumentUserResponse
+    | AfbwsInstrumentChannelV1FavoritesRequest
+    | AfbwsInstrumentChannelV1FavoritesResponse
+    | AfbwsInstrumentChannelV1PaintRequest
+    | AfbwsInstrumentChannelV1PaintResponse
     | InstrumentSourcesRequest
     | InstrumentSourcesResponse
     | InstrumentRefreshRequest
@@ -2427,13 +2491,11 @@ InstrumentChannelV1Message: TypeAlias = (
 
 class InstrumentUserState(TypedDict):
     """
-    The caller's personal overlay, served next to the global catalog. `sets[]` are full assetSetView objects — every entry has scope "user" and carries its own membership inline as ordered `asset_ids`; there is no parallel membership array. Personal sets are assembled from the same global assets a manager curates: a user never owns an asset of their own.
+    The caller's personal overlay, served next to the global catalog. `asset_sets[]` are full assetSetView objects — every entry has scope "user" and carries its own membership inline as ordered `asset_ids`; there is no parallel membership array. Set order is the order of this array. Personal sets are assembled from the same global assets a manager curates: a user never owns an asset of their own.
     """
 
     revision: int
-    sets: list[InstrumentAssetSetView]
-    hidden_set_ids: list[str]
-    order: list[str]
+    asset_sets: list[InstrumentAssetSetView]
 
 
 class InstrumentV1(TypedDict):
@@ -2470,6 +2532,12 @@ class Left(TypedDict):
 
     source: Literal["price", "immediate"]
     field: NotRequired[Literal["last"]]
+
+
+class Limit(TypedDict):
+    key: str
+    allowed: int
+    requested: int
 
 
 class LinkDeleteRequest(TypedDict):
