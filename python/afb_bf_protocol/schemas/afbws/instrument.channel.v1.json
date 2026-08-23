@@ -43,7 +43,9 @@
         "collection_id": { "type": "string", "minLength": 1 },
         "parent_id": { "type": ["string", "null"] },
         "name": { "type": "string", "minLength": 1 },
-        "pending": { "type": "boolean", "description": "system_pending / _unclassified bucket." }
+        "pending": { "type": "boolean", "description": "system_pending / _unclassified bucket." },
+        "icon_id": { "type": ["string", "null"], "maxLength": 128, "description": "PATCH, \"Инструменты, активы, иконки\" Шаг 2. Opaque icon key the frontend's own icon picker resolves — the server stores and returns it as-is, never interprets it. null/absent: no icon chosen, frontend falls back to its default-by-id rule." },
+        "icon_color": { "anyOf": [{ "$ref": "#/$defs/favoriteColor" }, { "type": "null" }], "description": "Same 10-value palette favorites already use — one color vocabulary, not two. null/absent: no explicit color, frontend falls back to its default." }
       }
     },
     "collectionUpsert": {
@@ -55,7 +57,9 @@
       "properties": {
         "collection_id": { "type": "string", "minLength": 1 },
         "parent_id": { "type": ["string", "null"] },
-        "name": { "type": "string", "minLength": 1 }
+        "name": { "type": "string", "minLength": 1 },
+        "icon_id": { "type": ["string", "null"], "maxLength": 128, "description": "Omitted: unchanged. null: clears the icon." },
+        "icon_color": { "anyOf": [{ "$ref": "#/$defs/favoriteColor" }, { "type": "null" }], "description": "Omitted: unchanged. null: clears the color." }
       }
     },
     "assetSetView": {
@@ -74,7 +78,9 @@
           "items": { "type": "string", "minLength": 1 },
           "description": "Member assets in display order."
         },
-        "visibility_tier": { "enum": ["manager", "user", "guest"] }
+        "visibility_tier": { "enum": ["manager", "user", "guest"] },
+        "icon_id": { "type": ["string", "null"], "maxLength": 128, "description": "PATCH, \"Инструменты, активы, иконки\" Шаг 2. Same opaque icon key as `collection.icon_id`." },
+        "icon_color": { "anyOf": [{ "$ref": "#/$defs/favoriteColor" }, { "type": "null" }], "description": "Same 10-value palette favorites already use." }
       },
       "allOf": [
         {
@@ -99,7 +105,9 @@
       "properties": {
         "set_id": { "type": "string", "minLength": 1 },
         "name": { "type": "string", "minLength": 1 },
-        "visibility_tier": { "enum": ["manager", "user", "guest"], "description": "Optional; server default is user." }
+        "visibility_tier": { "enum": ["manager", "user", "guest"], "description": "Optional; server default is user." },
+        "icon_id": { "type": ["string", "null"], "maxLength": 128, "description": "Omitted: unchanged. null: clears the icon." },
+        "icon_color": { "anyOf": [{ "$ref": "#/$defs/favoriteColor" }, { "type": "null" }], "description": "Omitted: unchanged. null: clears the color." }
       }
     },
     "catalogAsset": {
@@ -151,7 +159,8 @@
       "additionalProperties": false,
       "properties": {
         "name": { "type": ["string", "null"] },
-        "underlying_ticker": { "type": ["string", "null"], "description": "Canonical ticker of the underlying instrument, when the series has one." }
+        "underlying_ticker": { "type": ["string", "null"], "description": "Canonical ticker of the underlying instrument, when the series has one." },
+        "cardinality_state": { "enum": ["true_series", "singleton", "dormant", null], "description": "PATCH, \"Инструменты, активы, иконки\" Шаг 1. true_series: more than one active contract in the latest complete snapshot — this is a real series node. singleton: exactly one — an asset holding it is reachable through the one contract's listing membership, not through this series (D6). dormant: zero, contracts expired; the asset link (if any) is left exactly where it was (D4) — nothing here auto-detaches it. null on a database still on schema v7 or a series row read before its first refresh under v8." }
       }
     },
     "catalogSeriesMap": {
@@ -751,7 +760,7 @@
         "updated": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Existing listings whose source-owned fields changed; lifecycle, membership and provenance are never touched by a refresh." },
         "resurrected": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Archived listings the source offered again, so they were un-archived instead of duplicated." },
         "archived": { "type": "array", "items": { "$ref": "#/$defs/refreshArchivedEntry" } },
-        "new_series": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "series_codes first seen in this answer. Each one gets a series and an asset of its own, outside every set — the manager decides where it belongs." },
+        "new_series": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "series_codes first seen in this answer. Refresh no longer creates an asset for one (PATCH, \"Инструменты, активы, иконки\" Шаг 1) — the series_code sits unassigned until a manager links it to an asset through `commit`, exactly like an uncurated spot listing already does." },
         "absent_from_catalog": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Rows the source listed that the catalog does not hold and did NOT add: the catalog is curated, and `commit` is where non-futures rows are born. A curation gap shows up here rather than silently growing the catalog." },
         "rows_without_series": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Futures rows the source gave with no series code — unplaceable, so skipped." },
         "changes": {

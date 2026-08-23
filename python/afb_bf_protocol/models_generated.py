@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 3fba1bd373d258bc7d29e0473f4ef1269d73bedc25b16bbac4f23cb596ee36df
+# source-hash: 89f7906b5eff01cde7ce4c94cd6330a80b54a33aadc871ec6aed9bd673854ffd
 
 from __future__ import annotations
 
@@ -1959,6 +1959,8 @@ class InstrumentAssetSetUpsert(TypedDict):
     set_id: str
     name: str
     visibility_tier: NotRequired[Literal["manager", "user", "guest"]]
+    icon_id: NotRequired[str | None]
+    icon_color: NotRequired[AfbwsInstrumentChannelV1FavoriteColor | None]
 
 
 class InstrumentAssetSetView(TypedDict):
@@ -1972,6 +1974,8 @@ class InstrumentAssetSetView(TypedDict):
     owner_user_id: NotRequired[str | None]
     asset_ids: list[str]
     visibility_tier: NotRequired[Literal["manager", "user", "guest"]]
+    icon_id: NotRequired[str | None]
+    icon_color: NotRequired[AfbwsInstrumentChannelV1FavoriteColor | None]
 
 
 class InstrumentAssetSuggestion(TypedDict):
@@ -2058,6 +2062,9 @@ class InstrumentCatalogSeries(TypedDict):
 
     name: str | None
     underlying_ticker: NotRequired[str | None]
+    cardinality_state: NotRequired[
+        Literal["true_series", "singleton", "dormant"] | None
+    ]
 
 
 InstrumentCatalogSeriesMap: TypeAlias = dict[str, InstrumentCatalogSeries]
@@ -2087,6 +2094,8 @@ class InstrumentCollection(TypedDict):
     parent_id: NotRequired[str | None]
     name: str
     pending: NotRequired[bool]
+    icon_id: NotRequired[str | None]
+    icon_color: NotRequired[AfbwsInstrumentChannelV1FavoriteColor | None]
 
 
 class InstrumentCollectionMembersEdit(TypedDict):
@@ -2108,6 +2117,8 @@ class InstrumentCollectionUpsert(TypedDict):
     collection_id: str
     parent_id: NotRequired[str | None]
     name: str
+    icon_id: NotRequired[str | None]
+    icon_color: NotRequired[AfbwsInstrumentChannelV1FavoriteColor | None]
 
 
 class InstrumentCommitRequest(TypedDict):

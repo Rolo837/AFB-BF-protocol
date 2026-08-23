@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 3fba1bd373d258bc7d29e0473f4ef1269d73bedc25b16bbac4f23cb596ee36df
+ * source-hash: 89f7906b5eff01cde7ce4c94cd6330a80b54a33aadc871ec6aed9bd673854ffd
  */
 
 /**
@@ -537,6 +537,14 @@ export type InstrumentCatalogAssetMember = {
   market: 'stock' | 'futures' | 'currency' | 'index';
 };
 /**
+ * Canonical order: max_favorite_colors: N keeps the first N — yellow is always first, gray always last. Values are exactly the Chakra colorPalette names AFB's theme/accentPalettes.ts already uses; the frontend does not duplicate this list.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_FavoriteColor".
+ */
+export type AfbwsInstrumentChannelV1_FavoriteColor =
+  'yellow' | 'orange' | 'cyan' | 'purple' | 'pink' | 'teal' | 'blue' | 'green' | 'red' | 'gray';
+/**
  * True asset set (Наборы): metadata plus ordered `asset_ids`. The set's own display position is its position in `asset_sets[]` (and in `userState.sets[]` for a personal set) — there is no order field on the wire; a commit restates that order wholesale through `commitRequest.asset_set_order`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -554,15 +562,15 @@ export type InstrumentAssetSetView = {
    */
   asset_ids: string[];
   visibility_tier?: 'manager' | 'user' | 'guest';
+  /**
+   * PATCH, "Инструменты, активы, иконки" Шаг 2. Same opaque icon key as `collection.icon_id`.
+   */
+  icon_id?: string | null;
+  /**
+   * Same 10-value palette favorites already use.
+   */
+  icon_color?: AfbwsInstrumentChannelV1_FavoriteColor | null;
 };
-/**
- * Canonical order: max_favorite_colors: N keeps the first N — yellow is always first, gray always last. Values are exactly the Chakra colorPalette names AFB's theme/accentPalettes.ts already uses; the frontend does not duplicate this list.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_FavoriteColor".
- */
-export type AfbwsInstrumentChannelV1_FavoriteColor =
-  'yellow' | 'orange' | 'cyan' | 'purple' | 'pink' | 'teal' | 'blue' | 'green' | 'red' | 'gray';
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentInventoryEntry".
@@ -2148,6 +2156,10 @@ export interface InstrumentCatalogSeries {
    * Canonical ticker of the underlying instrument, when the series has one.
    */
   underlying_ticker?: string | null;
+  /**
+   * PATCH, "Инструменты, активы, иконки" Шаг 1. true_series: more than one active contract in the latest complete snapshot — this is a real series node. singleton: exactly one — an asset holding it is reachable through the one contract's listing membership, not through this series (D6). dormant: zero, contracts expired; the asset link (if any) is left exactly where it was (D4) — nothing here auto-detaches it. null on a database still on schema v7 or a series row read before its first refresh under v8.
+   */
+  cardinality_state?: 'true_series' | 'singleton' | 'dormant' | null;
 }
 /**
  * Order is carried by array position: `collections[]` already arrives in the order the tree is drawn in (the children of one `parent_id` follow one another), so there is no order field on the wire. A commit restates that order wholesale through `commitRequest.collection_order`.
@@ -2163,6 +2175,14 @@ export interface InstrumentCollection {
    * system_pending / _unclassified bucket.
    */
   pending?: boolean;
+  /**
+   * PATCH, "Инструменты, активы, иконки" Шаг 2. Opaque icon key the frontend's own icon picker resolves — the server stores and returns it as-is, never interprets it. null/absent: no icon chosen, frontend falls back to its default-by-id rule.
+   */
+  icon_id?: string | null;
+  /**
+   * Same 10-value palette favorites already use — one color vocabulary, not two. null/absent: no explicit color, frontend falls back to its default.
+   */
+  icon_color?: AfbwsInstrumentChannelV1_FavoriteColor | null;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2331,6 +2351,14 @@ export interface InstrumentCollectionUpsert {
   collection_id: string;
   parent_id?: string | null;
   name: string;
+  /**
+   * Omitted: unchanged. null: clears the icon.
+   */
+  icon_id?: string | null;
+  /**
+   * Omitted: unchanged. null: clears the color.
+   */
+  icon_color?: AfbwsInstrumentChannelV1_FavoriteColor | null;
 }
 /**
  * An asset lives in exactly ONE collection, so `add` here also states membership: an asset added to a collection leaves the one it was in. Assets that fall out of a collection without being added to another land in the system `_unclassified` bucket. `order`, when present, must list the collection's full membership after add/remove.
@@ -2366,6 +2394,14 @@ export interface InstrumentAssetSetUpsert {
    * Optional; server default is user.
    */
   visibility_tier?: 'manager' | 'user' | 'guest';
+  /**
+   * Omitted: unchanged. null: clears the icon.
+   */
+  icon_id?: string | null;
+  /**
+   * Omitted: unchanged. null: clears the color.
+   */
+  icon_color?: AfbwsInstrumentChannelV1_FavoriteColor | null;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2656,7 +2692,7 @@ export interface InstrumentRefreshReport {
   resurrected: string[];
   archived: InstrumentRefreshArchivedEntry[];
   /**
-   * series_codes first seen in this answer. Each one gets a series and an asset of its own, outside every set — the manager decides where it belongs.
+   * series_codes first seen in this answer. Refresh no longer creates an asset for one (PATCH, "Инструменты, активы, иконки" Шаг 1) — the series_code sits unassigned until a manager links it to an asset through `commit`, exactly like an uncurated spot listing already does.
    */
   new_series: string[];
   /**

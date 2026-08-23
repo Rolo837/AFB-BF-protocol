@@ -2,6 +2,20 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.5.11 — 2026-08-23
+
+PATCH (`afbws/instrument.channel.v1.json` — только канал AFB-бэкенд↔AFB-фронтенд). Задача «Инструменты, активы, иконки», Шаг 1 (cardinality) и начало Шага 2 (иконки).
+
+**Почему это PATCH.** Тот же довод, что у `v2.5.6`–`v2.5.10`: канал не входит в `spec/asyncapi.yaml`, не пересекает провод AFB↔BF.
+
+- **`refreshReport.new_series.description`** больше не обещает asset — backend AFB перестал автоматически создавать актив на новый `series_code` (AUDIT.md I4/G2): новая серия остаётся неприсвоенной до `commit` менеджера, ровно как некурированный spot-листинг уже сегодня.
+- **`catalogSeries.cardinality_state`** — новое опциональное поле (`true_series` / `singleton` / `dormant` / `null`), проекция инварианта I2/D4/D6: серия — реальный узел дерева только при `>1` активных контрактов; singleton виден как обычный listing (актив достижим через членство контракта, не через серию); dormant не отвязывается от актива автоматически. `null` — база ещё не на schema v8 либо строка ещё не пересчитана.
+- **`icon_id`/`icon_color` на `collection`/`collectionUpsert` и `assetSetView`/`assetSetUpsert`** — начало Шага 2. `icon_id` — непрозрачный ключ, который резолвит только фронтенд (сервер хранит и возвращает как есть); `icon_color` — тот же 10-значный `favoriteColor`, что и у избранного, через `anyOf` с `null` (favoriteColor сам по себе не тронут — им продолжает пользоваться `favoriteEntry` без изменений). В upsert-вариантах отсутствие поля — «не менять», `null` — «очистить».
+- **Сгенерировано** (`afb-bf-protocol-generate`): TypeScript/Python-модели и зеркало схем `python/afb_bf_protocol/schemas/`.
+- **Версии**: bump до `2.5.11` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`; `PROTOCOL_VERSION = "afb.execution.v1"` не менялся.
+
+**Не в этом релизе.** Иконки коллекций/наборов на стороне backend AFB (колонки `icon_id`/`icon_color`, миграция schema v7→v8) и frontend (замена эфемерного `iconOverrides` на persisted-поля) — отдельные части того же Шага, backend уже реализован в AFB (`catalog_schema.py` v8), frontend ещё нет. `cardinality_state` в backend AFB реализован (`catalog_schema.py`/`catalog_refresh.py`) и уже отдаётся в проекции; M:N-коллекции (Фаза 3 AUDIT.md) и BF/`broker.get_catalog` — сознательно вне объёма этой задачи.
+
 ## v2.5.10 — 2026-08-21
 
 PATCH (`afbws/instrument.channel.v1.json` — только канал AFB-бэкенд↔AFB-фронтенд). Два независимых хвоста в одном релизе: дочистка `user`/`userState`, оставшаяся неровной после `v2.5.9`, и новый протокол цветного избранного (`favorites`/`paint`).
