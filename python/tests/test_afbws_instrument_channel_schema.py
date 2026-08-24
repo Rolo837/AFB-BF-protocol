@@ -32,6 +32,7 @@ _SERIES_MAP = {"Si": {"name": "Доллар США", "underlying_ticker": None}}
 _CATALOG_MEMBER_BR = {"kind": "series", "code": "BR", "label": "Нефть Brent", "market": "futures"}
 _CATALOG_MEMBER_BRM = {"kind": "series", "code": "BRM", "label": "Нефть Brent mini", "market": "futures"}
 _CATALOG_MEMBER_SBER = {"kind": "listing", "code": "SBER", "label": "Сбер", "market": "stock"}
+_CATALOG_MEMBER_CNYRUBF = {"kind": "listing", "code": "CNYRUBF", "label": "CNY/RUB", "market": "futures"}
 
 _ASSET = {
     "asset_id": "asset-brent",
@@ -503,7 +504,10 @@ def test_catalog_asset_has_no_scope_or_owner(registry):
 
 
 def test_catalog_asset_member_valid_for_both_kinds(registry):
-    for member in (_CATALOG_MEMBER_BR, _CATALOG_MEMBER_BRM, _CATALOG_MEMBER_SBER):
+    for member in (
+        _CATALOG_MEMBER_BR, _CATALOG_MEMBER_BRM, _CATALOG_MEMBER_SBER,
+        _CATALOG_MEMBER_CNYRUBF,
+    ):
         _validator("catalogAssetMember", registry).validate(member)  # does not raise
 
 
@@ -516,13 +520,9 @@ def test_catalog_asset_member_series_must_be_futures(registry):
         )
 
 
-def test_catalog_asset_member_listing_cannot_be_futures(registry):
-    from jsonschema import ValidationError
-
-    with pytest.raises(ValidationError):
-        _validator("catalogAssetMember", registry).validate(
-            {**_CATALOG_MEMBER_SBER, "market": "futures"}
-        )
+def test_catalog_asset_member_listing_may_be_futures(registry):
+    """D6: a singleton futures contract is a listing member, not a series."""
+    _validator("catalogAssetMember", registry).validate(_CATALOG_MEMBER_CNYRUBF)
 
 
 def test_catalog_asset_member_requires_every_field(registry):

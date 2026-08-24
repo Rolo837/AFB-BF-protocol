@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 89f7906b5eff01cde7ce4c94cd6330a80b54a33aadc871ec6aed9bd673854ffd
+ * source-hash: b186e18df6d457e84b51a2848ce269202807659d83401a0a7c8b878c1af26f95
  */
 
 /**
@@ -517,7 +517,7 @@ export type InstrumentPoolListingEntry = {
   listing: InstrumentV1;
 };
 /**
- * Array position is the display order. `code` is the canonical ticker for `listing` and the series_code for `series`. `label` and `market` are denormalized for plaques so the Groups/Assets UI does not have to join `items`/`series`. A series member is whole: every expiration belongs to the asset. `kind=listing` is never a futures contract (`market` must not be `futures`); futures join an asset only as `kind=series`. The server still enforces that a futures contract may not be a listing member of an asset that already contains its series.
+ * Array position is the display order. `code` is the canonical ticker for `listing` and the series_code for `series`. `label` and `market` are denormalized for plaques so the Groups/Assets UI does not have to join `items`/`series`. A series member is whole: every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, index, or a singleton futures contract (D6 — a series with exactly one active contract is shown as that listing, not as `kind=series`). True-series futures (`cardinality_state=true_series`) still join only as `kind=series`. The server rejects a futures contract as a listing member of an asset that already contains its series.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentCatalogAssetMember".

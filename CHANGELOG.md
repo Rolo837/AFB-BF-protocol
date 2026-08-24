@@ -2,6 +2,16 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.5.12 — 2026-08-24
+
+PATCH (`afbws/instrument.channel.v1.json` — только канал AFB-бэкенд↔AFB-фронтенд). Стык D6: singleton-фьючерс на проводе — `kind=listing` с `market=futures`.
+
+**Почему это PATCH.** Канал не входит в `spec/asyncapi.yaml` и не пересекает провод AFB↔BF. Снимается `allOf`-запрет `listing`+`futures` у `catalogAssetMember` — описание `catalogSeries.cardinality_state` (v2.5.11) уже говорило, что singleton виден как listing; схема члена актива этому противоречила и опустошала `assets[].members` после v8-переноса ребра на контракт.
+
+- **`catalogAssetMember`**: `kind=listing` может нести `market=futures` (единственный активный контракт singleton-серии). `kind=series` по-прежнему только `futures`. Контракт рядом с собственной серией в том же активе по-прежнему отвергается сервером.
+- **Сгенерировано** (`afb-bf-protocol-generate`): TypeScript/Python-модели и зеркало схем `python/afb_bf_protocol/schemas/`.
+- **Версии**: bump до `2.5.12` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`; `PROTOCOL_VERSION = "afb.execution.v1"` не менялся.
+
 ## v2.5.11 — 2026-08-23
 
 PATCH (`afbws/instrument.channel.v1.json` — только канал AFB-бэкенд↔AFB-фронтенд). Задача «Инструменты, активы, иконки», Шаг 1 (cardinality) и начало Шага 2 (иконки).
