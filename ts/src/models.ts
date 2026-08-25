@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: b186e18df6d457e84b51a2848ce269202807659d83401a0a7c8b878c1af26f95
+ * source-hash: b09b9f59bbbfb294cca077b08df90b8cc30f755358badd872e08addeed9f691a
  */
 
 /**
@@ -380,7 +380,7 @@ export type GpV1 = {
   tradeplan_id?: string;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaces legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` for clients that negotiated this capability; legacy stays available as fallback. `catalog` is the one read snapshot of the curated catalog for any authenticated caller. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `asset_sets` are named Sets of assets (not the category tree). `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. `user` is the caller's personal-sets operation and is served. `favorites`/`paint` are the caller's colored favorites: `favorites` is read-only (the current list, in display order), `paint` is the write — an additive, CAS-free delta (`mark`/`unmark`/`order`) over instruments and assets, kept separate from `user` so a favorite click never spuriously conflicts with an open personal-sets edit. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see assetSetView) instead of the single-parent group tree, plus an independent futures-series axis (catalogSeries) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — "Brent oil" is the BR-* and BRM-* series together — and it, not the ticker, is what a set contains (`asset_sets[].asset_ids`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves — an asset set carries its ordered `asset_ids`, an asset its ordered `members`. Order is carried by array position everywhere on the wire: no entity has an order field, and a write restates a full order through the dedicated `asset_set_order`/`collection_order`/`order` sections of `commit`. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaced legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` — all removed from the AFB dispatcher in the legacy-protocol cleanup; there is no legacy fallback any more, a connection that has not negotiated this capability gets a typed `invalid_channel` error instead. `catalog` is the one read snapshot of the curated catalog for any authenticated caller. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `asset_sets` are named Sets of assets (not the category tree). `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. `user` is the caller's personal-sets operation and is served. `favorites`/`paint` are the caller's colored favorites: `favorites` is read-only (the current list, in display order), `paint` is the write — an additive, CAS-free delta (`mark`/`unmark`/`order`) over instruments and assets, kept separate from `user` so a favorite click never spuriously conflicts with an open personal-sets edit. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see assetSetView) instead of the single-parent group tree, plus an independent futures-series axis (catalogSeries) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — "Brent oil" is the BR-* and BRM-* series together — and it, not the ticker, is what a set contains (`asset_sets[].asset_ids`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves — an asset set carries its ordered `asset_ids`, an asset its ordered `members`. Order is carried by array position everywhere on the wire: no entity has an order field, and a write restates a full order through the dedicated `asset_set_order`/`collection_order`/`order` sections of `commit`. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentChannelV1Message".
@@ -435,9 +435,9 @@ export type InstrumentV1 = {
    */
   asset?: string | null;
   /**
-   * Catalog group key; null = not yet distributed.
+   * Legacy leftover — the AFB backend no longer populates this field (kept in the schema only for old caching clients that might still read it).
    */
-  group: string | null;
+  group?: string | null;
   lot_size?: number | null;
   price_step?: DecimalString;
   decimals?: number | null;
@@ -2133,9 +2133,9 @@ export interface InstrumentCatalogAsset {
    */
   members: InstrumentCatalogAssetMember[];
   /**
-   * The collection this asset lives in — an asset belongs to exactly one. Optional in schema; required in backend responses after catalog v6. Position inside the collection is carried by the order of `assets[]`: the assets of one collection come consecutively, and the collections themselves follow the order of `collections[]`.
+   * The collection this asset lives in — an asset belongs to 0 or 1, same as an instrument belongs to 0 or 1 asset. null: the asset is unassigned. Position inside the collection is carried by the order of `assets[]`: the assets of one collection come consecutively, and the collections themselves follow the order of `collections[]`.
    */
-  collection_id?: string;
+  collection_id?: string | null;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2172,7 +2172,7 @@ export interface InstrumentCollection {
   parent_id?: string | null;
   name: string;
   /**
-   * system_pending / _unclassified bucket.
+   * system_pending — hidden from non-manager callers.
    */
   pending?: boolean;
   /**
@@ -2247,7 +2247,7 @@ export interface InstrumentCommitRequest {
   series?: InstrumentSeriesUpsert[];
   collections?: InstrumentCollectionUpsert[];
   /**
-   * collection_ids to delete outright. The assets that were in them are not deleted — they land in the system `_unclassified` bucket.
+   * collection_ids to delete outright — any collection, no id is protected from removal. The assets that were in them are not deleted — they end up with no collection (`collection_id: null`).
    */
   remove_collections?: string[];
   /**
@@ -2302,9 +2302,9 @@ export interface InstrumentAssetUpsert {
    */
   members?: InstrumentAssetMemberInput[];
   /**
-   * The collection this asset moves into. Position inside that collection is not stated here — send `commitRequest.collection_members` to fix it.
+   * The collection this asset moves into; null unassigns it from any collection. Position inside that collection is not stated here — send `commitRequest.collection_members` to fix it.
    */
-  collection_id?: string;
+  collection_id?: string | null;
 }
 /**
  * Same discriminator and identity as catalogAssetMember (`kind`+`code`). `label` and `market` are snapshot-only and are not written — the server derives them from items/series. A contract listed here whose series is also listed is rejected.
@@ -2361,7 +2361,7 @@ export interface InstrumentCollectionUpsert {
   icon_color?: AfbwsInstrumentChannelV1_FavoriteColor | null;
 }
 /**
- * An asset lives in exactly ONE collection, so `add` here also states membership: an asset added to a collection leaves the one it was in. Assets that fall out of a collection without being added to another land in the system `_unclassified` bucket. `order`, when present, must list the collection's full membership after add/remove.
+ * An asset lives in at most ONE collection, so `add` here also states membership: an asset added to a collection leaves the one it was in. Assets that fall out of a collection without being added to another end up with no collection (`collection_id: null`) — a legal, normal state, same as an instrument with no asset. `order`, when present, must list the collection's full membership after add/remove.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentCollectionMembersEdit".
@@ -2373,7 +2373,7 @@ export interface InstrumentCollectionMembersEdit {
    */
   add?: string[];
   /**
-   * asset_ids to drop from this collection — an asset that ends up in no collection is not deleted, it lands in the system `_unclassified` bucket.
+   * asset_ids to drop from this collection — an asset that ends up in no collection is not deleted, it is simply unassigned (`collection_id: null`).
    */
   remove?: string[];
   /**
@@ -2429,7 +2429,7 @@ export interface InstrumentMembersEdit {
 export interface InstrumentAcceptSuggestion {
   suggestion_id: string;
   asset_id: string;
-  collection_id?: string;
+  collection_id?: string | null;
 }
 /**
  * `catalog_revision` is already the new one. A rejected commit is an errorResponse instead — there is no partially-applied outcome.

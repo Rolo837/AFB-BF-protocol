@@ -101,12 +101,11 @@ def test_futures_only_fields_forbidden_on_stock(registry):
             _validator(registry).validate(_stock(**{field: value}))
 
 
-def test_missing_group_key_rejected(registry):
-    from jsonschema import ValidationError
-
+def test_missing_group_key_is_legal(registry):
+    """`group` is a legacy leftover the backend no longer populates — omitting
+    it entirely must validate, not just sending it as null."""
     item = {k: v for k, v in _stock().items() if k != "group"}
-    with pytest.raises(ValidationError):
-        _validator(registry).validate(item)
+    _validator(registry).validate(item)
 
 
 def test_no_broker_binding_fields(registry):

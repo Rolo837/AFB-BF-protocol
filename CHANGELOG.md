@@ -2,6 +2,19 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.5.13 — 2026-08-25
+
+PATCH (`afbws/instrument.channel.v1.json` + `instrument.v1.json` — только канал AFB-бэкенд↔AFB-фронтенд). Коллекция актива — 0..1 вместо обязательной `_unclassified`; `items[].group` снят с обязательного поля.
+
+**Почему это PATCH.** Тот же довод, что у `v2.5.6`–`v2.5.12`: оба файла не входят в `spec/asyncapi.yaml`, не пересекают провод AFB↔BF.
+
+- **`catalogAsset.collection_id` / `assetUpsert.collection_id` / `acceptSuggestion.collection_id`** — `string` → `["string", "null"]`. Актив входит в коллекцию 0..1, как инструмент входит в актив; `null` — актив не подшит ни в одну коллекцию. Никакой отдельной «нераспределённой» коллекции-приёмника на проводе больше нет — это обычная, никак не выделенная коллекция.
+- **`collectionMembersEdit`/`commitRequest.remove_collections`** — описания переписаны с «ровно одна коллекция … уезжает в `_unclassified`» на «максимум одна … остаётся без коллекции (`collection_id: null`)».
+- **`instrument.v1.json`: `group`** снято с `required` — легаси-редукция `items[].group`, backend AFB её больше не заполняет (поле оставлено в схеме только на случай кэширующих старых клиентов).
+- **`afbws/instrument.channel.v1.json`**: устаревшая фраза шапки файла про «legacy stays available as fallback» и докстрока `collection.pending` про `_unclassified` — приведены в соответствие с уже свершившимся фактом (легаси-путь `securities/list`/`setup/markets`+`get_assign`+`set_assign`/`account/get_catalog`+`get_instrument`+`resolve_instrument` снят из диспетчера AFB раньше, в отдельной чистке).
+- **Сгенерировано** (`afb-bf-protocol-generate`): TypeScript/Python-модели и зеркало схем `python/afb_bf_protocol/schemas/`.
+- **Версии**: bump до `2.5.13` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`; `PROTOCOL_VERSION = "afb.execution.v1"` не менялся.
+
 ## v2.5.12 — 2026-08-24
 
 PATCH (`afbws/instrument.channel.v1.json` — только канал AFB-бэкенд↔AFB-фронтенд). Стык D6: singleton-фьючерс на проводе — `kind=listing` с `market=futures`.

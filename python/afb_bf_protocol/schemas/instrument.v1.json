@@ -4,7 +4,7 @@
   "title": "Canonical catalog instrument afb.instrument.v1",
   "description": "AFB-side canonical instrument — like afb.gp.v1/afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. One broker-agnostic shape for every market class (stock/futures/currency/index); class-specific fields are gated by `market` via the `allOf`/`if` blocks below (forbidden, not just absent, for classes they don't apply to), but the wire type stays a single schema. `ticker` is the canonical identity: bare SECID for MOEX (e.g. \"SBER\"), `EXCHANGE:TICKER` for everything else (e.g. \"XNAS:AAPL\") — `exchange`/`board`/`market` are still carried as explicit fields so nothing but one shared parser (AFB backend/instruments/identity.py, frontend utils/instrumentId.ts) ever splits the string. `group`/`asset` place the instrument in the curated catalog tree (config/instruments.yaml) that AFB users actually see — `group: null` means not yet distributed into a group, the flat-list replacement for the old `lost` bucket. `source` says who refreshes this record's trading params (\"moex\" for the daily ISS refresh, a broker id like \"finam\" for instruments obtained from that broker's catalog) — it is NOT a broker binding: which connector can actually trade this instrument, and under what broker-native symbol, is resolved at publish time (see deal.v1.json's target.instrument + BF's own catalog), never persisted here.",
   "type": "object",
-  "required": ["schema", "ticker", "exchange", "board", "market", "group", "source"],
+  "required": ["schema", "ticker", "exchange", "board", "market", "source"],
   "additionalProperties": false,
   "properties": {
     "schema": { "const": "afb.instrument.v1" },
@@ -15,7 +15,7 @@
     "name": { "type": ["string", "null"] },
     "shortname": { "type": ["string", "null"] },
     "asset": { "type": ["string", "null"], "description": "Underlying asset code (futures) or self-grouping code." },
-    "group": { "type": ["string", "null"], "description": "Catalog group key; null = not yet distributed." },
+    "group": { "type": ["string", "null"], "description": "Legacy leftover — the AFB backend no longer populates this field (kept in the schema only for old caching clients that might still read it)." },
     "lot_size": { "type": ["integer", "null"], "minimum": 1 },
     "price_step": { "$ref": "common.v1.json#/$defs/decimalString" },
     "decimals": { "type": ["integer", "null"], "minimum": 0 },

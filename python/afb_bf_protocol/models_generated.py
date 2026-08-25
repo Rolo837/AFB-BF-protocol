@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: b186e18df6d457e84b51a2848ce269202807659d83401a0a7c8b878c1af26f95
+# source-hash: b09b9f59bbbfb294cca077b08df90b8cc30f755358badd872e08addeed9f691a
 
 from __future__ import annotations
 
@@ -1939,7 +1939,7 @@ class Instrument2(TypedDict):
 class InstrumentAcceptSuggestion(TypedDict):
     suggestion_id: str
     asset_id: str
-    collection_id: NotRequired[str]
+    collection_id: NotRequired[str | None]
 
 
 class InstrumentAssetMemberInput(TypedDict):
@@ -2001,7 +2001,7 @@ class InstrumentAssetUpsert(TypedDict):
     name: str
     reference_series_code: NotRequired[str | None]
     members: NotRequired[list[InstrumentAssetMemberInput]]
-    collection_id: NotRequired[str]
+    collection_id: NotRequired[str | None]
 
 
 class InstrumentCatalogAsset(TypedDict):
@@ -2013,7 +2013,7 @@ class InstrumentCatalogAsset(TypedDict):
     name: str
     reference_series_code: NotRequired[str | None]
     members: list[InstrumentCatalogAssetMember]
-    collection_id: NotRequired[str]
+    collection_id: NotRequired[str | None]
 
 
 class InstrumentCatalogAssetMember(TypedDict):
@@ -2100,7 +2100,7 @@ class InstrumentCollection(TypedDict):
 
 class InstrumentCollectionMembersEdit(TypedDict):
     """
-    An asset lives in exactly ONE collection, so `add` here also states membership: an asset added to a collection leaves the one it was in. Assets that fall out of a collection without being added to another land in the system `_unclassified` bucket. `order`, when present, must list the collection's full membership after add/remove.
+    An asset lives in at most ONE collection, so `add` here also states membership: an asset added to a collection leaves the one it was in. Assets that fall out of a collection without being added to another end up with no collection (`collection_id: null`) — a legal, normal state, same as an instrument with no asset. `order`, when present, must list the collection's full membership after add/remove.
     """
 
     collection_id: str
@@ -2522,7 +2522,7 @@ class InstrumentV1(TypedDict):
     name: NotRequired[str | None]
     shortname: NotRequired[str | None]
     asset: NotRequired[str | None]
-    group: str | None
+    group: NotRequired[str | None]
     lot_size: NotRequired[int | None]
     price_step: NotRequired[DecimalString]
     decimals: NotRequired[int | None]
