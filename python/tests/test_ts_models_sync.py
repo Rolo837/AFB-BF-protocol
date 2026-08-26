@@ -27,12 +27,17 @@ def _models_path() -> Path:
 
 
 def _source_hash() -> str:
+    """Mirrors generate-models.mjs's own walk exactly: a `draft/` or `meta/`
+    directory is skipped at any depth (not just top-level) — `meta/` holds
+    meta-schemas like `iss/meta/iss.market.v1.json`, which validate other
+    schema documents rather than being a data instance themselves, so
+    datamodel-codegen/json-schema-to-typescript must never model them."""
     schemas_dir = _repo_root() / "spec" / "schemas"
     files = sorted(
         (
             p
             for p in schemas_dir.rglob("*.json")
-            if p.relative_to(schemas_dir).parts[0] != "draft"
+            if not set(p.relative_to(schemas_dir).parts[:-1]) & {"draft", "meta"}
         ),
         key=lambda p: p.relative_to(schemas_dir).as_posix(),
     )

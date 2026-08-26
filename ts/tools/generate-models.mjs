@@ -290,9 +290,16 @@ function loadSchemas() {
   const walk = (dir) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const full = join(dir, entry.name);
-      // Parked drafts (spec/schemas/draft/) stay out of models.ts.
+      // Parked drafts (spec/schemas/draft/) stay out of models.ts. So do
+      // meta-schemas (spec/schemas/**/meta/) — a meta-schema validates OTHER
+      // schema documents (e.g. iss/meta/iss.market.v1.json validates
+      // iss/markets/*.json's own shape), it is never itself a data instance,
+      // and datamodel-codegen/json-schema-to-typescript hoist its
+      // hyphenated x-*-prefixed properties into a forward-referenced class
+      // that the functional TypedDict form of Python's generated module
+      // cannot resolve (NameError at import time) — see iss_registry.py.
       if (entry.isDirectory()) {
-        if (entry.name === "draft") continue;
+        if (entry.name === "draft" || entry.name === "meta") continue;
         walk(full);
       } else if (entry.name.endsWith(".json")) {
         const rel = relative(schemasDir, full).split("\\").join("/");
@@ -423,7 +430,7 @@ function sourceHash() {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
-        if (entry.name === "draft") continue;
+        if (entry.name === "draft" || entry.name === "meta") continue;
         walk(full);
       } else if (entry.name.endsWith(".json")) files.push(full);
     }

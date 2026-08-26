@@ -2,6 +2,18 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.5.14 — 2026-08-27
+
+PATCH (`spec/schemas/iss/` — только AFB backend, не провод AFB↔BF). Канон MOEX ISS: дескрипторы рынков/серий и словарь колонок для `iss_registry.py`.
+
+**Почему это PATCH.** ISS-схемы не входят в `spec/asyncapi.yaml`, не пересекают канал AFB↔BF (тот же standing, что у `notification.*.vN.json`).
+
+- **`spec/schemas/iss/`** — новый каталог: `iss.columns.v1.json` (словарь колонок ISS с `iss_type`/`target`), `meta/iss.market.v1.json` (meta-schema дескрипторов), `markets/*.json` (`stock`, `currency`, `index`, `futures`, `futures_series`, `options`, `options_series` — последние два architecture-only). Схемы зеркалируются в установленный пакет (`python/afb_bf_protocol/schemas/iss/`).
+- **Генераторы моделей** (`generate.py`, `generate-models.mjs`): каталоги `meta/` (и `draft/`) исключены из хеша и из TypeScript/Python TypedDict-генерации — meta-schema валидирует другие схемы, а не data instance.
+- **`python/tests/test_iss_schemas.py`**: консистентность канона (meta-validation, `$id`, колонки в словаре).
+- **Сгенерировано** (`afb-bf-protocol-generate`): зеркало схем; `models.ts`/`models_generated.py` — без ISS/meta.
+- **Версии**: bump до `2.5.14` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`; `PROTOCOL_VERSION = "afb.execution.v1"` не менялся.
+
 ## v2.5.13 — 2026-08-25
 
 PATCH (`afbws/instrument.channel.v1.json` + `instrument.v1.json` — только канал AFB-бэкенд↔AFB-фронтенд). Коллекция актива — 0..1 вместо обязательной `_unclassified`; `items[].group` снят с обязательного поля.

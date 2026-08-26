@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/iss/markets/options.json",
+  "title": "ISS securities: engines/futures/markets/options",
+  "description": "Architecture only — disabled by default (config/market_source.yaml options.enabled=false). ISS returns ~37k rows / ~13MB for this market (one row per strike per expiration), which the daily refresh, the in-memory pool and the frontend cannot absorb without pagination and a strike filter; that is separate follow-up work. Written now so instrument_type='option' and the options_series channel have a real shape to target instead of a guess.",
+  "x-iss-resource": {
+    "kind": "securities",
+    "engine": "futures",
+    "market": "options",
+    "path": "engines/futures/markets/options/securities",
+    "table": "securities"
+  },
+  "x-iss-instrument-type": "option",
+  "x-iss-series": "options_series",
+  "x-iss-columns": {
+    "SECID": { "required": true },
+    "BOARDID": { "required": true },
+    "ASSETCODE": { "required": true },
+    "SHORTNAME": {},
+    "SECNAME": {},
+    "DECIMALS": {},
+    "LASTTRADEDATE": {},
+    "STEPPRICE": {},
+    "PREVPRICE": {},
+    "MINSTEP": {},
+    "STRIKE": {},
+    "OPTIONTYPE": {}
+  },
+  "type": "object",
+  "required": ["securities"],
+  "properties": {
+    "securities": {
+      "type": "object",
+      "required": ["columns", "data"],
+      "properties": {
+        "columns": { "type": "array", "items": { "type": "string" } },
+        "data": { "type": "array" }
+      }
+    }
+  }
+}

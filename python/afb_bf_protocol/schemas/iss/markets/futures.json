@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/iss/markets/futures.json",
+  "title": "ISS securities: engines/futures/markets/forts",
+  "x-iss-resource": {
+    "kind": "securities",
+    "engine": "futures",
+    "market": "forts",
+    "path": "engines/futures/markets/forts/securities",
+    "table": "securities"
+  },
+  "x-iss-instrument-type": "futures",
+  "x-iss-series": "futures_series",
+  "x-iss-marketdata": { "api_name": "forts", "last_col": "LAST" },
+  "x-iss-algopack": "datashop/algopack/fo",
+  "x-iss-futoi": "analyticalproducts/futoi/securities",
+  "x-iss-columns": {
+    "SECID": { "required": true },
+    "BOARDID": { "required": true },
+    "ASSETCODE": { "required": true },
+    "SHORTNAME": {},
+    "SECNAME": {},
+    "DECIMALS": {},
+    "LASTTRADEDATE": {},
+    "INITIALMARGIN": {},
+    "LOTVOLUME": {},
+    "STEPPRICE": {},
+    "PREVPRICE": {},
+    "MINSTEP": {},
+    "SECTYPE": {}
+  },
+  "type": "object",
+  "required": ["securities"],
+  "properties": {
+    "securities": {
+      "type": "object",
+      "required": ["columns", "data"],
+      "properties": {
+        "columns": { "type": "array", "items": { "type": "string" } },
+        "data": { "type": "array" }
+      }
+    }
+  }
+}

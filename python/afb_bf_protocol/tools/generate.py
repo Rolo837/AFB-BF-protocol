@@ -311,13 +311,17 @@ def generate_ts_models(root: Path | None = None) -> bool:
 def _schemas_source_hash(root: Path) -> str:
     """sha256 over spec/schemas/**/*.json — same algorithm as
     ts/tools/generate-models.mjs's sourceHash(), so models.ts and
-    models_generated.py carry an identical banner hash when in sync."""
+    models_generated.py carry an identical banner hash when in sync. A
+    `draft/` or `meta/` directory is excluded at any depth, mirroring that
+    function's own walk (`meta/` holds meta-schemas — e.g.
+    iss/meta/iss.market.v1.json — which validate other schema documents
+    rather than being a data instance, so they are never modeled)."""
     schemas_dir = root / "spec" / "schemas"
     files = sorted(
         (
             p
             for p in schemas_dir.rglob("*.json")
-            if p.relative_to(schemas_dir).parts[0] != "draft"
+            if not set(p.relative_to(schemas_dir).parts[:-1]) & {"draft", "meta"}
         ),
         key=lambda p: p.relative_to(schemas_dir).as_posix(),
     )

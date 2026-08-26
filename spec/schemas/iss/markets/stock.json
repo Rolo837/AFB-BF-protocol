@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/iss/markets/stock.json",
+  "title": "ISS securities: engines/stock/markets/shares",
+  "x-iss-resource": {
+    "kind": "securities",
+    "engine": "stock",
+    "market": "shares",
+    "path": "engines/stock/markets/shares/securities",
+    "table": "securities"
+  },
+  "x-iss-instrument-type": "stock",
+  "x-iss-marketdata": { "api_name": "shares", "last_col": "LAST" },
+  "x-iss-algopack": "datashop/algopack/eq",
+  "x-iss-columns": {
+    "SECID": { "required": true },
+    "BOARDID": { "required": true },
+    "SHORTNAME": {},
+    "SECNAME": {},
+    "DECIMALS": {},
+    "LOTSIZE": {},
+    "ISIN": {},
+    "MINSTEP": {},
+    "PREVPRICE": {},
+    "CURRENCYID": {}
+  },
+  "type": "object",
+  "required": ["securities"],
+  "properties": {
+    "securities": {
+      "type": "object",
+      "required": ["columns", "data"],
+      "properties": {
+        "columns": { "type": "array", "items": { "type": "string" } },
+        "data": { "type": "array" }
+      }
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/iss/markets/futures_series.json",
+  "title": "ISS statistics: futures series",
+  "description": "The actual series channel — asset_code groups contracts (e.g. RTS-9.26/RTS-12.26 -> RTS), name and underlying_asset are what plan_refresh writes onto futures_series.name/underlying_key instead of leaving them null. underlying_asset is legitimately blank for part of the universe (e.g. commodity futures with no single spot underlying); series_refresh.py must not treat that as a parse failure.",
+  "x-iss-resource": {
+    "kind": "series",
+    "engine": "futures",
+    "market": "forts",
+    "path": "statistics/engines/futures/markets/forts/series",
+    "table": "series"
+  },
+  "x-iss-columns": {
+    "asset_code": { "required": true },
+    "name": { "required": true },
+    "secid": {},
+    "start_date": {},
+    "expiration_date": {},
+    "underlying_asset": {},
+    "is_traded": {}
+  },
+  "type": "object",
+  "required": ["series"],
+  "properties": {
+    "series": {
+      "type": "object",
+      "required": ["columns", "data"],
+      "properties": {
+        "columns": { "type": "array", "items": { "type": "string" } },
+        "data": { "type": "array" }
+      }
+    }
+  }
+}

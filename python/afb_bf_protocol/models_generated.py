@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: b09b9f59bbbfb294cca077b08df90b8cc30f755358badd872e08addeed9f691a
+# source-hash: 42f1f0cd5447892a566b01ccc3a3efcd483199fa168dd57259248b9bf5a7bbae
 
 from __future__ import annotations
 
@@ -2536,6 +2536,53 @@ class InstrumentV1(TypedDict):
     source: str
 
 
+IssIssColumnsV1Root: TypeAlias = Any
+
+
+class IssMarketsCurrencyRoot(TypedDict):
+    securities: Securities
+
+
+class IssMarketsFuturesRoot(TypedDict):
+    securities: Securities
+
+
+class IssMarketsFuturesSeriesRoot(TypedDict):
+    """
+    The actual series channel — asset_code groups contracts (e.g. RTS-9.26/RTS-12.26 -> RTS), name and underlying_asset are what plan_refresh writes onto futures_series.name/underlying_key instead of leaving them null. underlying_asset is legitimately blank for part of the universe (e.g. commodity futures with no single spot underlying); series_refresh.py must not treat that as a parse failure.
+    """
+
+    series: Series
+
+
+class IssMarketsIndexRoot(TypedDict):
+    """
+    The only market with more than one enabled board today: IMOEX/IMOEX2/RGBI trade on SNDX, RTSI on RTSI. A listing born from this market therefore carries no single board, and its catalog key omits the venue block entirely (MISX:<ticker>, not MISX:<board>:<ticker>) — see catalog_model.Listing.key and the v9->v10 migration notes in catalog_schema.py.
+    """
+
+    securities: Securities
+
+
+class IssMarketsOptionsRoot(TypedDict):
+    """
+    Architecture only — disabled by default (config/market_source.yaml options.enabled=false). ISS returns ~37k rows / ~13MB for this market (one row per strike per expiration), which the daily refresh, the in-memory pool and the frontend cannot absorb without pagination and a strike filter; that is separate follow-up work. Written now so instrument_type='option' and the options_series channel have a real shape to target instead of a guess.
+    """
+
+    securities: Securities
+
+
+class IssMarketsOptionsSeriesRoot(TypedDict):
+    """
+    Architecture only — disabled until options.json itself is enabled (see its own description). Mirrors futures_series.json's shape; ISS additionally carries strike-range and settlement fields here that the current parser has no target for.
+    """
+
+    series: Series
+
+
+class IssMarketsStockRoot(TypedDict):
+    securities: Securities
+
+
 class Left(TypedDict):
     """
     afb.deal.v1 conditions compare against the last traded price, or (entry only — see executor-side validation) fire immediately with no price level of its own. quote/indicator/dataset sources are afb.deal.v2-only.
@@ -3036,6 +3083,16 @@ class Right(TypedDict):
 class Risk(TypedDict):
     take_profit: NotRequired[DealV1ExitBlock]
     stop_loss: NotRequired[DealV1ExitBlock]
+
+
+class Securities(TypedDict):
+    columns: list[str]
+    data: list[Any]
+
+
+class Series(TypedDict):
+    columns: list[str]
+    data: list[Any]
 
 
 class SessionEnrollRequestPayload(TypedDict):

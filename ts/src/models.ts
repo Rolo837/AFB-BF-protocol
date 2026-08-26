@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: b09b9f59bbbfb294cca077b08df90b8cc30f755358badd872e08addeed9f691a
+ * source-hash: 42f1f0cd5447892a566b01ccc3a3efcd483199fa168dd57259248b9bf5a7bbae
  */
 
 /**
@@ -3577,6 +3577,91 @@ export interface Envelope_Signature {
    * base64url (no padding) signature
    */
   value: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "IssIssColumnsV1_Root".
+ */
+export interface IssIssColumnsV1_Root {
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "IssMarketsCurrency_Root".
+ */
+export interface IssMarketsCurrency_Root {
+  securities: {
+    columns: string[];
+    data: unknown[];
+  };
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "IssMarketsFutures_Root".
+ */
+export interface IssMarketsFutures_Root {
+  securities: {
+    columns: string[];
+    data: unknown[];
+  };
+}
+/**
+ * The actual series channel — asset_code groups contracts (e.g. RTS-9.26/RTS-12.26 -> RTS), name and underlying_asset are what plan_refresh writes onto futures_series.name/underlying_key instead of leaving them null. underlying_asset is legitimately blank for part of the universe (e.g. commodity futures with no single spot underlying); series_refresh.py must not treat that as a parse failure.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "IssMarketsFuturesSeries_Root".
+ */
+export interface IssMarketsFuturesSeries_Root {
+  series: {
+    columns: string[];
+    data: unknown[];
+  };
+}
+/**
+ * The only market with more than one enabled board today: IMOEX/IMOEX2/RGBI trade on SNDX, RTSI on RTSI. A listing born from this market therefore carries no single board, and its catalog key omits the venue block entirely (MISX:<ticker>, not MISX:<board>:<ticker>) — see catalog_model.Listing.key and the v9->v10 migration notes in catalog_schema.py.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "IssMarketsIndex_Root".
+ */
+export interface IssMarketsIndex_Root {
+  securities: {
+    columns: string[];
+    data: unknown[];
+  };
+}
+/**
+ * Architecture only — disabled by default (config/market_source.yaml options.enabled=false). ISS returns ~37k rows / ~13MB for this market (one row per strike per expiration), which the daily refresh, the in-memory pool and the frontend cannot absorb without pagination and a strike filter; that is separate follow-up work. Written now so instrument_type='option' and the options_series channel have a real shape to target instead of a guess.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "IssMarketsOptions_Root".
+ */
+export interface IssMarketsOptions_Root {
+  securities: {
+    columns: string[];
+    data: unknown[];
+  };
+}
+/**
+ * Architecture only — disabled until options.json itself is enabled (see its own description). Mirrors futures_series.json's shape; ISS additionally carries strike-range and settlement fields here that the current parser has no target for.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "IssMarketsOptionsSeries_Root".
+ */
+export interface IssMarketsOptionsSeries_Root {
+  series: {
+    columns: string[];
+    data: unknown[];
+  };
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "IssMarketsStock_Root".
+ */
+export interface IssMarketsStock_Root {
+  securities: {
+    columns: string[];
+    data: unknown[];
+  };
 }
 /**
  * AFB-side MQTT notification payload published to <topic_base>/alarms/<user_id> when a user alarm triggers. Consumed by the AFB informer daemon (Telegram/email). NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time. `display` carries human-readable strings pre-rendered by AFB backend (mirrors frontend alarm cards).

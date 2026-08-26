@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/iss/markets/options_series.json",
+  "title": "ISS statistics: options series",
+  "description": "Architecture only — disabled until options.json itself is enabled (see its own description). Mirrors futures_series.json's shape; ISS additionally carries strike-range and settlement fields here that the current parser has no target for.",
+  "x-iss-resource": {
+    "kind": "series",
+    "engine": "futures",
+    "market": "options",
+    "path": "statistics/engines/futures/markets/options/series",
+    "table": "series"
+  },
+  "x-iss-columns": {
+    "asset_code": { "required": true },
+    "name": { "required": true },
+    "start_date": {},
+    "expiration_date": {},
+    "series_type": {},
+    "exec_type": {},
+    "margin_style": {},
+    "underlying_asset": {},
+    "is_traded": {},
+    "central_strike": {},
+    "strike_from": {},
+    "strike_till": {},
+    "option_on_spot": {},
+    "settle_type": {}
+  },
+  "type": "object",
+  "required": ["series"],
+  "properties": {
+    "series": {
+      "type": "object",
+      "required": ["columns", "data"],
+      "properties": {
+        "columns": { "type": "array", "items": { "type": "string" } },
+        "data": { "type": "array" }
+      }
+    }
+  }
+}

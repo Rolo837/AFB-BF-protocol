@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/iss/markets/currency.json",
+  "title": "ISS securities: engines/currency/markets/selt",
+  "x-iss-resource": {
+    "kind": "securities",
+    "engine": "currency",
+    "market": "selt",
+    "path": "engines/currency/markets/selt/securities",
+    "table": "securities"
+  },
+  "x-iss-instrument-type": "currency",
+  "x-iss-marketdata": { "api_name": "selt", "last_col": "LAST" },
+  "x-iss-algopack": "datashop/algopack/fx",
+  "x-iss-columns": {
+    "SECID": { "required": true },
+    "BOARDID": { "required": true },
+    "SHORTNAME": {},
+    "SECNAME": {},
+    "DECIMALS": {},
+    "LOTSIZE": {},
+    "CURRENCYID": {}
+  },
+  "type": "object",
+  "required": ["securities"],
+  "properties": {
+    "securities": {
+      "type": "object",
+      "required": ["columns", "data"],
+      "properties": {
+        "columns": { "type": "array", "items": { "type": "string" } },
+        "data": { "type": "array" }
+      }
+    }
+  }
+}

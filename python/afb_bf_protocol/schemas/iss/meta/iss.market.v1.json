@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/iss/meta/iss.market.v1.json",
+  "title": "ISS market/series descriptor",
+  "description": "Meta-schema for markets/*.json: every file in that directory both IS a JSON Schema (validating the shape of the ISS response it describes — a table with `columns`/`data`) AND carries `x-iss-*` extensions the AFB backend reads directly (iss_registry.py), the same technique afbws channels use with `x-afbws-support-id`. This schema validates only the `x-iss-*` extensions; the response-shape half of each descriptor is plain JSON Schema and needs no meta-validation beyond `$schema`/`$id` presence, checked here too.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "$id",
+    "x-iss-resource",
+    "x-iss-columns"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "$id": {
+      "type": "string",
+      "pattern": "^https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/iss/markets/[a-z_]+\\.json$"
+    },
+    "x-iss-resource": {
+      "type": "object",
+      "required": [
+        "kind",
+        "engine",
+        "market",
+        "path",
+        "table"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "securities",
+            "series"
+          ]
+        },
+        "engine": {
+          "type": "string",
+          "minLength": 1
+        },
+        "market": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ISS path relative to https://iss.moex.com/iss/, without the trailing .json — e.g. engines/futures/markets/forts/securities or statistics/engines/futures/markets/forts/series."
+        },
+        "table": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Top-level JSON key of the answer that carries {columns, data} — usually equal to the resource's own name (securities, series)."
+        }
+      }
+    },
+    "x-iss-instrument-type": {
+      "type": "string",
+      "enum": [
+        "stock",
+        "currency",
+        "index",
+        "futures",
+        "option"
+      ],
+      "description": "listing.instrument_type this market's rows become. Absent for a series descriptor (a series is not a listing)."
+    },
+    "x-iss-series": {
+      "type": "string",
+      "description": "Key of the markets/*.json series descriptor this securities market groups contracts through (e.g. 'futures_series' for futures). Only futures-shaped markets carry this."
+    },
+    "x-iss-marketdata": {
+      "type": "object",
+      "required": [
+        "api_name",
+        "last_col"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "api_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "MoexClient.resolve_market() alias for this market's live marketdata endpoint."
+        },
+        "last_col": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ISS marketdata column carrying the last traded price."
+        }
+      }
+    },
+    "x-iss-algopack": {
+      "type": "string"
+    },
+    "x-iss-futoi": {
+      "type": "string"
+    },
+    "x-iss-columns": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "required": {
+            "type": "boolean",
+            "description": "Absent from the ISS answer for this column -> the whole market batch is rejected as failed (ADR-04: a source error is stale/failed, never a silent delisting). Default false."
+          },
+          "target": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Overrides iss.columns.v1.json's default target for this column, for this market only. Not used by any market today."
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "x-iss-resource": {
+            "properties": {
+              "kind": {
+                "const": "securities"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "x-iss-instrument-type"
+        ]
+      }
+    }
+  ]
+}

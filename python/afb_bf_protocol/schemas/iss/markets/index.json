@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/iss/markets/index.json",
+  "title": "ISS securities: engines/stock/markets/index",
+  "description": "The only market with more than one enabled board today: IMOEX/IMOEX2/RGBI trade on SNDX, RTSI on RTSI. A listing born from this market therefore carries no single board, and its catalog key omits the venue block entirely (MISX:<ticker>, not MISX:<board>:<ticker>) — see catalog_model.Listing.key and the v9->v10 migration notes in catalog_schema.py.",
+  "x-iss-resource": {
+    "kind": "securities",
+    "engine": "stock",
+    "market": "index",
+    "path": "engines/stock/markets/index/securities",
+    "table": "securities"
+  },
+  "x-iss-instrument-type": "index",
+  "x-iss-marketdata": { "api_name": "index", "last_col": "LASTVALUE" },
+  "x-iss-columns": {
+    "SECID": { "required": true },
+    "BOARDID": { "required": true },
+    "SHORTNAME": {},
+    "SECNAME": {},
+    "NAME": {},
+    "DECIMALS": {},
+    "CURRENCYID": {}
+  },
+  "type": "object",
+  "required": ["securities"],
+  "properties": {
+    "securities": {
+      "type": "object",
+      "required": ["columns", "data"],
+      "properties": {
+        "columns": { "type": "array", "items": { "type": "string" } },
+        "data": { "type": "array" }
+      }
+    }
+  }
+}
