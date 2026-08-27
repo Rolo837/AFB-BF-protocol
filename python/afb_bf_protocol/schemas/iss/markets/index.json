@@ -16,7 +16,6 @@
     "SECID": { "required": true },
     "BOARDID": { "required": true },
     "SHORTNAME": {},
-    "SECNAME": {},
     "NAME": {},
     "DECIMALS": {},
     "CURRENCYID": {}

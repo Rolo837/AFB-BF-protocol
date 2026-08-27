@@ -2,6 +2,19 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.5.15 — 2026-08-27
+
+PATCH. Донастройка ISS-канона (`v2.5.14`): исправление реального расхождения с живым ISS, и два расширения enum, ни одно из которых не пересекает провод AFB↔BF.
+
+**Почему это PATCH.** `spec/schemas/iss/` не входит в `spec/asyncapi.yaml` (см. `v2.5.14`); `instrument.channel.v1.json` и `instrument.v1.json` — канал AFB-бэкенд↔AFB-фронтенд, туда же не входят (см. `v2.5.6`–`v2.5.13`).
+
+- **`spec/schemas/iss/markets/index.json`**: `SECNAME` убран из `x-iss-columns` — колонки не существует в живом ответе `engines/stocks/markets/index/securities` (индексы называются через `NAME`), обнаружено `iss_schema_sync.py`.
+- **`spec/schemas/iss/iss.columns.v1.json`**: `iss_type` трёх колонок приведён к тому, что реально отдаёт ISS сейчас — `LOTSIZE`/`LOTVOLUME`: `double` → `int32`; `option_on_spot`: `int32` → `int64`.
+- **`afbws/instrument.channel.v1.json`**: `option` добавлен в `enum` полей `instrument_type` у `inventoryRequest` и `inventoryListingEntry`; новый `$defs.refreshMarketReport` (per-market статус/диагностика колонок) и опциональное поле `refreshReport.markets[]` — оба чисто аддитивны.
+- **`instrument.v1.json`**: `options` добавлен в `enum` поля `market` — файл не участвует в `spec/asyncapi.yaml` и ни в одном payload-схеме AFB↔BF (проверено grep'ом).
+- **Сгенерировано** (`afb-bf-protocol-generate`): зеркало схем, `models.ts`/`models_generated.py`, `taxonomy.py`/`docs/MESSAGES.md`.
+- **Версии**: bump до `2.5.15` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`; `PROTOCOL_VERSION = "afb.execution.v1"` не менялся.
+
 ## v2.5.14 — 2026-08-27
 
 PATCH (`spec/schemas/iss/` — только AFB backend, не провод AFB↔BF). Канон MOEX ISS: дескрипторы рынков/серий и словарь колонок для `iss_registry.py`.

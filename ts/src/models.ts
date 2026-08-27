@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 42f1f0cd5447892a566b01ccc3a3efcd483199fa168dd57259248b9bf5a7bbae
+ * source-hash: f69f84aef64bbaaa0211633c156efa69eae5a9a538f758e74bda815c94815cfd
  */
 
 /**
@@ -427,7 +427,7 @@ export type InstrumentV1 = {
   ticker: string;
   exchange: string;
   board: string;
-  market: 'stock' | 'futures' | 'currency' | 'index';
+  market: 'stock' | 'futures' | 'currency' | 'index' | 'options';
   name?: string | null;
   shortname?: string | null;
   /**
@@ -584,7 +584,7 @@ export type InstrumentInventoryListingEntry = {
   [k: string]: unknown;
 } & {
   kind: 'listing';
-  instrument_type: 'stock' | 'currency' | 'index' | 'futures';
+  instrument_type: 'stock' | 'currency' | 'index' | 'futures' | 'option';
   instrument_key: string;
   ticker: string;
   exchange: string;
@@ -2709,6 +2709,10 @@ export interface InstrumentRefreshReport {
   suggestion_ids?: string[];
   inventory_revision_before?: number;
   inventory_revision_after?: number;
+  /**
+   * Per-market column-contract diagnostics collected while fetching this refresh's source rows — see `docs/ISS_SOURCES.md` in AFB.
+   */
+  markets?: AfbwsInstrumentChannelV1_RefreshMarketReport[];
 }
 /**
  * Archival is the part of a refresh that a manager cannot undo by re-running it, so the reason travels with the key instead of being left in the server log.
@@ -2724,6 +2728,22 @@ export interface InstrumentRefreshArchivedEntry {
   reason: string;
 }
 /**
+ * Turns a silently-obsolete column mapping into a visible diagnostic instead of quietly-empty fields. `status: "failed"` means the market's rows were NOT applied — a missing required column, an empty answer, or a network error all count as failed, since a partial answer must not look like a complete one.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_RefreshMarketReport".
+ */
+export interface AfbwsInstrumentChannelV1_RefreshMarketReport {
+  market: string;
+  status: 'ok' | 'failed';
+  missing_required?: string[];
+  missing_optional?: string[];
+  type_mismatch?: string[];
+  malformed_rows?: number;
+  board_conflicts?: {}[];
+  error?: string;
+}
+/**
  * Filterable, paged browse of the complete MOEX (or other source) instrument universe — distinct from the curated `pool` candidate list. `limit` defaults to 50, capped at 200.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2736,7 +2756,7 @@ export interface InstrumentInventoryRequest {
   source?: string;
   market?: 'stock' | 'futures' | 'currency' | 'index';
   board?: string;
-  instrument_type?: 'stock' | 'currency' | 'index' | 'futures' | 'series';
+  instrument_type?: 'stock' | 'currency' | 'index' | 'futures' | 'option' | 'series';
   query?: string;
   limit?: number;
   cursor?: string;

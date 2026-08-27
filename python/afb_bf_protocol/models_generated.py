@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 42f1f0cd5447892a566b01ccc3a3efcd483199fa168dd57259248b9bf5a7bbae
+# source-hash: f69f84aef64bbaaa0211633c156efa69eae5a9a538f758e74bda815c94815cfd
 
 from __future__ import annotations
 
@@ -249,6 +249,21 @@ class AfbwsInstrumentChannelV1PaintResponse(TypedDict):
     marked: NotRequired[list[AfbwsInstrumentChannelV1FavoriteEntry]]
     unmarked: NotRequired[list[AfbwsInstrumentChannelV1FavoriteRef]]
     order: NotRequired[list[AfbwsInstrumentChannelV1FavoriteRef]]
+
+
+class AfbwsInstrumentChannelV1RefreshMarketReport(TypedDict):
+    """
+    Turns a silently-obsolete column mapping into a visible diagnostic instead of quietly-empty fields. `status: "failed"` means the market's rows were NOT applied — a missing required column, an empty answer, or a network error all count as failed, since a partial answer must not look like a complete one.
+    """
+
+    market: str
+    status: Literal["ok", "failed"]
+    missing_required: NotRequired[list[str]]
+    missing_optional: NotRequired[list[str]]
+    type_mismatch: NotRequired[list[str]]
+    malformed_rows: NotRequired[int]
+    board_conflicts: NotRequired[list[dict[str, Any]]]
+    error: NotRequired[str]
 
 
 class AfbwsTradeplanChannelV1ArchiveRequest(TypedDict):
@@ -2225,7 +2240,7 @@ class InstrumentGetResponse(TypedDict):
 
 class InstrumentInventoryListingEntry(TypedDict):
     kind: Literal["listing"]
-    instrument_type: Literal["stock", "currency", "index", "futures"]
+    instrument_type: Literal["stock", "currency", "index", "futures", "option"]
     instrument_key: str
     ticker: str
     exchange: str
@@ -2250,7 +2265,7 @@ class InstrumentInventoryRequest(TypedDict):
     market: NotRequired[Literal["stock", "futures", "currency", "index"]]
     board: NotRequired[str]
     instrument_type: NotRequired[
-        Literal["stock", "currency", "index", "futures", "series"]
+        Literal["stock", "currency", "index", "futures", "option", "series"]
     ]
     query: NotRequired[str]
     limit: NotRequired[int]
@@ -2380,6 +2395,7 @@ class InstrumentRefreshReport(TypedDict):
     suggestion_ids: NotRequired[list[str]]
     inventory_revision_before: NotRequired[int]
     inventory_revision_after: NotRequired[int]
+    markets: NotRequired[list[AfbwsInstrumentChannelV1RefreshMarketReport]]
 
 
 class InstrumentRefreshRequest(TypedDict):
@@ -2518,7 +2534,7 @@ class InstrumentV1(TypedDict):
     ticker: str
     exchange: str
     board: str
-    market: Literal["stock", "futures", "currency", "index"]
+    market: Literal["stock", "futures", "currency", "index", "options"]
     name: NotRequired[str | None]
     shortname: NotRequired[str | None]
     asset: NotRequired[str | None]

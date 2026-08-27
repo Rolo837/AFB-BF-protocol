@@ -3,39 +3,125 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/iss/iss.columns.v1.json",
   "$comment": "Data, not a validator: the canonical MOEX ISS column dictionary. Every column any markets/*.json descriptor names in its x-iss-columns must have an entry here — iss_registry.py fails to load a descriptor otherwise. iss_type is the column's own ISS wire type (engines/<engine>/markets/<market>.json's securities.metadata); target is the SecurityInstrument/Listing attribute it feeds by default (a descriptor's x-iss-columns entry may override target, but none needs to today). A column with no target is inspected only (BOARDID — board filtering) or reserved for a market not yet wired into the parser (options' STRIKE/OPTIONTYPE).",
   "columns": {
-    "SECID": { "iss_type": "string" },
-    "BOARDID": { "iss_type": "string" },
-    "SHORTNAME": { "iss_type": "string", "target": "shortname" },
-    "SECNAME": { "iss_type": "string", "target": "name" },
-    "NAME": { "iss_type": "string", "target": "name" },
-    "DECIMALS": { "iss_type": "int32", "target": "decimals" },
-    "LOTSIZE": { "iss_type": "double", "target": "lotsize" },
-    "ISIN": { "iss_type": "string", "target": "isin" },
-    "MINSTEP": { "iss_type": "double", "target": "step" },
-    "PREVPRICE": { "iss_type": "double", "target": "price" },
-    "CURRENCYID": { "iss_type": "string", "target": "currency", "currency_sur_to_rub": true },
-    "ASSETCODE": { "iss_type": "string", "target": "asset" },
-    "LASTTRADEDATE": { "iss_type": "date", "target": "expiration" },
-    "INITIALMARGIN": { "iss_type": "double", "target": "margin" },
-    "LOTVOLUME": { "iss_type": "double", "target": "lotsize" },
-    "STEPPRICE": { "iss_type": "double", "target": "stepprice" },
-    "SECTYPE": { "iss_type": "string", "target": "_sectype" },
-    "STRIKE": { "iss_type": "double" },
-    "OPTIONTYPE": { "iss_type": "string" },
-    "secid": { "iss_type": "string" },
-    "name": { "iss_type": "string", "target": "series_name" },
-    "start_date": { "iss_type": "date" },
-    "expiration_date": { "iss_type": "date" },
-    "asset_code": { "iss_type": "string" },
-    "underlying_asset": { "iss_type": "string", "target": "underlying_ticker" },
-    "is_traded": { "iss_type": "int32" },
-    "series_type": { "iss_type": "string" },
-    "exec_type": { "iss_type": "string" },
-    "margin_style": { "iss_type": "string" },
-    "central_strike": { "iss_type": "double" },
-    "strike_from": { "iss_type": "double" },
-    "strike_till": { "iss_type": "double" },
-    "option_on_spot": { "iss_type": "int32" },
-    "settle_type": { "iss_type": "string" }
+    "SECID": {
+      "iss_type": "string"
+    },
+    "BOARDID": {
+      "iss_type": "string"
+    },
+    "SHORTNAME": {
+      "iss_type": "string",
+      "target": "shortname"
+    },
+    "SECNAME": {
+      "iss_type": "string",
+      "target": "name"
+    },
+    "NAME": {
+      "iss_type": "string",
+      "target": "name"
+    },
+    "DECIMALS": {
+      "iss_type": "int32",
+      "target": "decimals"
+    },
+    "LOTSIZE": {
+      "iss_type": "int32",
+      "target": "lotsize"
+    },
+    "ISIN": {
+      "iss_type": "string",
+      "target": "isin"
+    },
+    "MINSTEP": {
+      "iss_type": "double",
+      "target": "step"
+    },
+    "PREVPRICE": {
+      "iss_type": "double",
+      "target": "price"
+    },
+    "CURRENCYID": {
+      "iss_type": "string",
+      "target": "currency",
+      "currency_sur_to_rub": true
+    },
+    "ASSETCODE": {
+      "iss_type": "string",
+      "target": "asset"
+    },
+    "LASTTRADEDATE": {
+      "iss_type": "date",
+      "target": "expiration"
+    },
+    "INITIALMARGIN": {
+      "iss_type": "double",
+      "target": "margin"
+    },
+    "LOTVOLUME": {
+      "iss_type": "int32",
+      "target": "lotsize"
+    },
+    "STEPPRICE": {
+      "iss_type": "double",
+      "target": "stepprice"
+    },
+    "SECTYPE": {
+      "iss_type": "string",
+      "target": "_sectype"
+    },
+    "STRIKE": {
+      "iss_type": "double"
+    },
+    "OPTIONTYPE": {
+      "iss_type": "string"
+    },
+    "secid": {
+      "iss_type": "string"
+    },
+    "name": {
+      "iss_type": "string",
+      "target": "series_name"
+    },
+    "start_date": {
+      "iss_type": "date"
+    },
+    "expiration_date": {
+      "iss_type": "date"
+    },
+    "asset_code": {
+      "iss_type": "string"
+    },
+    "underlying_asset": {
+      "iss_type": "string",
+      "target": "underlying_ticker"
+    },
+    "is_traded": {
+      "iss_type": "int32"
+    },
+    "series_type": {
+      "iss_type": "string"
+    },
+    "exec_type": {
+      "iss_type": "string"
+    },
+    "margin_style": {
+      "iss_type": "string"
+    },
+    "central_strike": {
+      "iss_type": "double"
+    },
+    "strike_from": {
+      "iss_type": "double"
+    },
+    "strike_till": {
+      "iss_type": "double"
+    },
+    "option_on_spot": {
+      "iss_type": "int64"
+    },
+    "settle_type": {
+      "iss_type": "string"
+    }
   }
 }

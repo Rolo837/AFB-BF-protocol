@@ -300,7 +300,7 @@
         "source": { "type": "string", "minLength": 1 },
         "market": { "enum": ["stock", "futures", "currency", "index"] },
         "board": { "type": "string" },
-        "instrument_type": { "enum": ["stock", "currency", "index", "futures", "series"] },
+        "instrument_type": { "enum": ["stock", "currency", "index", "futures", "option", "series"] },
         "query": { "type": "string", "maxLength": 200 },
         "limit": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 },
         "cursor": { "type": "string", "minLength": 1, "maxLength": 512 }
@@ -313,7 +313,7 @@
       "additionalProperties": false,
       "properties": {
         "kind": { "const": "listing" },
-        "instrument_type": { "enum": ["stock", "currency", "index", "futures"] },
+        "instrument_type": { "enum": ["stock", "currency", "index", "futures", "option"] },
         "instrument_key": { "type": "string", "minLength": 1 },
         "ticker": { "type": "string", "minLength": 1 },
         "exchange": { "type": "string", "minLength": 1 },
@@ -738,6 +738,23 @@
         "reason": { "type": "string", "minLength": 1, "description": "Why it was archived — e.g. expired, or absent from the source's answer." }
       }
     },
+    "refreshMarketReport": {
+      "type": "object",
+      "title": "What `_parse_iss_rows` found about one configured market's ISS answer, beyond the rows themselves.",
+      "description": "Turns a silently-obsolete column mapping into a visible diagnostic instead of quietly-empty fields. `status: \"failed\"` means the market's rows were NOT applied — a missing required column, an empty answer, or a network error all count as failed, since a partial answer must not look like a complete one.",
+      "required": ["market", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "market": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "enum": ["ok", "failed"] },
+        "missing_required": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "missing_optional": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "type_mismatch": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "malformed_rows": { "type": "integer", "minimum": 0 },
+        "board_conflicts": { "type": "array", "items": { "type": "object" } },
+        "error": { "type": "string", "minLength": 1 }
+      }
+    },
     "refreshReport": {
       "type": "object",
       "title": "What the refresh did (or would do, for a dry run) — in keys, not just counts.",
@@ -766,7 +783,8 @@
         },
         "suggestion_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
         "inventory_revision_before": { "type": "integer", "minimum": 0 },
-        "inventory_revision_after": { "type": "integer", "minimum": 0 }
+        "inventory_revision_after": { "type": "integer", "minimum": 0 },
+        "markets": { "type": "array", "items": { "$ref": "#/$defs/refreshMarketReport" }, "description": "Per-market column-contract diagnostics collected while fetching this refresh's source rows — see `docs/ISS_SOURCES.md` in AFB." }
       }
     },
     "refreshResponse": {

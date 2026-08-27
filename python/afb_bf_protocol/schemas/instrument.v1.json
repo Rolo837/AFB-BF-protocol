@@ -11,7 +11,7 @@
     "ticker": { "type": "string", "minLength": 1, "description": "Canonical identity: bare SECID for MOEX, \"EXCHANGE:TICKER\" otherwise." },
     "exchange": { "type": "string", "minLength": 1 },
     "board": { "type": "string" },
-    "market": { "enum": ["stock", "futures", "currency", "index"] },
+    "market": { "enum": ["stock", "futures", "currency", "index", "options"] },
     "name": { "type": ["string", "null"] },
     "shortname": { "type": ["string", "null"] },
     "asset": { "type": ["string", "null"], "description": "Underlying asset code (futures) or self-grouping code." },
