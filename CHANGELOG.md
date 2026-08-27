@@ -2,6 +2,11 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+Новые записи дописываются в секцию `## Unreleased` **без версии и даты**.
+`AFB/run/release.sh tag --protocol {patch|minor}` (или `run/version.sh` напрямую) переносит их под `## vX.Y.Z — YYYY-MM-DD` и заводит новую пустую `## Unreleased`.
+
+## Unreleased
+
 ## v2.5.16 — 2026-08-27
 
 PATCH. Подготовка канала `afb-bf-protocol` к переезду с `series{}` на `derivatives[]` (следующий план); плюс расслабление `catalogAssetMember`. Ни `instrument.v1.json`, ни `afbws/instrument.channel.v1.json` не входят в `spec/asyncapi.yaml` (канал AFB-бэкенд↔AFB-фронтенд), ни один пункт не пересекает провод AFB↔BF.

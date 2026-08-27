@@ -5,7 +5,7 @@
 # но работает и самостоятельно.
 #
 # Использование:
-#   ./run/release.sh tag       # аннотированный vX.Y.Z на develop (после bump версии + CHANGELOG)
+#   ./run/release.sh tag       # аннотированный vX.Y.Z на develop (после bump версии)
 #   ./run/release.sh publish   # merge develop→main + GitHub Release на существующем теге
 #   ./run/release.sh tag --dry-run
 #   ./run/release.sh publish --dry-run
@@ -65,10 +65,6 @@ run_or_echo() {
 preflight_common() {
     require_branch "develop"
     "$SCRIPT_DIR/check-version.sh"
-    if ! changelog_has_version "$VERSION"; then
-        echo -e "${RED}Ошибка: в CHANGELOG.md нет секции для ${VERSION}${NC}" >&2
-        exit 1
-    fi
     if ! command -v gh >/dev/null 2>&1; then
         echo -e "${RED}Ошибка: нужен GitHub CLI (gh). https://cli.github.com/${NC}" >&2
         exit 1
@@ -111,10 +107,6 @@ do_publish() {
         exit 1
     fi
 
-    notes_file="$(mktemp)"
-    trap 'rm -f "$notes_file"' EXIT
-    extract_changelog_notes "$VERSION" "$notes_file"
-
     echo -e "${YELLOW}Пуш develop на origin...${NC}"
     run_or_echo git push origin develop
 
@@ -125,7 +117,7 @@ do_publish() {
         if ! gh pr view develop --base main >/dev/null 2>&1; then
             gh pr create --base main --head develop \
                 --title "Release v${VERSION}" \
-                --body-file "$notes_file"
+                --body "Release v${VERSION}"
         else
             echo -e "${YELLOW}PR develop→main уже существует — используем его${NC}"
         fi
@@ -143,14 +135,14 @@ do_publish() {
 
     echo -e "${YELLOW}GitHub Release ${TAG}...${NC}"
     if [ "$DRY_RUN" = true ]; then
-        echo -e "${YELLOW}[dry-run] gh release create ${TAG}${NC}"
+        echo -e "${YELLOW}[dry-run] gh release create ${TAG} --generate-notes${NC}"
     else
         if gh release view "$TAG" >/dev/null 2>&1; then
             echo -e "${YELLOW}GitHub Release ${TAG} уже существует — пропуск${NC}"
         else
             gh release create "$TAG" \
                 --title "Версия ${VERSION}" \
-                --notes-file "$notes_file"
+                --generate-notes
         fi
     fi
 

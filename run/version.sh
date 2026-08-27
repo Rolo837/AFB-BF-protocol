@@ -41,8 +41,9 @@ case "$cmd" in
         new_version="$(bump_semver "$current" "$cmd")"
         echo -e "Версия: ${YELLOW}${current}${NC} → ${GREEN}${new_version}${NC} ($cmd)"
         write_version_files "$new_version"
+        stamp_changelog "$new_version"
         echo -e "${GREEN}Обновлены VERSION + pyproject.toml + version.py + asyncapi.yaml + package.json${NC}"
-        echo "Дальше: секция в CHANGELOG.md, затем commit / ./run/release.sh tag."
+        echo "Дальше: commit + ./run/release.sh tag (обычно из AFB/run/release.sh)."
         ;;
     set)
         new_version="${2:-}"
@@ -54,8 +55,9 @@ case "$cmd" in
         current="$(read_version)"
         echo -e "Версия: ${YELLOW}${current}${NC} → ${GREEN}${new_version}${NC} (set)"
         write_version_files "$new_version"
+        stamp_changelog "$new_version"
         echo -e "${GREEN}Обновлены VERSION + pyproject.toml + version.py + asyncapi.yaml + package.json${NC}"
-        echo "Дальше: секция в CHANGELOG.md, затем commit / ./run/release.sh tag."
+        echo "Дальше: commit + ./run/release.sh tag (обычно из AFB/run/release.sh)."
         ;;
     -h|--help)
         usage

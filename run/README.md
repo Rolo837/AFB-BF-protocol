@@ -17,7 +17,6 @@
 |--------|-----------|
 | `run/version.sh` | bump `patch`/`minor` / `set` / `show`; правит `VERSION` + 4 синхронных места |
 | `run/check-version.sh` | read-only проверка синхрона |
-| `run/update-changelog.sh` | черновик секции `CHANGELOG.md` из git log |
 | `run/release.sh` | `tag` (тег `vX.Y.Z` на `develop`) / `publish` (merge `develop→main` + GitHub Release) |
 
 ## Обычный релиз
@@ -29,9 +28,8 @@
 # 1) канон изменён, codegen актуален, тесты зелёные
 afb-bf-protocol-generate && pytest && npx @asyncapi/cli validate spec/asyncapi.yaml && npm run typecheck
 
-# 2) версия + CHANGELOG
+# 2) версия (version.sh сам оформит ## Unreleased под vX.Y.Z)
 ./run/version.sh minor              # или patch
-./run/update-changelog.sh           # → CHANGELOG.md.draft → правка → CHANGELOG.md
 ./run/check-version.sh
 git commit -am "release vX.Y.Z"
 
@@ -39,7 +37,8 @@ git commit -am "release vX.Y.Z"
 ./run/release.sh tag
 
 # 4) после soak — стабильный релиз
-./run/release.sh publish           # merge develop→main + GitHub Release
+./run/release.sh publish           # merge develop→main + GitHub Release (--generate-notes)
 ```
 
-`--dry-run` есть у `tag` и `publish`.
+Записи об изменениях — в `CHANGELOG.md` под `## Unreleased`, по ходу работы, без
+версии; `version.sh` оформит под релиз. `--dry-run` есть у `tag` и `publish`.

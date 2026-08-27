@@ -108,12 +108,16 @@ afb-bf-protocol @ git+https://github.com/Rolo837/AFB-BF-protocol.git@v1.0.0
 5. Commit в `develop`, push. Локальные сборки AFB (`AFB/run/build.sh`) сразу
    подхватывают новый `@develop`.
 
+Записи об изменениях протокола дописываются в `CHANGELOG.md` в секцию
+`## Unreleased` **сразу по ходу работы, без версии и даты**. `run/version.sh`
+(→ `stamp_changelog`) сам оформит их под `## vX.Y.Z — YYYY-MM-DD` и заведёт новую
+пустую `## Unreleased`. Никаких `.draft`-файлов и проверок «секция обязана быть».
+
 ### Релиз (обычно из `AFB/run/release.sh tag --protocol {patch|minor}`)
 
-6. `run/version.sh {patch|minor}` — поднять версию в `VERSION` + 4 местах.
-7. Секция в `CHANGELOG.md` (`## vX.Y.Z — YYYY-MM-DD`; `run/update-changelog.sh`
-   даёт черновик), commit `release vX.Y.Z`.
-8. `run/release.sh tag` — аннотированный тег `vX.Y.Z` на `develop`, push тега.
+6. `run/version.sh {patch|minor}` — поднять версию в `VERSION` + 4 местах, оформить
+   `## Unreleased` под `vX.Y.Z`, commit `release vX.Y.Z`.
+7. `run/release.sh tag` — аннотированный тег `vX.Y.Z` на `develop`, push тега.
    Потребители (комплекс AFB) пинят `@vX.Y.Z` для воспроизводимых образов.
-9. После soak — `run/release.sh publish`: PR/merge `develop→main`, GitHub Release,
-   синхронизация `develop` с `main`.
+8. После soak — `run/release.sh publish`: PR/merge `develop→main`, GitHub Release
+   (`--generate-notes`), синхронизация `develop` с `main`.
