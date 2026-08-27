@@ -7,6 +7,19 @@
 
 ## Unreleased
 
+Аддитивное расширение канала `instrument` под переезд `series{}` → `derivatives[]` и подготовку фронтенда к работе с полными `instrument_key` вместо «обрезанных» до тикера. Всё опционально, ничего не снято — существующие продюсеры и потребители остаются валидными. Оба файла не входят в `spec/asyncapi.yaml` (канал AFB-бэкенд↔AFB-фронтенд), провод AFB↔BF не затрагивается.
+
+- **`instrument.v1.json`**:
+  - новое опциональное `instrument_key` — полный композитный ключ `<MIC>[:<board|market>]:<ticker>` (та же грамматика и пространство имён, что у `inventoryListingEntry.instrument_key` и `favoriteRef.key` для kind `instrument`);
+  - новое опциональное `derivative` — обратная ссылка контракта на `catalogDerivative.derivative` (код `MIC:CODE`); в `allOf`/`if` разрешено только при `market` ∈ {`futures`, `options`};
+  - `asset`/`group`/`futoi_code` остаются `deprecated`.
+- **`afbws/instrument.channel.v1.json`**:
+  - `catalogDerivative` переопределён: `required` = `derivative`/`kind`/`underlying` (было `derivative_id`/`kind`/`underlying`); `derivative` — код `MIC:CODE`; `underlying` → `["string", "null"]` (у большинства серий нет спота в каталоге); добавлены `series_code` (join-ключ для `catalogAssetMember.series_code`, nullable) и nullable `name`. `contracts`/`cardinality_state` не заводятся — связь серия↔контракты несёт `items[].derivative`, различие фьючерс/серия/опцион несёт `kind`;
+  - `catalogAssetMember`: добавлены типизированные `instrument_key` (для `kind=listing`) и `series_code` (для `kind=series`), поле `code` помечено `deprecated` (переходный период);
+  - `assetMemberInput`: то же — добавлены `instrument_key`/`series_code`, `code` → `deprecated`, `required` ослаблено до `["kind"]`;
+  - описания: слово `series` теперь в трёх независимых пространствах (`poolEntry.kind`, `catalogAssetMember.kind`, `catalogDerivative.kind`); зафиксирована асимметрия «читаю `derivatives[]`, пишу `series[]`» (`commitRequest.derivatives` не будет).
+- **Сгенерировано** (`afb-bf-protocol-generate`): зеркало схем, `models.ts`/`models_generated.py`, `taxonomy.py`/`docs/MESSAGES.md`, `capabilities.*`.
+
 ## v2.5.16 — 2026-08-27
 
 PATCH. Подготовка канала `afb-bf-protocol` к переезду с `series{}` на `derivatives[]` (следующий план); плюс расслабление `catalogAssetMember`. Ни `instrument.v1.json`, ни `afbws/instrument.channel.v1.json` не входят в `spec/asyncapi.yaml` (канал AFB-бэкенд↔AFB-фронтенд), ни один пункт не пересекает провод AFB↔BF.

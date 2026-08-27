@@ -135,3 +135,28 @@ def test_asset_group_futoi_code_are_deprecated_and_optional():
     for field in ("asset", "group", "futoi_code"):
         assert field not in doc["required"], field
         assert doc["properties"][field]["deprecated"] is True, field
+
+
+def test_instrument_key_is_optional(registry):
+    """The full composite key is added ahead of the ticker->instrument_key
+    migration — optional for now, so existing producers stay valid."""
+    _validator(registry).validate(_stock(instrument_key="MISX:TQBR:SBER"))  # does not raise
+    _validator(registry).validate(_futures(instrument_key="MISX:RFUD:GZH7"))  # does not raise
+    doc = _instrument_doc()
+    assert "instrument_key" not in doc["required"]
+
+
+def test_derivative_backreference_is_futures_and_options_only(registry):
+    """`derivative` points a contract back at its catalogDerivative — a stock
+    or index can never carry one."""
+    from jsonschema import ValidationError
+
+    _validator(registry).validate(_futures(derivative="MISX:GZ"))  # does not raise
+    with pytest.raises(ValidationError):
+        _validator(registry).validate(_stock(derivative="MISX:MIX"))
+    index_item = {
+        "schema": "afb.instrument.v1", "ticker": "IMOEX", "exchange": "MOEX",
+        "board": "", "market": "index", "source": "moex", "derivative": "MISX:MIX",
+    }
+    with pytest.raises(ValidationError):
+        _validator(registry).validate(index_item)

@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 874a5455395fd4f366645136204d85c4e209e68c81b8968caa23663d03851272
+# source-hash: 8ded5ebd011fcd09c5e1e8b1e97e852f75efc986f6183637b870d6055d292b15
 
 from __future__ import annotations
 
@@ -193,10 +193,15 @@ class AfbwsGpChannelV1SyncPush(TypedDict):
 
 
 class AfbwsInstrumentChannelV1CatalogDerivative(TypedDict):
-    derivative_id: str
+    """
+    One row per derivative: a futures series, a single/perpetual futures, or (reserved) an option. Carries no contract list — the contract↔derivative link lives on the contract, as `items[].derivative` pointing back at `derivative` here; a client expands a `kind=series` asset member by `member.series_code -> this.series_code -> this.derivative -> items[] where item.derivative == that`. The word `series` also names a `poolEntry.kind` and a `catalogAssetMember.kind`: three independent namespaces, same spelling, unrelated meaning. Read side only — the write form of a series is still `commitRequest.series[]` / `seriesUpsert`; there is deliberately no `commitRequest.derivatives`.
+    """
+
+    derivative: str
     kind: Literal["futures", "series", "options"]
-    underlying: str
-    name: NotRequired[str]
+    series_code: NotRequired[str | None]
+    underlying: str | None
+    name: NotRequired[str | None]
 
 
 AfbwsInstrumentChannelV1FavoriteColor: TypeAlias = Literal[
@@ -1966,11 +1971,13 @@ class InstrumentAcceptSuggestion(TypedDict):
 
 class InstrumentAssetMemberInput(TypedDict):
     """
-    Same discriminator and identity as catalogAssetMember (`kind`+`code`). `label` and `market` are snapshot-only and are not written — the server derives them from items/series. A contract listed here whose series is also listed is rejected.
+    Same discriminator and identity as catalogAssetMember: `kind` plus `instrument_key` (for `listing`) or `series_code` (for `series`). `code` is the legacy single field, still accepted during the migration — a client may send either form. `label` and `market` are snapshot-only and are not written — the server derives them from items/derivatives. A contract listed here whose series is also listed is rejected.
     """
 
     kind: Literal["listing", "series"]
-    code: str
+    instrument_key: NotRequired[str]
+    series_code: NotRequired[str]
+    code: NotRequired[str]
 
 
 class InstrumentAssetSetUpsert(TypedDict):
@@ -2040,10 +2047,12 @@ class InstrumentCatalogAsset(TypedDict):
 
 class InstrumentCatalogAssetMember(TypedDict):
     """
-    Array position is the display order. `code` is the canonical ticker for `listing` and the series_code for `series`. `label` and `market` are denormalized for plaques so the Groups/Assets UI does not have to join `items`/`series`. A series member is whole: every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, index, or a singleton futures contract (D6 — a series with exactly one active contract is shown as that listing, not as `kind=series`). True-series futures (`cardinality_state=true_series`) still join only as `kind=series`. The server rejects a futures contract as a listing member of an asset that already contains its series.
+    Array position is the display order. The identity is `kind` plus, by kind: `instrument_key` for `listing` (join to `items[]`), `series_code` for `series` (join to `derivatives[]` via `catalogDerivative.series_code`, then to `items[]` through the `items[].derivative` backreference). `code` is the legacy single field carrying whichever of the two the kind implied — kept during the migration, to be dropped once every client reads the typed fields. `label` and `market` are denormalized for plaques so the Assets UI does not have to join `items`/`derivatives`. A series member is whole: every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, index, or a singleton futures contract (D6 — a series with exactly one active contract is shown as that listing, not as `kind=series`). The server rejects a futures contract as a listing member of an asset that already contains its series. This `kind` (`listing`/`series`) is unrelated to `catalogDerivative.kind` (`futures`/`series`/`options`) and `poolEntry.kind` — same spelling of `series`, three independent namespaces.
     """
 
     kind: Literal["listing", "series"]
+    instrument_key: NotRequired[str]
+    series_code: NotRequired[str]
     code: NotRequired[str]
     label: NotRequired[str]
     market: NotRequired[Literal["stock", "futures", "currency", "index", "options"]]
@@ -2541,6 +2550,7 @@ class InstrumentV1(TypedDict):
 
     schema: Literal["afb.instrument.v1"]
     ticker: str
+    instrument_key: NotRequired[str]
     exchange: str
     board: str
     market: Literal["stock", "futures", "currency", "index", "options"]
@@ -2557,6 +2567,7 @@ class InstrumentV1(TypedDict):
     step_price: NotRequired[DecimalString]
     margin: NotRequired[DecimalString]
     futoi_code: NotRequired[str]
+    derivative: NotRequired[str]
     isin: NotRequired[str]
     source: str
 

@@ -131,12 +131,14 @@
     "catalogAssetMember": {
       "type": "object",
       "title": "One ordered member of a catalog asset, nested on catalogAsset.members.",
-      "description": "Array position is the display order. `code` is the canonical ticker for `listing` and the series_code for `series`. `label` and `market` are denormalized for plaques so the Groups/Assets UI does not have to join `items`/`series`. A series member is whole: every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, index, or a singleton futures contract (D6 — a series with exactly one active contract is shown as that listing, not as `kind=series`). True-series futures (`cardinality_state=true_series`) still join only as `kind=series`. The server rejects a futures contract as a listing member of an asset that already contains its series.",
+      "description": "Array position is the display order. The identity is `kind` plus, by kind: `instrument_key` for `listing` (join to `items[]`), `series_code` for `series` (join to `derivatives[]` via `catalogDerivative.series_code`, then to `items[]` through the `items[].derivative` backreference). `code` is the legacy single field carrying whichever of the two the kind implied — kept during the migration, to be dropped once every client reads the typed fields. `label` and `market` are denormalized for plaques so the Assets UI does not have to join `items`/`derivatives`. A series member is whole: every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, index, or a singleton futures contract (D6 — a series with exactly one active contract is shown as that listing, not as `kind=series`). The server rejects a futures contract as a listing member of an asset that already contains its series. This `kind` (`listing`/`series`) is unrelated to `catalogDerivative.kind` (`futures`/`series`/`options`) and `poolEntry.kind` — same spelling of `series`, three independent namespaces.",
       "required": ["kind"],
       "additionalProperties": true,
       "properties": {
         "kind": { "enum": ["listing", "series"] },
-        "code": { "type": "string", "minLength": 1, "description": "Canonical ticker for `listing`, series_code for `series` — case-sensitive, never normalized." },
+        "instrument_key": { "type": "string", "minLength": 1, "description": "For `kind=listing`: full composite key of the member listing, joining to `items[]`. Case-sensitive, never normalized." },
+        "series_code": { "type": "string", "minLength": 1, "description": "For `kind=series`: the series code, joining to `catalogDerivative.series_code`. Case-sensitive, never normalized." },
+        "code": { "type": "string", "minLength": 1, "deprecated": true, "description": "Deprecated — canonical ticker for `listing`, series_code for `series`. Superseded by the typed `instrument_key`/`series_code`; still emitted during the migration for clients that have not switched." },
         "label": { "type": "string", "description": "Display label for plaques (shortname/name; backend may fall back to code)." },
         "market": { "enum": ["stock", "futures", "currency", "index", "options"] }
       }
@@ -161,13 +163,15 @@
     "catalogDerivative": {
       "type": "object",
       "title": "One entry of the derivatives axis — replacement for the deprecated keyed-by-code `series` map: a flat, item-shaped list instead of an object.",
-      "required": ["derivative_id", "kind", "underlying"],
+      "description": "One row per derivative: a futures series, a single/perpetual futures, or (reserved) an option. Carries no contract list — the contract↔derivative link lives on the contract, as `items[].derivative` pointing back at `derivative` here; a client expands a `kind=series` asset member by `member.series_code -> this.series_code -> this.derivative -> items[] where item.derivative == that`. The word `series` also names a `poolEntry.kind` and a `catalogAssetMember.kind`: three independent namespaces, same spelling, unrelated meaning. Read side only — the write form of a series is still `commitRequest.series[]` / `seriesUpsert`; there is deliberately no `commitRequest.derivatives`.",
+      "required": ["derivative", "kind", "underlying"],
       "additionalProperties": false,
       "properties": {
-        "derivative_id": { "type": "string", "minLength": 1 },
+        "derivative": { "type": "string", "minLength": 1, "description": "Code of this derivative in `MIC:CODE` form (venueless 2-segment `instrument_key` grammar): the series code for `kind=series` (`MISX:MIX`), the single contract's ticker for `kind=futures` (`MISX:IMOEXF`), the option's ticker for `kind=options`. A code in its own namespace — NOT a listing key: a singleton's `derivative` is `MISX:IMOEXF` while its contract's `instrument_key` is `MISX:RFUD:IMOEXF`. It is a code, not a stable id — it changes on the `1->2` cardinality transition (a singleton future gaining a second contract) — so it must not be persisted or cached past one snapshot." },
         "kind": { "enum": ["futures", "series", "options"] },
-        "underlying": { "type": "string", "minLength": 1, "description": "Full composite instrument_key of the underlying (e.g. `MISX:TQBR:SBER`, `MISX:IMOEX`)." },
-        "name": { "type": "string" }
+        "series_code": { "type": ["string", "null"], "description": "Bare series code (`MIX`), the join key for `catalogAssetMember.series_code`. Present for derivatives born of a `futures_series` row (`kind` series and futures); null for an option chain with no series-code namespace of its own." },
+        "underlying": { "type": ["string", "null"], "description": "Full composite instrument_key of the underlying listing (e.g. `MISX:TQBR:SBER`, `MISX:IMOEX`), or null when the underlying has no listing in the catalog — the common case: indices, currency baskets, foreign and synthetic underlyings (Brent, gold, wheat, BTC, S&P 500) have no MOEX spot. `series_code` still identifies the derivative; only the pointer to a base listing is absent. An option written on a futures uses that futures' own `instrument_key` here." },
+        "name": { "type": ["string", "null"], "description": "Display name: shortname of the underlying listing, falling back to the series name (`Brent`, `Золото`), falling back to the code." }
       }
     },
     "userState": {
@@ -443,12 +447,14 @@
     "assetMemberInput": {
       "type": "object",
       "title": "One member of an asset as a client states it — identity only; order is array position, asset_id is implied.",
-      "description": "Same discriminator and identity as catalogAssetMember (`kind`+`code`). `label` and `market` are snapshot-only and are not written — the server derives them from items/series. A contract listed here whose series is also listed is rejected.",
-      "required": ["kind", "code"],
+      "description": "Same discriminator and identity as catalogAssetMember: `kind` plus `instrument_key` (for `listing`) or `series_code` (for `series`). `code` is the legacy single field, still accepted during the migration — a client may send either form. `label` and `market` are snapshot-only and are not written — the server derives them from items/derivatives. A contract listed here whose series is also listed is rejected.",
+      "required": ["kind"],
       "additionalProperties": false,
       "properties": {
         "kind": { "enum": ["listing", "series"] },
-        "code": { "type": "string", "minLength": 1, "description": "Canonical ticker for `listing`, series_code for `series` — case-sensitive, never normalized." }
+        "instrument_key": { "type": "string", "minLength": 1, "description": "For `kind=listing` — full composite key. Case-sensitive, never normalized." },
+        "series_code": { "type": "string", "minLength": 1, "description": "For `kind=series` — the series code. Case-sensitive, never normalized." },
+        "code": { "type": "string", "minLength": 1, "deprecated": true, "description": "Deprecated — canonical ticker for `listing`, series_code for `series`. Superseded by the typed `instrument_key`/`series_code`; still accepted during the migration." }
       }
     },
     "assetUpsert": {
@@ -531,7 +537,7 @@
           "description": "Upsert of the instrument records themselves, by `ticker`. Copy a pool listing entry's `listing` here unchanged. The element's `group` field is IGNORED — membership is expressed only through `asset_set_members`; clients send `group: null`. instrument.v1 is reused verbatim for its class gating (futures-only expiration/step_price/margin/futoi_code, `isin` for stock only), which is exactly what a listing write has to enforce."
         },
         "archive_listings": { "type": "array", "items": { "$ref": "#/$defs/listingArchival" } },
-        "series": { "type": "array", "items": { "$ref": "#/$defs/seriesUpsert" }, "description": "Upsert of futures series. Copy a pending pool series row here (`code` → `series_code`, `underlying` → `underlying_ticker`). The backend materializes that series' active contracts from the MOEX snapshot in the same transaction." },
+        "series": { "type": "array", "items": { "$ref": "#/$defs/seriesUpsert" }, "description": "Upsert of futures series. Copy a pending pool series row here (`code` → `series_code`, `underlying` → `underlying_ticker`). The backend materializes that series' active contracts from the MOEX snapshot in the same transaction. This stays the write form even though the read snapshots now project series as `derivatives[]` — the asymmetry is deliberate: `derivatives[]` is a computed view (its `derivative` code and its contract set are not independently editable), so there is no `commitRequest.derivatives`." },
         "collections": { "type": "array", "items": { "$ref": "#/$defs/collectionUpsert" } },
         "remove_collections": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "collection_ids to delete outright — any collection, no id is protected from removal. The assets that were in them are not deleted — they end up with no collection (`collection_id: null`)." },
         "collection_order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "The FULL final order of collection_ids — not a partial reshuffle. The list is FLAT: a collection carries one global order key in storage, not a position inside its parent, so parents and children are ordered in the same sequence. Collections absent from the list keep their relative position after the listed ones." },

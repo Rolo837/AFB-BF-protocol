@@ -9,6 +9,7 @@
   "properties": {
     "schema": { "const": "afb.instrument.v1" },
     "ticker": { "type": "string", "minLength": 1, "description": "Canonical identity: bare SECID for MOEX, \"EXCHANGE:TICKER\" otherwise." },
+    "instrument_key": { "type": "string", "minLength": 1, "description": "Optional. Full composite key `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:MXH7`, `MISX:IMOEX`) — same grammar and namespace as `inventoryListingEntry.instrument_key` and `favoriteRef.key` for kind `instrument`. Nothing but one shared parser (AFB backend/instruments/catalog_key.py, frontend utils/instrumentId.ts) ever splits it; case is never normalized. The `ticker` field stays the legacy compatibility identity; `instrument_key` is the one the catalog's own structures (`catalogAssetMember.instrument_key`, the `items[].derivative` backreference) join on." },
     "exchange": { "type": "string", "minLength": 1 },
     "board": { "type": "string" },
     "market": { "enum": ["stock", "futures", "currency", "index", "options"] },
@@ -25,6 +26,7 @@
     "step_price": { "$ref": "common.v1.json#/$defs/decimalString" },
     "margin": { "$ref": "common.v1.json#/$defs/decimalString" },
     "futoi_code": { "type": "string", "deprecated": true, "description": "Deprecated — futures only; FUTOI series/perpetual code. Optional, kept for old clients." },
+    "derivative": { "type": "string", "minLength": 1, "description": "Optional; `market` futures/options only. Backreference to `catalogDerivative.derivative` — the `MIC:CODE` code of the derivative this contract belongs to (its series for a serial future, itself for a singleton future, the option's own ticker for an option). A code, not a stable id: it changes when a singleton future gains a second contract and becomes a series, so it must never be persisted or cached past one catalog snapshot. This is the only carrier of the contract↔series link — `items[].asset`/`futoi_code` must not be read for it." },
     "isin": { "type": "string", "description": "Stock only." },
     "source": { "type": "string", "minLength": 1, "description": "\"moex\" or a broker id (e.g. \"finam\") — who refreshes this record's trading params." }
   },
@@ -40,6 +42,11 @@
           "futoi_code": false
         }
       }
+    },
+    {
+      "if": { "properties": { "market": { "enum": ["futures", "options"] } }, "required": ["market"] },
+      "then": {},
+      "else": { "properties": { "derivative": false } }
     },
     {
       "if": { "properties": { "market": { "const": "stock" } }, "required": ["market"] },
