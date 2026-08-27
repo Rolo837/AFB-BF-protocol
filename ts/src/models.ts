@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: f69f84aef64bbaaa0211633c156efa69eae5a9a538f758e74bda815c94815cfd
+ * source-hash: 874a5455395fd4f366645136204d85c4e209e68c81b8968caa23663d03851272
  */
 
 /**
@@ -431,11 +431,13 @@ export type InstrumentV1 = {
   name?: string | null;
   shortname?: string | null;
   /**
-   * Underlying asset code (futures) or self-grouping code.
+   * @deprecated
+   * Deprecated — underlying asset code (futures) or self-grouping code; superseded by the catalog's own asset/member structure (catalogAsset). Optional, kept for old clients.
    */
   asset?: string | null;
   /**
-   * Legacy leftover — the AFB backend no longer populates this field (kept in the schema only for old caching clients that might still read it).
+   * @deprecated
+   * Deprecated legacy leftover — the AFB backend no longer populates this field (kept in the schema only for old caching clients that might still read it).
    */
   group?: string | null;
   lot_size?: number | null;
@@ -453,7 +455,8 @@ export type InstrumentV1 = {
   step_price?: DecimalString;
   margin?: DecimalString;
   /**
-   * Futures only; FUTOI series/perpetual code.
+   * @deprecated
+   * Deprecated — futures only; FUTOI series/perpetual code. Optional, kept for old clients.
    */
   futoi_code?: string;
   /**
@@ -515,26 +518,6 @@ export type InstrumentPoolListingEntry = {
 } & {
   kind: 'listing';
   listing: InstrumentV1;
-};
-/**
- * Array position is the display order. `code` is the canonical ticker for `listing` and the series_code for `series`. `label` and `market` are denormalized for plaques so the Groups/Assets UI does not have to join `items`/`series`. A series member is whole: every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, index, or a singleton futures contract (D6 — a series with exactly one active contract is shown as that listing, not as `kind=series`). True-series futures (`cardinality_state=true_series`) still join only as `kind=series`. The server rejects a futures contract as a listing member of an asset that already contains its series.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCatalogAssetMember".
- */
-export type InstrumentCatalogAssetMember = {
-  [k: string]: unknown;
-} & {
-  kind: 'listing' | 'series';
-  /**
-   * Canonical ticker for `listing`, series_code for `series` — case-sensitive, never normalized.
-   */
-  code: string;
-  /**
-   * Display label for plaques (shortname/name; backend may fall back to code).
-   */
-  label: string;
-  market: 'stock' | 'futures' | 'currency' | 'index';
 };
 /**
  * Canonical order: max_favorite_colors: N keeps the first N — yellow is always first, gray always last. Values are exactly the Chakra colorPalette names AFB's theme/accentPalettes.ts already uses; the frontend does not duplicate this list.
@@ -2106,7 +2089,11 @@ export interface InstrumentCatalogResponse {
    */
   assets: InstrumentCatalogAsset[];
   items: InstrumentV1[];
-  series: InstrumentCatalogSeriesMap;
+  series?: InstrumentCatalogSeriesMap;
+  /**
+   * Replacement for the deprecated `series` map: one entry per derivative, not keyed by code.
+   */
+  derivatives?: AfbwsInstrumentChannelV1_CatalogDerivative[];
   collections?: InstrumentCollection[];
   asset_sets?: InstrumentAssetSetView[];
   suggestions?: InstrumentAssetSuggestion[];
@@ -2125,7 +2112,8 @@ export interface InstrumentCatalogAsset {
   asset_id: string;
   name: string;
   /**
-   * Which of the asset's series reference data is taken from when it holds more than one; null when the asset has no series or the manager has not chosen. It points at a series, not at a contract — the MOEX analytics code itself stays on the series and is not duplicated here.
+   * @deprecated
+   * Deprecated — optional, kept for old clients. Which of the asset's series reference data is taken from when it holds more than one; null when the asset has no series or the manager has not chosen. It points at a series, not at a contract — the MOEX analytics code itself stays on the series and is not duplicated here.
    */
   reference_series_code?: string | null;
   /**
@@ -2138,8 +2126,27 @@ export interface InstrumentCatalogAsset {
   collection_id?: string | null;
 }
 /**
+ * Array position is the display order. `code` is the canonical ticker for `listing` and the series_code for `series`. `label` and `market` are denormalized for plaques so the Groups/Assets UI does not have to join `items`/`series`. A series member is whole: every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, index, or a singleton futures contract (D6 — a series with exactly one active contract is shown as that listing, not as `kind=series`). True-series futures (`cardinality_state=true_series`) still join only as `kind=series`. The server rejects a futures contract as a listing member of an asset that already contains its series.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCatalogSeriesMap".
+ * via the `definition` "InstrumentCatalogAssetMember".
+ */
+export interface InstrumentCatalogAssetMember {
+  kind: 'listing' | 'series';
+  /**
+   * Canonical ticker for `listing`, series_code for `series` — case-sensitive, never normalized.
+   */
+  code?: string;
+  /**
+   * Display label for plaques (shortname/name; backend may fall back to code).
+   */
+  label?: string;
+  market?: 'stock' | 'futures' | 'currency' | 'index' | 'options';
+  [k: string]: unknown;
+}
+/**
+ * @deprecated
+ * Deprecated — optional; kept for old clients.
  */
 export interface InstrumentCatalogSeriesMap {
   [k: string]: InstrumentCatalogSeries;
@@ -2160,6 +2167,19 @@ export interface InstrumentCatalogSeries {
    * PATCH, "Инструменты, активы, иконки" Шаг 1. true_series: more than one active contract in the latest complete snapshot — this is a real series node. singleton: exactly one — an asset holding it is reachable through the one contract's listing membership, not through this series (D6). dormant: zero, contracts expired; the asset link (if any) is left exactly where it was (D4) — nothing here auto-detaches it. null on a database still on schema v7 or a series row read before its first refresh under v8.
    */
   cardinality_state?: 'true_series' | 'singleton' | 'dormant' | null;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_CatalogDerivative".
+ */
+export interface AfbwsInstrumentChannelV1_CatalogDerivative {
+  derivative_id: string;
+  kind: 'futures' | 'series' | 'options';
+  /**
+   * Full composite instrument_key of the underlying (e.g. `MISX:TQBR:SBER`, `MISX:IMOEX`).
+   */
+  underlying: string;
+  name?: string;
 }
 /**
  * Order is carried by array position: `collections[]` already arrives in the order the tree is drawn in (the children of one `parent_id` follow one another), so there is no order field on the wire. A commit restates that order wholesale through `commitRequest.collection_order`.
@@ -2444,7 +2464,11 @@ export interface InstrumentCommitResponse {
   catalog_revision: number;
   assets: InstrumentCatalogAsset[];
   items: InstrumentV1[];
-  series: InstrumentCatalogSeriesMap;
+  series?: InstrumentCatalogSeriesMap1;
+  /**
+   * Replacement for the deprecated `series` map: one entry per derivative, not keyed by code.
+   */
+  derivatives?: AfbwsInstrumentChannelV1_CatalogDerivative[];
   collections?: InstrumentCollection[];
   asset_sets?: InstrumentAssetSetView[];
   suggestions?: InstrumentAssetSuggestion[];
@@ -2452,6 +2476,13 @@ export interface InstrumentCommitResponse {
     [k: string]: number;
   };
   user?: InstrumentUserState;
+}
+/**
+ * @deprecated
+ * Deprecated — optional; kept for old clients.
+ */
+export interface InstrumentCatalogSeriesMap1 {
+  [k: string]: InstrumentCatalogSeries;
 }
 /**
  * `base_revision` here is the revision of the PERSONAL aggregate (userState.revision), not the global catalog_revision — personal edits never conflict with a manager's commit. Sets created through this operation are implicitly scope: "user" and owned by the caller; a `set_id` naming a global set is rejected. An empty request is legal and just reads the current personal state back.
@@ -2833,6 +2864,13 @@ export interface InstrumentErrorDetails {
     allowed: number;
     requested: number;
   };
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentCatalogSeriesMap".
+ */
+export interface InstrumentCatalogSeriesMap2 {
+  [k: string]: InstrumentCatalogSeries;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

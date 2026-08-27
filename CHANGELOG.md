@@ -2,6 +2,18 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
+## v2.5.16 — 2026-08-27
+
+PATCH. Подготовка канала `afb-bf-protocol` к переезду с `series{}` на `derivatives[]` (следующий план); плюс расслабление `catalogAssetMember`. Ни `instrument.v1.json`, ни `afbws/instrument.channel.v1.json` не входят в `spec/asyncapi.yaml` (канал AFB-бэкенд↔AFB-фронтенд), ни один пункт не пересекает провод AFB↔BF.
+
+- **`instrument.v1.json`**: `asset`, `group`, `futoi_code` помечены `deprecated: true` (уже были опциональны).
+- **`afbws/instrument.channel.v1.json`**:
+  - `catalogResponse` и `commitResponse` (симметрично): `series` убран из `required`, помечен `deprecated: true`; добавлено новое опциональное поле `derivatives[]` (новый `$defs.catalogDerivative`: обязательные `derivative_id`, `kind` (`futures`/`series`/`options`), `underlying` — полный instrument_key; опциональное `name`) — замена keyed-by-code `series{}` на плоский список.
+  - `catalogAsset.reference_series_code` помечен `deprecated: true` (уже был опционален).
+  - `catalogAssetMember`: `required` сужен до `["kind"]` (было `kind`/`code`/`label`/`market`), `additionalProperties: true` (было `false`), инвариант `kind=series -> market=futures` (`allOf`/`if`/`then`) снят.
+- **Сгенерировано** (`afb-bf-protocol-generate`): зеркало схем, `models.ts`/`models_generated.py`, `taxonomy.py`/`docs/MESSAGES.md`.
+- **Версии**: bump до `2.5.16` в `package.json`, `python/pyproject.toml`, `python/afb_bf_protocol/version.py`, `spec/asyncapi.yaml`; `PROTOCOL_VERSION = "afb.execution.v1"` не менялся.
+
 ## v2.5.15 — 2026-08-27
 
 PATCH. Донастройка ISS-канона (`v2.5.14`): исправление реального расхождения с живым ISS, и два расширения enum, ни одно из которых не пересекает провод AFB↔BF.

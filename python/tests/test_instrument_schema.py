@@ -120,3 +120,18 @@ def test_extra_field_rejected(registry):
 
     with pytest.raises(ValidationError):
         _validator(registry).validate(_stock(unexpected="nope"))
+
+
+def _instrument_doc():
+    import json
+    from pathlib import Path
+
+    schema_path = Path(__file__).resolve().parents[2] / "spec" / "schemas" / "instrument.v1.json"
+    return json.loads(schema_path.read_text())
+
+
+def test_asset_group_futoi_code_are_deprecated_and_optional():
+    doc = _instrument_doc()
+    for field in ("asset", "group", "futoi_code"):
+        assert field not in doc["required"], field
+        assert doc["properties"][field]["deprecated"] is True, field

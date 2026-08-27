@@ -119,7 +119,7 @@
       "properties": {
         "asset_id": { "type": "string", "minLength": 1, "description": "Opaque id, minted by the client on create and never rewritten by the server — the only handle set membership, members and edits refer to." },
         "name": { "type": "string", "minLength": 1 },
-        "reference_series_code": { "type": ["string", "null"], "description": "Which of the asset's series reference data is taken from when it holds more than one; null when the asset has no series or the manager has not chosen. It points at a series, not at a contract — the MOEX analytics code itself stays on the series and is not duplicated here." },
+        "reference_series_code": { "type": ["string", "null"], "deprecated": true, "description": "Deprecated — optional, kept for old clients. Which of the asset's series reference data is taken from when it holds more than one; null when the asset has no series or the manager has not chosen. It points at a series, not at a contract — the MOEX analytics code itself stays on the series and is not duplicated here." },
         "members": {
           "type": "array",
           "items": { "$ref": "#/$defs/catalogAssetMember" },
@@ -132,20 +132,14 @@
       "type": "object",
       "title": "One ordered member of a catalog asset, nested on catalogAsset.members.",
       "description": "Array position is the display order. `code` is the canonical ticker for `listing` and the series_code for `series`. `label` and `market` are denormalized for plaques so the Groups/Assets UI does not have to join `items`/`series`. A series member is whole: every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, index, or a singleton futures contract (D6 — a series with exactly one active contract is shown as that listing, not as `kind=series`). True-series futures (`cardinality_state=true_series`) still join only as `kind=series`. The server rejects a futures contract as a listing member of an asset that already contains its series.",
-      "required": ["kind", "code", "label", "market"],
-      "additionalProperties": false,
+      "required": ["kind"],
+      "additionalProperties": true,
       "properties": {
         "kind": { "enum": ["listing", "series"] },
         "code": { "type": "string", "minLength": 1, "description": "Canonical ticker for `listing`, series_code for `series` — case-sensitive, never normalized." },
         "label": { "type": "string", "description": "Display label for plaques (shortname/name; backend may fall back to code)." },
-        "market": { "enum": ["stock", "futures", "currency", "index"] }
-      },
-      "allOf": [
-        {
-          "if": { "properties": { "kind": { "const": "series" } }, "required": ["kind"] },
-          "then": { "properties": { "market": { "const": "futures" } } }
-        }
-      ]
+        "market": { "enum": ["stock", "futures", "currency", "index", "options"] }
+      }
     },
     "catalogSeries": {
       "type": "object",
@@ -163,6 +157,18 @@
       "type": "object",
       "title": "series_code -> catalogSeries.",
       "additionalProperties": { "$ref": "#/$defs/catalogSeries" }
+    },
+    "catalogDerivative": {
+      "type": "object",
+      "title": "One entry of the derivatives axis — replacement for the deprecated keyed-by-code `series` map: a flat, item-shaped list instead of an object.",
+      "required": ["derivative_id", "kind", "underlying"],
+      "additionalProperties": false,
+      "properties": {
+        "derivative_id": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["futures", "series", "options"] },
+        "underlying": { "type": "string", "minLength": 1, "description": "Full composite instrument_key of the underlying (e.g. `MISX:TQBR:SBER`, `MISX:IMOEX`)." },
+        "name": { "type": "string" }
+      }
     },
     "userState": {
       "type": "object",
@@ -417,7 +423,7 @@
       "type": "object",
       "title": "UI snapshot of the curated catalog: collections, asset sets, assets with nested members, items and series.",
       "description": "Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Membership is `asset_sets[].asset_ids` in display order. Composition is `assets[].members` (`kind`/`code`/`label`/`market`) in display order. Order is always array position — no entity on this wire carries an order field. `items` are the canonical instrument records (including materialized futures contracts); `series` is the futures-series axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `asset_sets[].asset_ids`.",
-      "required": ["channel", "schema", "request_id", "catalog_revision", "assets", "items", "series"],
+      "required": ["channel", "schema", "request_id", "catalog_revision", "assets", "items"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "instrument" },
@@ -426,7 +432,8 @@
         "catalog_revision": { "type": "integer", "minimum": 0, "description": "Revision of the global catalog this snapshot was taken at — send it back as commitRequest.base_revision." },
         "assets": { "type": "array", "items": { "$ref": "#/$defs/catalogAsset" }, "description": "Curated assets, each with nested `members` in display order." },
         "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
-        "series": { "$ref": "#/$defs/catalogSeriesMap" },
+        "series": { "$ref": "#/$defs/catalogSeriesMap", "deprecated": true, "description": "Deprecated — optional; kept for old clients." },
+        "derivatives": { "type": "array", "items": { "$ref": "#/$defs/catalogDerivative" }, "description": "Replacement for the deprecated `series` map: one entry per derivative, not keyed by code." },
         "collections": { "type": "array", "items": { "$ref": "#/$defs/collection" } },
         "asset_sets": { "type": "array", "items": { "$ref": "#/$defs/assetSetView" } },
         "suggestions": { "type": "array", "items": { "$ref": "#/$defs/assetSuggestion" } },
@@ -542,7 +549,7 @@
       "type": "object",
       "title": "The full post-commit snapshot (same nested UI shape as catalogResponse), so a client never has to re-read after a successful write.",
       "description": "`catalog_revision` is already the new one. A rejected commit is an errorResponse instead — there is no partially-applied outcome.",
-      "required": ["channel", "schema", "request_id", "catalog_revision", "assets", "items", "series"],
+      "required": ["channel", "schema", "request_id", "catalog_revision", "assets", "items"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "instrument" },
@@ -551,7 +558,8 @@
         "catalog_revision": { "type": "integer", "minimum": 0 },
         "assets": { "type": "array", "items": { "$ref": "#/$defs/catalogAsset" } },
         "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
-        "series": { "$ref": "#/$defs/catalogSeriesMap" },
+        "series": { "$ref": "#/$defs/catalogSeriesMap", "deprecated": true, "description": "Deprecated — optional; kept for old clients." },
+        "derivatives": { "type": "array", "items": { "$ref": "#/$defs/catalogDerivative" }, "description": "Replacement for the deprecated `series` map: one entry per derivative, not keyed by code." },
         "collections": { "type": "array", "items": { "$ref": "#/$defs/collection" } },
         "asset_sets": { "type": "array", "items": { "$ref": "#/$defs/assetSetView" } },
         "suggestions": { "type": "array", "items": { "$ref": "#/$defs/assetSuggestion" } },

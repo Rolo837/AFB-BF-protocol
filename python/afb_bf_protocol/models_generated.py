@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: f69f84aef64bbaaa0211633c156efa69eae5a9a538f758e74bda815c94815cfd
+# source-hash: 874a5455395fd4f366645136204d85c4e209e68c81b8968caa23663d03851272
 
 from __future__ import annotations
 
@@ -190,6 +190,13 @@ class AfbwsGpChannelV1SyncPush(TypedDict):
     channel: Literal["gp"]
     schema: Literal["afbws.gp.sync.push.v1"]
     items: list[GpV1]
+
+
+class AfbwsInstrumentChannelV1CatalogDerivative(TypedDict):
+    derivative_id: str
+    kind: Literal["futures", "series", "options"]
+    underlying: str
+    name: NotRequired[str]
 
 
 AfbwsInstrumentChannelV1FavoriteColor: TypeAlias = Literal[
@@ -2037,9 +2044,9 @@ class InstrumentCatalogAssetMember(TypedDict):
     """
 
     kind: Literal["listing", "series"]
-    code: str
-    label: str
-    market: Literal["stock", "futures", "currency", "index"]
+    code: NotRequired[str]
+    label: NotRequired[str]
+    market: NotRequired[Literal["stock", "futures", "currency", "index", "options"]]
 
 
 class InstrumentCatalogRequest(TypedDict):
@@ -2063,7 +2070,8 @@ class InstrumentCatalogResponse(TypedDict):
     catalog_revision: int
     assets: list[InstrumentCatalogAsset]
     items: list[InstrumentV1]
-    series: InstrumentCatalogSeriesMap
+    series: NotRequired[InstrumentCatalogSeriesMap]
+    derivatives: NotRequired[list[AfbwsInstrumentChannelV1CatalogDerivative]]
     collections: NotRequired[list[InstrumentCollection]]
     asset_sets: NotRequired[list[InstrumentAssetSetView]]
     suggestions: NotRequired[list[InstrumentAssetSuggestion]]
@@ -2174,7 +2182,8 @@ class InstrumentCommitResponse(TypedDict):
     catalog_revision: int
     assets: list[InstrumentCatalogAsset]
     items: list[InstrumentV1]
-    series: InstrumentCatalogSeriesMap
+    series: NotRequired[InstrumentCatalogSeriesMap]
+    derivatives: NotRequired[list[AfbwsInstrumentChannelV1CatalogDerivative]]
     collections: NotRequired[list[InstrumentCollection]]
     asset_sets: NotRequired[list[InstrumentAssetSetView]]
     suggestions: NotRequired[list[InstrumentAssetSuggestion]]

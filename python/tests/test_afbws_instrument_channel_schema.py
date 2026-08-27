@@ -511,13 +511,14 @@ def test_catalog_asset_member_valid_for_both_kinds(registry):
         _validator("catalogAssetMember", registry).validate(member)  # does not raise
 
 
-def test_catalog_asset_member_series_must_be_futures(registry):
-    from jsonschema import ValidationError
-
-    with pytest.raises(ValidationError):
-        _validator("catalogAssetMember", registry).validate(
-            {**_CATALOG_MEMBER_BR, "market": "stock"}
-        )
+def test_catalog_asset_member_no_longer_enforces_series_implies_futures_market(registry):
+    """The `kind=series -> market=futures` allOf/if/then was dropped: only
+    `kind` is required now, preparing the move from `series{}`/this member
+    shape to `derivatives[]` (catalogDerivative), which carries its own
+    `kind` enum (`futures`/`series`/`options`) unrelated to this one."""
+    _validator("catalogAssetMember", registry).validate(
+        {**_CATALOG_MEMBER_BR, "market": "stock"}
+    )  # does not raise
 
 
 def test_catalog_asset_member_listing_may_be_futures(registry):
@@ -525,21 +526,26 @@ def test_catalog_asset_member_listing_may_be_futures(registry):
     _validator("catalogAssetMember", registry).validate(_CATALOG_MEMBER_CNYRUBF)
 
 
-def test_catalog_asset_member_requires_every_field(registry):
+def test_catalog_asset_member_requires_only_kind(registry):
+    """`code`/`label`/`market` were relaxed to optional ahead of the
+    `derivatives[]` migration; `kind` is the only field this shape still
+    pins down."""
     from jsonschema import ValidationError
 
-    for missing in ("kind", "code", "label", "market"):
-        payload = {k: v for k, v in _CATALOG_MEMBER_SBER.items() if k != missing}
-        with pytest.raises(ValidationError):
-            _validator("catalogAssetMember", registry).validate(payload)
+    for optional in ("code", "label", "market"):
+        payload = {k: v for k, v in _CATALOG_MEMBER_SBER.items() if k != optional}
+        _validator("catalogAssetMember", registry).validate(payload)  # does not raise
+
+    payload = {k: v for k, v in _CATALOG_MEMBER_SBER.items() if k != "kind"}
+    with pytest.raises(ValidationError):
+        _validator("catalogAssetMember", registry).validate(payload)
 
 
-def test_catalog_asset_member_rejects_old_edge_fields(registry):
-    from jsonschema import ValidationError
-
+def test_catalog_asset_member_allows_additional_properties(registry):
+    """`additionalProperties: true` now, ahead of the `derivatives[]`
+    migration — this shape no longer rejects fields it does not know about."""
     for extra in ({"asset_id": "asset-sber"}, {"sort_order": 0}, {"member_type": "listing"}, {"member_ref": "SBER"}):
-        with pytest.raises(ValidationError):
-            _validator("catalogAssetMember", registry).validate({**_CATALOG_MEMBER_SBER, **extra})
+        _validator("catalogAssetMember", registry).validate({**_CATALOG_MEMBER_SBER, **extra})  # does not raise
 
 
 def test_catalog_series_and_map_valid(registry):
@@ -1015,13 +1021,21 @@ def test_commit_response_applied_counts_must_be_integers(registry):
 def test_commit_response_requires_the_whole_snapshot(registry):
     from jsonschema import ValidationError
 
-    for missing in ("catalog_revision", "items", "assets", "series"):
+    for missing in ("catalog_revision", "items", "assets"):
         msg = {
             "channel": "instrument", "schema": "afbws.instrument.commit.response.v1", "request_id": "r1",
             **{k: v for k, v in _SNAPSHOT.items() if k != missing},
         }
         with pytest.raises(ValidationError):
             _validator("commitResponse", registry).validate(msg)
+
+
+def test_commit_response_series_is_optional_now_deprecated_in_favor_of_derivatives(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.commit.response.v1", "request_id": "r1",
+        **{k: v for k, v in _SNAPSHOT.items() if k != "series"},
+    }
+    _validator("commitResponse", registry).validate(msg)  # does not raise
 
 
 def test_commit_response_does_not_accept_catalog_schema_id(registry):
@@ -1512,7 +1526,7 @@ def test_the_asset_level_is_wired_through_both_snapshots():
     defs = _channel_doc()["$defs"]
     for name in ("catalogResponse", "commitResponse"):
         required = set(defs[name]["required"])
-        assert {"assets", "items", "series", "catalog_revision"} <= required, name
+        assert {"assets", "items", "catalog_revision"} <= required, name
         assert "asset_members" not in required, name
         assert "memberships" not in required, name
         assert "asset_members" not in defs[name]["properties"], name
@@ -1524,6 +1538,37 @@ def test_the_asset_level_is_wired_through_both_snapshots():
     assert defs["catalogAsset"]["properties"]["members"]["items"]["$ref"] == "#/$defs/catalogAssetMember"
     assert "asset_ids" in defs["assetSetView"]["required"]
     assert defs["userState"]["properties"]["asset_sets"]["items"]["$ref"] == "#/$defs/assetSetView"
+
+
+def test_series_is_deprecated_and_optional_in_both_snapshots():
+    """`series{}` is being phased out of both the catalog READ snapshot and
+    the post-commit echo — replaced by `derivatives[]` in both, symmetrically
+    (same nested UI shape, per test_the_asset_level_is_wired_through_both_snapshots)."""
+    defs = _channel_doc()["$defs"]
+    for name in ("catalogResponse", "commitResponse"):
+        assert "series" not in defs[name]["required"], name
+        assert defs[name]["properties"]["series"]["deprecated"] is True, name
+
+
+def test_catalog_asset_reference_series_code_is_deprecated():
+    defs = _channel_doc()["$defs"]
+    assert defs["catalogAsset"]["properties"]["reference_series_code"]["deprecated"] is True
+    assert "reference_series_code" not in defs["catalogAsset"]["required"]
+
+
+def test_both_snapshots_have_a_derivatives_list_replacing_series():
+    """`derivatives[]` is item-shaped (not keyed by code, unlike `series`),
+    optional for now — the backend does not populate it yet. Present in both
+    catalogResponse and commitResponse, same nested UI shape as `series` was."""
+    defs = _channel_doc()["$defs"]
+    for name in ("catalogResponse", "commitResponse"):
+        assert "derivatives" not in defs[name]["required"], name
+        assert defs[name]["properties"]["derivatives"]["items"]["$ref"] == "#/$defs/catalogDerivative", name
+
+    derivative = defs["catalogDerivative"]
+    assert set(derivative["required"]) == {"derivative_id", "kind", "underlying"}
+    assert derivative["properties"]["kind"]["enum"] == ["futures", "series", "options"]
+    assert "name" not in derivative["required"]
 
 
 def test_the_dead_operations_are_gone():
@@ -1556,7 +1601,7 @@ def test_no_channel_def_allows_additional_properties():
         "userRequest", "userResponse",
         "favoriteRef", "favoriteEntry", "favoritesRequest", "favoritesResponse",
         "paintRequest", "paintResponse",
-        "catalogAsset", "catalogAssetMember", "assetMemberInput", "assetUpsert",
+        "catalogAsset", "assetMemberInput", "assetUpsert",
         "poolRequest", "poolResponse", "poolListingEntry", "poolSeriesEntry",
         "catalogSource", "sourcesRequest", "sourcesResponse",
         "refreshRequest", "refreshResponse", "refreshReport", "refreshArchivedEntry",
