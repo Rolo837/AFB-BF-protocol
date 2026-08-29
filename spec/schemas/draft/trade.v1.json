@@ -23,6 +23,12 @@
     "auto_execute": { "type": "boolean" },
     "default_connector": { "type": "string" },
     "default_capital": { "type": "number" },
+    "default_risk_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Default risk_factor (%) for a newly created trade plan. Frontend default 0.5."
+    },
     "notify": { "$ref": "#/$defs/notify" },
     "chart_deal_markers": { "type": "boolean" }
   }

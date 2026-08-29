@@ -7,6 +7,7 @@
 
 ## Unreleased
 
+- `settings.trade` (`spec/schemas/draft/trade.v1.json`): опциональное `default_risk_pct` — риск (%) для нового торгового плана (дефолт фронта 0.5). Не входит в AsyncAPI, провод AFB↔BF не затрагивается.
 - `run/release.sh`: убраны `--afb` / `--bf` / `pin` — скрипт больше не правит пины AFB/BF. AFB остаётся на `@develop`; источник протокола при сборке AFB задаёт `build` (диск) / `push` (GitHub main).
 
 Чистка канала `instrument` под дериватив как единицу модели (Этап 6 плана `linear-singing-snowglobe`; парная схемная часть Этапа 5 в AFB). Формально breaking для канала AFB-бэкенд↔AFB-фронтенд — снятые поля и переименованные значения enum; оба файла НЕ входят в `spec/asyncapi.yaml`, провод AFB↔BF не затрагивается. Выкат — единым релизом с AFB.
