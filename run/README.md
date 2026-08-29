@@ -17,12 +17,12 @@
 |--------|-----------|
 | `run/version.sh` | bump `patch`/`minor` / `set` / `show`; правит `VERSION` + 4 синхронных места |
 | `run/check-version.sh` | read-only проверка синхрона |
-| `run/release.sh` | `tag` (тег `vX.Y.Z` на `develop`) / `publish` (merge `develop→main` + GitHub Release) |
+| `run/release.sh` | `tag` (тег на `develop`) / `publish` (merge `develop→main` + GitHub Release) / `pin` (пины AFB/BF) |
+
+AFB и BF **не** релизят протокол. Пины потребителей ставит **этот** скрипт
+(`--afb` / `--bf`, по умолчанию выкл.).
 
 ## Обычный релиз
-
-Как правило запускается **из единого комплекса AFB** — `AFB/run/release.sh tag --protocol {patch|minor}`,
-который сам вызывает здешние `version.sh` / `release.sh`. Вручную:
 
 ```bash
 # 1) канон изменён, codegen актуален, тесты зелёные
@@ -33,12 +33,21 @@ afb-bf-protocol-generate && pytest && npx @asyncapi/cli validate spec/asyncapi.y
 ./run/check-version.sh
 git commit -am "release vX.Y.Z"
 
-# 3) тег на develop
-./run/release.sh tag
+# 3) тег на develop; опционально сразу пин потребителей
+./run/release.sh tag                # только тег
+./run/release.sh tag --afb          # тег + пин AFB @vX.Y.Z + commit/push AFB@develop
+./run/release.sh tag --afb --bf     # то же для AFB и BF
 
-# 4) после soak — стабильный релиз
+# если тег уже есть, а пин не ставили:
+./run/release.sh pin --afb
+./run/release.sh pin --bf
+
+# 4) после soak — стабильный релиз (тег попадает в main — pip/npm #vX.Y.Z с main)
 ./run/release.sh publish           # merge develop→main + GitHub Release (--generate-notes)
 ```
 
+`--afb` / `--bf` по умолчанию **выключены**. Соседний репозиторий должен быть
+на `develop` с чистым деревом.
+
 Записи об изменениях — в `CHANGELOG.md` под `## Unreleased`, по ходу работы, без
-версии; `version.sh` оформит под релиз. `--dry-run` есть у `tag` и `publish`.
+версии; `version.sh` оформит под релиз. `--dry-run` есть у `tag`, `publish` и `pin`.

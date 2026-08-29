@@ -43,7 +43,7 @@ case "$cmd" in
         write_version_files "$new_version"
         stamp_changelog "$new_version"
         echo -e "${GREEN}Обновлены VERSION + pyproject.toml + version.py + asyncapi.yaml + package.json${NC}"
-        echo "Дальше: commit + ./run/release.sh tag (обычно из AFB/run/release.sh)."
+        echo "Дальше: commit + ./run/release.sh tag [--afb] [--bf]."
         ;;
     set)
         new_version="${2:-}"
@@ -57,7 +57,7 @@ case "$cmd" in
         write_version_files "$new_version"
         stamp_changelog "$new_version"
         echo -e "${GREEN}Обновлены VERSION + pyproject.toml + version.py + asyncapi.yaml + package.json${NC}"
-        echo "Дальше: commit + ./run/release.sh tag (обычно из AFB/run/release.sh)."
+        echo "Дальше: commit + ./run/release.sh tag [--afb] [--bf]."
         ;;
     -h|--help)
         usage
