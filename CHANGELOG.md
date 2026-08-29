@@ -7,6 +7,17 @@
 
 ## Unreleased
 
+Чистка канала `instrument` под дериватив как единицу модели (Этап 6 плана `linear-singing-snowglobe`; парная схемная часть Этапа 5 в AFB). Формально breaking для канала AFB-бэкенд↔AFB-фронтенд — снятые поля и переименованные значения enum; оба файла НЕ входят в `spec/asyncapi.yaml`, провод AFB↔BF не затрагивается. Выкат — единым релизом с AFB.
+
+- **`instrument.v1.json`**: описание `derivative` переписано — код стабилен между снапшотами (`kind` деривативa врождённый, перехода «один контракт ↔ серия» не бывает), поэтому кэшировать можно; убран текст про несуществующий переход `1->2`.
+- **`afbws/instrument.channel.v1.json`**:
+  - **удалены** `$defs.catalogSeries`, `$defs.catalogSeriesMap`; `catalogResponse.series`, `commitResponse.series`; `catalogAsset.reference_series_code`, `assetUpsert.reference_series_code`; `catalogDerivative.series_code`; `catalogAssetMember.series_code`, `assetMemberInput.series_code`, `assetMemberInput.code`.
+  - `catalogDerivative.kind`: enum `["futures","series","options"]` → `["perpetual","series","options"]` (`futures` было плохим словом — серия ведь тоже фьючерсы).
+  - `catalogAssetMember` / `assetMemberInput`: `kind` → `["listing","derivative"]`; идентичность — `instrument_key` (для `listing`) XOR `derivative` (для `derivative`), закреплено `allOf`/`if`/`then` с `required` и взаимным запретом; `catalogAssetMember` вернулся к `additionalProperties: false`.
+  - `catalogAssetMember.code` теряет `deprecated` и переописан: короткий токен бейджа, никогда не идентичность и не join-ключ; сервер формирует, клиент только рисует. В `assetMemberInput` его нет — на запись клиент шлёт только ключ.
+  - описания: `series{}` больше не читается (только пишется через `commitRequest.series[]`/`seriesUpsert`); join члена состава к деривативу стал одношаговым (`member.derivative -> catalogDerivative.derivative`).
+- **Сгенерировано** (`afb-bf-protocol-generate`): зеркало схем, `models.ts`/`models_generated.py`, `taxonomy.py`/`docs/MESSAGES.md`, `capabilities.*`.
+
 ## v2.5.17 — 2026-08-29
 
 Аддитивное расширение канала `instrument` под переезд `series{}` → `derivatives[]` и подготовку фронтенда к работе с полными `instrument_key` вместо «обрезанных» до тикера. Всё опционально, ничего не снято — существующие продюсеры и потребители остаются валидными. Оба файла не входят в `spec/asyncapi.yaml` (канал AFB-бэкенд↔AFB-фронтенд), провод AFB↔BF не затрагивается.

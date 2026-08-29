@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 8ded5ebd011fcd09c5e1e8b1e97e852f75efc986f6183637b870d6055d292b15
+# source-hash: f927faa1780c6c339691831f14f885544b04e0a8d04e6f82a1f85ab2a458c643
 
 from __future__ import annotations
 
@@ -194,12 +194,11 @@ class AfbwsGpChannelV1SyncPush(TypedDict):
 
 class AfbwsInstrumentChannelV1CatalogDerivative(TypedDict):
     """
-    One row per derivative: a futures series, a single/perpetual futures, or (reserved) an option. Carries no contract list — the contract↔derivative link lives on the contract, as `items[].derivative` pointing back at `derivative` here; a client expands a `kind=series` asset member by `member.series_code -> this.series_code -> this.derivative -> items[] where item.derivative == that`. The word `series` also names a `poolEntry.kind` and a `catalogAssetMember.kind`: three independent namespaces, same spelling, unrelated meaning. Read side only — the write form of a series is still `commitRequest.series[]` / `seriesUpsert`; there is deliberately no `commitRequest.derivatives`.
+    One row per derivative: a serial futures, a perpetual futures, or (reserved) an option. Carries no contract list — the contract↔derivative link lives on the contract, as `items[].derivative` pointing back at `derivative` here; a client expands a `kind=derivative` asset member by `member.derivative -> this.derivative -> items[] where item.derivative == that`. The word `series` also names a `poolEntry.kind` and one value of this `kind` — independent namespaces. Read side only — the write form is still `commitRequest.series[]` / `seriesUpsert`; there is deliberately no `commitRequest.derivatives`.
     """
 
     derivative: str
-    kind: Literal["futures", "series", "options"]
-    series_code: NotRequired[str | None]
+    kind: Literal["perpetual", "series", "options"]
     underlying: str | None
     name: NotRequired[str | None]
 
@@ -1971,13 +1970,12 @@ class InstrumentAcceptSuggestion(TypedDict):
 
 class InstrumentAssetMemberInput(TypedDict):
     """
-    Same discriminator and identity as catalogAssetMember: `kind` plus `instrument_key` (for `listing`) or `series_code` (for `series`). `code` is the legacy single field, still accepted during the migration — a client may send either form. `label` and `market` are snapshot-only and are not written — the server derives them from items/derivatives. A contract listed here whose series is also listed is rejected.
+    Same discriminator and identity as catalogAssetMember: `kind` plus exactly one key — `instrument_key` for `kind=listing`, `derivative` for `kind=derivative`. `code`/`label`/`market` are display-only and are never written; the server derives them from items/derivatives. A contract listed here whose derivative is also listed is rejected.
     """
 
-    kind: Literal["listing", "series"]
+    kind: Literal["listing", "derivative"]
     instrument_key: NotRequired[str]
-    series_code: NotRequired[str]
-    code: NotRequired[str]
+    derivative: NotRequired[str]
 
 
 class InstrumentAssetSetUpsert(TypedDict):
@@ -2023,12 +2021,11 @@ class InstrumentAssetSuggestion(TypedDict):
 
 class InstrumentAssetUpsert(TypedDict):
     """
-    The client mints `asset_id` itself (same generateId style as deal/primitive ids; for a non-empty asset the first block is the code of its first `members[]` entry). Scalars otherwise behave as a patch — an omitted field keeps its stored value — while `members`, when present, is the WHOLE composition in its final order, exactly like membersEdit.order. Composition has no add/remove form on purpose: an asset holds a handful of members that a manager edits as one picture, and a full statement removes any question about what an absent element means. Omit `members` to leave the composition untouched; send `[]` to empty the asset without deleting it.
+    The client mints `asset_id` itself (same generateId style as deal/primitive ids; for a non-empty asset the first block is the bare code of its first `members[]` entry). Scalars otherwise behave as a patch — an omitted field keeps its stored value — while `members`, when present, is the WHOLE composition in its final order, exactly like membersEdit.order. Composition has no add/remove form on purpose: an asset holds a handful of members that a manager edits as one picture, and a full statement removes any question about what an absent element means. Omit `members` to leave the composition untouched; send `[]` to empty the asset without deleting it.
     """
 
     asset_id: str
     name: str
-    reference_series_code: NotRequired[str | None]
     members: NotRequired[list[InstrumentAssetMemberInput]]
     collection_id: NotRequired[str | None]
 
@@ -2040,19 +2037,18 @@ class InstrumentCatalogAsset(TypedDict):
 
     asset_id: str
     name: str
-    reference_series_code: NotRequired[str | None]
     members: list[InstrumentCatalogAssetMember]
     collection_id: NotRequired[str | None]
 
 
 class InstrumentCatalogAssetMember(TypedDict):
     """
-    Array position is the display order. The identity is `kind` plus, by kind: `instrument_key` for `listing` (join to `items[]`), `series_code` for `series` (join to `derivatives[]` via `catalogDerivative.series_code`, then to `items[]` through the `items[].derivative` backreference). `code` is the legacy single field carrying whichever of the two the kind implied — kept during the migration, to be dropped once every client reads the typed fields. `label` and `market` are denormalized for plaques so the Assets UI does not have to join `items`/`derivatives`. A series member is whole: every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, index, or a singleton futures contract (D6 — a series with exactly one active contract is shown as that listing, not as `kind=series`). The server rejects a futures contract as a listing member of an asset that already contains its series. This `kind` (`listing`/`series`) is unrelated to `catalogDerivative.kind` (`futures`/`series`/`options`) and `poolEntry.kind` — same spelling of `series`, three independent namespaces.
+    Array position is the display order. The identity is `kind` plus exactly one key: `instrument_key` for `kind=listing` (join to `items[]`), `derivative` for `kind=derivative` (join to `derivatives[]` by `catalogDerivative.derivative`, and on to the contracts through the `items[].derivative` backreference). Both keys share the one `MIC:...` grammar. `code`, `label` and `market` are denormalized display only — the server forms them, the client just renders; none of the three is ever an identity or a join key. A derivative member is whole: for a serial future every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, or index. The server rejects a futures contract as a listing member of an asset that already contains its derivative. This `kind` (`listing`/`derivative`) is unrelated to `catalogDerivative.kind` (`perpetual`/`series`/`options`) and `poolEntry.kind` — independent namespaces.
     """
 
-    kind: Literal["listing", "series"]
+    kind: Literal["listing", "derivative"]
     instrument_key: NotRequired[str]
-    series_code: NotRequired[str]
+    derivative: NotRequired[str]
     code: NotRequired[str]
     label: NotRequired[str]
     market: NotRequired[Literal["stock", "futures", "currency", "index", "options"]]
@@ -2070,7 +2066,7 @@ class InstrumentCatalogRequest(TypedDict):
 
 class InstrumentCatalogResponse(TypedDict):
     """
-    Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Membership is `asset_sets[].asset_ids` in display order. Composition is `assets[].members` (`kind`/`code`/`label`/`market`) in display order. Order is always array position — no entity on this wire carries an order field. `items` are the canonical instrument records (including materialized futures contracts); `series` is the futures-series axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `asset_sets[].asset_ids`.
+    Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Membership is `asset_sets[].asset_ids` in display order. Composition is `assets[].members` (`kind` plus `instrument_key`/`derivative`, with `code`/`label`/`market` for display) in display order. Order is always array position — no entity on this wire carries an order field. `items` are the canonical instrument records (including materialized futures contracts); `derivatives` is the derivatives axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `asset_sets[].asset_ids`.
     """
 
     channel: Literal["instrument"]
@@ -2079,27 +2075,11 @@ class InstrumentCatalogResponse(TypedDict):
     catalog_revision: int
     assets: list[InstrumentCatalogAsset]
     items: list[InstrumentV1]
-    series: NotRequired[InstrumentCatalogSeriesMap]
     derivatives: NotRequired[list[AfbwsInstrumentChannelV1CatalogDerivative]]
     collections: NotRequired[list[InstrumentCollection]]
     asset_sets: NotRequired[list[InstrumentAssetSetView]]
     suggestions: NotRequired[list[InstrumentAssetSuggestion]]
     user: NotRequired[InstrumentUserState]
-
-
-class InstrumentCatalogSeries(TypedDict):
-    """
-    An axis of its own, independent of sets: it groups the successive expirations of one futures contract and is unaffected by set membership. Carries no order: `series` is a JSON object (catalogSeriesMap), and the order of an object's members is not semantic. Should the series axis ever need an order, the right move is to turn `series` into an array — not to bring an order field back.
-    """
-
-    name: str | None
-    underlying_ticker: NotRequired[str | None]
-    cardinality_state: NotRequired[
-        Literal["true_series", "singleton", "dormant"] | None
-    ]
-
-
-InstrumentCatalogSeriesMap: TypeAlias = dict[str, InstrumentCatalogSeries]
 
 
 class InstrumentCatalogSource(TypedDict):
@@ -2191,7 +2171,6 @@ class InstrumentCommitResponse(TypedDict):
     catalog_revision: int
     assets: list[InstrumentCatalogAsset]
     items: list[InstrumentV1]
-    series: NotRequired[InstrumentCatalogSeriesMap]
     derivatives: NotRequired[list[AfbwsInstrumentChannelV1CatalogDerivative]]
     collections: NotRequired[list[InstrumentCollection]]
     asset_sets: NotRequired[list[InstrumentAssetSetView]]
@@ -2461,7 +2440,7 @@ class InstrumentResolveResponse(TypedDict):
 
 class InstrumentSeriesUpsert(TypedDict):
     """
-    Write form for a pool series row: copy `code` → `series_code`, `name` → `name`, `underlying` → `underlying_ticker`. The series axis carries no order — `series` is a map, not a list.
+    Write form for a pool series row: copy `code` → `series_code`, `name` → `name`, `underlying` → `underlying_ticker`. The write form carries no order — a serial future's expirations are materialized by the backend.
     """
 
     series_code: str
