@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: f927faa1780c6c339691831f14f885544b04e0a8d04e6f82a1f85ab2a458c643
+ * source-hash: 4d0644dc627437c6bcc6b198b228697c121d1e823c9a6bf401180d696fc58990
  */
 
 /**
@@ -2033,9 +2033,13 @@ export interface InstrumentPoolResponse {
 export interface InstrumentPoolSeriesEntry {
   kind: 'series';
   /**
-   * series_code. Maps to seriesUpsert.series_code on commit.
+   * series_code (the ISS ASSETCODE grouping). Maps to seriesUpsert.series_code on commit.
    */
   code: string;
+  /**
+   * The `MIC:CODE` derivative code this row commits as — `MISX:<code>` for a serial series, `MISX:<ticker>` for a perpetual future (whose ASSETCODE `code` differs from its ticker: `IMOEX`/`IMOEXF`, `USDRUBTOM`/`USDRUBF`). This is the key `catalogAssetMember.derivative` / `assetMemberInput.derivative` join on, so a client must send it verbatim rather than synthesize `MISX:<code>`.
+   */
+  derivative?: string;
   name: string | null;
   source: 'moex';
   market: 'futures';

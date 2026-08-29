@@ -374,6 +374,13 @@ def test_pool_series_entry_requires_code_and_futures_market(registry):
         "source": "moex", "market": "futures",
     }
     _validator("poolSeriesEntry", registry).validate(valid)
+    # optional `derivative` — the MIC:CODE key the row commits as (differs from
+    # `code` for a perpetual: MISX:IMOEXF vs ASSETCODE IMOEX).
+    _validator("poolSeriesEntry", registry).validate({**valid, "derivative": "MISX:BR"})
+    _validator("poolSeriesEntry", registry).validate({
+        "kind": "series", "code": "IMOEX", "derivative": "MISX:IMOEXF",
+        "name": "Индекс МосБиржи (вечный)", "source": "moex", "market": "futures",
+    })
     with pytest.raises(ValidationError):
         _validator("poolSeriesEntry", registry).validate({k: v for k, v in valid.items() if k != "code"})
     with pytest.raises(ValidationError):

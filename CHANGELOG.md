@@ -18,6 +18,7 @@
   - `catalogAssetMember` / `assetMemberInput`: `kind` → `["listing","derivative"]`; идентичность — `instrument_key` (для `listing`) XOR `derivative` (для `derivative`), закреплено `allOf`/`if`/`then` с `required` и взаимным запретом; `catalogAssetMember` вернулся к `additionalProperties: false`.
   - `catalogAssetMember.code` теряет `deprecated` и переописан: короткий токен бейджа, никогда не идентичность и не join-ключ; сервер формирует, клиент только рисует. В `assetMemberInput` его нет — на запись клиент шлёт только ключ.
   - описания: `series{}` больше не читается (только пишется через `commitRequest.series[]`/`seriesUpsert`); join члена состава к деривативу стал одношаговым (`member.derivative -> catalogDerivative.derivative`).
+  - `poolSeriesEntry`: добавлено опциональное `derivative` — `MIC:CODE` код, которым строка коммитится (`MISX:<code>` для серии, `MISX:<ticker>` для вечного, у которого ASSETCODE `code` ≠ тикер: `IMOEX`/`IMOEXF`). Клиент шлёт его как есть, не синтезируя `MISX:<code>` — иначе для вечного не сходится join к составу актива.
 - **Сгенерировано** (`afb-bf-protocol-generate`): зеркало схем, `models.ts`/`models_generated.py`, `taxonomy.py`/`docs/MESSAGES.md`, `capabilities.*`.
 
 ## v2.5.17 — 2026-08-29

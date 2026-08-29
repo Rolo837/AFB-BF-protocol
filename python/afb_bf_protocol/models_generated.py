@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: f927faa1780c6c339691831f14f885544b04e0a8d04e6f82a1f85ab2a458c643
+# source-hash: 4d0644dc627437c6bcc6b198b228697c121d1e823c9a6bf401180d696fc58990
 
 from __future__ import annotations
 
@@ -2355,6 +2355,7 @@ class InstrumentPoolSeriesEntry(TypedDict):
 
     kind: Literal["series"]
     code: str
+    derivative: NotRequired[str]
     name: str | None
     source: Literal["moex"]
     market: Literal["futures"]

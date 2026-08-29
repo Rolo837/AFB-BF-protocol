@@ -257,7 +257,8 @@
       "additionalProperties": false,
       "properties": {
         "kind": { "const": "series" },
-        "code": { "type": "string", "minLength": 1, "description": "series_code. Maps to seriesUpsert.series_code on commit." },
+        "code": { "type": "string", "minLength": 1, "description": "series_code (the ISS ASSETCODE grouping). Maps to seriesUpsert.series_code on commit." },
+        "derivative": { "type": "string", "minLength": 1, "description": "The `MIC:CODE` derivative code this row commits as — `MISX:<code>` for a serial series, `MISX:<ticker>` for a perpetual future (whose ASSETCODE `code` differs from its ticker: `IMOEX`/`IMOEXF`, `USDRUBTOM`/`USDRUBF`). This is the key `catalogAssetMember.derivative` / `assetMemberInput.derivative` join on, so a client must send it verbatim rather than synthesize `MISX:<code>`." },
         "name": { "type": ["string", "null"] },
         "source": { "const": "moex" },
         "market": { "const": "futures" },
