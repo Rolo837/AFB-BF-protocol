@@ -117,10 +117,9 @@ AFB и BF свой релиз не используют для сборки пр
 
 6. `run/version.sh {patch|minor}` — поднять версию в `VERSION` + 4 местах, оформить
    `## Unreleased` под `vX.Y.Z`, commit `release vX.Y.Z`.
-7. `run/release.sh tag [--afb] [--bf]` — аннотированный тег `vX.Y.Z` на `develop`,
-   push тега. `--afb` / `--bf` (по умолчанию выкл.) ставят пин `@vX.Y.Z` в
-   соседнем AFB и/или BF, коммитят и пушат `develop` потребителя.
-   Если тег уже есть: `./run/release.sh pin --afb`.
+7. `run/release.sh tag` — аннотированный тег `vX.Y.Z` на `develop`, push тега.
+   Пины AFB/BF **не** меняются (AFB остаётся на `@develop`).
 8. После soak — `run/release.sh publish`: PR/merge `develop→main`, GitHub Release
    (`--generate-notes`), синхронизация `develop` с `main`. Без merge в `main`
-   тег на GitHub есть, но `origin/main` остаётся на предыдущей версии.
+   тег на GitHub есть, но `origin/main` остаётся на предыдущей версии; AFB
+   `build.sh push` тогда соберёт старый main.

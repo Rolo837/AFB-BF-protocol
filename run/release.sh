@@ -1,16 +1,14 @@
 #!/bin/bash
-# Релиз AFB-BF-protocol. Не собирает AFB/BF.
+# Релиз AFB-BF-protocol. Не собирает AFB/BF и не правит их пины.
 #
-#   ./run/release.sh tag [--afb] [--bf] [--dry-run]
+#   ./run/release.sh tag [--dry-run]
 #   ./run/release.sh publish [--dry-run]
-#   ./run/release.sh pin --afb [--bf] [--dry-run]
 #
 # tag:     аннотированный vX.Y.Z на develop + push тега.
-#          При --afb/--bf (по умолчанию выкл.) после успешного тега ставит пин
-#          @vX.Y.Z в соседнем AFB и/или BF и коммитит его.
 # publish: merge develop→main + GitHub Release (develop не удаляется).
-# pin:     только пины потребителей на уже существующий тег текущей VERSION
-#          (если tag уже прошёл, а --afb/--bf не передавали).
+#
+# Пины AFB остаются на @develop / #develop. Сборка AFB: build.sh тянет
+# протокол с диска (develop) или GitHub main (push) — без смены строк в git.
 
 set -euo pipefail
 
@@ -20,28 +18,28 @@ source "$SCRIPT_DIR/version-lib.sh"
 
 DRY_RUN=false
 COMMAND=""
-PIN_AFB=false
-PIN_BF=false
 
 usage() {
     echo "Использование:"
-    echo "  ./run/release.sh tag [--afb] [--bf] [--dry-run]"
+    echo "  ./run/release.sh tag [--dry-run]"
     echo "  ./run/release.sh publish [--dry-run]"
-    echo "  ./run/release.sh pin --afb [--bf] [--dry-run]"
     echo
     echo "  tag:     git tag vVERSION на develop + push тега"
     echo "  publish: PR/merge develop→main (develop не удаляется) + GitHub Release"
-    echo "  --afb / --bf: после успешного tag (или команда pin) поставить пин"
-    echo "                @vVERSION в AFB и/или BF и закоммитить. По умолчанию нет."
+    echo
+    echo "  Пины AFB/BF этим скриптом не трогаются."
+    echo "  --afb / --bf / pin убраны (были обходом старого AFB tag)."
 }
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        tag|publish|pin)
+        tag|publish)
             [ -n "$COMMAND" ] && { echo -e "${RED}Ошибка: одна команда${NC}" >&2; usage; exit 1; }
             COMMAND="$1" ;;
-        --afb) PIN_AFB=true ;;
-        --bf) PIN_BF=true ;;
+        --afb|--bf|pin)
+            echo -e "${RED}$1 убран. Пины потребителей этот скрипт больше не ставит.${NC}" >&2
+            echo -e "${RED}AFB в develop остаётся на @develop; сборка: диск (build) или GitHub main (push).${NC}" >&2
+            exit 1 ;;
         --dry-run) DRY_RUN=true ;;
         -h|--help) usage; exit 0 ;;
         *)
@@ -62,9 +60,6 @@ VERSION="$(read_version)"
 TAG="v${VERSION}"
 cd "$PROJECT_ROOT"
 
-AFB_ROOT="$(cd "$PROJECT_ROOT/../AFB" 2>/dev/null && pwd || true)"
-BF_ROOT="$(cd "$PROJECT_ROOT/../BF" 2>/dev/null && pwd || true)"
-
 run_or_echo() {
     if [ "$DRY_RUN" = true ]; then
         echo -e "${YELLOW}[dry-run] $*${NC}"
@@ -80,84 +75,6 @@ preflight_common() {
         echo -e "${RED}Ошибка: нужен GitHub CLI (gh). https://cli.github.com/${NC}" >&2
         exit 1
     fi
-}
-
-require_sibling() {
-    local name="$1" root="$2"
-    [ -n "$root" ] && [ -d "$root/.git" ] || {
-        echo -e "${RED}Ошибка: не найден соседний ${name} (ожидается ../${name})${NC}" >&2
-        exit 1
-    }
-}
-
-require_consumer_ready() {
-    local name="$1" root="$2"
-    require_sibling "$name" "$root"
-    local branch
-    branch="$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
-    if [ "$branch" != "develop" ]; then
-        echo -e "${RED}Ошибка: ${name} не на develop (сейчас: ${branch:-?})${NC}" >&2
-        exit 1
-    fi
-    if [ -n "$(git -C "$root" status --porcelain 2>/dev/null)" ]; then
-        echo -e "${RED}Ошибка: в ${name} есть несохранённые изменения — сначала закоммить${NC}" >&2
-        exit 1
-    fi
-}
-
-# Пин python-зависимости: git+...@<ref>#subdirectory=python
-set_python_pin() {
-    local file="$1" ref="$2"
-    [ -f "$file" ] || { echo -e "${RED}Нет файла ${file}${NC}" >&2; exit 1; }
-    run_or_echo sed -i "s|\(AFB-BF-protocol\.git@\)[^#]*\(#subdirectory=python\)|\1${ref}\2|" "$file"
-}
-
-set_afb_pin() {
-    local ref="$1"
-    require_consumer_ready "AFB" "$AFB_ROOT"
-    echo -e "${GREEN}=== Пин AFB → ${ref} ===${NC}"
-    set_python_pin "$AFB_ROOT/requirements.txt" "$ref"
-    set_python_pin "$AFB_ROOT/informer/requirements.txt" "$ref"
-    run_or_echo sed -i "s|\(github:Rolo837/AFB-BF-protocol#\)[^\"]*|\1${ref}|" \
-        "$AFB_ROOT/frontend/package.json"
-    if [ "$DRY_RUN" = true ]; then
-        echo -e "${YELLOW}[dry-run] (cd AFB/frontend && npm install --package-lock-only)${NC}"
-    else
-        ( cd "$AFB_ROOT/frontend" && npm install --package-lock-only --no-audit --loglevel=error )
-    fi
-    run_or_echo git -C "$AFB_ROOT" add \
-        requirements.txt informer/requirements.txt \
-        frontend/package.json frontend/package-lock.json
-    if [ "$DRY_RUN" = true ] || [ -n "$(git -C "$AFB_ROOT" diff --cached --name-only)" ]; then
-        run_or_echo git -C "$AFB_ROOT" commit -m "chore: pin afb-bf-protocol @${ref}"
-        run_or_echo git -C "$AFB_ROOT" push origin develop
-    else
-        echo -e "${YELLOW}AFB уже на ${ref} — коммит не нужен${NC}"
-    fi
-}
-
-set_bf_pin() {
-    local ref="$1"
-    require_consumer_ready "BF" "$BF_ROOT"
-    echo -e "${GREEN}=== Пин BF → ${ref} ===${NC}"
-    set_python_pin "$BF_ROOT/requirements.txt" "$ref"
-    set_python_pin "$BF_ROOT/pyproject.toml" "$ref"
-    run_or_echo git -C "$BF_ROOT" add requirements.txt pyproject.toml
-    if [ "$DRY_RUN" = true ] || [ -n "$(git -C "$BF_ROOT" diff --cached --name-only)" ]; then
-        run_or_echo git -C "$BF_ROOT" commit -m "chore: pin afb-bf-protocol @${ref}"
-        run_or_echo git -C "$BF_ROOT" push origin develop
-    else
-        echo -e "${YELLOW}BF уже на ${ref} — коммит не нужен${NC}"
-    fi
-}
-
-pin_consumers() {
-    if [ "$PIN_AFB" = false ] && [ "$PIN_BF" = false ]; then
-        echo -e "${YELLOW}Пины потребителей не трогаем (нет --afb/--bf)${NC}"
-        return 0
-    fi
-    [ "$PIN_AFB" = true ] && set_afb_pin "$TAG"
-    [ "$PIN_BF" = true ] && set_bf_pin "$TAG"
 }
 
 do_tag() {
@@ -176,10 +93,6 @@ do_tag() {
         exit 1
     fi
 
-    # потребители — до тега, чтобы не оставить тег без возможности отката пина
-    [ "$PIN_AFB" = true ] && require_consumer_ready "AFB" "$AFB_ROOT"
-    [ "$PIN_BF" = true ] && require_consumer_ready "BF" "$BF_ROOT"
-
     echo -e "${YELLOW}Пуш develop на origin...${NC}"
     run_or_echo git push origin develop
 
@@ -188,7 +101,6 @@ do_tag() {
     run_or_echo git push origin "$TAG"
 
     echo -e "${GREEN}Тег ${TAG} создан на develop.${NC}"
-    pin_consumers
     echo -e "${GREEN}Merge в main — ./run/release.sh publish${NC}"
 }
 
@@ -250,22 +162,7 @@ do_publish() {
     echo -e "${GREEN}Release v${VERSION} протокола опубликован (ветка develop сохранена)${NC}"
 }
 
-do_pin() {
-    preflight_common
-    if [ "$PIN_AFB" = false ] && [ "$PIN_BF" = false ]; then
-        echo -e "${RED}Ошибка: pin требует --afb и/или --bf${NC}" >&2
-        exit 1
-    fi
-    if ! git rev-parse "$TAG" >/dev/null 2>&1 \
-       && ! git ls-remote --tags origin "refs/tags/${TAG}" 2>/dev/null | grep -q "$TAG"; then
-        echo -e "${RED}Ошибка: тега ${TAG} нет. Сначала ./run/release.sh tag${NC}" >&2
-        exit 1
-    fi
-    pin_consumers
-}
-
 case "$COMMAND" in
     tag) do_tag ;;
     publish) do_publish ;;
-    pin) do_pin ;;
 esac
