@@ -933,10 +933,13 @@ def test_asset_member_input_valid_and_gated_by_kind(registry):
     from jsonschema import ValidationError
 
     _validator("assetMemberInput", registry).validate({"kind": "listing", "code": "SBER"})
+    # Typed identity (the migration target) and bare `kind` both validate now —
+    # `code` was relaxed off `required` alongside catalogAssetMember.
+    _validator("assetMemberInput", registry).validate({"kind": "listing", "instrument_key": "MISX:TQBR:SBER"})
+    _validator("assetMemberInput", registry).validate({"kind": "series", "series_code": "BR"})
+    _validator("assetMemberInput", registry).validate({"kind": "series"})
     with pytest.raises(ValidationError):
         _validator("assetMemberInput", registry).validate({"kind": "contract", "code": "BRV6"})
-    with pytest.raises(ValidationError):
-        _validator("assetMemberInput", registry).validate({"kind": "series"})
     with pytest.raises(ValidationError):
         _validator("assetMemberInput", registry).validate({"member_type": "listing", "member_ref": "SBER"})
 
@@ -1566,9 +1569,56 @@ def test_both_snapshots_have_a_derivatives_list_replacing_series():
         assert defs[name]["properties"]["derivatives"]["items"]["$ref"] == "#/$defs/catalogDerivative", name
 
     derivative = defs["catalogDerivative"]
-    assert set(derivative["required"]) == {"derivative_id", "kind", "underlying"}
+    assert set(derivative["required"]) == {"derivative", "kind", "underlying"}
     assert derivative["properties"]["kind"]["enum"] == ["futures", "series", "options"]
     assert "name" not in derivative["required"]
+    # `underlying` is a required key with a nullable value — most series have no
+    # catalogued spot. `series_code` is the join target for catalogAssetMember.
+    assert derivative["properties"]["underlying"]["type"] == ["string", "null"]
+    assert derivative["properties"]["series_code"]["type"] == ["string", "null"]
+    assert "contracts" not in derivative["properties"]
+    assert "cardinality_state" not in derivative["properties"]
+    assert "derivative_id" not in derivative["properties"]
+
+
+def test_catalog_derivative_accepts_every_kind_and_nullable_underlying(registry):
+    """A real series (no standalone instrument), a singleton future, an option —
+    plus the common case of a series with no catalogued underlying."""
+    for msg in (
+        {"derivative": "MISX:MIX", "kind": "series", "series_code": "MIX", "underlying": "MISX:IMOEX2", "name": "Индекс МосБиржи"},
+        {"derivative": "MISX:BR", "kind": "series", "series_code": "BR", "underlying": None, "name": "Brent"},
+        {"derivative": "MISX:IMOEXF", "kind": "futures", "series_code": "IMOEX", "underlying": "MISX:IMOEX"},
+        {"derivative": "MISX:GOLD-9.25M180925PA2910", "kind": "options", "series_code": None, "underlying": "MISX:RFUD:GDU5"},
+    ):
+        _validator("catalogDerivative", registry).validate(msg)  # does not raise
+
+
+def test_catalog_derivative_requires_derivative_kind_underlying(registry):
+    from jsonschema import ValidationError
+
+    base = {"derivative": "MISX:MIX", "kind": "series", "underlying": None}
+    for missing in ("derivative", "kind", "underlying"):
+        with pytest.raises(ValidationError):
+            _validator("catalogDerivative", registry).validate(
+                {k: v for k, v in base.items() if k != missing}
+            )
+    with pytest.raises(ValidationError):
+        _validator("catalogDerivative", registry).validate({**base, "contracts": []})
+
+
+def test_catalog_asset_member_typed_identity_and_legacy_code_both_validate(registry):
+    """Migration window: a member may carry the typed `instrument_key`/`series_code`
+    or the legacy `code`. `code` is marked deprecated but still accepted."""
+    for member in (
+        {"kind": "listing", "instrument_key": "MISX:TQBR:SBER", "label": "Сбер", "market": "stock"},
+        {"kind": "series", "series_code": "BR", "label": "Нефть Brent", "market": "futures"},
+        {"kind": "listing", "code": "SBER"},
+        {"kind": "series", "code": "BR"},
+    ):
+        _validator("catalogAssetMember", registry).validate(member)  # does not raise
+    defs = _channel_doc()["$defs"]
+    assert defs["catalogAssetMember"]["properties"]["code"]["deprecated"] is True
+    assert defs["assetMemberInput"]["properties"]["code"]["deprecated"] is True
 
 
 def test_the_dead_operations_are_gone():
@@ -1601,7 +1651,7 @@ def test_no_channel_def_allows_additional_properties():
         "userRequest", "userResponse",
         "favoriteRef", "favoriteEntry", "favoritesRequest", "favoritesResponse",
         "paintRequest", "paintResponse",
-        "catalogAsset", "assetMemberInput", "assetUpsert",
+        "catalogAsset", "assetMemberInput", "assetUpsert", "catalogDerivative",
         "poolRequest", "poolResponse", "poolListingEntry", "poolSeriesEntry",
         "catalogSource", "sourcesRequest", "sourcesResponse",
         "refreshRequest", "refreshResponse", "refreshReport", "refreshArchivedEntry",

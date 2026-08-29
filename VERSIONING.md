@@ -80,20 +80,44 @@ afb-bf-protocol @ git+https://github.com/Rolo837/AFB-BF-protocol.git@v1.0.0
 `features.multi_account`; вторая — не отправляется ни одной актуальной стороной, оставлена
 для совместимости со старым BF/AFB.
 
-## 5. Процедура релиза
+## 5. Модель веток и процедура релиза
+
+С введения ветки `develop` (см. `run/README.md`) версия **не** поднимается
+покоммитно. Разработка идёт на `develop`; потребители в режиме разработки пинят
+`@develop` (AFB — `AFB/requirements.txt`, `AFB/informer/requirements.txt`,
+`AFB/frontend/package.json`). Настоящий тег `vX.Y.Z` и merge `develop→main`
+происходят **как часть релиза AFB** — единый комплекс `AFB/run/release.sh`
+вызывает здешние `run/version.sh` и `run/release.sh`.
+
+Канон semver-версии — корневой файл `VERSION`; `run/version.sh` синхронизирует его
+с четырьмя местами (`python/pyproject.toml`, `python/afb_bf_protocol/version.py`,
+`spec/asyncapi.yaml` `info.version`, `package.json`), `run/check-version.sh`
+проверяет синхрон.
+
+### Разработка (на `develop`, без версии)
 
 1. Изменить `spec/asyncapi.yaml` и/или `spec/schemas/*` (канон).
 2. `afb-bf-protocol-generate` — перегенерировать `taxonomy.py`, `docs/` и
-   `ts/src/taxonomy.ts` + `ts/src/index.ts` (и `ts/src/models.ts`, если есть
-   Node-генерация моделей — см. `ts/tools/generate-models.mjs`; и
-   `python/afb_bf_protocol/models_generated.py`, если установлен
-   `datamodel-code-generator` — dev-зависимость, требует, чтобы Node-шаг уже
-   отработал, см. `generate_pymodels()` в `tools/generate.py`).
+   `ts/src/taxonomy.ts` + `ts/src/index.ts` (и `ts/src/models.ts` +
+   `python/afb_bf_protocol/models_generated.py`, если доступны Node и
+   `datamodel-code-generator` — см. `generate_pymodels()` в `tools/generate.py`).
 3. `python -m afb_bf_protocol.tools.make_fixtures` — обновить примеры при
    изменении формата.
-4. `pytest` (схемы, подписи, эквивалентность) + `npx @asyncapi/cli validate
-   spec/asyncapi.yaml` + `npm run typecheck` — зелёные.
-5. Поднять версию в `pyproject.toml`, `version.py`, `info.version` спеки и
-   `package.json`.
-6. Тег `vX.Y.Z`, push. Потребители пинят новый тег (включая
-   `AFB/frontend/package.json`, если он уже переведён на пакет).
+4. `pytest` + `npx @asyncapi/cli validate spec/asyncapi.yaml` + `npm run typecheck`
+   — зелёные.
+5. Commit в `develop`, push. Локальные сборки AFB (`AFB/run/build.sh`) сразу
+   подхватывают новый `@develop`.
+
+Записи об изменениях протокола дописываются в `CHANGELOG.md` в секцию
+`## Unreleased` **сразу по ходу работы, без версии и даты**. `run/version.sh`
+(→ `stamp_changelog`) сам оформит их под `## vX.Y.Z — YYYY-MM-DD` и заведёт новую
+пустую `## Unreleased`. Никаких `.draft`-файлов и проверок «секция обязана быть».
+
+### Релиз (обычно из `AFB/run/release.sh tag --protocol {patch|minor}`)
+
+6. `run/version.sh {patch|minor}` — поднять версию в `VERSION` + 4 местах, оформить
+   `## Unreleased` под `vX.Y.Z`, commit `release vX.Y.Z`.
+7. `run/release.sh tag` — аннотированный тег `vX.Y.Z` на `develop`, push тега.
+   Потребители (комплекс AFB) пинят `@vX.Y.Z` для воспроизводимых образов.
+8. После soak — `run/release.sh publish`: PR/merge `develop→main`, GitHub Release
+   (`--generate-notes`), синхронизация `develop` с `main`.

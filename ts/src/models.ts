@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 874a5455395fd4f366645136204d85c4e209e68c81b8968caa23663d03851272
+ * source-hash: 8ded5ebd011fcd09c5e1e8b1e97e852f75efc986f6183637b870d6055d292b15
  */
 
 /**
@@ -425,6 +425,10 @@ export type InstrumentV1 = {
    * Canonical identity: bare SECID for MOEX, "EXCHANGE:TICKER" otherwise.
    */
   ticker: string;
+  /**
+   * Optional. Full composite key `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:MXH7`, `MISX:IMOEX`) — same grammar and namespace as `inventoryListingEntry.instrument_key` and `favoriteRef.key` for kind `instrument`. Nothing but one shared parser (AFB backend/instruments/catalog_key.py, frontend utils/instrumentId.ts) ever splits it; case is never normalized. The `ticker` field stays the legacy compatibility identity; `instrument_key` is the one the catalog's own structures (`catalogAssetMember.instrument_key`, the `items[].derivative` backreference) join on.
+   */
+  instrument_key?: string;
   exchange: string;
   board: string;
   market: 'stock' | 'futures' | 'currency' | 'index' | 'options';
@@ -459,6 +463,10 @@ export type InstrumentV1 = {
    * Deprecated — futures only; FUTOI series/perpetual code. Optional, kept for old clients.
    */
   futoi_code?: string;
+  /**
+   * Optional; `market` futures/options only. Backreference to `catalogDerivative.derivative` — the `MIC:CODE` code of the derivative this contract belongs to (its series for a serial future, itself for a singleton future, the option's own ticker for an option). A code, not a stable id: it changes when a singleton future gains a second contract and becomes a series, so it must never be persisted or cached past one catalog snapshot. This is the only carrier of the contract↔series link — `items[].asset`/`futoi_code` must not be read for it.
+   */
+  derivative?: string;
   /**
    * Stock only.
    */
@@ -2126,7 +2134,7 @@ export interface InstrumentCatalogAsset {
   collection_id?: string | null;
 }
 /**
- * Array position is the display order. `code` is the canonical ticker for `listing` and the series_code for `series`. `label` and `market` are denormalized for plaques so the Groups/Assets UI does not have to join `items`/`series`. A series member is whole: every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, index, or a singleton futures contract (D6 — a series with exactly one active contract is shown as that listing, not as `kind=series`). True-series futures (`cardinality_state=true_series`) still join only as `kind=series`. The server rejects a futures contract as a listing member of an asset that already contains its series.
+ * Array position is the display order. The identity is `kind` plus, by kind: `instrument_key` for `listing` (join to `items[]`), `series_code` for `series` (join to `derivatives[]` via `catalogDerivative.series_code`, then to `items[]` through the `items[].derivative` backreference). `code` is the legacy single field carrying whichever of the two the kind implied — kept during the migration, to be dropped once every client reads the typed fields. `label` and `market` are denormalized for plaques so the Assets UI does not have to join `items`/`derivatives`. A series member is whole: every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, index, or a singleton futures contract (D6 — a series with exactly one active contract is shown as that listing, not as `kind=series`). The server rejects a futures contract as a listing member of an asset that already contains its series. This `kind` (`listing`/`series`) is unrelated to `catalogDerivative.kind` (`futures`/`series`/`options`) and `poolEntry.kind` — same spelling of `series`, three independent namespaces.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentCatalogAssetMember".
@@ -2134,7 +2142,16 @@ export interface InstrumentCatalogAsset {
 export interface InstrumentCatalogAssetMember {
   kind: 'listing' | 'series';
   /**
-   * Canonical ticker for `listing`, series_code for `series` — case-sensitive, never normalized.
+   * For `kind=listing`: full composite key of the member listing, joining to `items[]`. Case-sensitive, never normalized.
+   */
+  instrument_key?: string;
+  /**
+   * For `kind=series`: the series code, joining to `catalogDerivative.series_code`. Case-sensitive, never normalized.
+   */
+  series_code?: string;
+  /**
+   * @deprecated
+   * Deprecated — canonical ticker for `listing`, series_code for `series`. Superseded by the typed `instrument_key`/`series_code`; still emitted during the migration for clients that have not switched.
    */
   code?: string;
   /**
@@ -2169,17 +2186,29 @@ export interface InstrumentCatalogSeries {
   cardinality_state?: 'true_series' | 'singleton' | 'dormant' | null;
 }
 /**
+ * One row per derivative: a futures series, a single/perpetual futures, or (reserved) an option. Carries no contract list — the contract↔derivative link lives on the contract, as `items[].derivative` pointing back at `derivative` here; a client expands a `kind=series` asset member by `member.series_code -> this.series_code -> this.derivative -> items[] where item.derivative == that`. The word `series` also names a `poolEntry.kind` and a `catalogAssetMember.kind`: three independent namespaces, same spelling, unrelated meaning. Read side only — the write form of a series is still `commitRequest.series[]` / `seriesUpsert`; there is deliberately no `commitRequest.derivatives`.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsInstrumentChannelV1_CatalogDerivative".
  */
 export interface AfbwsInstrumentChannelV1_CatalogDerivative {
-  derivative_id: string;
+  /**
+   * Code of this derivative in `MIC:CODE` form (venueless 2-segment `instrument_key` grammar): the series code for `kind=series` (`MISX:MIX`), the single contract's ticker for `kind=futures` (`MISX:IMOEXF`), the option's ticker for `kind=options`. A code in its own namespace — NOT a listing key: a singleton's `derivative` is `MISX:IMOEXF` while its contract's `instrument_key` is `MISX:RFUD:IMOEXF`. It is a code, not a stable id — it changes on the `1->2` cardinality transition (a singleton future gaining a second contract) — so it must not be persisted or cached past one snapshot.
+   */
+  derivative: string;
   kind: 'futures' | 'series' | 'options';
   /**
-   * Full composite instrument_key of the underlying (e.g. `MISX:TQBR:SBER`, `MISX:IMOEX`).
+   * Bare series code (`MIX`), the join key for `catalogAssetMember.series_code`. Present for derivatives born of a `futures_series` row (`kind` series and futures); null for an option chain with no series-code namespace of its own.
    */
-  underlying: string;
-  name?: string;
+  series_code?: string | null;
+  /**
+   * Full composite instrument_key of the underlying listing (e.g. `MISX:TQBR:SBER`, `MISX:IMOEX`), or null when the underlying has no listing in the catalog — the common case: indices, currency baskets, foreign and synthetic underlyings (Brent, gold, wheat, BTC, S&P 500) have no MOEX spot. `series_code` still identifies the derivative; only the pointer to a base listing is absent. An option written on a futures uses that futures' own `instrument_key` here.
+   */
+  underlying: string | null;
+  /**
+   * Display name: shortname of the underlying listing, falling back to the series name (`Brent`, `Золото`), falling back to the code.
+   */
+  name?: string | null;
 }
 /**
  * Order is carried by array position: `collections[]` already arrives in the order the tree is drawn in (the children of one `parent_id` follow one another), so there is no order field on the wire. A commit restates that order wholesale through `commitRequest.collection_order`.
@@ -2262,7 +2291,7 @@ export interface InstrumentCommitRequest {
   listings?: InstrumentV1[];
   archive_listings?: InstrumentListingArchival[];
   /**
-   * Upsert of futures series. Copy a pending pool series row here (`code` → `series_code`, `underlying` → `underlying_ticker`). The backend materializes that series' active contracts from the MOEX snapshot in the same transaction.
+   * Upsert of futures series. Copy a pending pool series row here (`code` → `series_code`, `underlying` → `underlying_ticker`). The backend materializes that series' active contracts from the MOEX snapshot in the same transaction. This stays the write form even though the read snapshots now project series as `derivatives[]` — the asymmetry is deliberate: `derivatives[]` is a computed view (its `derivative` code and its contract set are not independently editable), so there is no `commitRequest.derivatives`.
    */
   series?: InstrumentSeriesUpsert[];
   collections?: InstrumentCollectionUpsert[];
@@ -2327,7 +2356,7 @@ export interface InstrumentAssetUpsert {
   collection_id?: string | null;
 }
 /**
- * Same discriminator and identity as catalogAssetMember (`kind`+`code`). `label` and `market` are snapshot-only and are not written — the server derives them from items/series. A contract listed here whose series is also listed is rejected.
+ * Same discriminator and identity as catalogAssetMember: `kind` plus `instrument_key` (for `listing`) or `series_code` (for `series`). `code` is the legacy single field, still accepted during the migration — a client may send either form. `label` and `market` are snapshot-only and are not written — the server derives them from items/derivatives. A contract listed here whose series is also listed is rejected.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentAssetMemberInput".
@@ -2335,9 +2364,18 @@ export interface InstrumentAssetUpsert {
 export interface InstrumentAssetMemberInput {
   kind: 'listing' | 'series';
   /**
-   * Canonical ticker for `listing`, series_code for `series` — case-sensitive, never normalized.
+   * For `kind=listing` — full composite key. Case-sensitive, never normalized.
    */
-  code: string;
+  instrument_key?: string;
+  /**
+   * For `kind=series` — the series code. Case-sensitive, never normalized.
+   */
+  series_code?: string;
+  /**
+   * @deprecated
+   * Deprecated — canonical ticker for `listing`, series_code for `series`. Superseded by the typed `instrument_key`/`series_code`; still accepted during the migration.
+   */
+  code?: string;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
