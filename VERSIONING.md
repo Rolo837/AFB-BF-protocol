@@ -86,8 +86,8 @@ afb-bf-protocol @ git+https://github.com/Rolo837/AFB-BF-protocol.git@v1.0.0
 покоммитно. Разработка идёт на `develop`; потребители в режиме разработки пинят
 `@develop` (AFB — `AFB/requirements.txt`, `AFB/informer/requirements.txt`,
 `AFB/frontend/package.json`). Настоящий тег `vX.Y.Z` и merge `develop→main`
-происходят **как часть релиза AFB** — единый комплекс `AFB/run/release.sh`
-вызывает здешние `run/version.sh` и `run/release.sh`.
+происходят **из репозитория протокола** (`run/version.sh` + `run/release.sh`).
+AFB и BF свой релиз не используют для сборки протокола.
 
 Канон semver-версии — корневой файл `VERSION`; `run/version.sh` синхронизирует его
 с четырьмя местами (`python/pyproject.toml`, `python/afb_bf_protocol/version.py`,
@@ -113,11 +113,13 @@ afb-bf-protocol @ git+https://github.com/Rolo837/AFB-BF-protocol.git@v1.0.0
 (→ `stamp_changelog`) сам оформит их под `## vX.Y.Z — YYYY-MM-DD` и заведёт новую
 пустую `## Unreleased`. Никаких `.draft`-файлов и проверок «секция обязана быть».
 
-### Релиз (обычно из `AFB/run/release.sh tag --protocol {patch|minor}`)
+### Релиз (из `AFB-BF-protocol/run/`)
 
 6. `run/version.sh {patch|minor}` — поднять версию в `VERSION` + 4 местах, оформить
    `## Unreleased` под `vX.Y.Z`, commit `release vX.Y.Z`.
 7. `run/release.sh tag` — аннотированный тег `vX.Y.Z` на `develop`, push тега.
-   Потребители (комплекс AFB) пинят `@vX.Y.Z` для воспроизводимых образов.
+   Пины AFB/BF **не** меняются (AFB остаётся на `@develop`).
 8. После soak — `run/release.sh publish`: PR/merge `develop→main`, GitHub Release
-   (`--generate-notes`), синхронизация `develop` с `main`.
+   (`--generate-notes`), синхронизация `develop` с `main`. Без merge в `main`
+   тег на GitHub есть, но `origin/main` остаётся на предыдущей версии; AFB
+   `build.sh push` тогда соберёт старый main.

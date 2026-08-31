@@ -8,8 +8,8 @@
 
 | Ветка | Роль |
 |-------|------|
-| `develop` | Разработка. Одна «покоящаяся» версия (последняя выпущенная), **не** тегируется покоммитно. Потребители (AFB) в режиме разработки пинят `@develop`. |
-| `main` | Выпущенные версии. Каждый релиз — тег `vX.Y.Z`, достижимый из `main` после merge. |
+| `develop` | Разработка. Одна «покоящаяся» версия (последняя выпущенная), **не** тегируется покоммитно. AFB в git пинит `@develop`. |
+| `main` | Выпущенные версии. Каждый релиз — тег `vX.Y.Z`, достижимый из `main` после merge. AFB `build.sh push` тянет протокол с `main`. |
 
 ## Скрипты
 
@@ -17,12 +17,12 @@
 |--------|-----------|
 | `run/version.sh` | bump `patch`/`minor` / `set` / `show`; правит `VERSION` + 4 синхронных места |
 | `run/check-version.sh` | read-only проверка синхрона |
-| `run/release.sh` | `tag` (тег `vX.Y.Z` на `develop`) / `publish` (merge `develop→main` + GitHub Release) |
+| `run/release.sh` | `tag` (тег на `develop`) / `publish` (merge `develop→main` + GitHub Release) |
+
+AFB и BF **не** релизят протокол. Этот скрипт **не** правит пины потребителей
+(`--afb` / `--bf` / `pin` убраны).
 
 ## Обычный релиз
-
-Как правило запускается **из единого комплекса AFB** — `AFB/run/release.sh tag --protocol {patch|minor}`,
-который сам вызывает здешние `version.sh` / `release.sh`. Вручную:
 
 ```bash
 # 1) канон изменён, codegen актуален, тесты зелёные
@@ -36,9 +36,13 @@ git commit -am "release vX.Y.Z"
 # 3) тег на develop
 ./run/release.sh tag
 
-# 4) после soak — стабильный релиз
+# 4) после soak / когда main нужен облаку — стабильный релиз
 ./run/release.sh publish           # merge develop→main + GitHub Release (--generate-notes)
 ```
+
+AFB на `develop` остаётся на `@develop` / `#develop`. Локальный тест:
+`AFB/run/build.sh` (протокол с диска). Образы в репозиторий:
+`AFB/run/build.sh push` (протокол с GitHub `main`).
 
 Записи об изменениях — в `CHANGELOG.md` под `## Unreleased`, по ходу работы, без
 версии; `version.sh` оформит под релиз. `--dry-run` есть у `tag` и `publish`.

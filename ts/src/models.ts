@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 8ded5ebd011fcd09c5e1e8b1e97e852f75efc986f6183637b870d6055d292b15
+ * source-hash: 4d0644dc627437c6bcc6b198b228697c121d1e823c9a6bf401180d696fc58990
  */
 
 /**
@@ -380,7 +380,7 @@ export type GpV1 = {
   tradeplan_id?: string;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaced legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` — all removed from the AFB dispatcher in the legacy-protocol cleanup; there is no legacy fallback any more, a connection that has not negotiated this capability gets a typed `invalid_channel` error instead. `catalog` is the one read snapshot of the curated catalog for any authenticated caller. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `asset_sets` are named Sets of assets (not the category tree). `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. `user` is the caller's personal-sets operation and is served. `favorites`/`paint` are the caller's colored favorites: `favorites` is read-only (the current list, in display order), `paint` is the write — an additive, CAS-free delta (`mark`/`unmark`/`order`) over instruments and assets, kept separate from `user` so a favorite click never spuriously conflicts with an open personal-sets edit. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see assetSetView) instead of the single-parent group tree, plus an independent futures-series axis (catalogSeries) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — "Brent oil" is the BR-* and BRM-* series together — and it, not the ticker, is what a set contains (`asset_sets[].asset_ids`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves — an asset set carries its ordered `asset_ids`, an asset its ordered `members`. Order is carried by array position everywhere on the wire: no entity has an order field, and a write restates a full order through the dedicated `asset_set_order`/`collection_order`/`order` sections of `commit`. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaced legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` — all removed from the AFB dispatcher in the legacy-protocol cleanup; there is no legacy fallback any more, a connection that has not negotiated this capability gets a typed `invalid_channel` error instead. `catalog` is the one read snapshot of the curated catalog for any authenticated caller. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `asset_sets` are named Sets of assets (not the category tree). `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. `user` is the caller's personal-sets operation and is served. `favorites`/`paint` are the caller's colored favorites: `favorites` is read-only (the current list, in display order), `paint` is the write — an additive, CAS-free delta (`mark`/`unmark`/`order`) over instruments and assets, kept separate from `user` so a favorite click never spuriously conflicts with an open personal-sets edit. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see assetSetView) instead of the single-parent group tree, plus an independent derivatives axis (catalogDerivative) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — "Brent oil" is the BR-* and BRM-* series together — and it, not the ticker, is what a set contains (`asset_sets[].asset_ids`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves — an asset set carries its ordered `asset_ids`, an asset its ordered `members`. Order is carried by array position everywhere on the wire: no entity has an order field, and a write restates a full order through the dedicated `asset_set_order`/`collection_order`/`order` sections of `commit`. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentChannelV1Message".
@@ -464,7 +464,7 @@ export type InstrumentV1 = {
    */
   futoi_code?: string;
   /**
-   * Optional; `market` futures/options only. Backreference to `catalogDerivative.derivative` — the `MIC:CODE` code of the derivative this contract belongs to (its series for a serial future, itself for a singleton future, the option's own ticker for an option). A code, not a stable id: it changes when a singleton future gains a second contract and becomes a series, so it must never be persisted or cached past one catalog snapshot. This is the only carrier of the contract↔series link — `items[].asset`/`futoi_code` must not be read for it.
+   * Optional; `market` futures/options only. Backreference to `catalogDerivative.derivative` — the `MIC:CODE` code of the derivative this contract belongs to (its series for a serial future, the perpetual's own ticker for a perpetual future, the option's own ticker for an option). Stable across snapshots: a derivative's `kind` is innate and never changes (a serial future and a perpetual are different things on the exchange, one never becomes the other), so this code can be cached. This is the only carrier of the contract↔derivative link — `items[].asset`/`futoi_code` must not be read for it.
    */
   derivative?: string;
   /**
@@ -528,6 +528,34 @@ export type InstrumentPoolListingEntry = {
   listing: InstrumentV1;
 };
 /**
+ * Array position is the display order. The identity is `kind` plus exactly one key: `instrument_key` for `kind=listing` (join to `items[]`), `derivative` for `kind=derivative` (join to `derivatives[]` by `catalogDerivative.derivative`, and on to the contracts through the `items[].derivative` backreference). Both keys share the one `MIC:...` grammar. `code`, `label` and `market` are denormalized display only — the server forms them, the client just renders; none of the three is ever an identity or a join key. A derivative member is whole: for a serial future every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, or index. The server rejects a futures contract as a listing member of an asset that already contains its derivative. This `kind` (`listing`/`derivative`) is unrelated to `catalogDerivative.kind` (`perpetual`/`series`/`options`) and `poolEntry.kind` — independent namespaces.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentCatalogAssetMember".
+ */
+export type InstrumentCatalogAssetMember = {
+  [k: string]: unknown;
+} & {
+  kind: 'listing' | 'derivative';
+  /**
+   * For `kind=listing`: full composite key of the member listing, joining to `items[]`. Case-sensitive, never normalized.
+   */
+  instrument_key?: string;
+  /**
+   * For `kind=derivative`: the derivative's `MIC:CODE` code, joining to `catalogDerivative.derivative`. Case-sensitive, never normalized.
+   */
+  derivative?: string;
+  /**
+   * Short badge token — never identity, never a join key. The server forms it (a bare ticker / series code); the client only paints it on the composition plaque. To identify or join a member use `instrument_key` / `derivative`.
+   */
+  code?: string;
+  /**
+   * Display label for plaques (shortname/name; backend may fall back to code).
+   */
+  label?: string;
+  market?: 'stock' | 'futures' | 'currency' | 'index' | 'options';
+};
+/**
  * Canonical order: max_favorite_colors: N keeps the first N — yellow is always first, gray always last. Values are exactly the Chakra colorPalette names AFB's theme/accentPalettes.ts already uses; the frontend does not duplicate this list.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -561,6 +589,25 @@ export type InstrumentAssetSetView = {
    * Same 10-value palette favorites already use.
    */
   icon_color?: AfbwsInstrumentChannelV1_FavoriteColor | null;
+};
+/**
+ * Same discriminator and identity as catalogAssetMember: `kind` plus exactly one key — `instrument_key` for `kind=listing`, `derivative` for `kind=derivative`. `code`/`label`/`market` are display-only and are never written; the server derives them from items/derivatives. A contract listed here whose derivative is also listed is rejected.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "InstrumentAssetMemberInput".
+ */
+export type InstrumentAssetMemberInput = {
+  [k: string]: unknown;
+} & {
+  kind: 'listing' | 'derivative';
+  /**
+   * For `kind=listing` — full composite key. Case-sensitive, never normalized.
+   */
+  instrument_key?: string;
+  /**
+   * For `kind=derivative` — the derivative's `MIC:CODE` code. Case-sensitive, never normalized.
+   */
+  derivative?: string;
 };
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1986,9 +2033,13 @@ export interface InstrumentPoolResponse {
 export interface InstrumentPoolSeriesEntry {
   kind: 'series';
   /**
-   * series_code. Maps to seriesUpsert.series_code on commit.
+   * series_code (the ISS ASSETCODE grouping). Maps to seriesUpsert.series_code on commit.
    */
   code: string;
+  /**
+   * The `MIC:CODE` derivative code this row commits as — `MISX:<code>` for a serial series, `MISX:<ticker>` for a perpetual future (whose ASSETCODE `code` differs from its ticker: `IMOEX`/`IMOEXF`, `USDRUBTOM`/`USDRUBF`). This is the key `catalogAssetMember.derivative` / `assetMemberInput.derivative` join on, so a client must send it verbatim rather than synthesize `MISX:<code>`.
+   */
+  derivative?: string;
   name: string | null;
   source: 'moex';
   market: 'futures';
@@ -2079,7 +2130,7 @@ export interface InstrumentCatalogRequest {
   request_id: AfbwsCommonV1_RequestId;
 }
 /**
- * Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Membership is `asset_sets[].asset_ids` in display order. Composition is `assets[].members` (`kind`/`code`/`label`/`market`) in display order. Order is always array position — no entity on this wire carries an order field. `items` are the canonical instrument records (including materialized futures contracts); `series` is the futures-series axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `asset_sets[].asset_ids`.
+ * Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Membership is `asset_sets[].asset_ids` in display order. Composition is `assets[].members` (`kind` plus `instrument_key`/`derivative`, with `code`/`label`/`market` for display) in display order. Order is always array position — no entity on this wire carries an order field. `items` are the canonical instrument records (including materialized futures contracts); `derivatives` is the derivatives axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `asset_sets[].asset_ids`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentCatalogResponse".
@@ -2097,9 +2148,8 @@ export interface InstrumentCatalogResponse {
    */
   assets: InstrumentCatalogAsset[];
   items: InstrumentV1[];
-  series?: InstrumentCatalogSeriesMap;
   /**
-   * Replacement for the deprecated `series` map: one entry per derivative, not keyed by code.
+   * The derivatives axis: one entry per derivative (serial future, perpetual future, reserved option), not keyed by code.
    */
   derivatives?: AfbwsInstrumentChannelV1_CatalogDerivative[];
   collections?: InstrumentCollection[];
@@ -2120,12 +2170,7 @@ export interface InstrumentCatalogAsset {
   asset_id: string;
   name: string;
   /**
-   * @deprecated
-   * Deprecated — optional, kept for old clients. Which of the asset's series reference data is taken from when it holds more than one; null when the asset has no series or the manager has not chosen. It points at a series, not at a contract — the MOEX analytics code itself stays on the series and is not duplicated here.
-   */
-  reference_series_code?: string | null;
-  /**
-   * Full composition in display order. Array position is the order. Send `[]` for an empty asset.
+   * Full composition in display order. Array position is the order. Send `[]` for an empty asset. Reference data (MOEX positions, analytics) hangs off the asset's first derivative member — there is no separate reference pointer.
    */
   members: InstrumentCatalogAssetMember[];
   /**
@@ -2134,75 +2179,19 @@ export interface InstrumentCatalogAsset {
   collection_id?: string | null;
 }
 /**
- * Array position is the display order. The identity is `kind` plus, by kind: `instrument_key` for `listing` (join to `items[]`), `series_code` for `series` (join to `derivatives[]` via `catalogDerivative.series_code`, then to `items[]` through the `items[].derivative` backreference). `code` is the legacy single field carrying whichever of the two the kind implied — kept during the migration, to be dropped once every client reads the typed fields. `label` and `market` are denormalized for plaques so the Assets UI does not have to join `items`/`derivatives`. A series member is whole: every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, index, or a singleton futures contract (D6 — a series with exactly one active contract is shown as that listing, not as `kind=series`). The server rejects a futures contract as a listing member of an asset that already contains its series. This `kind` (`listing`/`series`) is unrelated to `catalogDerivative.kind` (`futures`/`series`/`options`) and `poolEntry.kind` — same spelling of `series`, three independent namespaces.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCatalogAssetMember".
- */
-export interface InstrumentCatalogAssetMember {
-  kind: 'listing' | 'series';
-  /**
-   * For `kind=listing`: full composite key of the member listing, joining to `items[]`. Case-sensitive, never normalized.
-   */
-  instrument_key?: string;
-  /**
-   * For `kind=series`: the series code, joining to `catalogDerivative.series_code`. Case-sensitive, never normalized.
-   */
-  series_code?: string;
-  /**
-   * @deprecated
-   * Deprecated — canonical ticker for `listing`, series_code for `series`. Superseded by the typed `instrument_key`/`series_code`; still emitted during the migration for clients that have not switched.
-   */
-  code?: string;
-  /**
-   * Display label for plaques (shortname/name; backend may fall back to code).
-   */
-  label?: string;
-  market?: 'stock' | 'futures' | 'currency' | 'index' | 'options';
-  [k: string]: unknown;
-}
-/**
- * @deprecated
- * Deprecated — optional; kept for old clients.
- */
-export interface InstrumentCatalogSeriesMap {
-  [k: string]: InstrumentCatalogSeries;
-}
-/**
- * An axis of its own, independent of sets: it groups the successive expirations of one futures contract and is unaffected by set membership. Carries no order: `series` is a JSON object (catalogSeriesMap), and the order of an object's members is not semantic. Should the series axis ever need an order, the right move is to turn `series` into an array — not to bring an order field back.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCatalogSeries".
- */
-export interface InstrumentCatalogSeries {
-  name: string | null;
-  /**
-   * Canonical ticker of the underlying instrument, when the series has one.
-   */
-  underlying_ticker?: string | null;
-  /**
-   * PATCH, "Инструменты, активы, иконки" Шаг 1. true_series: more than one active contract in the latest complete snapshot — this is a real series node. singleton: exactly one — an asset holding it is reachable through the one contract's listing membership, not through this series (D6). dormant: zero, contracts expired; the asset link (if any) is left exactly where it was (D4) — nothing here auto-detaches it. null on a database still on schema v7 or a series row read before its first refresh under v8.
-   */
-  cardinality_state?: 'true_series' | 'singleton' | 'dormant' | null;
-}
-/**
- * One row per derivative: a futures series, a single/perpetual futures, or (reserved) an option. Carries no contract list — the contract↔derivative link lives on the contract, as `items[].derivative` pointing back at `derivative` here; a client expands a `kind=series` asset member by `member.series_code -> this.series_code -> this.derivative -> items[] where item.derivative == that`. The word `series` also names a `poolEntry.kind` and a `catalogAssetMember.kind`: three independent namespaces, same spelling, unrelated meaning. Read side only — the write form of a series is still `commitRequest.series[]` / `seriesUpsert`; there is deliberately no `commitRequest.derivatives`.
+ * One row per derivative: a serial futures, a perpetual futures, or (reserved) an option. Carries no contract list — the contract↔derivative link lives on the contract, as `items[].derivative` pointing back at `derivative` here; a client expands a `kind=derivative` asset member by `member.derivative -> this.derivative -> items[] where item.derivative == that`. The word `series` also names a `poolEntry.kind` and one value of this `kind` — independent namespaces. Read side only — the write form is still `commitRequest.series[]` / `seriesUpsert`; there is deliberately no `commitRequest.derivatives`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsInstrumentChannelV1_CatalogDerivative".
  */
 export interface AfbwsInstrumentChannelV1_CatalogDerivative {
   /**
-   * Code of this derivative in `MIC:CODE` form (venueless 2-segment `instrument_key` grammar): the series code for `kind=series` (`MISX:MIX`), the single contract's ticker for `kind=futures` (`MISX:IMOEXF`), the option's ticker for `kind=options`. A code in its own namespace — NOT a listing key: a singleton's `derivative` is `MISX:IMOEXF` while its contract's `instrument_key` is `MISX:RFUD:IMOEXF`. It is a code, not a stable id — it changes on the `1->2` cardinality transition (a singleton future gaining a second contract) — so it must not be persisted or cached past one snapshot.
+   * Code of this derivative in `MIC:CODE` form (venueless 2-segment `instrument_key` grammar): the series code for `kind=series` (`MISX:MIX`), the single contract's ticker for `kind=perpetual` (`MISX:IMOEXF`), the option's ticker for `kind=options`. A code in its own namespace — NOT a listing key: a perpetual's `derivative` is `MISX:IMOEXF` while its contract's `instrument_key` is `MISX:RFUD:IMOEXF`. Stable across snapshots: `kind` is innate to the derivative and never changes (a serial future and a perpetual are different things on the exchange, one never becomes the other), so the code can be cached.
    */
   derivative: string;
-  kind: 'futures' | 'series' | 'options';
+  kind: 'perpetual' | 'series' | 'options';
   /**
-   * Bare series code (`MIX`), the join key for `catalogAssetMember.series_code`. Present for derivatives born of a `futures_series` row (`kind` series and futures); null for an option chain with no series-code namespace of its own.
-   */
-  series_code?: string | null;
-  /**
-   * Full composite instrument_key of the underlying listing (e.g. `MISX:TQBR:SBER`, `MISX:IMOEX`), or null when the underlying has no listing in the catalog — the common case: indices, currency baskets, foreign and synthetic underlyings (Brent, gold, wheat, BTC, S&P 500) have no MOEX spot. `series_code` still identifies the derivative; only the pointer to a base listing is absent. An option written on a futures uses that futures' own `instrument_key` here.
+   * Full composite instrument_key of the underlying listing (e.g. `MISX:TQBR:SBER`, `MISX:IMOEX`), or null when the underlying has no listing in the catalog — the common case: indices, currency baskets, foreign and synthetic underlyings (Brent, gold, wheat, BTC, S&P 500) have no MOEX spot. Only the pointer to a base listing is absent; `derivative` still identifies the row. An option written on a futures uses that futures' own `instrument_key` here.
    */
   underlying: string | null;
   /**
@@ -2331,7 +2320,7 @@ export interface InstrumentCommitRequest {
   reason?: string;
 }
 /**
- * The client mints `asset_id` itself (same generateId style as deal/primitive ids; for a non-empty asset the first block is the code of its first `members[]` entry). Scalars otherwise behave as a patch — an omitted field keeps its stored value — while `members`, when present, is the WHOLE composition in its final order, exactly like membersEdit.order. Composition has no add/remove form on purpose: an asset holds a handful of members that a manager edits as one picture, and a full statement removes any question about what an absent element means. Omit `members` to leave the composition untouched; send `[]` to empty the asset without deleting it.
+ * The client mints `asset_id` itself (same generateId style as deal/primitive ids; for a non-empty asset the first block is the bare code of its first `members[]` entry). Scalars otherwise behave as a patch — an omitted field keeps its stored value — while `members`, when present, is the WHOLE composition in its final order, exactly like membersEdit.order. Composition has no add/remove form on purpose: an asset holds a handful of members that a manager edits as one picture, and a full statement removes any question about what an absent element means. Omit `members` to leave the composition untouched; send `[]` to empty the asset without deleting it.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentAssetUpsert".
@@ -2343,39 +2332,13 @@ export interface InstrumentAssetUpsert {
   asset_id: string;
   name: string;
   /**
-   * Series reference data is taken from; null clears the choice.
-   */
-  reference_series_code?: string | null;
-  /**
-   * The FULL composition of the asset, in the order it should end up in — not a partial edit. Each element is `{kind, code}` (same identity as catalogAssetMember / a pool entry). A contract listed here whose series is also listed is rejected.
+   * The FULL composition of the asset, in the order it should end up in — not a partial edit. Each element is `{kind, instrument_key|derivative}` (same identity as catalogAssetMember). A contract listed here whose derivative is also listed is rejected.
    */
   members?: InstrumentAssetMemberInput[];
   /**
    * The collection this asset moves into; null unassigns it from any collection. Position inside that collection is not stated here — send `commitRequest.collection_members` to fix it.
    */
   collection_id?: string | null;
-}
-/**
- * Same discriminator and identity as catalogAssetMember: `kind` plus `instrument_key` (for `listing`) or `series_code` (for `series`). `code` is the legacy single field, still accepted during the migration — a client may send either form. `label` and `market` are snapshot-only and are not written — the server derives them from items/derivatives. A contract listed here whose series is also listed is rejected.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentAssetMemberInput".
- */
-export interface InstrumentAssetMemberInput {
-  kind: 'listing' | 'series';
-  /**
-   * For `kind=listing` — full composite key. Case-sensitive, never normalized.
-   */
-  instrument_key?: string;
-  /**
-   * For `kind=series` — the series code. Case-sensitive, never normalized.
-   */
-  series_code?: string;
-  /**
-   * @deprecated
-   * Deprecated — canonical ticker for `listing`, series_code for `series`. Superseded by the typed `instrument_key`/`series_code`; still accepted during the migration.
-   */
-  code?: string;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2389,7 +2352,7 @@ export interface InstrumentListingArchival {
   reason?: string;
 }
 /**
- * Write form for a pool series row: copy `code` → `series_code`, `name` → `name`, `underlying` → `underlying_ticker`. The series axis carries no order — `series` is a map, not a list.
+ * Write form for a pool series row: copy `code` → `series_code`, `name` → `name`, `underlying` → `underlying_ticker`. The write form carries no order — a serial future's expirations are materialized by the backend.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentSeriesUpsert".
@@ -2502,9 +2465,8 @@ export interface InstrumentCommitResponse {
   catalog_revision: number;
   assets: InstrumentCatalogAsset[];
   items: InstrumentV1[];
-  series?: InstrumentCatalogSeriesMap1;
   /**
-   * Replacement for the deprecated `series` map: one entry per derivative, not keyed by code.
+   * The derivatives axis: one entry per derivative, not keyed by code.
    */
   derivatives?: AfbwsInstrumentChannelV1_CatalogDerivative[];
   collections?: InstrumentCollection[];
@@ -2514,13 +2476,6 @@ export interface InstrumentCommitResponse {
     [k: string]: number;
   };
   user?: InstrumentUserState;
-}
-/**
- * @deprecated
- * Deprecated — optional; kept for old clients.
- */
-export interface InstrumentCatalogSeriesMap1 {
-  [k: string]: InstrumentCatalogSeries;
 }
 /**
  * `base_revision` here is the revision of the PERSONAL aggregate (userState.revision), not the global catalog_revision — personal edits never conflict with a manager's commit. Sets created through this operation are implicitly scope: "user" and owned by the caller; a `set_id` naming a global set is rejected. An empty request is legal and just reads the current personal state back.
@@ -2902,13 +2857,6 @@ export interface InstrumentErrorDetails {
     allowed: number;
     requested: number;
   };
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCatalogSeriesMap".
- */
-export interface InstrumentCatalogSeriesMap2 {
-  [k: string]: InstrumentCatalogSeries;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

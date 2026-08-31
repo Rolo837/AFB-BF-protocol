@@ -1,14 +1,14 @@
 #!/bin/bash
-# Git-тег версии и стабильный GitHub Release для AFB-BF-protocol.
+# Релиз AFB-BF-protocol. Не собирает AFB/BF и не правит их пины.
 #
-# Обычно вызывается из единого релизного комплекса AFB (AFB/run/release.sh),
-# но работает и самостоятельно.
+#   ./run/release.sh tag [--dry-run]
+#   ./run/release.sh publish [--dry-run]
 #
-# Использование:
-#   ./run/release.sh tag       # аннотированный vX.Y.Z на develop (после bump версии)
-#   ./run/release.sh publish   # merge develop→main + GitHub Release на существующем теге
-#   ./run/release.sh tag --dry-run
-#   ./run/release.sh publish --dry-run
+# tag:     аннотированный vX.Y.Z на develop + push тега.
+# publish: merge develop→main + GitHub Release (develop не удаляется).
+#
+# Пины AFB остаются на @develop / #develop. Сборка AFB: build.sh тянет
+# протокол с диска (develop) или GitHub main (push) — без смены строк в git.
 
 set -euo pipefail
 
@@ -20,29 +20,35 @@ DRY_RUN=false
 COMMAND=""
 
 usage() {
-    echo "Использование: ./run/release.sh {tag|publish} [--dry-run]"
-    echo "  tag:     git tag vVERSION на текущем commit develop + push тега"
+    echo "Использование:"
+    echo "  ./run/release.sh tag [--dry-run]"
+    echo "  ./run/release.sh publish [--dry-run]"
+    echo
+    echo "  tag:     git tag vVERSION на develop + push тега"
     echo "  publish: PR/merge develop→main (develop не удаляется) + GitHub Release"
+    echo
+    echo "  Пины AFB/BF этим скриптом не трогаются."
+    echo "  --afb / --bf / pin убраны (были обходом старого AFB tag)."
 }
 
-for arg in "$@"; do
-    case "$arg" in
+while [ $# -gt 0 ]; do
+    case "$1" in
         tag|publish)
-            if [ -n "$COMMAND" ]; then
-                echo -e "${RED}Ошибка: укажите одну команду${NC}" >&2
-                usage
-                exit 1
-            fi
-            COMMAND="$arg"
-            ;;
+            [ -n "$COMMAND" ] && { echo -e "${RED}Ошибка: одна команда${NC}" >&2; usage; exit 1; }
+            COMMAND="$1" ;;
+        --afb|--bf|pin)
+            echo -e "${RED}$1 убран. Пины потребителей этот скрипт больше не ставит.${NC}" >&2
+            echo -e "${RED}AFB в develop остаётся на @develop; сборка: диск (build) или GitHub main (push).${NC}" >&2
+            exit 1 ;;
         --dry-run) DRY_RUN=true ;;
         -h|--help) usage; exit 0 ;;
         *)
-            echo -e "${RED}Неизвестный аргумент: $arg${NC}" >&2
+            echo -e "${RED}Неизвестный аргумент: $1${NC}" >&2
             usage
             exit 1
             ;;
     esac
+    shift
 done
 
 if [ -z "$COMMAND" ]; then
@@ -76,6 +82,7 @@ do_tag() {
     echo -e "${GREEN}Git tag ${TAG} (protocol)${NC}"
     echo -e "${GREEN}========================================${NC}"
     preflight_common
+    require_clean_git
 
     if git rev-parse "$TAG" >/dev/null 2>&1; then
         echo -e "${RED}Ошибка: тег ${TAG} уже существует локально${NC}" >&2
@@ -93,7 +100,8 @@ do_tag() {
     run_or_echo git tag -a "$TAG" -m "Version ${VERSION}"
     run_or_echo git push origin "$TAG"
 
-    echo -e "${GREEN}Тег ${TAG} создан на develop. Merge в main — ./run/release.sh publish${NC}"
+    echo -e "${GREEN}Тег ${TAG} создан на develop.${NC}"
+    echo -e "${GREEN}Merge в main — ./run/release.sh publish${NC}"
 }
 
 do_publish() {

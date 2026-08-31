@@ -3,9 +3,26 @@
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
 Новые записи дописываются в секцию `## Unreleased` **без версии и даты**.
-`AFB/run/release.sh tag --protocol {patch|minor}` (или `run/version.sh` напрямую) переносит их под `## vX.Y.Z — YYYY-MM-DD` и заводит новую пустую `## Unreleased`.
+`run/version.sh {patch|minor}` переносит их под `## vX.Y.Z — YYYY-MM-DD` и заводит новую пустую `## Unreleased`.
 
 ## Unreleased
+
+## v2.5.18 — 2026-08-31
+
+- `settings.trade` (`spec/schemas/draft/trade.v1.json`): опциональное `default_risk_pct` — риск (%) для нового торгового плана (дефолт фронта 0.5). Не входит в AsyncAPI, провод AFB↔BF не затрагивается.
+- `run/release.sh`: убраны `--afb` / `--bf` / `pin` — скрипт больше не правит пины AFB/BF. AFB остаётся на `@develop`; источник протокола при сборке AFB задаёт `build` (диск) / `push` (GitHub main).
+
+Чистка канала `instrument` под дериватив как единицу модели (Этап 6 плана `linear-singing-snowglobe`; парная схемная часть Этапа 5 в AFB). Формально breaking для канала AFB-бэкенд↔AFB-фронтенд — снятые поля и переименованные значения enum; оба файла НЕ входят в `spec/asyncapi.yaml`, провод AFB↔BF не затрагивается. Выкат — единым релизом с AFB.
+
+- **`instrument.v1.json`**: описание `derivative` переписано — код стабилен между снапшотами (`kind` деривативa врождённый, перехода «один контракт ↔ серия» не бывает), поэтому кэшировать можно; убран текст про несуществующий переход `1->2`.
+- **`afbws/instrument.channel.v1.json`**:
+  - **удалены** `$defs.catalogSeries`, `$defs.catalogSeriesMap`; `catalogResponse.series`, `commitResponse.series`; `catalogAsset.reference_series_code`, `assetUpsert.reference_series_code`; `catalogDerivative.series_code`; `catalogAssetMember.series_code`, `assetMemberInput.series_code`, `assetMemberInput.code`.
+  - `catalogDerivative.kind`: enum `["futures","series","options"]` → `["perpetual","series","options"]` (`futures` было плохим словом — серия ведь тоже фьючерсы).
+  - `catalogAssetMember` / `assetMemberInput`: `kind` → `["listing","derivative"]`; идентичность — `instrument_key` (для `listing`) XOR `derivative` (для `derivative`), закреплено `allOf`/`if`/`then` с `required` и взаимным запретом; `catalogAssetMember` вернулся к `additionalProperties: false`.
+  - `catalogAssetMember.code` теряет `deprecated` и переописан: короткий токен бейджа, никогда не идентичность и не join-ключ; сервер формирует, клиент только рисует. В `assetMemberInput` его нет — на запись клиент шлёт только ключ.
+  - описания: `series{}` больше не читается (только пишется через `commitRequest.series[]`/`seriesUpsert`); join члена состава к деривативу стал одношаговым (`member.derivative -> catalogDerivative.derivative`).
+  - `poolSeriesEntry`: добавлено опциональное `derivative` — `MIC:CODE` код, которым строка коммитится (`MISX:<code>` для серии, `MISX:<ticker>` для вечного, у которого ASSETCODE `code` ≠ тикер: `IMOEX`/`IMOEXF`). Клиент шлёт его как есть, не синтезируя `MISX:<code>` — иначе для вечного не сходится join к составу актива.
+- **Сгенерировано** (`afb-bf-protocol-generate`): зеркало схем, `models.ts`/`models_generated.py`, `taxonomy.py`/`docs/MESSAGES.md`, `capabilities.*`.
 
 ## v2.5.17 — 2026-08-29
 
