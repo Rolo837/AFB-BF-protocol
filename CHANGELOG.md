@@ -7,6 +7,8 @@
 
 ## Unreleased
 
+- `run/version.sh` сам коммитит bump (`release vX.Y.Z see CHANGELOG`) и пушит `origin HEAD`. `--no-commit` — только файлы.
+
 ## v2.5.18 — 2026-08-31
 
 - `settings.trade` (`spec/schemas/draft/trade.v1.json`): опциональное `default_risk_pct` — риск (%) для нового торгового плана (дефолт фронта 0.5). Не входит в AsyncAPI, провод AFB↔BF не затрагивается.

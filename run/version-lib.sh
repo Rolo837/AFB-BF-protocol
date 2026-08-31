@@ -99,6 +99,30 @@ else:
 PY
 }
 
+# Коммит только переданных файлов (относительно корня), которые отличаются от HEAD,
+# затем push origin HEAD. Пустые/неизменённые пути пропускаются.
+commit_version_bump() {
+    local version="$1"
+    shift
+    local f existing=()
+    for f in "$@"; do
+        [ -e "$PROJECT_ROOT/$f" ] || continue
+        if git -C "$PROJECT_ROOT" diff --quiet HEAD -- "$f" 2>/dev/null; then
+            continue
+        fi
+        existing+=("$f")
+    done
+    if [ ${#existing[@]} -eq 0 ]; then
+        echo -e "${YELLOW}version.sh: нечего коммитить${NC}"
+        return 0
+    fi
+    git -C "$PROJECT_ROOT" commit --only -m "release v${version} see CHANGELOG" -- "${existing[@]}"
+    echo -e "${GREEN}Коммит release v${version} see CHANGELOG${NC}"
+    echo -e "${YELLOW}Пуш origin HEAD...${NC}"
+    git -C "$PROJECT_ROOT" push origin HEAD
+    echo -e "${GREEN}Пуш выполнен${NC}"
+}
+
 # --- чтение версии из каждого источника (для check-version.sh) --------------
 
 read_pyproject_version() {
