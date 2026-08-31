@@ -9,7 +9,12 @@
       "type": "string"
     },
     "order_id": {
-      "type": "string"
+      "type": "string",
+      "description": "BF's own client_order_id (cid) — the same identifier every order.*/position.* event for this order carries, and the one to match against StoredOrder.order_id. NOT the broker's exchange order id (see broker_order_id below) — Волна 1/2 (deal-457d-4583-a1f7 follow-up): older BF builds put the broker id here, which never matched a fill's order_id and made this event unusable for AFB to learn a fresh order's resolved quantity."
+    },
+    "broker_order_id": {
+      "type": "string",
+      "description": "The broker's own exchange order id, when known at emission time — opaque to AFB, useful only for cross-referencing with broker-side records/support. Optional: absent for a dry-run/synthetic order, or when the broker never returned one."
     },
     "price": {
       "type": [
