@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 4d0644dc627437c6bcc6b198b228697c121d1e823c9a6bf401180d696fc58990
+# source-hash: 8ddd237e7975903c64d2066d09aab54e9f0da97e329bd187fcaf5d34a75cd609
 
 from __future__ import annotations
 
@@ -175,6 +175,12 @@ AfbwsCommonV1RequestId: TypeAlias = str
 
 
 AfbwsCommonV1Root: TypeAlias = Any
+
+
+class AfbwsDealChannelV1DealOpenPosition(TypedDict):
+    qty: int
+    avg_price: str
+    as_of: str
 
 
 class AfbwsDealChannelV1DealRealizedPnl(TypedDict):
@@ -1066,6 +1072,7 @@ class DealDetail(TypedDict):
     execution_policy: NotRequired[DealExecutionPolicy]
     broker_sizing: NotRequired[DealSizingDisplay]
     realized_pnl: NotRequired[AfbwsDealChannelV1DealRealizedPnl]
+    position: NotRequired[AfbwsDealChannelV1DealOpenPosition]
     created_at: str
     updated_at: str
     deal: DealPublicV1
@@ -1462,6 +1469,7 @@ class DealSummary(TypedDict):
     execution_policy: NotRequired[DealExecutionPolicy]
     broker_sizing: NotRequired[DealSizingDisplay]
     realized_pnl: NotRequired[AfbwsDealChannelV1DealRealizedPnl]
+    position: NotRequired[AfbwsDealChannelV1DealOpenPosition]
     created_at: str
     updated_at: str
 
@@ -2967,6 +2975,7 @@ class OrderCreatedPayload(TypedDict):
     at: NotRequired[str]
     deal_id: str
     order_id: str
+    broker_order_id: NotRequired[str]
     price: NotRequired[str | float | int | bool | dict[str, Any] | list[Any] | None]
     quantity: NotRequired[int]
     role: str

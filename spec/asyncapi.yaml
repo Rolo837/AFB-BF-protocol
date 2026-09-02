@@ -1,7 +1,7 @@
 asyncapi: 3.1.0
 info:
   title: AFB <-> BF Execution Protocol
-  version: 2.5.18
+  version: 2.6.0
   description: >-
     Business protocol between AFB (OMS) and BF (executor daemon), wire version
     afb.execution.v1. Every message is a signed JSON envelope (Ed25519 over a
@@ -910,6 +910,7 @@ components:
         - name: 'class:trading'
         - name: 'dir:bf2afb'
         - name: 'persisted'
+        - name: 'deprecated'
       payload:
         allOf:
           - $ref: './schemas/envelope.json'
@@ -919,7 +920,7 @@ components:
                 const: deal.positions_synced
               payload:
                 $ref: './schemas/payloads/deal.positions_synced.json'
-      description: 'Example: examples/deal.positions_synced.json' 
+      description: 'Never implemented by belphegor/plan_engine/engine.py (no producer ever existed) — deal.snapshot covers the same full-position-sync need and carries more (quantity, observed), see its own description. Kept in the spec only for backward wire-compatibility should any consumer have relied on its presence; do not build new code against it. Example: examples/deal.positions_synced.json'
     deal_report:
       name: deal.report
       title: deal.report
@@ -954,7 +955,7 @@ components:
                 const: deal.snapshot
               payload:
                 $ref: './schemas/payloads/deal.snapshot.json'
-      description: 'On-demand reconcile snapshot: status, execution_phase, observed (aggregate), positions[] (per-symbol), quantity (resolved sizing, once known). Example: examples/deal.snapshot.json'
+      description: 'Full state snapshot: status, execution_phase, observed (aggregate), positions[] (per-symbol), quantity (resolved sizing, once known). Sent on-demand in response to deal.operation op="reconcile" (always, unconditionally), and — since Волна 2, deal-457d-4583-a1f7 follow-up — also proactively: on every position.* transition, on the periodic broker-reconcile pass (debounced against the last snapshot actually sent per deal), and right after a deal.resync adopts AFB''s definition on reconnect. This is the self-healing path for a missed position.*/order.* event — a client should never need to poll reconcile just to keep positions[]/quantity current. Example: examples/deal.snapshot.json'
     condition_triggered:
       name: condition.triggered
       title: condition.triggered

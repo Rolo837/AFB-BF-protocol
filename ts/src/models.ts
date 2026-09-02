@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 4d0644dc627437c6bcc6b198b228697c121d1e823c9a6bf401180d696fc58990
+ * source-hash: 8ddd237e7975903c64d2066d09aab54e9f0da97e329bd187fcaf5d34a75cd609
  */
 
 /**
@@ -1318,6 +1318,7 @@ export interface DealDetail {
   execution_policy?: DealExecutionPolicy;
   broker_sizing?: DealSizingDisplay;
   realized_pnl?: AfbwsDealChannelV1_DealRealizedPnl;
+  position?: AfbwsDealChannelV1_DealOpenPosition;
   created_at: string;
   updated_at: string;
   deal: DealPublicV1;
@@ -1378,6 +1379,24 @@ export interface AfbwsDealChannelV1_DealRealizedPnl {
    */
   value: string | null;
   degraded: null | 'missing_price' | 'missing_step_price';
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsDealChannelV1_DealOpenPosition".
+ */
+export interface AfbwsDealChannelV1_DealOpenPosition {
+  /**
+   * Signed net quantity (positive long, negative short).
+   */
+  qty: number;
+  /**
+   * Decimal string — weighted-average open entry price.
+   */
+  avg_price: string;
+  /**
+   * ISO-8601 timestamp this snapshot was computed at.
+   */
+  as_of: string;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1558,6 +1577,7 @@ export interface DealSummary {
   execution_policy?: DealExecutionPolicy;
   broker_sizing?: DealSizingDisplay;
   realized_pnl?: AfbwsDealChannelV1_DealRealizedPnl;
+  position?: AfbwsDealChannelV1_DealOpenPosition;
   created_at: string;
   updated_at: string;
 }
@@ -4577,7 +4597,14 @@ export interface OrderCreatedPayload {
    */
   at?: string;
   deal_id: string;
+  /**
+   * BF's own client_order_id (cid) — the same identifier every order.* /position.* event for this order carries, and the one to match against StoredOrder.order_id. NOT the broker's exchange order id (see broker_order_id below) — Волна 1/2 (deal-457d-4583-a1f7 follow-up): older BF builds put the broker id here, which never matched a fill's order_id and made this event unusable for AFB to learn a fresh order's resolved quantity.
+   */
   order_id: string;
+  /**
+   * The broker's own exchange order id, when known at emission time — opaque to AFB, useful only for cross-referencing with broker-side records/support. Optional: absent for a dry-run/synthetic order, or when the broker never returned one.
+   */
+  broker_order_id?: string;
   price?: string | number | boolean | {} | unknown[] | null;
   quantity?: number;
   role: string;

@@ -15,7 +15,7 @@
 
 | Скрипт | Назначение |
 |--------|-----------|
-| `run/version.sh` | bump `patch`/`minor` / `set` / `show`; правит `VERSION` + 4 синхронных места |
+| `run/version.sh` | bump `patch`/`minor` / `set` / `show`; commit+push (`--no-commit` — только файлы) |
 | `run/check-version.sh` | read-only проверка синхрона |
 | `run/release.sh` | `tag` (тег на `develop`) / `publish` (merge `develop→main` + GitHub Release) |
 
@@ -28,10 +28,8 @@ AFB и BF **не** релизят протокол. Этот скрипт **не
 # 1) канон изменён, codegen актуален, тесты зелёные
 afb-bf-protocol-generate && pytest && npx @asyncapi/cli validate spec/asyncapi.yaml && npm run typecheck
 
-# 2) версия (version.sh сам оформит ## Unreleased под vX.Y.Z)
+# 2) версия (оформит CHANGELOG, commit+push; --no-commit — только файлы)
 ./run/version.sh minor              # или patch
-./run/check-version.sh
-git commit -am "release vX.Y.Z"
 
 # 3) тег на develop
 ./run/release.sh tag

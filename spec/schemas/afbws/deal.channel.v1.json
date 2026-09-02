@@ -40,6 +40,17 @@
         "resolved_lots": { "type": "integer", "description": "BF-resolved actual order quantity (lots), fixed once at entry-trigger time — distinct from `lots`, which stays the pre-trade publish estimate. Present only once BF has reported it (deal.status_changed/deal.snapshot `quantity`)." }
       }
     },
+    "dealOpenPosition": {
+      "type": "object",
+      "title": "AFB-computed open position for the deal (Волна 3, deal-457d-4583-a1f7 follow-up) — the same source ladder as the deal/pnl push's qty+avg_price (backend/trade/pnl.py's resolve_open_qty/resolve_open_avg: source_refs.afb_pnl first, falling back to positions[]/observed), never the raw orders[]/positions[]/observed themselves. Absent entirely means flat (no open position) or not yet known — distinct from a present qty of 0, which this projection never emits (see resolve_open_qty/callers: a flat position is simply not pushed).",
+      "required": ["qty", "avg_price", "as_of"],
+      "additionalProperties": false,
+      "properties": {
+        "qty": { "type": "integer", "description": "Signed net quantity (positive long, negative short)." },
+        "avg_price": { "type": "string", "description": "Decimal string — weighted-average open entry price." },
+        "as_of": { "type": "string", "description": "ISO-8601 timestamp this snapshot was computed at." }
+      }
+    },
     "dealRealizedPnl": {
       "type": "object",
       "title": "AFB-computed realized P&L (rubles), projected from the internal source_refs.afb_pnl ledger — never the raw ledger itself (computed_at/bf_realized_points/schema stay internal). Absent entirely means no ledger yet (deal predates it, or hasn't had an exit fill) — distinct from a present-but-degraded value.",
@@ -74,6 +85,7 @@
         "execution_policy": { "$ref": "../common.v1.json#/$defs/executionPolicy" },
         "broker_sizing": { "$ref": "#/$defs/dealSizingDisplay" },
         "realized_pnl": { "$ref": "#/$defs/dealRealizedPnl" },
+        "position": { "$ref": "#/$defs/dealOpenPosition" },
         "created_at": { "type": "string" },
         "updated_at": { "type": "string" }
       }
@@ -97,6 +109,7 @@
         "execution_policy": { "$ref": "../common.v1.json#/$defs/executionPolicy" },
         "broker_sizing": { "$ref": "#/$defs/dealSizingDisplay" },
         "realized_pnl": { "$ref": "#/$defs/dealRealizedPnl" },
+        "position": { "$ref": "#/$defs/dealOpenPosition" },
         "created_at": { "type": "string" },
         "updated_at": { "type": "string" },
         "deal": { "$ref": "deal.public.v1.json" },
