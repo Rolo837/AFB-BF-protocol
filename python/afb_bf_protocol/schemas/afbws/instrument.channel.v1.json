@@ -617,8 +617,8 @@
       }
     },
     "favoriteColor": {
-      "enum": ["yellow", "orange", "cyan", "purple", "pink", "teal", "blue", "green", "red", "gray"],
-      "description": "Canonical order: max_favorite_colors: N keeps the first N — yellow is always first, gray always last. Values are exactly the Chakra colorPalette names AFB's theme/accentPalettes.ts already uses; the frontend does not duplicate this list."
+      "enum": ["yellow", "red", "blue", "green", "gray", "orange", "cyan", "purple", "pink", "teal"],
+      "description": "Canonical order: max_favorite_colors: N keeps the first N — yellow (the default paint) is always first; the rest of the order is an AFB UI preference and the list is reordered wholesale when it changes. Values are exactly the Chakra colorPalette names AFB's theme/accentPalettes.ts uses; keep the two lists in lockstep."
     },
     "favoriteEntry": {
       "type": "object",

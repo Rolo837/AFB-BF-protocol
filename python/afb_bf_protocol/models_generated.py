@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 8ddd237e7975903c64d2066d09aab54e9f0da97e329bd187fcaf5d34a75cd609
+# source-hash: 9c0f59fda6d449babd66ee3f458ae9bc7c9cfbe8bd36d4d58ec008cdb1ed3817
 
 from __future__ import annotations
 
@@ -210,7 +210,7 @@ class AfbwsInstrumentChannelV1CatalogDerivative(TypedDict):
 
 
 AfbwsInstrumentChannelV1FavoriteColor: TypeAlias = Literal[
-    "yellow", "orange", "cyan", "purple", "pink", "teal", "blue", "green", "red", "gray"
+    "yellow", "red", "blue", "green", "gray", "orange", "cyan", "purple", "pink", "teal"
 ]
 
 

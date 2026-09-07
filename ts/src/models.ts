@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 8ddd237e7975903c64d2066d09aab54e9f0da97e329bd187fcaf5d34a75cd609
+ * source-hash: 9c0f59fda6d449babd66ee3f458ae9bc7c9cfbe8bd36d4d58ec008cdb1ed3817
  */
 
 /**
@@ -556,13 +556,13 @@ export type InstrumentCatalogAssetMember = {
   market?: 'stock' | 'futures' | 'currency' | 'index' | 'options';
 };
 /**
- * Canonical order: max_favorite_colors: N keeps the first N — yellow is always first, gray always last. Values are exactly the Chakra colorPalette names AFB's theme/accentPalettes.ts already uses; the frontend does not duplicate this list.
+ * Canonical order: max_favorite_colors: N keeps the first N — yellow (the default paint) is always first; the rest of the order is an AFB UI preference and the list is reordered wholesale when it changes. Values are exactly the Chakra colorPalette names AFB's theme/accentPalettes.ts uses; keep the two lists in lockstep.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsInstrumentChannelV1_FavoriteColor".
  */
 export type AfbwsInstrumentChannelV1_FavoriteColor =
-  'yellow' | 'orange' | 'cyan' | 'purple' | 'pink' | 'teal' | 'blue' | 'green' | 'red' | 'gray';
+  'yellow' | 'red' | 'blue' | 'green' | 'gray' | 'orange' | 'cyan' | 'purple' | 'pink' | 'teal';
 /**
  * True asset set (Наборы): metadata plus ordered `asset_ids`. The set's own display position is its position in `asset_sets[]` (and in `userState.sets[]` for a personal set) — there is no order field on the wire; a commit restates that order wholesale through `commitRequest.asset_set_order`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.
  *

@@ -7,6 +7,8 @@
 
 ## Unreleased
 
+- **`afbws/instrument.channel.v1.json`** `$defs.favoriteColor`: enum переупорядочен `yellow, red, blue, green, gray, orange, cyan, purple, pink, teal` (было `yellow, orange, cyan, purple, pink, teal, blue, green, red, gray`). Набор значений не изменился — на проводе это не breaking (enum-валидация не зависит от порядка); порядок здесь документирует, как `max_favorite_colors: N` отрезает первые N (это предпочтение UI AFB). Описание уточнено. Схема не входит в `spec/asyncapi.yaml`, канал AFB↔BF не затрагивается. Сгенерировано: `models.ts`, `models_generated.py` (`AfbwsInstrumentChannelV1FavoriteColor`).
+
 ## v2.6.0 — 2026-09-02
 
 - `run/version.sh` сам коммитит bump (`release vX.Y.Z see CHANGELOG`) и пушит `origin HEAD`. `--no-commit` — только файлы.
