@@ -75,6 +75,7 @@ function namedRootSchemas() {
     "afbws/link.channel.v1.json": "LinkChannelV1Message",
     "afbws/gp.channel.v1.json": "GpChannelV1Message",
     "afbws/instrument.channel.v1.json": "InstrumentChannelV1Message",
+    "afbws/market.channel.v1.json": "MarketChannelV1Message",
   };
   for (const file of readdirSync(payloadsDir).sort()) {
     if (!file.endsWith(".json")) continue;
@@ -243,6 +244,20 @@ const NAMED_DEF_SCHEMAS = {
     refreshArchivedEntry: "InstrumentRefreshArchivedEntry",
     refreshReport: "InstrumentRefreshReport",
     refreshResponse: "InstrumentRefreshResponse",
+  },
+  "afbws/market.channel.v1.json": {
+    table: "MarketTable",
+    period: "MarketPeriod",
+    seriesTableEntry: "MarketSeriesTable",
+    snapshotTableEntry: "MarketSnapshotTable",
+    series: "MarketSeries",
+    snapshot: "MarketSnapshot",
+    subscriptionQuotesSpec: "MarketSubscriptionQuotesSpec",
+    subscribe: "MarketSubscribe",
+    subscriptionRejection: "MarketSubscriptionRejection",
+    subscription: "MarketSubscription",
+    get: "MarketGet",
+    error: "MarketErrorResponse",
   },
   "afbws/deal.public.v1.json": {
     source: "DealPublicSource",
