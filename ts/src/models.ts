@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 08085836d6e33f955748919c07b90489bc7d61949fb3c428b82a03750bb474fb
+ * source-hash: c895145029c0452aa95e563a474ec5a9b9585d813ea3c4b71d3511e1108c58a4
  */
 
 /**
@@ -721,7 +721,7 @@ export type LinkSetInput = LinkUserSetInput | LinkAdminSetInput;
  */
 export type LinkUserSetInput = LinkSetInputShared;
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.market.channel.v1). Replaces the legacy `candles` channel (klines + background datasets positions/trades/hhi/orders), `stream/favorites`, `stream/positions`, and `securities/marketdata|futures|positions` for clients that negotiated this capability; legacy stays available as fallback for clients that did not — this migration carries no version-gated behaviour, negotiation is purely by `auth.support`/`auth_ok.support`. Every instrument is addressed by the catalog's full `instrument_key` (see common.v1.json#/$defs/instrumentKey), not a bare SECID. Two data templates cover all payload shapes: `series` (candles and every background dataset, keyed by `time`) and `snapshot` (a cross-instrument slice, keyed by `instrument_key`), both columnar (`$defs/table`: `columns` + `rows`). The same schema id serves both as the reply to a `get` (carries `request_id`) and as an unsolicited push to a live subscription (no `request_id`) — deliberately no `.request`/`.response`/`.push` suffix on schema ids. Every data message carries `received_at` (when AFB received the data from its source) and `tz` (the trading venue's IANA zone that row-level `time`/day boundaries are aligned to). Subscriptions (`subscribe`) are explicit and replace-all: the client states its whole desired `snapshot`/`series` scope every time, the server does not diff against a previous statement. `NaN` never appears on the wire — sources that produce it are converted to `null`. See AFB/docs/ws/market.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.market.channel.v1). Replaces the legacy `candles` channel (klines + background datasets positions/trades/hhi/orders), `stream/favorites`, `stream/positions`, and `securities/marketdata|futures|positions` for clients that negotiated this capability; legacy stays available as fallback for clients that did not — this migration carries no version-gated behaviour, negotiation is purely by `auth.support`/`auth_ok.support`. Every instrument is addressed by the catalog's full `instrument_key` (see common.v1.json#/$defs/instrumentKey), not a bare SECID. Two data templates cover all payload shapes: `series` (candles and every background dataset, keyed by `time`) and `snapshot` (a cross-instrument slice, keyed by `instrument_key`), both columnar (`$defs/table`: `columns` + `rows`). The same schema id serves both as the reply to a `get` (carries `request_id`) and as an unsolicited push to a live subscription (no `request_id`) — deliberately no `.request`/`.response`/`.push` suffix on schema ids. Every data message carries `received_at` (when AFB received the data from its source) and `tz` (the trading venue's IANA zone that row-level `time`/day boundaries are aligned to). Two independent subscription mechanisms exist, deliberately not unified: `subscribe` is explicit and replace-all for the `quotes` (favorites) and `futures` (screener) snapshot scopes — the client states its whole desired scope every time, the server does not diff against a previous statement; the series (candles/dataset) subscription has no separate message at all — a connection has at most one, and it is simply whatever `get` (target=series) was last sent with a live `end_date` (see `get`'s description). `NaN` never appears on the wire — sources that produce it are converted to `null`. See AFB/docs/ws/market.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketChannelV1Message".
@@ -729,12 +729,7 @@ export type LinkUserSetInput = LinkSetInputShared;
 export type MarketChannelV1Message =
   MarketSubscribe | MarketSubscription | MarketGet | MarketSeries | MarketSnapshot | MarketErrorResponse;
 /**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "MarketPeriod".
- */
-export type MarketPeriod = '1min' | '5min' | '10min' | '15min' | '30min' | '1h' | '2h' | '4h' | '1d';
-/**
- * Reply is `series` (target=series) or `snapshot` (target=snapshot) with the same `request_id`, or `error`.
+ * Reply is `series` (target=series) or `snapshot` (target=snapshot) with the same `request_id`, or `error`. For target=series, `get` doubles as the subscription request: a connection has at most one live series subscription (instrument_key, period, kinds), there is no separate subscribe message for it. If `end_date` is absent, or not earlier than "today" in the instrument's market `tz`, this request ALSO becomes that live subscription, replacing whatever the connection was previously subscribed to — the server then pushes `series` (mode:"merge") for it as new data arrives. A target=series request with `end_date` strictly before today (history paging, e.g. scrolling a chart back) is a pure history fetch and leaves the live subscription untouched.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketGet".
@@ -757,7 +752,7 @@ export type MarketGet = {
    */
   start_date?: string;
   /**
-   * target=series only: last date to fetch, YYYY-MM-DD; omitted means up to the latest available.
+   * target=series only: last date to fetch, YYYY-MM-DD; omitted means up to the latest available. Also decides whether this request becomes the connection's live series subscription — see the parent description.
    */
   end_date?: string;
   /**
@@ -773,13 +768,18 @@ export type MarketGet = {
 };
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketPeriod".
+ */
+export type MarketPeriod = '1min' | '5min' | '10min' | '15min' | '30min' | '1h' | '2h' | '4h' | '1d';
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketSeriesTable".
  */
 export type MarketSeriesTable = MarketTable & {
   kind?: 'candles' | 'positions' | 'trades' | 'hhi' | 'orders';
 };
 /**
- * `rows` are keyed by their first column: `time` (UTC unix seconds) for the series kinds (candles/positions/trades/hhi/orders), `instrument_key` for the snapshot kinds (quote/oi/oi_daily). Beyond that first column, `columns` may list any subset of the kind's allowed fields in any order — a client reads by column name, never by positional index — so the server can add a field later without a schema bump, as long as it stays inside the per-kind enum below. `rows` elements are `number | string | null`; a source value that is NaN is sent as `null`, never as the string "NaN" or JSON NaN.
+ * `rows` are keyed by their first column: `time` (UTC unix seconds) for the series kinds (candles/positions/trades/hhi/orders), `instrument_key` for the snapshot kinds (quote/oi/oi_daily). Beyond that first column, `columns` may list any subset of the kind's allowed fields in any order — a client reads by column name, never by positional index — so the server can add a field later without a schema bump, as long as it stays inside the per-kind enum below. `rows` elements are `number | string | null`; a source value that is NaN is sent as `null`, never as the string "NaN" or JSON NaN. In a `series` message, non-candle dataset rows (positions/trades/hhi/orders) exist only at the timestamps of that same message's `candles` table — the server aligns them: `positions` is snapped to the bucket `[t, next candle)` and carries the candle's `t`; `trades`/`orders`/`hhi` require an exact `time` match. There are no rows outside trading hours (no forward-filled/stale values).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketTable".
@@ -3242,7 +3242,7 @@ export interface LinkStatusPush {
   item: LinkStatusV1;
 }
 /**
- * The client states its whole desired subscription scope every time; the server does not diff against a previous `subscribe`. An empty body — neither `snapshot` nor `series` present — unsubscribes from everything. Reply is `subscription` with the same `request_id`, immediately followed by a `snapshot` push with `mode:"full"` for the accepted snapshot scope.
+ * The client states its whole desired subscription scope every time; the server does not diff against a previous `subscribe`. `quotes` is the favorites price-plaque scope: `instrument_keys` to track. `futures` opts into the futures screener scope: a full quote+oi+oi_daily snapshot of every futures instrument (no per-instrument list — it's all-or-nothing). Neither controls the series (candles/dataset) subscription — that one is driven entirely by `get` (target=series), see its description. An empty body — neither `quotes` nor `futures` present — unsubscribes from both. Reply is `subscription` with the same `request_id`, immediately followed by `snapshot` push(es) with `mode:"full"` for each accepted scope.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketSubscribe".
@@ -3251,87 +3251,24 @@ export interface MarketSubscribe {
   channel: 'market';
   schema: 'afbws.market.subscribe.v1';
   request_id: AfbwsCommonV1_RequestId;
-  snapshot?: MarketSubscriptionSnapshotSpec;
+  quotes?: MarketSubscriptionQuotesSpec;
   /**
-   * @maxItems 8
+   * True to subscribe to the futures screener scope (all futures instruments); omitted or false leaves/unsubscribes it.
    */
-  series?:
-    | []
-    | [MarketSubscriptionSeriesSpec]
-    | [MarketSubscriptionSeriesSpec, MarketSubscriptionSeriesSpec]
-    | [MarketSubscriptionSeriesSpec, MarketSubscriptionSeriesSpec, MarketSubscriptionSeriesSpec]
-    | [
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec
-      ]
-    | [
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec
-      ]
-    | [
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec
-      ]
-    | [
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec
-      ]
-    | [
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec,
-        MarketSubscriptionSeriesSpec
-      ];
+  futures?: boolean;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "MarketSubscriptionSnapshotSpec".
+ * via the `definition` "MarketSubscriptionQuotesSpec".
  */
-export interface MarketSubscriptionSnapshotSpec {
-  /**
-   * @minItems 1
-   */
-  kinds: ['quote' | 'oi' | 'oi_daily', ...('quote' | 'oi' | 'oi_daily')[]];
+export interface MarketSubscriptionQuotesSpec {
   /**
    * @maxItems 2000
    */
   instrument_keys: AfbwsCommonV1_InstrumentKey[];
 }
 /**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "MarketSubscriptionSeriesSpec".
- */
-export interface MarketSubscriptionSeriesSpec {
-  instrument_key: AfbwsCommonV1_InstrumentKey;
-  period: MarketPeriod;
-  /**
-   * @minItems 1
-   */
-  kinds: [
-    'candles' | 'positions' | 'trades' | 'hhi' | 'orders',
-    ...('candles' | 'positions' | 'trades' | 'hhi' | 'orders')[]
-  ];
-}
-/**
- * `snapshot`/`series` are the accepted subset of what was requested (same shapes as subscribe.v1); `rejected` lists instrument keys that could not be resolved/subscribed, with a reason code. Always followed by a `snapshot` push with `mode:"full"` for the accepted snapshot scope.
+ * `quotes` is the accepted subset of what was requested (same shape as subscribe.v1's `quotes`; absent means the quotes scope is empty/unsubscribed). `futures` always reflects the accepted state (true/false), even when the request omitted it. `rejected` lists `quotes.instrument_keys` that could not be resolved/subscribed, with a reason code. Always followed by `snapshot` push(es) with `mode:"full"` for each accepted scope.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketSubscription".
@@ -3340,8 +3277,8 @@ export interface MarketSubscription {
   channel: 'market';
   schema: 'afbws.market.subscription.v1';
   request_id: AfbwsCommonV1_RequestId;
-  snapshot?: MarketSubscriptionSnapshotSpec;
-  series?: MarketSubscriptionSeriesSpec[];
+  quotes?: MarketSubscriptionQuotesSpec;
+  futures: boolean;
   rejected: MarketSubscriptionRejection[];
 }
 /**
@@ -3354,7 +3291,7 @@ export interface MarketSubscriptionRejection {
   message?: string;
 }
 /**
- * Reply to `get` (target=series) when `request_id` is present; unsolicited push to a live series subscription when it is absent.
+ * Reply to `get` (target=series) when `request_id` is present — `mode:"replace"`, the full requested range. Unsolicited push to the connection's live series subscription (see `get`'s description for how a request becomes that subscription) when `request_id` is absent — `mode:"merge"`: `tables` carries rows only at the timestamp(s) of the latest candle(s) (the just-closed bar plus the new one, on a period rollover), for every `kind` of the live subscription, not the whole history.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketSeries".
@@ -3374,7 +3311,7 @@ export interface MarketSeries {
    */
   received_at: string;
   /**
-   * "replace": this is the full answer to a `get` — the client replaces its local copy of this instrument+period+kind range with `tables`. "merge": this is a live push — the client upserts `tables` rows by `time` into its existing copy (the latest bar, or dataset catch-up).
+   * "replace": this is the full answer to a `get` — the client replaces its local copy of this instrument+period+kind range with `tables`. "merge": this is a live push to the connection's series subscription — `tables` rows are only at the latest candle time(s) (closed bar + new bar on a period rollover); the client upserts them by `time` into its existing copy.
    */
   mode: 'replace' | 'merge';
   /**
@@ -3396,7 +3333,7 @@ export interface MarketSeries {
   tables: MarketSeriesTable[];
 }
 /**
- * Reply to `get` (target=snapshot) when `request_id` is present; unsolicited push to a live snapshot subscription when it is absent.
+ * Reply to `get` (target=snapshot) when `request_id` is present; unsolicited push to the `quotes` or `futures` subscription scope when it is absent (see `scope`).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketSnapshot".
@@ -3406,6 +3343,10 @@ export interface MarketSnapshot {
   schema: 'afbws.market.snapshot.v1';
   request_id?: AfbwsCommonV1_RequestId;
   /**
+   * Which client-side cache this snapshot replaces/updates. "quotes": the favorites subscription (accepted `subscribe.quotes`) — `mode:"full"` right after `subscribe`, then `mode:"update"` with only the quote rows that changed. "futures": the futures screener scope (accepted `subscribe.futures`) — always `mode:"full"`, `tables` covering quote + oi + oi_daily for every futures instrument; sent right after `subscribe` and again on every futures-positions (futoi) refresh from the broker (~5 min). "get": the reply to a one-shot `get` (target=snapshot) — carries `request_id`.
+   */
+  scope: 'quotes' | 'futures' | 'get';
+  /**
    * IANA timezone of the trading venue, used to align `oi_daily`'s midnight `time` to the trading day.
    */
   tz: string;
@@ -3414,7 +3355,7 @@ export interface MarketSnapshot {
    */
   received_at: string;
   /**
-   * "full": the complete answer to a `get`, or the initial push right after `subscribe` — the client replaces its local snapshot for the accepted scope. "update": a live push carrying only the rows that changed since the last full/update.
+   * "full": the complete answer to a `get`, or a full refresh of a subscription scope — the client replaces its local snapshot for that `scope`. "update": a live push carrying only the rows that changed since the last full/update — see `scope` for which scopes ever send `update`.
    */
   mode: 'full' | 'update';
   tables: MarketSnapshotTable[];

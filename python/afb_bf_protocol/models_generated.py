@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 08085836d6e33f955748919c07b90489bc7d61949fb3c428b82a03750bb474fb
+# source-hash: c895145029c0452aa95e563a474ec5a9b9585d813ea3c4b71d3511e1108c58a4
 
 from __future__ import annotations
 
@@ -2890,7 +2890,7 @@ class MarketErrorResponse(TypedDict):
 
 class MarketGet(TypedDict):
     """
-    Reply is `series` (target=series) or `snapshot` (target=snapshot) with the same `request_id`, or `error`.
+    Reply is `series` (target=series) or `snapshot` (target=snapshot) with the same `request_id`, or `error`. For target=series, `get` doubles as the subscription request: a connection has at most one live series subscription (instrument_key, period, kinds), there is no separate subscribe message for it. If `end_date` is absent, or not earlier than "today" in the instrument's market `tz`, this request ALSO becomes that live subscription, replacing whatever the connection was previously subscribed to — the server then pushes `series` (mode:"merge") for it as new data arrives. A target=series request with `end_date` strictly before today (history paging, e.g. scrolling a chart back) is a pure history fetch and leaves the live subscription untouched.
     """
 
     channel: Literal["market"]
@@ -2913,12 +2913,13 @@ MarketPeriod: TypeAlias = Literal[
 
 class MarketSnapshot(TypedDict):
     """
-    Reply to `get` (target=snapshot) when `request_id` is present; unsolicited push to a live snapshot subscription when it is absent.
+    Reply to `get` (target=snapshot) when `request_id` is present; unsolicited push to the `quotes` or `futures` subscription scope when it is absent (see `scope`).
     """
 
     channel: Literal["market"]
     schema: Literal["afbws.market.snapshot.v1"]
     request_id: NotRequired[AfbwsCommonV1RequestId]
+    scope: Literal["quotes", "futures", "get"]
     tz: str
     received_at: str
     mode: Literal["full", "update"]
@@ -2927,27 +2928,31 @@ class MarketSnapshot(TypedDict):
 
 class MarketSubscribe(TypedDict):
     """
-    The client states its whole desired subscription scope every time; the server does not diff against a previous `subscribe`. An empty body — neither `snapshot` nor `series` present — unsubscribes from everything. Reply is `subscription` with the same `request_id`, immediately followed by a `snapshot` push with `mode:"full"` for the accepted snapshot scope.
+    The client states its whole desired subscription scope every time; the server does not diff against a previous `subscribe`. `quotes` is the favorites price-plaque scope: `instrument_keys` to track. `futures` opts into the futures screener scope: a full quote+oi+oi_daily snapshot of every futures instrument (no per-instrument list — it's all-or-nothing). Neither controls the series (candles/dataset) subscription — that one is driven entirely by `get` (target=series), see its description. An empty body — neither `quotes` nor `futures` present — unsubscribes from both. Reply is `subscription` with the same `request_id`, immediately followed by `snapshot` push(es) with `mode:"full"` for each accepted scope.
     """
 
     channel: Literal["market"]
     schema: Literal["afbws.market.subscribe.v1"]
     request_id: AfbwsCommonV1RequestId
-    snapshot: NotRequired[MarketSubscriptionSnapshotSpec]
-    series: NotRequired[list[MarketSubscriptionSeriesSpec]]
+    quotes: NotRequired[MarketSubscriptionQuotesSpec]
+    futures: NotRequired[bool]
 
 
 class MarketSubscription(TypedDict):
     """
-    `snapshot`/`series` are the accepted subset of what was requested (same shapes as subscribe.v1); `rejected` lists instrument keys that could not be resolved/subscribed, with a reason code. Always followed by a `snapshot` push with `mode:"full"` for the accepted snapshot scope.
+    `quotes` is the accepted subset of what was requested (same shape as subscribe.v1's `quotes`; absent means the quotes scope is empty/unsubscribed). `futures` always reflects the accepted state (true/false), even when the request omitted it. `rejected` lists `quotes.instrument_keys` that could not be resolved/subscribed, with a reason code. Always followed by `snapshot` push(es) with `mode:"full"` for each accepted scope.
     """
 
     channel: Literal["market"]
     schema: Literal["afbws.market.subscription.v1"]
     request_id: AfbwsCommonV1RequestId
-    snapshot: NotRequired[MarketSubscriptionSnapshotSpec]
-    series: NotRequired[list[MarketSubscriptionSeriesSpec]]
+    quotes: NotRequired[MarketSubscriptionQuotesSpec]
+    futures: bool
     rejected: list[MarketSubscriptionRejection]
+
+
+class MarketSubscriptionQuotesSpec(TypedDict):
+    instrument_keys: list[AfbwsCommonV1InstrumentKey]
 
 
 class MarketSubscriptionRejection(TypedDict):
@@ -2956,20 +2961,9 @@ class MarketSubscriptionRejection(TypedDict):
     message: NotRequired[str]
 
 
-class MarketSubscriptionSeriesSpec(TypedDict):
-    instrument_key: AfbwsCommonV1InstrumentKey
-    period: MarketPeriod
-    kinds: list[Literal["candles", "positions", "trades", "hhi", "orders"]]
-
-
-class MarketSubscriptionSnapshotSpec(TypedDict):
-    kinds: list[Literal["quote", "oi", "oi_daily"]]
-    instrument_keys: list[AfbwsCommonV1InstrumentKey]
-
-
 class MarketTable(TypedDict):
     """
-    `rows` are keyed by their first column: `time` (UTC unix seconds) for the series kinds (candles/positions/trades/hhi/orders), `instrument_key` for the snapshot kinds (quote/oi/oi_daily). Beyond that first column, `columns` may list any subset of the kind's allowed fields in any order — a client reads by column name, never by positional index — so the server can add a field later without a schema bump, as long as it stays inside the per-kind enum below. `rows` elements are `number | string | null`; a source value that is NaN is sent as `null`, never as the string "NaN" or JSON NaN.
+    `rows` are keyed by their first column: `time` (UTC unix seconds) for the series kinds (candles/positions/trades/hhi/orders), `instrument_key` for the snapshot kinds (quote/oi/oi_daily). Beyond that first column, `columns` may list any subset of the kind's allowed fields in any order — a client reads by column name, never by positional index — so the server can add a field later without a schema bump, as long as it stays inside the per-kind enum below. `rows` elements are `number | string | null`; a source value that is NaN is sent as `null`, never as the string "NaN" or JSON NaN. In a `series` message, non-candle dataset rows (positions/trades/hhi/orders) exist only at the timestamps of that same message's `candles` table — the server aligns them: `positions` is snapped to the bucket `[t, next candle)` and carries the candle's `t`; `trades`/`orders`/`hhi` require an exact `time` match. There are no rows outside trading hours (no forward-filled/stale values).
     """
 
     kind: Literal[

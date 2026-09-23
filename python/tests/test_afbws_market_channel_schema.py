@@ -51,6 +51,7 @@ def _quote_snapshot_msg(**overrides):
         "channel": "market",
         "schema": "afbws.market.snapshot.v1",
         "request_id": "req-2",
+        "scope": "get",
         "tz": "Europe/Moscow",
         "received_at": "2026-09-23T10:00:00+03:00",
         "mode": "full",
@@ -294,7 +295,7 @@ def test_snapshot_valid_reply(registry):
 
 
 def test_snapshot_valid_push_no_request_id(registry):
-    msg = _quote_snapshot_msg(mode="update")
+    msg = _quote_snapshot_msg(mode="update", scope="quotes")
     del msg["request_id"]
     _validator("snapshot", registry).validate(msg)  # does not raise
 
@@ -306,6 +307,65 @@ def test_snapshot_missing_tz_rejected(registry):
     del msg["tz"]
     with pytest.raises(ValidationError):
         _validator("snapshot", registry).validate(msg)
+
+
+def test_snapshot_missing_scope_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = _quote_snapshot_msg()
+    del msg["scope"]
+    with pytest.raises(ValidationError):
+        _validator("snapshot", registry).validate(msg)
+
+
+def test_snapshot_unknown_scope_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = _quote_snapshot_msg(scope="favorites")
+    with pytest.raises(ValidationError):
+        _validator("snapshot", registry).validate(msg)
+
+
+def test_snapshot_scope_quotes_full_valid(registry):
+    msg = _quote_snapshot_msg(scope="quotes", mode="full")
+    del msg["request_id"]
+    _validator("snapshot", registry).validate(msg)  # does not raise
+
+
+def test_snapshot_scope_quotes_update_valid(registry):
+    msg = _quote_snapshot_msg(scope="quotes", mode="update")
+    del msg["request_id"]
+    _validator("snapshot", registry).validate(msg)  # does not raise
+
+
+def test_snapshot_scope_futures_full_valid(registry):
+    msg = _quote_snapshot_msg(scope="futures", mode="full")
+    del msg["request_id"]
+    msg["tables"] = [
+        {
+            "kind": "quote",
+            "columns": ["instrument_key", "last"],
+            "rows": [["MISX:RFUD:IMOEXF", 3500.0]],
+        },
+        {
+            "kind": "oi",
+            "columns": ["instrument_key", "time", "long", "short"],
+            "rows": [["MISX:RFUD:IMOEXF", 1758610800, 100, 90]],
+        },
+        {
+            "kind": "oi_daily",
+            "columns": ["instrument_key", "time", "long", "short"],
+            "rows": [["MISX:RFUD:IMOEXF", 1758585600, 100, 90]],
+        },
+    ]
+    _validator("snapshot", registry).validate(msg)  # does not raise
+
+
+def test_snapshot_scope_get_requires_no_particular_mode(registry):
+    """scope="get" is the one-shot get(target=snapshot) reply; unlike quotes/
+    futures it carries request_id by default (see _quote_snapshot_msg) but
+    the schema does not itself tie scope to mode or request_id presence."""
+    _validator("snapshot", registry).validate(_quote_snapshot_msg(scope="get"))  # does not raise
 
 
 def test_snapshot_series_kind_table_rejected(registry):
@@ -338,8 +398,38 @@ def test_subscribe_valid(registry):
         "channel": "market",
         "schema": "afbws.market.subscribe.v1",
         "request_id": "req-3",
-        "snapshot": {"kinds": ["quote", "oi"], "instrument_keys": ["MISX:TQBR:SBER"]},
-        "series": [{"instrument_key": "MISX:TQBR:SBER", "period": "1min", "kinds": ["candles", "trades"]}],
+        "quotes": {"instrument_keys": ["MISX:TQBR:SBER", "MISX:TQBR:GAZP"]},
+        "futures": True,
+    }
+    _validator("subscribe", registry).validate(msg)  # does not raise
+
+
+def test_subscribe_quotes_only_valid(registry):
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.subscribe.v1",
+        "request_id": "req-3b",
+        "quotes": {"instrument_keys": ["MISX:TQBR:SBER"]},
+    }
+    _validator("subscribe", registry).validate(msg)  # does not raise: futures omitted
+
+
+def test_subscribe_futures_only_valid(registry):
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.subscribe.v1",
+        "request_id": "req-3c",
+        "futures": True,
+    }
+    _validator("subscribe", registry).validate(msg)  # does not raise: quotes omitted
+
+
+def test_subscribe_futures_false_valid(registry):
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.subscribe.v1",
+        "request_id": "req-3d",
+        "futures": False,
     }
     _validator("subscribe", registry).validate(msg)  # does not raise
 
@@ -349,29 +439,71 @@ def test_subscribe_empty_body_valid_unsubscribe_all(registry):
     _validator("subscribe", registry).validate(msg)  # does not raise
 
 
-def test_subscribe_series_maxitems_rejected(registry):
+def test_subscribe_quotes_instrument_keys_maxitems_rejected(registry):
     from jsonschema import ValidationError
 
     msg = {
         "channel": "market",
         "schema": "afbws.market.subscribe.v1",
         "request_id": "req-5",
-        "series": [
-            {"instrument_key": f"MISX:TQBR:T{i}", "period": "1min", "kinds": ["candles"]} for i in range(9)
-        ],
+        "quotes": {"instrument_keys": [f"MISX:TQBR:T{i}" for i in range(2001)]},
     }
     with pytest.raises(ValidationError):
         _validator("subscribe", registry).validate(msg)
 
 
-def test_subscribe_snapshot_kinds_empty_rejected(registry):
+def test_subscribe_quotes_missing_instrument_keys_rejected(registry):
     from jsonschema import ValidationError
 
     msg = {
         "channel": "market",
         "schema": "afbws.market.subscribe.v1",
         "request_id": "req-6",
-        "snapshot": {"kinds": [], "instrument_keys": []},
+        "quotes": {},
+    }
+    with pytest.raises(ValidationError):
+        _validator("subscribe", registry).validate(msg)
+
+
+def test_subscribe_futures_non_boolean_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.subscribe.v1",
+        "request_id": "req-7",
+        "futures": "true",
+    }
+    with pytest.raises(ValidationError):
+        _validator("subscribe", registry).validate(msg)
+
+
+def test_subscribe_removed_series_field_rejected(registry):
+    """`series` was removed from subscribe.v1 in revision 2 -- the series
+    (candles/dataset) subscription is now driven entirely by `get`
+    (target=series), see get.v1's description."""
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.subscribe.v1",
+        "request_id": "req-8",
+        "series": [{"instrument_key": "MISX:TQBR:SBER", "period": "1min", "kinds": ["candles"]}],
+    }
+    with pytest.raises(ValidationError):
+        _validator("subscribe", registry).validate(msg)
+
+
+def test_subscribe_removed_snapshot_kinds_field_rejected(registry):
+    """The old `snapshot{kinds,instrument_keys}` shape was replaced by
+    `quotes{instrument_keys}` (no `kinds`: quotes is always quote rows)."""
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.subscribe.v1",
+        "request_id": "req-9",
+        "snapshot": {"kinds": ["quote"], "instrument_keys": ["MISX:TQBR:SBER"]},
     }
     with pytest.raises(ValidationError):
         _validator("subscribe", registry).validate(msg)
@@ -382,11 +514,22 @@ def test_subscription_valid_with_rejected(registry):
         "channel": "market",
         "schema": "afbws.market.subscription.v1",
         "request_id": "req-3",
-        "snapshot": {"kinds": ["quote"], "instrument_keys": ["MISX:TQBR:SBER"]},
-        "series": [],
+        "quotes": {"instrument_keys": ["MISX:TQBR:SBER"]},
+        "futures": True,
         "rejected": [{"instrument_key": "MISX:BOGUS:XXX", "code": "not_found", "message": "unknown instrument"}],
     }
     _validator("subscription", registry).validate(msg)  # does not raise
+
+
+def test_subscription_futures_false_and_no_quotes_valid(registry):
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.subscription.v1",
+        "request_id": "req-3e",
+        "futures": False,
+        "rejected": [],
+    }
+    _validator("subscription", registry).validate(msg)  # does not raise: quotes omitted means empty scope
 
 
 def test_subscription_missing_rejected_field_rejected(registry):
@@ -396,6 +539,22 @@ def test_subscription_missing_rejected_field_rejected(registry):
         "channel": "market",
         "schema": "afbws.market.subscription.v1",
         "request_id": "req-3",
+        "futures": False,
+    }
+    with pytest.raises(ValidationError):
+        _validator("subscription", registry).validate(msg)
+
+
+def test_subscription_missing_futures_rejected(registry):
+    """`futures` is required in subscription.v1 -- it always reflects the
+    accepted state, even when the subscribe request omitted it."""
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.subscription.v1",
+        "request_id": "req-3",
+        "rejected": [],
     }
     with pytest.raises(ValidationError):
         _validator("subscription", registry).validate(msg)
@@ -574,6 +733,7 @@ def test_root_oneof_dispatches_each_message_kind(registry):
             "channel": "market",
             "schema": "afbws.market.subscription.v1",
             "request_id": "r",
+            "futures": False,
             "rejected": [],
         }
     )
