@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 9c0f59fda6d449babd66ee3f458ae9bc7c9cfbe8bd36d4d58ec008cdb1ed3817
+# source-hash: 08085836d6e33f955748919c07b90489bc7d61949fb3c428b82a03750bb474fb
 
 from __future__ import annotations
 
@@ -169,6 +169,9 @@ AfbwsCommonV1ErrorCode: TypeAlias = Literal[
     "bf_offline",
     "unsupported_action",
 ]
+
+
+AfbwsCommonV1InstrumentKey: TypeAlias = str
 
 
 AfbwsCommonV1RequestId: TypeAlias = str
@@ -723,6 +726,9 @@ class ChangedItem(TypedDict):
     average_price: NotRequired[str]
     quantity: NotRequired[int]
     symbol: NotRequired[str]
+
+
+Column: TypeAlias = str
 
 
 CommonV1Root: TypeAlias = Any
@@ -1703,6 +1709,8 @@ DealV2ConditionNode: TypeAlias = (
     | DealV2ConditionNode12
     | DealV2ConditionNode13
 )
+
+
 """
 Wire-level condition node: same vocabulary as condition.v1.json#/$defs/conditionNode, plus the mandatory `node_type` envelope marker used on the AFB<->BF wire (trade-plan conditions, which never cross the wire, don't carry it).
 """
@@ -1982,7 +1990,7 @@ class InstrumentAssetMemberInput(TypedDict):
     """
 
     kind: Literal["listing", "derivative"]
-    instrument_key: NotRequired[str]
+    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
     derivative: NotRequired[str]
 
 
@@ -2055,7 +2063,7 @@ class InstrumentCatalogAssetMember(TypedDict):
     """
 
     kind: Literal["listing", "derivative"]
-    instrument_key: NotRequired[str]
+    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
     derivative: NotRequired[str]
     code: NotRequired[str]
     label: NotRequired[str]
@@ -2246,7 +2254,7 @@ class InstrumentGetResponse(TypedDict):
 class InstrumentInventoryListingEntry(TypedDict):
     kind: Literal["listing"]
     instrument_type: Literal["stock", "currency", "index", "futures", "option"]
-    instrument_key: str
+    instrument_key: AfbwsCommonV1InstrumentKey
     ticker: str
     exchange: str
     board: str
@@ -2871,6 +2879,144 @@ class MarketData(TypedDict):
     timeframes: NotRequired[list[ConditionV1Timeframe]]
 
 
+class MarketErrorResponse(TypedDict):
+    channel: Literal["market"]
+    schema: Literal["afbws.market.error.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    code: AfbwsCommonV1ErrorCode
+    message: str
+    details: NotRequired[dict[str, Any]]
+
+
+class MarketGet(TypedDict):
+    """
+    Reply is `series` (target=series) or `snapshot` (target=snapshot) with the same `request_id`, or `error`.
+    """
+
+    channel: Literal["market"]
+    schema: Literal["afbws.market.get.v1"]
+    request_id: AfbwsCommonV1RequestId
+    target: Literal["series", "snapshot"]
+    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    period: NotRequired[MarketPeriod]
+    kinds: NotRequired[list[str]]
+    start_date: NotRequired[str]
+    end_date: NotRequired[str]
+    base: NotRequired[str]
+    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
+
+
+MarketPeriod: TypeAlias = Literal[
+    "1min", "5min", "10min", "15min", "30min", "1h", "2h", "4h", "1d"
+]
+
+
+class MarketSnapshot(TypedDict):
+    """
+    Reply to `get` (target=snapshot) when `request_id` is present; unsolicited push to a live snapshot subscription when it is absent.
+    """
+
+    channel: Literal["market"]
+    schema: Literal["afbws.market.snapshot.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    tz: str
+    received_at: str
+    mode: Literal["full", "update"]
+    tables: list[MarketSnapshotTable]
+
+
+class MarketSubscribe(TypedDict):
+    """
+    The client states its whole desired subscription scope every time; the server does not diff against a previous `subscribe`. An empty body — neither `snapshot` nor `series` present — unsubscribes from everything. Reply is `subscription` with the same `request_id`, immediately followed by a `snapshot` push with `mode:"full"` for the accepted snapshot scope.
+    """
+
+    channel: Literal["market"]
+    schema: Literal["afbws.market.subscribe.v1"]
+    request_id: AfbwsCommonV1RequestId
+    snapshot: NotRequired[MarketSubscriptionSnapshotSpec]
+    series: NotRequired[list[MarketSubscriptionSeriesSpec]]
+
+
+class MarketSubscription(TypedDict):
+    """
+    `snapshot`/`series` are the accepted subset of what was requested (same shapes as subscribe.v1); `rejected` lists instrument keys that could not be resolved/subscribed, with a reason code. Always followed by a `snapshot` push with `mode:"full"` for the accepted snapshot scope.
+    """
+
+    channel: Literal["market"]
+    schema: Literal["afbws.market.subscription.v1"]
+    request_id: AfbwsCommonV1RequestId
+    snapshot: NotRequired[MarketSubscriptionSnapshotSpec]
+    series: NotRequired[list[MarketSubscriptionSeriesSpec]]
+    rejected: list[MarketSubscriptionRejection]
+
+
+class MarketSubscriptionRejection(TypedDict):
+    instrument_key: AfbwsCommonV1InstrumentKey
+    code: AfbwsCommonV1ErrorCode
+    message: NotRequired[str]
+
+
+class MarketSubscriptionSeriesSpec(TypedDict):
+    instrument_key: AfbwsCommonV1InstrumentKey
+    period: MarketPeriod
+    kinds: list[Literal["candles", "positions", "trades", "hhi", "orders"]]
+
+
+class MarketSubscriptionSnapshotSpec(TypedDict):
+    kinds: list[Literal["quote", "oi", "oi_daily"]]
+    instrument_keys: list[AfbwsCommonV1InstrumentKey]
+
+
+class MarketTable(TypedDict):
+    """
+    `rows` are keyed by their first column: `time` (UTC unix seconds) for the series kinds (candles/positions/trades/hhi/orders), `instrument_key` for the snapshot kinds (quote/oi/oi_daily). Beyond that first column, `columns` may list any subset of the kind's allowed fields in any order — a client reads by column name, never by positional index — so the server can add a field later without a schema bump, as long as it stays inside the per-kind enum below. `rows` elements are `number | string | null`; a source value that is NaN is sent as `null`, never as the string "NaN" or JSON NaN.
+    """
+
+    kind: Literal[
+        "candles", "positions", "trades", "hhi", "orders", "quote", "oi", "oi_daily"
+    ]
+    columns: list[Column]
+    rows: list[list[float | str | None]]
+
+
+class MarketSeriesTable(MarketTable):
+    kind: NotRequired[Literal["candles", "positions", "trades", "hhi", "orders"]]
+
+
+MarketSeries = TypedDict(
+    "MarketSeries",
+    {
+        "channel": Literal["market"],
+        "schema": Literal["afbws.market.series.v1"],
+        "request_id": NotRequired[AfbwsCommonV1RequestId],
+        "instrument_key": AfbwsCommonV1InstrumentKey,
+        "period": MarketPeriod,
+        "tz": str,
+        "received_at": str,
+        "mode": Literal["replace", "merge"],
+        "from": NotRequired[str],
+        "to": NotRequired[str],
+        "source": NotRequired[Literal["broker", "cache"]],
+        "message": NotRequired[str],
+        "tables": list[MarketSeriesTable],
+    },
+)
+
+
+MarketChannelV1Message: TypeAlias = (
+    MarketSubscribe
+    | MarketSubscription
+    | MarketGet
+    | MarketSeries
+    | MarketSnapshot
+    | MarketErrorResponse
+)
+
+
+class MarketSnapshotTable(MarketTable):
+    kind: NotRequired[Literal["quote", "oi", "oi_daily"]]
+
+
 class Meta(TypedDict):
     brokers: list[str]
 
@@ -3442,3 +3588,4 @@ class Validation(TypedDict):
     quantity_lots: NotRequired[int]
     entry_price: NotRequired[str]
     required_cash: NotRequired[str]
+

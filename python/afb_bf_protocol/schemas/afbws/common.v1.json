@@ -22,6 +22,11 @@
         "bf_offline",
         "unsupported_action"
       ]
+    },
+    "instrumentKey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel."
     }
   }
 }

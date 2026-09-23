@@ -47,6 +47,41 @@ def _source_hash() -> str:
     return digest.hexdigest()
 
 
+def test_models_generated_is_importable_with_market_types():
+    """Regression guard for a real incident: `MarketSeries` needs functional
+    `TypedDict("MarketSeries", {...})` syntax (its `from` field collides with
+    the Python keyword), and the dict literal passed to that call is
+    evaluated eagerly at import time — unlike a `class X(TypedDict): field:
+    Y` body, which this module's `from __future__ import annotations` makes
+    lazy. `--keep-model-order` (passed to datamodel-codegen) does not
+    reliably keep a functional TypedDict after every type it references, so
+    a forward reference inside one (e.g. to the `tables` field's row-table
+    type) previously raised `NameError` at import time, breaking every
+    import of `afb_bf_protocol` downstream (AFB). See
+    `_reorder_eager_top_level_deps` in `tools/generate.py`, which fixes the
+    ordering at generation time rather than by hand-editing this file. This
+    test actually imports the module (not just reads its source) so any
+    future regression of the same kind fails loudly here instead of only at
+    AFB's own import site.
+    """
+    import afb_bf_protocol.models_generated as models_generated
+
+    for name in (
+        "MarketChannelV1Message",
+        "MarketTable",
+        "MarketPeriod",
+        "MarketSeriesTable",
+        "MarketSnapshotTable",
+        "MarketSeries",
+        "MarketSnapshot",
+        "MarketSubscribe",
+        "MarketSubscription",
+        "MarketGet",
+        "MarketErrorResponse",
+    ):
+        assert hasattr(models_generated, name), f"models_generated.{name} is missing"
+
+
 def test_models_generated_source_hash_matches_schemas():
     on_disk = _models_generated_path().read_text()
     match = re.search(r"source-hash: ([0-9a-f]{64})", on_disk)

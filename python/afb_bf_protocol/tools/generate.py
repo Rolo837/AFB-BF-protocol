@@ -13,6 +13,7 @@ Run:  ``python -m afb_bf_protocol.tools.generate``  (or ``afb-bf-protocol-genera
 """
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import re
@@ -331,6 +332,107 @@ def _schemas_source_hash(root: Path) -> str:
     return digest.hexdigest()
 
 
+def _reorder_eager_top_level_deps(body: str) -> str:
+    """Reorder this datamodel-codegen module's top-level statements so every
+    name used in an EAGERLY evaluated position — a class's base list, or the
+    value of a plain/annotated assignment (`Name: TypeAlias = A | B`, or the
+    functional `Name = TypedDict("Name", {...})` fallback datamodel-codegen
+    emits whenever a field collides with a Python keyword, e.g. a `from`
+    field — legit protocol vocabulary we can't rename away) — is defined
+    earlier in the file than its use.
+
+    Field-level annotations inside a `class X(TypedDict): field: Y` body are
+    NOT eager: this module's `from __future__ import annotations` makes them
+    strings, resolved lazily on demand, so they impose no ordering
+    requirement and are correctly ignored here (only class *base lists* and
+    assignment *values* are real, immediately-executed expressions).
+
+    `--keep-model-order` (passed to datamodel-codegen) does not reliably
+    keep every named $def in source order — a nested/dependent type can
+    still be emitted out of place — which otherwise surfaces as a
+    `NameError` at import time. A dependency-driven topological sort (stable
+    against the original order for anything not forced to move) is robust
+    to whatever internal ordering datamodel-codegen happens to produce,
+    rather than depending on guessing or steering it. A no-op if the module
+    is already validly ordered.
+
+    Uses `ast` (not string/paren scanning) throughout, so parens/braces
+    inside string literals (docstrings, schema descriptions) can never be
+    mistaken for code structure.
+    """
+    tree = ast.parse(body)
+
+    model_types = (ast.ClassDef, ast.Assign, ast.AnnAssign)
+    header_end = next(
+        (i for i, node in enumerate(tree.body) if isinstance(node, model_types)), None
+    )
+    if header_end is None:
+        return body  # nothing to reorder (shouldn't happen for real output)
+    model_nodes = tree.body[header_end:]
+
+    def defined_name(node: ast.stmt) -> str | None:
+        if isinstance(node, ast.ClassDef):
+            return node.name
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            return node.targets[0].id
+        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            return node.target.id
+        return None
+
+    def eager_dep_names(node: ast.stmt) -> set[str]:
+        exprs: list[ast.expr] = []
+        if isinstance(node, ast.ClassDef):
+            exprs.extend(node.bases)
+        elif isinstance(node, ast.Assign):
+            exprs.append(node.value)
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            exprs.append(node.value)
+        return {sub.id for expr in exprs for sub in ast.walk(expr) if isinstance(sub, ast.Name)}
+
+    name_to_index: dict[str, int] = {}
+    for i, node in enumerate(model_nodes):
+        name = defined_name(node)
+        if name is not None:
+            name_to_index[name] = i
+
+    n = len(model_nodes)
+    deps: list[set[int]] = []
+    for i, node in enumerate(model_nodes):
+        dep_indices = {name_to_index[dep] for dep in eager_dep_names(node) if dep in name_to_index}
+        dep_indices.discard(i)  # a node cannot depend on itself
+        deps.append(dep_indices)
+
+    # Stable topological sort: repeatedly emit the earliest-original-index
+    # node whose dependencies are already emitted.
+    order: list[int] = []
+    emitted: set[int] = set()
+    remaining = set(range(n))
+    while remaining:
+        progressed = False
+        for i in sorted(remaining):
+            if deps[i] <= emitted:
+                order.append(i)
+                emitted.add(i)
+                remaining.discard(i)
+                progressed = True
+                break
+        if not progressed:
+            # A real dependency cycle should not occur in codegen output
+            # (it would already be invalid Python); bail out defensively by
+            # appending whatever's left in original order rather than
+            # looping forever or crashing the generator.
+            order.extend(sorted(remaining))
+            break
+
+    if order == list(range(n)):
+        return body  # already validly ordered
+
+    lines = body.splitlines(keepends=True)
+    header_text = "".join(lines[: model_nodes[0].lineno - 1])
+    pieces = [ast.get_source_segment(body, model_nodes[i]).rstrip("\n") + "\n" for i in order]
+    return header_text + "\n\n".join(pieces) + "\n"
+
+
 def generate_pymodels(root: Path | None = None) -> bool:
     """Run datamodel-codegen to render python/afb_bf_protocol/models_generated.py
     (TypedDicts) from spec/.generated/bundled-schema.json — the same flattened,
@@ -384,6 +486,7 @@ def generate_pymodels(root: Path | None = None) -> bool:
     # Drop datamodel-codegen's own two-line header — replaced by our banner
     # (DO NOT EDIT + source-hash, matching the models.ts convention).
     body = re.sub(r"^# generated by datamodel-codegen:\n#[^\n]*\n\n?", "", body)
+    body = _reorder_eager_top_level_deps(body)
     banner = (
         "# DO NOT EDIT BY HAND — generated from spec/schemas/ (via\n"
         "# spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from\n"

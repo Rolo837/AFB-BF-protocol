@@ -61,6 +61,11 @@
     },
     "chart_toolbar": { "$ref": "#/$defs/chartToolbar" },
     "services_filters": { "$ref": "#/$defs/servicesFilters" },
-    "trade_plan_default_capital_rub": { "type": "number" }
+    "trade_plan_default_capital_rub": { "type": "number" },
+    "futures_days_to_expiration": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Days-to-expiration threshold the frontend uses to pick the front futures contract of a derivative: the member with the minimum expiration not earlier than today + N. Default 2, matching `securities.days_to_expiration` in AFB's `config/afb.yaml`."
+    }
   }
 }

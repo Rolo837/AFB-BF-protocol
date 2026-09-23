@@ -135,7 +135,7 @@
       "additionalProperties": false,
       "properties": {
         "kind": { "enum": ["listing", "derivative"] },
-        "instrument_key": { "type": "string", "minLength": 1, "description": "For `kind=listing`: full composite key of the member listing, joining to `items[]`. Case-sensitive, never normalized." },
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey", "description": "For `kind=listing`: full composite key of the member listing, joining to `items[]`." },
         "derivative": { "type": "string", "minLength": 1, "description": "For `kind=derivative`: the derivative's `MIC:CODE` code, joining to `catalogDerivative.derivative`. Case-sensitive, never normalized." },
         "code": { "type": "string", "minLength": 1, "description": "Short badge token — never identity, never a join key. The server forms it (a bare ticker / series code); the client only paints it on the composition plaque. To identify or join a member use `instrument_key` / `derivative`." },
         "label": { "type": "string", "description": "Display label for plaques (shortname/name; backend may fall back to code)." },
@@ -316,7 +316,7 @@
       "properties": {
         "kind": { "const": "listing" },
         "instrument_type": { "enum": ["stock", "currency", "index", "futures", "option"] },
-        "instrument_key": { "type": "string", "minLength": 1 },
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
         "ticker": { "type": "string", "minLength": 1 },
         "exchange": { "type": "string", "minLength": 1 },
         "board": { "type": "string" },
@@ -443,7 +443,7 @@
       "additionalProperties": false,
       "properties": {
         "kind": { "enum": ["listing", "derivative"] },
-        "instrument_key": { "type": "string", "minLength": 1, "description": "For `kind=listing` — full composite key. Case-sensitive, never normalized." },
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey", "description": "For `kind=listing` — full composite key." },
         "derivative": { "type": "string", "minLength": 1, "description": "For `kind=derivative` — the derivative's `MIC:CODE` code. Case-sensitive, never normalized." }
       },
       "allOf": [

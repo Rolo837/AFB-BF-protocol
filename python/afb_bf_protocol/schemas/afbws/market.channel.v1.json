@@ -1,0 +1,439 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/market.channel.v1.json",
+  "x-afbws-support-id": "afbws.market.channel.v1",
+  "title": "market channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.market.channel.v1). Replaces the legacy `candles` channel (klines + background datasets positions/trades/hhi/orders), `stream/favorites`, `stream/positions`, and `securities/marketdata|futures|positions` for clients that negotiated this capability; legacy stays available as fallback for clients that did not — this migration carries no version-gated behaviour, negotiation is purely by `auth.support`/`auth_ok.support`. Every instrument is addressed by the catalog's full `instrument_key` (see common.v1.json#/$defs/instrumentKey), not a bare SECID. Two data templates cover all payload shapes: `series` (candles and every background dataset, keyed by `time`) and `snapshot` (a cross-instrument slice, keyed by `instrument_key`), both columnar (`$defs/table`: `columns` + `rows`). The same schema id serves both as the reply to a `get` (carries `request_id`) and as an unsolicited push to a live subscription (no `request_id`) — deliberately no `.request`/`.response`/`.push` suffix on schema ids. Every data message carries `received_at` (when AFB received the data from its source) and `tz` (the trading venue's IANA zone that row-level `time`/day boundaries are aligned to). Subscriptions (`subscribe`) are explicit and replace-all: the client states its whole desired `snapshot`/`series` scope every time, the server does not diff against a previous statement. `NaN` never appears on the wire — sources that produce it are converted to `null`. See AFB/docs/ws/market.md.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/subscribe" },
+    { "$ref": "#/$defs/subscription" },
+    { "$ref": "#/$defs/get" },
+    { "$ref": "#/$defs/series" },
+    { "$ref": "#/$defs/snapshot" },
+    { "$ref": "#/$defs/error" }
+  ],
+  "$defs": {
+    "table": {
+      "type": "object",
+      "title": "Columnar data block for one dataset `kind`.",
+      "description": "`rows` are keyed by their first column: `time` (UTC unix seconds) for the series kinds (candles/positions/trades/hhi/orders), `instrument_key` for the snapshot kinds (quote/oi/oi_daily). Beyond that first column, `columns` may list any subset of the kind's allowed fields in any order — a client reads by column name, never by positional index — so the server can add a field later without a schema bump, as long as it stays inside the per-kind enum below. `rows` elements are `number | string | null`; a source value that is NaN is sent as `null`, never as the string \"NaN\" or JSON NaN.",
+      "required": ["kind", "columns", "rows"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": ["candles", "positions", "trades", "hhi", "orders", "quote", "oi", "oi_daily"]
+        },
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": ["number", "string", "null"] }
+          },
+          "description": "Each row has the same length and column order as `columns`."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "candles" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "columns": {
+                "prefixItems": [{ "const": "time" }],
+                "items": { "enum": ["open", "high", "low", "close", "volume"] }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "positions" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "columns": {
+                "prefixItems": [{ "const": "time" }],
+                "items": {
+                  "enum": [
+                    "long", "short", "position", "openinterest",
+                    "fiz_long", "fiz_short", "yur_long", "yur_short", "fiz_position", "yur_position"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "trades" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "columns": {
+                "prefixItems": [{ "const": "time" }],
+                "items": {
+                  "enum": ["trades", "trades_b", "trades_s", "vol", "vol_b", "vol_s", "pr_vwap_b", "pr_vwap_s"]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "hhi" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "columns": {
+                "prefixItems": [{ "const": "time" }],
+                "items": {
+                  "enum": [
+                    "hhi_volume", "hhi_buy", "hhi_sell",
+                    "hhi_agressive", "hhi_agressive_buy", "hhi_agressive_sell",
+                    "hhi_passive", "hhi_passive_buy", "hhi_passive_sell",
+                    "hhi_netflow_buy", "hhi_netflow_sell"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "orders" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "columns": {
+                "prefixItems": [{ "const": "time" }],
+                "items": { "enum": ["bid", "offer", "delta"] }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "quote" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "columns": {
+                "prefixItems": [{ "const": "instrument_key" }],
+                "items": {
+                  "enum": [
+                    "last", "close", "percent", "open", "high", "low",
+                    "bid", "offer", "lots", "volume", "numtrades", "updated_at"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "oi" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "columns": {
+                "prefixItems": [{ "const": "instrument_key" }],
+                "items": {
+                  "enum": [
+                    "time", "long", "short", "position", "openinterest",
+                    "fiz_long", "fiz_short", "yur_long", "yur_short", "fiz_position", "yur_position"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "oi_daily" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "columns": {
+                "prefixItems": [{ "const": "instrument_key" }],
+                "items": {
+                  "enum": [
+                    "time", "long", "short", "position", "openinterest",
+                    "fiz_long", "fiz_short", "yur_long", "yur_short", "fiz_position", "yur_position"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+
+    "period": {
+      "enum": ["1min", "5min", "10min", "15min", "30min", "1h", "2h", "4h", "1d"]
+    },
+
+    "seriesTableEntry": {
+      "title": "One `series.tables[]` element: `#/$defs/table` restricted to the series kinds.",
+      "allOf": [
+        { "$ref": "#/$defs/table" },
+        { "properties": { "kind": { "enum": ["candles", "positions", "trades", "hhi", "orders"] } } }
+      ]
+    },
+
+    "snapshotTableEntry": {
+      "title": "One `snapshot.tables[]` element: `#/$defs/table` restricted to the snapshot kinds.",
+      "allOf": [
+        { "$ref": "#/$defs/table" },
+        { "properties": { "kind": { "enum": ["quote", "oi", "oi_daily"] } } }
+      ]
+    },
+
+    "series": {
+      "type": "object",
+      "title": "afbws.market.series.v1 — one instrument's candles or one background dataset.",
+      "description": "Reply to `get` (target=series) when `request_id` is present; unsolicited push to a live series subscription when it is absent.",
+      "required": ["channel", "schema", "instrument_key", "period", "tz", "received_at", "mode", "tables"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "market" },
+        "schema": { "const": "afbws.market.series.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "period": { "$ref": "#/$defs/period" },
+        "tz": {
+          "type": "string",
+          "minLength": 1,
+          "description": "IANA timezone of the trading venue (e.g. \"Europe/Moscow\") that bar boundaries and trading-day edges are aligned to. Not the client's local timezone."
+        },
+        "received_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When AFB received this data from its source (broker/cache), ISO-8601 with offset. Distinct from the row-level `time` (UTC unix seconds), which is when the bar/event itself occurred."
+        },
+        "mode": {
+          "enum": ["replace", "merge"],
+          "description": "\"replace\": this is the full answer to a `get` — the client replaces its local copy of this instrument+period+kind range with `tables`. \"merge\": this is a live push — the client upserts `tables` rows by `time` into its existing copy (the latest bar, or dataset catch-up)."
+        },
+        "from": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "Start of the range actually covered by `tables`, YYYY-MM-DD in `tz`."
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "End of the range actually covered by `tables`, YYYY-MM-DD in `tz`."
+        },
+        "source": {
+          "enum": ["broker", "cache"],
+          "description": "Where this data came from, when known."
+        },
+        "message": {
+          "type": "string",
+          "description": "Optional human-readable note (e.g. partial coverage, provider fallback)."
+        },
+        "tables": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/seriesTableEntry" }
+        }
+      }
+    },
+
+    "snapshot": {
+      "type": "object",
+      "title": "afbws.market.snapshot.v1 — cross-instrument slice (quote / oi / oi_daily).",
+      "description": "Reply to `get` (target=snapshot) when `request_id` is present; unsolicited push to a live snapshot subscription when it is absent.",
+      "required": ["channel", "schema", "tz", "received_at", "mode", "tables"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "market" },
+        "schema": { "const": "afbws.market.snapshot.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "tz": {
+          "type": "string",
+          "minLength": 1,
+          "description": "IANA timezone of the trading venue, used to align `oi_daily`'s midnight `time` to the trading day."
+        },
+        "received_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When AFB received this data from its source, ISO-8601 with offset."
+        },
+        "mode": {
+          "enum": ["full", "update"],
+          "description": "\"full\": the complete answer to a `get`, or the initial push right after `subscribe` — the client replaces its local snapshot for the accepted scope. \"update\": a live push carrying only the rows that changed since the last full/update."
+        },
+        "tables": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/snapshotTableEntry" }
+        }
+      }
+    },
+
+    "subscriptionSnapshotSpec": {
+      "type": "object",
+      "title": "Snapshot subscription scope, as requested by the client or echoed back as accepted.",
+      "required": ["kinds", "instrument_keys"],
+      "additionalProperties": false,
+      "properties": {
+        "kinds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["quote", "oi", "oi_daily"] }
+        },
+        "instrument_keys": {
+          "type": "array",
+          "maxItems": 2000,
+          "uniqueItems": true,
+          "items": { "$ref": "common.v1.json#/$defs/instrumentKey" }
+        }
+      }
+    },
+
+    "subscriptionSeriesSpec": {
+      "type": "object",
+      "title": "One series subscription entry (one instrument+period), as requested by the client or echoed back as accepted.",
+      "required": ["instrument_key", "period", "kinds"],
+      "additionalProperties": false,
+      "properties": {
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "period": { "$ref": "#/$defs/period" },
+        "kinds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["candles", "positions", "trades", "hhi", "orders"] }
+        }
+      }
+    },
+
+    "subscribe": {
+      "type": "object",
+      "title": "afbws.market.subscribe.v1 — replace-all subscription statement (client -> server).",
+      "description": "The client states its whole desired subscription scope every time; the server does not diff against a previous `subscribe`. An empty body — neither `snapshot` nor `series` present — unsubscribes from everything. Reply is `subscription` with the same `request_id`, immediately followed by a `snapshot` push with `mode:\"full\"` for the accepted snapshot scope.",
+      "required": ["channel", "schema", "request_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "market" },
+        "schema": { "const": "afbws.market.subscribe.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "snapshot": { "$ref": "#/$defs/subscriptionSnapshotSpec" },
+        "series": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/subscriptionSeriesSpec" }
+        }
+      }
+    },
+
+    "subscriptionRejection": {
+      "type": "object",
+      "required": ["instrument_key", "code"],
+      "additionalProperties": false,
+      "properties": {
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "code": { "$ref": "common.v1.json#/$defs/errorCode" },
+        "message": { "type": "string" }
+      }
+    },
+
+    "subscription": {
+      "type": "object",
+      "title": "afbws.market.subscription.v1 — accepted subscription state, reply to subscribe.v1.",
+      "description": "`snapshot`/`series` are the accepted subset of what was requested (same shapes as subscribe.v1); `rejected` lists instrument keys that could not be resolved/subscribed, with a reason code. Always followed by a `snapshot` push with `mode:\"full\"` for the accepted snapshot scope.",
+      "required": ["channel", "schema", "request_id", "rejected"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "market" },
+        "schema": { "const": "afbws.market.subscription.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "snapshot": { "$ref": "#/$defs/subscriptionSnapshotSpec" },
+        "series": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/subscriptionSeriesSpec" }
+        },
+        "rejected": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/subscriptionRejection" }
+        }
+      }
+    },
+
+    "get": {
+      "type": "object",
+      "title": "afbws.market.get.v1 — one-shot request (client -> server).",
+      "description": "Reply is `series` (target=series) or `snapshot` (target=snapshot) with the same `request_id`, or `error`.",
+      "required": ["channel", "schema", "request_id", "target"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "market" },
+        "schema": { "const": "afbws.market.get.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "target": { "enum": ["series", "snapshot"] },
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "period": { "$ref": "#/$defs/period" },
+        "kinds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "start_date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "target=series only: first date to fetch, YYYY-MM-DD in the instrument's market tz."
+        },
+        "end_date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "target=series only: last date to fetch, YYYY-MM-DD; omitted means up to the latest available."
+        },
+        "base": {
+          "type": "string",
+          "description": "target=series only: opaque provider/period hint (candle base), passed through unchanged."
+        },
+        "instrument_keys": {
+          "type": "array",
+          "maxItems": 2000,
+          "uniqueItems": true,
+          "items": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+          "description": "target=snapshot only: instruments to fetch; omitted means every instrument with cached data (used by TickersList)."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "target": { "const": "series" } }, "required": ["target"] },
+          "then": {
+            "required": ["instrument_key", "period", "kinds", "start_date"],
+            "properties": {
+              "kinds": { "items": { "enum": ["candles", "positions", "trades", "hhi", "orders"] } },
+              "instrument_keys": false
+            }
+          }
+        },
+        {
+          "if": { "properties": { "target": { "const": "snapshot" } }, "required": ["target"] },
+          "then": {
+            "required": ["kinds"],
+            "properties": {
+              "kinds": { "items": { "enum": ["quote", "oi", "oi_daily"] } },
+              "instrument_key": false,
+              "period": false,
+              "start_date": false,
+              "end_date": false,
+              "base": false
+            }
+          }
+        }
+      ]
+    },
+
+    "error": {
+      "type": "object",
+      "title": "afbws.market.error.v1",
+      "required": ["channel", "schema", "code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "market" },
+        "schema": { "const": "afbws.market.error.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "code": { "$ref": "common.v1.json#/$defs/errorCode" },
+        "message": { "type": "string", "minLength": 1 },
+        "details": { "type": "object" }
+      }
+    }
+  }
+}

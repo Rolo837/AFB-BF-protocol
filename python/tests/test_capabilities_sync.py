@@ -13,6 +13,7 @@ from afb_bf_protocol import (
     GP_CHANNEL_V1,
     INSTRUMENT_CHANNEL_V1,
     LINK_CHANNEL_V1,
+    MARKET_CHANNEL_V1,
     TRADEPLAN_CHANNEL_V1,
 )
 from afb_bf_protocol.capabilities import __file__ as capabilities_file
@@ -37,6 +38,7 @@ def test_capability_ids_match_schema_declarations():
         DEAL_CHANNEL_V1: "DEAL_CHANNEL_V1",
         INSTRUMENT_CHANNEL_V1: "INSTRUMENT_CHANNEL_V1",
         ACCOUNT_CHANNEL_V1: "ACCOUNT_CHANNEL_V1",
+        MARKET_CHANNEL_V1: "MARKET_CHANNEL_V1",
     }
     assert ALL_CAPABILITY_IDS == {
         ALARM_CHANNEL_V1,
@@ -46,6 +48,7 @@ def test_capability_ids_match_schema_declarations():
         DEAL_CHANNEL_V1,
         INSTRUMENT_CHANNEL_V1,
         ACCOUNT_CHANNEL_V1,
+        MARKET_CHANNEL_V1,
     }
 
 
