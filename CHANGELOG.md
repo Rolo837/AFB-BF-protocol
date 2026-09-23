@@ -7,6 +7,8 @@
 
 ## Unreleased
 
+## v2.6.1 — 2026-09-23
+
 - **Новый канал `market`** (`spec/schemas/afbws/market.channel.v1.json`, capability `afbws.market.channel.v1`): единый schema-first канал рыночных данных взамен legacy `candles`, `stream/favorites`, `stream/positions`, `securities/marketdata|futures|positions`. Два шаблона данных — `afbws.market.series.v1` (свечи + датасеты positions/trades/hhi/orders, ключ строки `time`) и `afbws.market.snapshot.v1` (срез quote/oi/oi_daily, ключ строки `instrument_key`) — колоночные (`$defs/table`: `columns`+`rows`), без суффиксов `.request`/`.response`/`.push`: один и тот же schema id служит и ответом на `get` (есть `request_id`), и пушем по подписке (`request_id` отсутствует). Допустимые колонки и обязательная первая колонка заданы per-kind через `if`/`then`+`prefixItems`; в `series` строки датасетов существуют только на метках `candles` того же сообщения (позиции — по корзине `[t, следующая свеча)`, остальные — точным совпадением), вне торгов строк нет. Ошибки — `afbws.market.error.v1`.
   Два независимых механизма подписки, сознательно не унифицированы:
   - **series** (свечи + датасет) подписки как отдельного сообщения нет: соединение хранит не больше одной, и это последний `afbws.market.get.v1` (`target: series`) с «живым» `end_date` (отсутствует или не раньше сегодня в `tz` инструмента) — такой `get` заменяет предыдущую подписку и получает `series`-пуши (`mode:"merge"`, строки только на метках последних свечей — закрытый бар + новый при смене периода). `get` с `end_date` в прошлом (подгрузка истории) подписку не трогает;
