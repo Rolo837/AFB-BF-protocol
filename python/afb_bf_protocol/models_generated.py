@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: eaf66c5f82d86cce966961c51352f604e40b146211a7fd97bbe9cd74eeaba0f2
+# source-hash: fcd014c54a4d46117c39c360975a954c88f1948e0c3b9e8180fd7ddfdd381e6b
 
 from __future__ import annotations
 
@@ -2887,32 +2887,6 @@ class Market(TypedDict):
     market: NotRequired[str]
 
 
-class MarketCalendarWindow(TypedDict):
-    start: int
-    end: int
-    phase: str
-    estimated: bool
-
-
-MarketCalendar = TypedDict(
-    "MarketCalendar",
-    {
-        "channel": Literal["market"],
-        "schema": Literal["afbws.market.calendar.v1"],
-        "request_id": NotRequired[AfbwsCommonV1RequestId],
-        "instrument_key": AfbwsCommonV1InstrumentKey,
-        "tz": str,
-        "received_at": str,
-        "from": str,
-        "till": str,
-        "section": Literal["stock", "futures", "currency"],
-        "horizon_until": str,
-        "windows": list[MarketCalendarWindow],
-        "daily_bars": list[str],
-    },
-)
-
-
 class MarketData(TypedDict):
     """
     What market data this BF instance can serve, and on which wire timeframes (see condition.v1.json#/$defs/timeframe) — used by AFB to validate indicator/price-candle condition timeframes before publish.
@@ -2933,29 +2907,27 @@ class MarketErrorResponse(TypedDict):
     details: NotRequired[dict[str, Any]]
 
 
+class MarketGet(TypedDict):
+    """
+    Reply is `series` (target=series) or `snapshot` (target=snapshot) with the same `request_id`, or `error`. For target=series, `get` doubles as the subscription request: a connection has at most one live series subscription (instrument_key, period, kinds), there is no separate subscribe message for it. If `end_date` is absent, or not earlier than "today" in the instrument's market `tz`, this request ALSO becomes that live subscription, replacing whatever the connection was previously subscribed to — the server then pushes `series` (mode:"merge") for it as new data arrives; the reply and subsequent pushes may also carry `future_times` (see `$defs/series`) — there is no separate calendar lookup. A target=series request with `end_date` strictly before today (history paging, e.g. scrolling a chart back) is a pure history fetch and leaves the live subscription untouched.
+    """
+
+    channel: Literal["market"]
+    schema: Literal["afbws.market.get.v1"]
+    request_id: AfbwsCommonV1RequestId
+    target: Literal["series", "snapshot"]
+    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    period: NotRequired[MarketPeriod]
+    kinds: NotRequired[list[str]]
+    start_date: NotRequired[str]
+    end_date: NotRequired[str]
+    base: NotRequired[str]
+    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
+
+
 MarketPeriod: TypeAlias = Literal[
     "1min", "5min", "10min", "15min", "30min", "1h", "2h", "4h", "1d"
 ]
-
-
-MarketGet = TypedDict(
-    "MarketGet",
-    {
-        "channel": Literal["market"],
-        "schema": Literal["afbws.market.get.v1"],
-        "request_id": AfbwsCommonV1RequestId,
-        "target": Literal["series", "snapshot", "calendar"],
-        "instrument_key": NotRequired[AfbwsCommonV1InstrumentKey],
-        "period": NotRequired[MarketPeriod],
-        "kinds": NotRequired[list[str]],
-        "start_date": NotRequired[str],
-        "end_date": NotRequired[str],
-        "base": NotRequired[str],
-        "instrument_keys": NotRequired[list[AfbwsCommonV1InstrumentKey]],
-        "from": NotRequired[str],
-        "till": NotRequired[str],
-    },
-)
 
 
 class MarketSnapshot(TypedDict):
@@ -3039,6 +3011,7 @@ MarketSeries = TypedDict(
         "to": NotRequired[str],
         "source": NotRequired[Literal["broker", "cache"]],
         "message": NotRequired[str],
+        "future_times": NotRequired[list[int]],
         "tables": list[MarketSeriesTable],
     },
 )
@@ -3050,7 +3023,6 @@ MarketChannelV1Message: TypeAlias = (
     | MarketGet
     | MarketSeries
     | MarketSnapshot
-    | MarketCalendar
     | MarketErrorResponse
 )
 

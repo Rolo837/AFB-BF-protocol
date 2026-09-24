@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: eaf66c5f82d86cce966961c51352f604e40b146211a7fd97bbe9cd74eeaba0f2
+ * source-hash: fcd014c54a4d46117c39c360975a954c88f1948e0c3b9e8180fd7ddfdd381e6b
  */
 
 /**
@@ -721,21 +721,15 @@ export type LinkSetInput = LinkUserSetInput | LinkAdminSetInput;
  */
 export type LinkUserSetInput = LinkSetInputShared;
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.market.channel.v1). Replaces the legacy `candles` channel (klines + background datasets positions/trades/hhi/orders), `stream/favorites`, `stream/positions`, and `securities/marketdata|futures|positions` for clients that negotiated this capability; legacy stays available as fallback for clients that did not — this migration carries no version-gated behaviour, negotiation is purely by `auth.support`/`auth_ok.support`. Every instrument is addressed by the catalog's full `instrument_key` (see common.v1.json#/$defs/instrumentKey), not a bare SECID. Two data templates cover the subscribable/pushable payload shapes: `series` (candles and every background dataset, keyed by `time`) and `snapshot` (a cross-instrument slice, keyed by `instrument_key`), both columnar (`$defs/table`: `columns` + `rows`). The same schema id serves both as the reply to a `get` (carries `request_id`) and as an unsolicited push to a live subscription (no `request_id`) — deliberately no `.request`/`.response`/`.push` suffix on schema ids. Every data message carries `received_at` (when AFB received the data from its source) and `tz` (the trading venue's IANA zone that row-level `time`/day boundaries are aligned to). Two independent subscription mechanisms exist, deliberately not unified: `subscribe` is explicit and replace-all for the `quotes` (favorites) and `futures` (screener) snapshot scopes — the client states its whole desired scope every time, the server does not diff against a previous statement; the series (candles/dataset) subscription has no separate message at all — a connection has at most one, and it is simply whatever `get` (target=series) was last sent with a live `end_date` (see `get`'s description). A third `get` target, `calendar`, is a plain one-shot lookup with no subscription or push counterpart: it answers with `$defs/calendar` (`afbws.market.calendar.v1`) — the trading-session windows and daily-bar dates AFB derived for one instrument from its trading-calendar state (the same state pushed to BF via afb2bf `calendar.update`, see payloads/calendar.update.json), used by the frontend to place future (whitespace) bar slots on the chart. `NaN` never appears on the wire — sources that produce it are converted to `null`. See AFB/docs/ws/market.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.market.channel.v1). Replaces the legacy `candles` channel (klines + background datasets positions/trades/hhi/orders), `stream/favorites`, `stream/positions`, and `securities/marketdata|futures|positions` for clients that negotiated this capability; legacy stays available as fallback for clients that did not — this migration carries no version-gated behaviour, negotiation is purely by `auth.support`/`auth_ok.support`. Every instrument is addressed by the catalog's full `instrument_key` (see common.v1.json#/$defs/instrumentKey), not a bare SECID. Two data templates cover the subscribable/pushable payload shapes: `series` (candles and every background dataset, keyed by `time`) and `snapshot` (a cross-instrument slice, keyed by `instrument_key`), both columnar (`$defs/table`: `columns` + `rows`). The same schema id serves both as the reply to a `get` (carries `request_id`) and as an unsolicited push to a live subscription (no `request_id`) — deliberately no `.request`/`.response`/`.push` suffix on schema ids. Every data message carries `received_at` (when AFB received the data from its source) and `tz` (the trading venue's IANA zone that row-level `time`/day boundaries are aligned to). Two independent subscription mechanisms exist, deliberately not unified: `subscribe` is explicit and replace-all for the `quotes` (favorites) and `futures` (screener) snapshot scopes — the client states its whole desired scope every time, the server does not diff against a previous statement; the series (candles/dataset) subscription has no separate message at all — a connection has at most one, and it is simply whatever `get` (target=series) was last sent with a live `end_date` (see `get`'s description). There is no client-side calendar lookup at all: a live `series` (`$defs/series`) itself carries an optional `future_times` — AFB derives future (whitespace) bar slots for the chart server-side from its own trading-calendar state and includes them directly in the series answer/push, so the frontend never has to ask separately. `NaN` never appears on the wire — sources that produce it are converted to `null`. See AFB/docs/ws/market.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketChannelV1Message".
  */
 export type MarketChannelV1Message =
-  | MarketSubscribe
-  | MarketSubscription
-  | MarketGet
-  | MarketSeries
-  | MarketSnapshot
-  | MarketCalendar
-  | MarketErrorResponse;
+  MarketSubscribe | MarketSubscription | MarketGet | MarketSeries | MarketSnapshot | MarketErrorResponse;
 /**
- * Reply is `series` (target=series), `snapshot` (target=snapshot) or `calendar` (target=calendar) with the same `request_id`, or `error`. For target=series, `get` doubles as the subscription request: a connection has at most one live series subscription (instrument_key, period, kinds), there is no separate subscribe message for it. If `end_date` is absent, or not earlier than "today" in the instrument's market `tz`, this request ALSO becomes that live subscription, replacing whatever the connection was previously subscribed to — the server then pushes `series` (mode:"merge") for it as new data arrives. A target=series request with `end_date` strictly before today (history paging, e.g. scrolling a chart back) is a pure history fetch and leaves the live subscription untouched. target=calendar is a plain one-shot lookup (no subscription, no push) of trading-session windows and daily-bar dates for one instrument over `[from, till]`.
+ * Reply is `series` (target=series) or `snapshot` (target=snapshot) with the same `request_id`, or `error`. For target=series, `get` doubles as the subscription request: a connection has at most one live series subscription (instrument_key, period, kinds), there is no separate subscribe message for it. If `end_date` is absent, or not earlier than "today" in the instrument's market `tz`, this request ALSO becomes that live subscription, replacing whatever the connection was previously subscribed to — the server then pushes `series` (mode:"merge") for it as new data arrives; the reply and subsequent pushes may also carry `future_times` (see `$defs/series`) — there is no separate calendar lookup. A target=series request with `end_date` strictly before today (history paging, e.g. scrolling a chart back) is a pure history fetch and leaves the live subscription untouched.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketGet".
@@ -746,7 +740,7 @@ export type MarketGet = {
   channel: 'market';
   schema: 'afbws.market.get.v1';
   request_id: AfbwsCommonV1_RequestId;
-  target: 'series' | 'snapshot' | 'calendar';
+  target: 'series' | 'snapshot';
   instrument_key?: AfbwsCommonV1_InstrumentKey;
   period?: MarketPeriod;
   /**
@@ -771,14 +765,6 @@ export type MarketGet = {
    * @maxItems 2000
    */
   instrument_keys?: AfbwsCommonV1_InstrumentKey[];
-  /**
-   * target=calendar only: first date to cover, YYYY-MM-DD in the instrument's market tz.
-   */
-  from?: string;
-  /**
-   * target=calendar only: last date to cover, YYYY-MM-DD in the instrument's market tz.
-   */
-  till?: string;
 };
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -3344,6 +3330,10 @@ export interface MarketSeries {
    * Optional human-readable note (e.g. partial coverage, provider fallback).
    */
   message?: string;
+  /**
+   * Optional, live series only: UTC unix seconds of the opening tick of each future (not-yet-formed) `period` bar after the last candle in `tables`, per MOEX's trading calendar — strictly increasing, no duplicates. AFB computes this server-side from its own trading-calendar state; there is no client-side calendar lookup. Present on the `mode:"replace"` reply to a live `get` (target=series, see `get`'s description) and re-sent on a `mode:"merge"` push only when the list actually changed (the remaining count ran low or the trading day rolled over) — a `merge` push without `future_times` means it is unchanged, the client keeps what it already has. Never present on a pure history fetch (`end_date` strictly before today). The frontend renders these as whitespace bar slots past the last real candle.
+   */
+  future_times?: number[];
   tables: MarketSeriesTable[];
 }
 /**
@@ -3373,72 +3363,6 @@ export interface MarketSnapshot {
    */
   mode: 'full' | 'update';
   tables: MarketSnapshotTable[];
-}
-/**
- * Reply to `get` (target=calendar); always carries `request_id` — this is a one-shot lookup, there is no live calendar subscription/push. Built by AFB from the same trading-calendar state it pushes to BF via afb2bf `calendar.update` (payloads/calendar.update.json), resolved down to the single requested `instrument_key`'s board (AFB does not resolve by secid on this path — see payloads/calendar.update.json#/properties/sections/items/properties/windows for why the AFB-internal template lookup dropped that level) and converted to UTC unix seconds for direct use by the chart. `windows` here contains ONLY continuous-trading phases (auction-category windows are filtered out — a chart bar cannot form during an auction, no trades happen) — contrast with `calendar.update` pushed to BF, which carries both categories since BF's entry gate treats an auction as open too. Used by the frontend to render future (whitespace) bar slots beyond the last real candle.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "MarketCalendar".
- */
-export interface MarketCalendar {
-  channel: 'market';
-  schema: 'afbws.market.calendar.v1';
-  request_id?: AfbwsCommonV1_RequestId;
-  instrument_key: AfbwsCommonV1_InstrumentKey;
-  /**
-   * IANA timezone of the trading venue (e.g. "Europe/Moscow") that `daily_bars` day boundaries are aligned to. Not the client's local timezone.
-   */
-  tz: string;
-  /**
-   * When AFB assembled this answer from its trading-calendar state, ISO-8601 with offset.
-   */
-  received_at: string;
-  /**
-   * Start of the requested range, YYYY-MM-DD in `tz` — echoes the `get` request's `from`.
-   */
-  from: string;
-  /**
-   * End of the requested range, YYYY-MM-DD in `tz` — echoes the `get` request's `till`, clamped to `horizon_until` when the request asked for more than AFB's calendar snapshot currently covers.
-   */
-  till: string;
-  /**
-   * MOEX trading section this instrument resolved to (stock includes indices) — same vocabulary as payloads/calendar.update.json#/properties/sections/items/properties/section.
-   */
-  section: 'stock' | 'futures' | 'currency';
-  /**
-   * Last date AFB's underlying calendar snapshot actually covers (see payloads/calendar.update.json#/properties/horizon_until) — may be earlier than the requested `till` when the snapshot's horizon is shorter than the request.
-   */
-  horizon_until: string;
-  /**
-   * Trading-session windows for this instrument covering `[from, till]`, in chronological order.
-   */
-  windows: MarketCalendarWindow[];
-  /**
-   * Dates (YYYY-MM-DD in `tz`) a `1d` candle exists/will exist on, per the section's daily-bar rule: for `stock` (and indices), every traded day including weekend (`W`) sessions; for `futures`, the unique set of `trade_session_date` values (a weekend `W` day's activity folds into its following trading day's bar, so the weekend date itself is not listed separately); for `currency`, trading weekdays only. Used by the frontend together with `windows` to place future whitespace bar slots on the chart.
-   */
-  daily_bars: string[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "MarketCalendarWindow".
- */
-export interface MarketCalendarWindow {
-  /**
-   * Window start, UTC unix seconds (already resolved for this instrument's board — see afb2bf payloads/calendar.update.json for the raw board->section resolution AFB performs before answering; AFB does not resolve by secid on this path, see `calendar`'s own description).
-   */
-  start: number;
-  /**
-   * Window end, UTC unix seconds. Inclusive of the last tradable second.
-   */
-  end: number;
-  /**
-   * Continuous-trading session phase label, e.g. "morning", "main", "evening", "weekend", "closing_price". Free-form, not a closed enum — see payloads/calendar.update.json#/properties/sections/items/properties/windows/items/properties/phase for the full category vocabulary. This array never carries an AUCTION-category phase ("opening_auction"/"closing_auction") — see `calendar`'s own description: no trades happen during an auction, so it is not a chart bar window.
-   */
-  phase: string;
-  /**
-   * True when this window was projected from a learned/default template rather than read from the exchange's official same-day session schedule.
-   */
-  estimated: boolean;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
