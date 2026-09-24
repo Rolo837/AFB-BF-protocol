@@ -108,6 +108,10 @@
         "multi_account": {
           "type": "boolean",
           "description": "This BF build implements broker.get_accounts/broker.accounts (see payloads/broker.accounts.json) — read-only visibility into every account the broker token can see, not just the trading account named by account_id above. Execution still happens only on account_id in this phase. AFB gates sending broker.get_accounts on this flag being true; absent/false means fall back to the deprecated broker.get_account/broker.account pair."
+        },
+        "market_calendar": {
+          "type": "boolean",
+          "description": "This BF build accepts calendar.update (see payloads/calendar.update.json) — a replace-all MOEX trading calendar snapshot (holidays/weekend sessions, per-board session windows) it uses to gate execution and background broker polling on real trading-session boundaries instead of its own static off-hours config. AFB gates sending calendar.update on this flag being true; absent/false means the BF is never sent a calendar snapshot and keeps gating on its own local config."
         }
       },
       "additionalProperties": true

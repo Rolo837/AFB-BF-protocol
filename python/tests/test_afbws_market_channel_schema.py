@@ -673,6 +673,217 @@ def test_get_missing_target_rejected(registry):
         _validator("get", registry).validate(msg)
 
 
+def test_get_calendar_valid(registry):
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.get.v1",
+        "request_id": "req-10",
+        "target": "calendar",
+        "instrument_key": "MISX:TQBR:SBER",
+        "from": "2026-09-24",
+        "till": "2026-10-01",
+    }
+    _validator("get", registry).validate(msg)  # does not raise
+
+
+def test_get_calendar_missing_instrument_key_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.get.v1",
+        "request_id": "req-10",
+        "target": "calendar",
+        "from": "2026-09-24",
+        "till": "2026-10-01",
+    }
+    with pytest.raises(ValidationError):
+        _validator("get", registry).validate(msg)
+
+
+def test_get_calendar_missing_from_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.get.v1",
+        "request_id": "req-10",
+        "target": "calendar",
+        "instrument_key": "MISX:TQBR:SBER",
+        "till": "2026-10-01",
+    }
+    with pytest.raises(ValidationError):
+        _validator("get", registry).validate(msg)
+
+
+def test_get_calendar_missing_till_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.get.v1",
+        "request_id": "req-10",
+        "target": "calendar",
+        "instrument_key": "MISX:TQBR:SBER",
+        "from": "2026-09-24",
+    }
+    with pytest.raises(ValidationError):
+        _validator("get", registry).validate(msg)
+
+
+def test_get_calendar_with_series_only_field_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.get.v1",
+        "request_id": "req-10",
+        "target": "calendar",
+        "instrument_key": "MISX:TQBR:SBER",
+        "from": "2026-09-24",
+        "till": "2026-10-01",
+        "period": "1min",
+    }
+    with pytest.raises(ValidationError):
+        _validator("get", registry).validate(msg)
+
+
+def test_get_series_with_calendar_only_field_rejected(registry):
+    """`from`/`till` are calendar-only -- forbidden on a target=series get,
+    which uses `start_date`/`end_date` instead."""
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.get.v1",
+        "request_id": "req-10",
+        "target": "series",
+        "instrument_key": "MISX:TQBR:SBER",
+        "period": "1min",
+        "kinds": ["candles"],
+        "start_date": "2026-09-01",
+        "from": "2026-09-01",
+    }
+    with pytest.raises(ValidationError):
+        _validator("get", registry).validate(msg)
+
+
+def test_get_snapshot_with_calendar_only_field_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.get.v1",
+        "request_id": "req-10",
+        "target": "snapshot",
+        "kinds": ["quote"],
+        "till": "2026-10-01",
+    }
+    with pytest.raises(ValidationError):
+        _validator("get", registry).validate(msg)
+
+
+# --- calendar ----------------------------------------------------------------
+
+def _calendar_msg(**overrides):
+    msg = {
+        "channel": "market",
+        "schema": "afbws.market.calendar.v1",
+        "request_id": "req-11",
+        "instrument_key": "MISX:TQBR:SBER",
+        "tz": "Europe/Moscow",
+        "received_at": "2026-09-24T10:00:00+03:00",
+        "from": "2026-09-24",
+        "till": "2026-10-01",
+        "section": "stock",
+        "horizon_until": "2026-10-01",
+        "windows": [
+            {"start": 1758685800, "end": 1758693599, "phase": "morning", "estimated": False},
+            {"start": 1758693600, "end": 1758725999, "phase": "main", "estimated": False},
+        ],
+        "daily_bars": ["2026-09-24", "2026-09-25", "2026-09-26"],
+    }
+    msg.update(overrides)
+    return msg
+
+
+def test_calendar_valid_reply(registry):
+    _validator("calendar", registry).validate(_calendar_msg())  # does not raise
+
+
+def test_calendar_request_id_optional(registry):
+    msg = _calendar_msg()
+    del msg["request_id"]
+    _validator("calendar", registry).validate(msg)  # does not raise
+
+
+def test_calendar_missing_section_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = _calendar_msg()
+    del msg["section"]
+    with pytest.raises(ValidationError):
+        _validator("calendar", registry).validate(msg)
+
+
+def test_calendar_unknown_section_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = _calendar_msg(section="options")
+    with pytest.raises(ValidationError):
+        _validator("calendar", registry).validate(msg)
+
+
+def test_calendar_missing_daily_bars_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = _calendar_msg()
+    del msg["daily_bars"]
+    with pytest.raises(ValidationError):
+        _validator("calendar", registry).validate(msg)
+
+
+def test_calendar_bad_daily_bar_date_format_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = _calendar_msg(daily_bars=["2026-09-24", "not-a-date"])
+    with pytest.raises(ValidationError):
+        _validator("calendar", registry).validate(msg)
+
+
+def test_calendar_window_missing_estimated_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = _calendar_msg()
+    del msg["windows"][0]["estimated"]
+    with pytest.raises(ValidationError):
+        _validator("calendar", registry).validate(msg)
+
+
+def test_calendar_window_non_integer_start_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = _calendar_msg()
+    msg["windows"][0]["start"] = "2026-09-24T06:50:00+03:00"
+    with pytest.raises(ValidationError):
+        _validator("calendar", registry).validate(msg)
+
+
+def test_calendar_extra_property_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = _calendar_msg(unexpected="nope")
+    with pytest.raises(ValidationError):
+        _validator("calendar", registry).validate(msg)
+
+
+def test_calendar_empty_windows_and_daily_bars_valid(registry):
+    """No trading windows/bars in the requested range (e.g. an all-holiday
+    range) is a structurally valid, if uneventful, answer."""
+    msg = _calendar_msg(windows=[], daily_bars=[])
+    _validator("calendar", registry).validate(msg)  # does not raise
+
+
 # --- error -----------------------------------------------------------------
 
 def test_error_valid(registry):
@@ -746,6 +957,7 @@ def test_root_oneof_dispatches_each_message_kind(registry):
             "kinds": ["quote"],
         }
     )
+    root.validate(_calendar_msg())
     root.validate(
         {
             "channel": "market",

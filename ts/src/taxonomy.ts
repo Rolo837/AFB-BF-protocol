@@ -260,6 +260,13 @@ export const MESSAGE_REGISTRY = {
     event: "update",
     persists_on_bf: false,
   },
+  "calendar.update": {
+    message_class: "system",
+    direction: "afb2bf",
+    category: "calendar",
+    event: "update",
+    persists_on_bf: false,
+  },
   "dataset.subscribe": {
     message_class: "system",
     direction: "bf2afb",

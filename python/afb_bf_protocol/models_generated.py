@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: c895145029c0452aa95e563a474ec5a9b9585d813ea3c4b71d3511e1108c58a4
+# source-hash: eaf66c5f82d86cce966961c51352f604e40b146211a7fd97bbe9cd74eeaba0f2
 
 from __future__ import annotations
 
@@ -712,6 +712,17 @@ class BrokerSizing(TypedDict):
     estimated: NotRequired[bool]
 
 
+class CalendarUpdatePayload(TypedDict):
+    """
+    AFB-pushed MOEX trading calendar snapshot, so BF can gate execution and background polling on real trading-session boundaries (holidays, weekend sessions, per-board session phases) instead of a fixed off-hours window. SNAPSHOT SEMANTICS: `sections` is the FULL current calendar this AFB wants this BF to hold, never a diff — on receipt BF REPLACES its entire calendar cache for the connection with this array (replace-all, not merge); a section/day/window absent from a later calendar.update is gone, not merely unchanged. Sent only to a BF that has declared `features.market_calendar` in `daemon.capabilities` (see payloads/daemon.capabilities.json) — a BF that has not declared it never receives this message and continues to gate on its own local config.
+    """
+
+    as_of: str
+    stale_after_sec: int
+    horizon_until: str
+    sections: list[Section]
+
+
 Change = TypedDict(
     "Change",
     {
@@ -983,6 +994,13 @@ class DatasetUpdatePayload(TypedDict):
     """
 
     datasets: list[Dataset]
+
+
+class Day(TypedDict):
+    date: str
+    is_traded: bool
+    kind: Literal["N", "W", "H"]
+    trade_session_date: str | None
 
 
 class DealAcceptedPayload(TypedDict):
@@ -1833,6 +1851,7 @@ class Features(TypedDict):
     reports_api: NotRequired[bool]
     catalog: NotRequired[bool]
     multi_account: NotRequired[bool]
+    market_calendar: NotRequired[bool]
 
 
 class Features1(TypedDict):
@@ -2868,6 +2887,32 @@ class Market(TypedDict):
     market: NotRequired[str]
 
 
+class MarketCalendarWindow(TypedDict):
+    start: int
+    end: int
+    phase: str
+    estimated: bool
+
+
+MarketCalendar = TypedDict(
+    "MarketCalendar",
+    {
+        "channel": Literal["market"],
+        "schema": Literal["afbws.market.calendar.v1"],
+        "request_id": NotRequired[AfbwsCommonV1RequestId],
+        "instrument_key": AfbwsCommonV1InstrumentKey,
+        "tz": str,
+        "received_at": str,
+        "from": str,
+        "till": str,
+        "section": Literal["stock", "futures", "currency"],
+        "horizon_until": str,
+        "windows": list[MarketCalendarWindow],
+        "daily_bars": list[str],
+    },
+)
+
+
 class MarketData(TypedDict):
     """
     What market data this BF instance can serve, and on which wire timeframes (see condition.v1.json#/$defs/timeframe) — used by AFB to validate indicator/price-candle condition timeframes before publish.
@@ -2888,27 +2933,29 @@ class MarketErrorResponse(TypedDict):
     details: NotRequired[dict[str, Any]]
 
 
-class MarketGet(TypedDict):
-    """
-    Reply is `series` (target=series) or `snapshot` (target=snapshot) with the same `request_id`, or `error`. For target=series, `get` doubles as the subscription request: a connection has at most one live series subscription (instrument_key, period, kinds), there is no separate subscribe message for it. If `end_date` is absent, or not earlier than "today" in the instrument's market `tz`, this request ALSO becomes that live subscription, replacing whatever the connection was previously subscribed to — the server then pushes `series` (mode:"merge") for it as new data arrives. A target=series request with `end_date` strictly before today (history paging, e.g. scrolling a chart back) is a pure history fetch and leaves the live subscription untouched.
-    """
-
-    channel: Literal["market"]
-    schema: Literal["afbws.market.get.v1"]
-    request_id: AfbwsCommonV1RequestId
-    target: Literal["series", "snapshot"]
-    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
-    period: NotRequired[MarketPeriod]
-    kinds: NotRequired[list[str]]
-    start_date: NotRequired[str]
-    end_date: NotRequired[str]
-    base: NotRequired[str]
-    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
-
-
 MarketPeriod: TypeAlias = Literal[
     "1min", "5min", "10min", "15min", "30min", "1h", "2h", "4h", "1d"
 ]
+
+
+MarketGet = TypedDict(
+    "MarketGet",
+    {
+        "channel": Literal["market"],
+        "schema": Literal["afbws.market.get.v1"],
+        "request_id": AfbwsCommonV1RequestId,
+        "target": Literal["series", "snapshot", "calendar"],
+        "instrument_key": NotRequired[AfbwsCommonV1InstrumentKey],
+        "period": NotRequired[MarketPeriod],
+        "kinds": NotRequired[list[str]],
+        "start_date": NotRequired[str],
+        "end_date": NotRequired[str],
+        "base": NotRequired[str],
+        "instrument_keys": NotRequired[list[AfbwsCommonV1InstrumentKey]],
+        "from": NotRequired[str],
+        "till": NotRequired[str],
+    },
+)
 
 
 class MarketSnapshot(TypedDict):
@@ -3003,6 +3050,7 @@ MarketChannelV1Message: TypeAlias = (
     | MarketGet
     | MarketSeries
     | MarketSnapshot
+    | MarketCalendar
     | MarketErrorResponse
 )
 
@@ -3248,6 +3296,13 @@ class Right(TypedDict):
 class Risk(TypedDict):
     take_profit: NotRequired[DealV1ExitBlock]
     stop_loss: NotRequired[DealV1ExitBlock]
+
+
+class Section(TypedDict):
+    exchange: str
+    section: Literal["stock", "futures", "currency"]
+    days: list[Day]
+    windows: list[Window]
 
 
 class Securities(TypedDict):
@@ -3582,4 +3637,13 @@ class Validation(TypedDict):
     quantity_lots: NotRequired[int]
     entry_price: NotRequired[str]
     required_cash: NotRequired[str]
+
+
+class Window(TypedDict):
+    board: NotRequired[str]
+    secid: NotRequired[str]
+    start: str
+    end: str
+    phase: str
+    estimated: bool
 

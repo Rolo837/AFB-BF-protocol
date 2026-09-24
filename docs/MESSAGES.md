@@ -26,6 +26,7 @@ Every message is a signed envelope (see `spec/schemas/envelope.json`).
 | `deal.resync` | system |  | — | — |
 | `deal.signal` | system |  | — | — |
 | `dataset.update` | system |  | `spec/schemas/payloads/dataset.update.json` | `examples/dataset.update.json` |
+| `calendar.update` | system |  | `spec/schemas/payloads/calendar.update.json` | `examples/calendar.update.json` |
 
 ## BF → AFB (events & replies)
 

@@ -252,6 +252,8 @@ const NAMED_DEF_SCHEMAS = {
     snapshotTableEntry: "MarketSnapshotTable",
     series: "MarketSeries",
     snapshot: "MarketSnapshot",
+    calendarWindow: "MarketCalendarWindow",
+    calendar: "MarketCalendar",
     subscriptionQuotesSpec: "MarketSubscriptionQuotesSpec",
     subscribe: "MarketSubscribe",
     subscriptionRejection: "MarketSubscriptionRejection",
