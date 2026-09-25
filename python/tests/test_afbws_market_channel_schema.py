@@ -288,6 +288,38 @@ def test_series_null_instead_of_nan_valid(registry):
     _validator("series", registry).validate(msg)  # does not raise
 
 
+def test_series_future_times_valid(registry):
+    msg = _candles_series_msg(future_times=[1758610860, 1758610920, 1758610980])
+    _validator("series", registry).validate(msg)  # does not raise
+
+
+def test_series_future_times_omitted_valid(registry):
+    """No client-side calendar lookup any more -- `future_times` is optional,
+    absence means "unchanged/no data", not an error."""
+    msg = _candles_series_msg()
+    assert "future_times" not in msg
+    _validator("series", registry).validate(msg)  # does not raise
+
+
+def test_series_future_times_empty_array_valid(registry):
+    msg = _candles_series_msg(future_times=[])
+    _validator("series", registry).validate(msg)  # does not raise
+
+
+def test_series_future_times_non_integer_item_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = _candles_series_msg(future_times=[1758610860, "1758610920"])
+    with pytest.raises(ValidationError):
+        _validator("series", registry).validate(msg)
+
+
+def test_series_future_times_on_merge_push_valid(registry):
+    msg = _candles_series_msg(mode="merge", future_times=[1758610860])
+    del msg["request_id"]
+    _validator("series", registry).validate(msg)  # does not raise
+
+
 # --- snapshot ----------------------------------------------------------------
 
 def test_snapshot_valid_reply(registry):

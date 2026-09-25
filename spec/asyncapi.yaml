@@ -1,7 +1,7 @@
 asyncapi: 3.1.0
 info:
   title: AFB <-> BF Execution Protocol
-  version: 2.6.1
+  version: 2.7.0
   description: >-
     Business protocol between AFB (OMS) and BF (executor daemon), wire version
     afb.execution.v1. Every message is a signed JSON envelope (Ed25519 over a
@@ -90,6 +90,8 @@ channels:
         $ref: '#/components/messages/dataset_update'
       dataset_subscribe:
         $ref: '#/components/messages/dataset_subscribe'
+      calendar_update:
+        $ref: '#/components/messages/calendar_update'
       deal_accepted:
         $ref: '#/components/messages/deal_accepted'
       deal_rejected:
@@ -149,6 +151,7 @@ operations:
       - $ref: '#/channels/afbBf/messages/deal_resync'
       - $ref: '#/channels/afbBf/messages/deal_signal'
       - $ref: '#/channels/afbBf/messages/dataset_update'
+      - $ref: '#/channels/afbBf/messages/calendar_update'
   receiveFromBf:
     action: receive
     title: BF -> AFB (events & replies)
@@ -793,6 +796,26 @@ components:
               payload:
                 $ref: './schemas/payloads/dataset.update.json'
       description: 'Example: examples/dataset.update.json'
+    calendar_update:
+      name: calendar.update
+      title: calendar.update
+      summary: 'system/afb2bf calendar.update'
+      tags:
+        - name: 'class:system'
+        - name: 'dir:afb2bf'
+      payload:
+        allOf:
+          - $ref: './schemas/envelope.json'
+          - type: object
+            properties:
+              type:
+                const: calendar.update
+              payload:
+                $ref: './schemas/payloads/calendar.update.json'
+      description: >-
+        Replace-all MOEX trading calendar snapshot (holidays/weekend sessions
+        plus per-board session windows), sent only to a BF that declared
+        `features.market_calendar`. Example: examples/calendar.update.json
     dataset_subscribe:
       name: dataset.subscribe
       title: dataset.subscribe

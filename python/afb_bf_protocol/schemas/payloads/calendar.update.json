@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/calendar.update.json",
+  "title": "payload: calendar.update",
+  "description": "AFB-pushed MOEX trading calendar snapshot, so BF can gate execution and background polling on real trading-session boundaries (holidays, weekend sessions, per-board session phases) instead of a fixed off-hours window. SNAPSHOT SEMANTICS: `sections` is the FULL current calendar this AFB wants this BF to hold, never a diff — on receipt BF REPLACES its entire calendar cache for the connection with this array (replace-all, not merge); a section/day/window absent from a later calendar.update is gone, not merely unchanged. Sent only to a BF that has declared `features.market_calendar` in `daemon.capabilities` (see payloads/daemon.capabilities.json) — a BF that has not declared it never receives this message and continues to gate on its own local config.",
+  "type": "object",
+  "required": ["as_of", "stale_after_sec", "horizon_until", "sections"],
+  "properties": {
+    "as_of": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 time (with offset) this snapshot was assembled by AFB. Not the exchange-side publication time of any one underlying MOEX calendar/session response — those differ per section/endpoint; this is the single freshness anchor for the whole snapshot."
+    },
+    "stale_after_sec": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "description": "TTL in seconds. The snapshot is usable while now <= as_of + stale_after_sec. Once stale, BF MUST fail-safe: stop trusting this snapshot and fall back to its own local config (off-hours window / trading-day rule) for gating and polling decisions, rather than freezing the last-known calendar as if it were still current. AFB re-pushes calendar.update well inside this TTL under normal operation; a stale snapshot on BF signals a lost/degraded AFB<->BF link, not an intentionally frozen calendar."
+    },
+    "horizon_until": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "Last calendar date (YYYY-MM-DD, inclusive) covered by `sections[].days`/`windows` in this snapshot — currently \"today + 7 days\" on the AFB side, but BF must not hardcode that and should instead read this field. Any date at or before `horizon_until` that is missing from a section's `days` should be treated as unknown/non-trading by BF, not extrapolated; AFB is expected to always cover the horizon it declares."
+    },
+    "sections": {
+      "type": "array",
+      "description": "Full replacement set of per-exchange-section calendar data for this BF; an empty array is valid and means 'nothing to gate on' (BF falls back to its own config, same as on staleness).",
+      "items": {
+        "type": "object",
+        "required": ["exchange", "section", "days", "windows"],
+        "properties": {
+          "exchange": {
+            "type": "string",
+            "description": "Exchange MIC this section belongs to, e.g. \"MISX\" (Moscow Exchange — equities/currency board group; futures/derivatives currently share the same MIC on MOEX). Opaque to BF beyond matching it against the deal's own instrument."
+          },
+          "section": {
+            "enum": ["stock", "futures", "currency"],
+            "description": "MOEX trading section this calendar/session data was fetched for — matches the deal-resolution grouping BF/AFB already use elsewhere for market/engine classification (stock includes indices)."
+          },
+          "days": {
+            "type": "array",
+            "description": "Per-calendar-day trading status for this section, one entry per date, typically covering [today - lookback, horizon_until]. Source: MOEX ISS `calendars/{section}.json` off_days block.",
+            "items": {
+              "type": "object",
+              "required": ["date", "is_traded", "kind", "trade_session_date"],
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                  "description": "Calendar date (YYYY-MM-DD) this entry describes."
+                },
+                "is_traded": {
+                  "type": "boolean",
+                  "description": "Whether this section trades at all on this date. False for `kind: H` (holiday); true for `kind: N` (normal day) and `kind: W` (weekend session)."
+                },
+                "kind": {
+                  "enum": ["N", "W", "H"],
+                  "description": "N = normal trading day. W = weekend/holiday session (exchange trades on a nominally non-working day; MOEX settles it into a following trading day via `trade_session_date`). H = holiday, not traded."
+                },
+                "trade_session_date": {
+                  "type": ["string", "null"],
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                  "description": "The trading-session date this calendar date's activity settles/reports into. For `kind: N` this equals `date` itself. For `kind: W` this is the next trading day (usually the following Monday) whose session this weekend day's trades belong to — this is how BF should bucket a W day's daily bar/session accounting. For `kind: H` (not traded) this is null."
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "windows": {
+            "type": "array",
+            "description": "Trading-session and auction time windows for this section (BOTH categories — see `phase`'s own description), resolved to concrete UTC-offset instants. Resolution order when BF looks up a window for a specific instrument is secid -> board -> section: a window carrying `secid` applies only to that instrument; a window carrying `board` (no `secid`) applies to every instrument on that board; a window carrying neither applies to the whole section. AFB may send multiple overlapping windows at different specificity for the same day/phase (e.g. a section-wide default plus a board-specific override) — BF picks the most specific one that matches the instrument it is gating, per that resolution order. Source: MOEX ISS `calendars/{section}/session.json` (today only) for the near term, projected forward via `estimated` for days beyond what the exchange has actually published.",
+            "items": {
+              "type": "object",
+              "required": ["start", "end", "phase", "estimated"],
+              "properties": {
+                "board": {
+                  "type": "string",
+                  "description": "Board this window applies to (e.g. \"TQBR\"); omitted means the window applies to the whole `section` regardless of board. Ignored when `secid` is present (secid is the more specific match)."
+                },
+                "secid": {
+                  "type": "string",
+                  "description": "Single instrument (MOEX SECID) this window applies to; omitted means the window applies at the `board` (or, absent that too, `section`) level instead. Never normalized to a different case on either side of the wire — MOEX tickers/secids are case-sensitive."
+                },
+                "start": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Window start, ISO-8601 with UTC offset (the exchange's local offset, e.g. +03:00 for Moscow)."
+                },
+                "end": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Window end, ISO-8601 with UTC offset. Inclusive of the last tradable second (e.g. a window ending at 18:59:59 means trading stops at that second, not 19:00:00 sharp)."
+                },
+                "phase": {
+                  "type": "string",
+                  "description": "Session phase label. Two categories: CONTINUOUS TRADING (\"morning\", \"main\", \"evening\", \"weekend\", \"closing_price\" — trades actually happen) and AUCTION (\"opening_auction\", \"closing_auction\" — an order-collection period: orders can already be booked, but no trades occur until the auction resolves). `closing_price` is synthetic (AFB-side only, not a raw MOEX session type): the few minutes of continuous trading MOEX's session.json leaves unlabeled right after `closing_auction` and before the evening session. A free-form string (not a closed enum) so AFB can introduce a new phase label without a protocol change; an UNRECOGNIZED phase must be treated as ordinary continuous trading (fail-open), not as an auction or as closed — only the two auction labels above should ever gate differently from plain trading. BF's entry gate (order placement) treats both categories as \"open\" (an auction already accepts orders); a liveness/no-false-reset check (e.g. a stream watchdog, which must not be fooled by an auction moving the book without trades) should treat only the continuous-trading category as \"open\"."
+                },
+                "estimated": {
+                  "type": "boolean",
+                  "description": "True when this window was projected from a learned/default template rather than read from MOEX's official same-day session schedule (MOEX's session.json only ever returns today's schedule — everything beyond today is necessarily a projection). BF may use `estimated: true` windows for gating the same way as observed ones, but should not treat them as authoritative for anything requiring exchange confirmation."
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

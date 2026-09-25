@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: c895145029c0452aa95e563a474ec5a9b9585d813ea3c4b71d3511e1108c58a4
+ * source-hash: fcd014c54a4d46117c39c360975a954c88f1948e0c3b9e8180fd7ddfdd381e6b
  */
 
 /**
@@ -721,7 +721,7 @@ export type LinkSetInput = LinkUserSetInput | LinkAdminSetInput;
  */
 export type LinkUserSetInput = LinkSetInputShared;
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.market.channel.v1). Replaces the legacy `candles` channel (klines + background datasets positions/trades/hhi/orders), `stream/favorites`, `stream/positions`, and `securities/marketdata|futures|positions` for clients that negotiated this capability; legacy stays available as fallback for clients that did not — this migration carries no version-gated behaviour, negotiation is purely by `auth.support`/`auth_ok.support`. Every instrument is addressed by the catalog's full `instrument_key` (see common.v1.json#/$defs/instrumentKey), not a bare SECID. Two data templates cover all payload shapes: `series` (candles and every background dataset, keyed by `time`) and `snapshot` (a cross-instrument slice, keyed by `instrument_key`), both columnar (`$defs/table`: `columns` + `rows`). The same schema id serves both as the reply to a `get` (carries `request_id`) and as an unsolicited push to a live subscription (no `request_id`) — deliberately no `.request`/`.response`/`.push` suffix on schema ids. Every data message carries `received_at` (when AFB received the data from its source) and `tz` (the trading venue's IANA zone that row-level `time`/day boundaries are aligned to). Two independent subscription mechanisms exist, deliberately not unified: `subscribe` is explicit and replace-all for the `quotes` (favorites) and `futures` (screener) snapshot scopes — the client states its whole desired scope every time, the server does not diff against a previous statement; the series (candles/dataset) subscription has no separate message at all — a connection has at most one, and it is simply whatever `get` (target=series) was last sent with a live `end_date` (see `get`'s description). `NaN` never appears on the wire — sources that produce it are converted to `null`. See AFB/docs/ws/market.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.market.channel.v1). Replaces the legacy `candles` channel (klines + background datasets positions/trades/hhi/orders), `stream/favorites`, `stream/positions`, and `securities/marketdata|futures|positions` for clients that negotiated this capability; legacy stays available as fallback for clients that did not — this migration carries no version-gated behaviour, negotiation is purely by `auth.support`/`auth_ok.support`. Every instrument is addressed by the catalog's full `instrument_key` (see common.v1.json#/$defs/instrumentKey), not a bare SECID. Two data templates cover the subscribable/pushable payload shapes: `series` (candles and every background dataset, keyed by `time`) and `snapshot` (a cross-instrument slice, keyed by `instrument_key`), both columnar (`$defs/table`: `columns` + `rows`). The same schema id serves both as the reply to a `get` (carries `request_id`) and as an unsolicited push to a live subscription (no `request_id`) — deliberately no `.request`/`.response`/`.push` suffix on schema ids. Every data message carries `received_at` (when AFB received the data from its source) and `tz` (the trading venue's IANA zone that row-level `time`/day boundaries are aligned to). Two independent subscription mechanisms exist, deliberately not unified: `subscribe` is explicit and replace-all for the `quotes` (favorites) and `futures` (screener) snapshot scopes — the client states its whole desired scope every time, the server does not diff against a previous statement; the series (candles/dataset) subscription has no separate message at all — a connection has at most one, and it is simply whatever `get` (target=series) was last sent with a live `end_date` (see `get`'s description). There is no client-side calendar lookup at all: a live `series` (`$defs/series`) itself carries an optional `future_times` — AFB derives future (whitespace) bar slots for the chart server-side from its own trading-calendar state and includes them directly in the series answer/push, so the frontend never has to ask separately. `NaN` never appears on the wire — sources that produce it are converted to `null`. See AFB/docs/ws/market.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketChannelV1Message".
@@ -729,7 +729,7 @@ export type LinkUserSetInput = LinkSetInputShared;
 export type MarketChannelV1Message =
   MarketSubscribe | MarketSubscription | MarketGet | MarketSeries | MarketSnapshot | MarketErrorResponse;
 /**
- * Reply is `series` (target=series) or `snapshot` (target=snapshot) with the same `request_id`, or `error`. For target=series, `get` doubles as the subscription request: a connection has at most one live series subscription (instrument_key, period, kinds), there is no separate subscribe message for it. If `end_date` is absent, or not earlier than "today" in the instrument's market `tz`, this request ALSO becomes that live subscription, replacing whatever the connection was previously subscribed to — the server then pushes `series` (mode:"merge") for it as new data arrives. A target=series request with `end_date` strictly before today (history paging, e.g. scrolling a chart back) is a pure history fetch and leaves the live subscription untouched.
+ * Reply is `series` (target=series) or `snapshot` (target=snapshot) with the same `request_id`, or `error`. For target=series, `get` doubles as the subscription request: a connection has at most one live series subscription (instrument_key, period, kinds), there is no separate subscribe message for it. If `end_date` is absent, or not earlier than "today" in the instrument's market `tz`, this request ALSO becomes that live subscription, replacing whatever the connection was previously subscribed to — the server then pushes `series` (mode:"merge") for it as new data arrives; the reply and subsequent pushes may also carry `future_times` (see `$defs/series`) — there is no separate calendar lookup. A target=series request with `end_date` strictly before today (history paging, e.g. scrolling a chart back) is a pure history fetch and leaves the live subscription untouched.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketGet".
@@ -3330,6 +3330,10 @@ export interface MarketSeries {
    * Optional human-readable note (e.g. partial coverage, provider fallback).
    */
   message?: string;
+  /**
+   * Optional, live series only: UTC unix seconds of the opening tick of each future (not-yet-formed) `period` bar after the last candle in `tables`, per MOEX's trading calendar — strictly increasing, no duplicates. AFB computes this server-side from its own trading-calendar state; there is no client-side calendar lookup. Present on the `mode:"replace"` reply to a live `get` (target=series, see `get`'s description) and re-sent on a `mode:"merge"` push only when the list actually changed (the remaining count ran low or the trading day rolled over) — a `merge` push without `future_times` means it is unchanged, the client keeps what it already has. Never present on a pure history fetch (`end_date` strictly before today). The frontend renders these as whitespace bar slots past the last real candle.
+   */
+  future_times?: number[];
   tables: MarketSeriesTable[];
 }
 /**
@@ -4441,6 +4445,93 @@ export interface BrokerResolveInstrumentPayload {
   [k: string]: unknown;
 }
 /**
+ * AFB-pushed MOEX trading calendar snapshot, so BF can gate execution and background polling on real trading-session boundaries (holidays, weekend sessions, per-board session phases) instead of a fixed off-hours window. SNAPSHOT SEMANTICS: `sections` is the FULL current calendar this AFB wants this BF to hold, never a diff — on receipt BF REPLACES its entire calendar cache for the connection with this array (replace-all, not merge); a section/day/window absent from a later calendar.update is gone, not merely unchanged. Sent only to a BF that has declared `features.market_calendar` in `daemon.capabilities` (see payloads/daemon.capabilities.json) — a BF that has not declared it never receives this message and continues to gate on its own local config.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "CalendarUpdatePayload".
+ */
+export interface CalendarUpdatePayload {
+  /**
+   * ISO-8601 time (with offset) this snapshot was assembled by AFB. Not the exchange-side publication time of any one underlying MOEX calendar/session response — those differ per section/endpoint; this is the single freshness anchor for the whole snapshot.
+   */
+  as_of: string;
+  /**
+   * TTL in seconds. The snapshot is usable while now <= as_of + stale_after_sec. Once stale, BF MUST fail-safe: stop trusting this snapshot and fall back to its own local config (off-hours window / trading-day rule) for gating and polling decisions, rather than freezing the last-known calendar as if it were still current. AFB re-pushes calendar.update well inside this TTL under normal operation; a stale snapshot on BF signals a lost/degraded AFB<->BF link, not an intentionally frozen calendar.
+   */
+  stale_after_sec: number;
+  /**
+   * Last calendar date (YYYY-MM-DD, inclusive) covered by `sections[].days`/`windows` in this snapshot — currently "today + 7 days" on the AFB side, but BF must not hardcode that and should instead read this field. Any date at or before `horizon_until` that is missing from a section's `days` should be treated as unknown/non-trading by BF, not extrapolated; AFB is expected to always cover the horizon it declares.
+   */
+  horizon_until: string;
+  /**
+   * Full replacement set of per-exchange-section calendar data for this BF; an empty array is valid and means 'nothing to gate on' (BF falls back to its own config, same as on staleness).
+   */
+  sections: {
+    /**
+     * Exchange MIC this section belongs to, e.g. "MISX" (Moscow Exchange — equities/currency board group; futures/derivatives currently share the same MIC on MOEX). Opaque to BF beyond matching it against the deal's own instrument.
+     */
+    exchange: string;
+    /**
+     * MOEX trading section this calendar/session data was fetched for — matches the deal-resolution grouping BF/AFB already use elsewhere for market/engine classification (stock includes indices).
+     */
+    section: 'stock' | 'futures' | 'currency';
+    /**
+     * Per-calendar-day trading status for this section, one entry per date, typically covering [today - lookback, horizon_until]. Source: MOEX ISS `calendars/{section}.json` off_days block.
+     */
+    days: {
+      /**
+       * Calendar date (YYYY-MM-DD) this entry describes.
+       */
+      date: string;
+      /**
+       * Whether this section trades at all on this date. False for `kind: H` (holiday); true for `kind: N` (normal day) and `kind: W` (weekend session).
+       */
+      is_traded: boolean;
+      /**
+       * N = normal trading day. W = weekend/holiday session (exchange trades on a nominally non-working day; MOEX settles it into a following trading day via `trade_session_date`). H = holiday, not traded.
+       */
+      kind: 'N' | 'W' | 'H';
+      /**
+       * The trading-session date this calendar date's activity settles/reports into. For `kind: N` this equals `date` itself. For `kind: W` this is the next trading day (usually the following Monday) whose session this weekend day's trades belong to — this is how BF should bucket a W day's daily bar/session accounting. For `kind: H` (not traded) this is null.
+       */
+      trade_session_date: string | null;
+      [k: string]: unknown;
+    }[];
+    /**
+     * Trading-session and auction time windows for this section (BOTH categories — see `phase`'s own description), resolved to concrete UTC-offset instants. Resolution order when BF looks up a window for a specific instrument is secid -> board -> section: a window carrying `secid` applies only to that instrument; a window carrying `board` (no `secid`) applies to every instrument on that board; a window carrying neither applies to the whole section. AFB may send multiple overlapping windows at different specificity for the same day/phase (e.g. a section-wide default plus a board-specific override) — BF picks the most specific one that matches the instrument it is gating, per that resolution order. Source: MOEX ISS `calendars/{section}/session.json` (today only) for the near term, projected forward via `estimated` for days beyond what the exchange has actually published.
+     */
+    windows: {
+      /**
+       * Board this window applies to (e.g. "TQBR"); omitted means the window applies to the whole `section` regardless of board. Ignored when `secid` is present (secid is the more specific match).
+       */
+      board?: string;
+      /**
+       * Single instrument (MOEX SECID) this window applies to; omitted means the window applies at the `board` (or, absent that too, `section`) level instead. Never normalized to a different case on either side of the wire — MOEX tickers/secids are case-sensitive.
+       */
+      secid?: string;
+      /**
+       * Window start, ISO-8601 with UTC offset (the exchange's local offset, e.g. +03:00 for Moscow).
+       */
+      start: string;
+      /**
+       * Window end, ISO-8601 with UTC offset. Inclusive of the last tradable second (e.g. a window ending at 18:59:59 means trading stops at that second, not 19:00:00 sharp).
+       */
+      end: string;
+      /**
+       * Session phase label. Two categories: CONTINUOUS TRADING ("morning", "main", "evening", "weekend", "closing_price" — trades actually happen) and AUCTION ("opening_auction", "closing_auction" — an order-collection period: orders can already be booked, but no trades occur until the auction resolves). `closing_price` is synthetic (AFB-side only, not a raw MOEX session type): the few minutes of continuous trading MOEX's session.json leaves unlabeled right after `closing_auction` and before the evening session. A free-form string (not a closed enum) so AFB can introduce a new phase label without a protocol change; an UNRECOGNIZED phase must be treated as ordinary continuous trading (fail-open), not as an auction or as closed — only the two auction labels above should ever gate differently from plain trading. BF's entry gate (order placement) treats both categories as "open" (an auction already accepts orders); a liveness/no-false-reset check (e.g. a stream watchdog, which must not be fooled by an auction moving the book without trades) should treat only the continuous-trading category as "open".
+       */
+      phase: string;
+      /**
+       * True when this window was projected from a learned/default template rather than read from MOEX's official same-day session schedule (MOEX's session.json only ever returns today's schedule — everything beyond today is necessarily a projection). BF may use `estimated: true` windows for gating the same way as observed ones, but should not treat them as authoritative for anything requiring exchange confirmation.
+       */
+      estimated: boolean;
+      [k: string]: unknown;
+    }[];
+    [k: string]: unknown;
+  }[];
+  [k: string]: unknown;
+}
+/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "ConditionTriggeredPayload".
  */
@@ -4504,6 +4595,10 @@ export interface DaemonCapabilitiesPayload {
      * This BF build implements broker.get_accounts/broker.accounts (see payloads/broker.accounts.json) — read-only visibility into every account the broker token can see, not just the trading account named by account_id above. Execution still happens only on account_id in this phase. AFB gates sending broker.get_accounts on this flag being true; absent/false means fall back to the deprecated broker.get_account/broker.account pair.
      */
     multi_account?: boolean;
+    /**
+     * This BF build accepts calendar.update (see payloads/calendar.update.json) — a replace-all MOEX trading calendar snapshot (holidays/weekend sessions, per-board session windows) it uses to gate execution and background broker polling on real trading-session boundaries instead of its own static off-hours config. AFB gates sending calendar.update on this flag being true; absent/false means the BF is never sent a calendar snapshot and keeps gating on its own local config.
+     */
+    market_calendar?: boolean;
     [k: string]: unknown;
   };
   [k: string]: unknown;
