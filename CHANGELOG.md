@@ -7,6 +7,8 @@
 
 ## Unreleased
 
+## v2.7.1 — 2026-09-28
+
 - **`draft/me.v1.json`**: новое опциональное `notify_system` (boolean) — Switch «Системные уведомления» в настройках пользователя (только роль manager, план стабильности AFB, Этап 5). Doc-only (`additionalProperties: true`), не пересекает канал AFB↔BF.
 - **Новая схема `notification.system.v1`** (`spec/schemas/notification.system.v1.json`, план стабильности AFB, Этап 5): MQTT-уведомления о состоянии бэкенда (`kind: source_state|stale_data|resource|startup`, `source`/`state`/`prev_state?`/`since`/`severity: info|warning|critical`/`detail?`) для менеджеров, включивших `me.notify_system`, публикуются AFB в `<topic_base>/system/<user_id>` и доставляются informer'ом (Telegram/e-mail) — тот же паттерн `user`-блока и дедупа по `notification_id`, что у `notification.link.v1`. Примеры — `examples/notifications/system.source_down.json`, `system.startup_unclean.json`. Не входит в `spec/asyncapi.yaml`, канал AFB↔BF не затрагивается.
 - **Канал `market`** (`spec/schemas/afbws/market.channel.v1.json`, `afbws/common.v1.json`, план стабильности AFB, Этап 2 — защита от лавины запросов клиента): два новых кода в общем `$defs.errorCode` — `superseded` (живой `get target=series` отменён более новым живым `get` на том же соединении — latest-wins, клиент молча отбрасывает ожидание) и `busy` (превышен лимит одновременных тяжёлых `get` на соединение, или сервер под нехваткой памяти). Новое опциональное `error.retry_after_sec` (только для `busy`) — сколько секунд клиенту подождать перед одним повторным запросом. Не входит в `spec/asyncapi.yaml`, канал AFB↔BF не затрагивается.
