@@ -454,6 +454,7 @@
     "error": {
       "type": "object",
       "title": "afbws.market.error.v1",
+      "description": "Two client-avalanche-protection codes (plan стабильности AFB, Этап 2), both replying to the superseded/rejected `get`'s own `request_id`, not a push: `superseded` — a live `get target=series` (see `$defs/get`) was cancelled because a newer live `get` on the same connection replaced it before it finished; the client should discard the pending request silently, its chart already moved on. `busy` — the connection's concurrent heavy-`get` limit (history+live `target=series`) was exceeded, or the server is under memory pressure; carries `retry_after_sec`, the client may retry once after that delay.",
       "required": ["channel", "schema", "code", "message"],
       "additionalProperties": false,
       "properties": {
@@ -462,7 +463,12 @@
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
         "code": { "$ref": "common.v1.json#/$defs/errorCode" },
         "message": { "type": "string", "minLength": 1 },
-        "details": { "type": "object" }
+        "details": { "type": "object" },
+        "retry_after_sec": {
+          "type": "number",
+          "minimum": 0,
+          "description": "code=busy only: seconds the client should wait before retrying the same request once."
+        }
       }
     }
   }

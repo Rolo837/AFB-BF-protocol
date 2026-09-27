@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: bd42d523c4d30ab7bef9147ed10cc9b8dd077a17c29d1fc0fa0382bf11009b0e
+ * source-hash: ce5eb8819eb0efc53a6da8e6f109696fb9c5cdace7f3c673435fd31d2d45961a
  */
 
 /**
@@ -52,7 +52,9 @@ export type AfbwsCommonV1_ErrorCode =
   | 'internal_error'
   | 'forbidden'
   | 'bf_offline'
-  | 'unsupported_action';
+  | 'unsupported_action'
+  | 'superseded'
+  | 'busy';
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.alarm.channel.v1). Replaces bulk settings/get_alarms+set_alarms and mail/alarms+mail/ack for clients that negotiated this capability; legacy stays available as fallback for clients that did not. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
@@ -3426,6 +3428,8 @@ export interface AfbwsMarketChannelV1_SourceStatusEntry {
   reason?: string;
 }
 /**
+ * Two client-avalanche-protection codes (plan стабильности AFB, Этап 2), both replying to the superseded/rejected `get`'s own `request_id`, not a push: `superseded` — a live `get target=series` (see `$defs/get`) was cancelled because a newer live `get` on the same connection replaced it before it finished; the client should discard the pending request silently, its chart already moved on. `busy` — the connection's concurrent heavy-`get` limit (history+live `target=series`) was exceeded, or the server is under memory pressure; carries `retry_after_sec`, the client may retry once after that delay.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketErrorResponse".
  */
@@ -3436,6 +3440,10 @@ export interface MarketErrorResponse {
   code: AfbwsCommonV1_ErrorCode;
   message: string;
   details?: {};
+  /**
+   * code=busy only: seconds the client should wait before retrying the same request once.
+   */
+  retry_after_sec?: number;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -4184,6 +4192,55 @@ export interface NotificationLinkV1 {
   };
   /**
    * ISO-8601 publish time; added by MQTTPublisher, not by the link notification builder.
+   */
+  timestamp?: string;
+}
+/**
+ * AFB-side MQTT notification payload published to <topic_base>/system/<user_id> for a backend stability event (source health, data freshness, resource watchdog, startup) that a manager opted into via `me.notify_system`. Consumed by the AFB informer daemon (Telegram/email) exactly like alarm/deal/link notifications — informer never reads AFB settings, the recipient and channels come only from `user`. NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time; `since` is the AFB-observed time the reported state began.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "NotificationSystemV1_Root".
+ */
+export interface NotificationSystemV1_Root {
+  schema: 'afb.notification.system.v1';
+  /**
+   * Stable per-event id for informer-side deduplication (like notification.link.v1).
+   */
+  notification_id: string;
+  /**
+   * Category of backend stability event this notification reports.
+   */
+  kind: 'source_state' | 'stale_data' | 'resource' | 'startup';
+  /**
+   * What the event is about, meaning depends on `kind`: source_state -> source id (moex_iss, moex_apim, getcourse); stale_data -> "<section>:<candles|positions>"; resource -> watchdog event (loop_blocked, rss_step, memory_pressure); startup -> "backend".
+   */
+  source: string;
+  /**
+   * Current state, meaning depends on `kind`: source_state -> ok|degraded|down; stale_data -> fresh|stale; resource -> event-specific (blocked, step_300mb, on, off); startup -> unclean.
+   */
+  state: string;
+  /**
+   * State before this transition, when known (omitted on the very first observation for a key).
+   */
+  prev_state?: string;
+  /**
+   * ISO-8601 time AFB observed this state begin (market_iso_from_naive/market_now_naive, same convention as source_health/freshness `since`).
+   */
+  since: string;
+  severity: 'info' | 'warning' | 'critical';
+  /**
+   * Human-readable extra detail (window stats, lag minutes, RSS, etc.), pre-rendered by AFB backend.
+   */
+  detail?: string;
+  user: {
+    name: string;
+    telegram: string;
+    email: string;
+    notify_telegram: boolean;
+    notify_email: boolean;
+  };
+  /**
+   * ISO-8601 publish time; added by MQTTPublisher, not by the system notification builder.
    */
   timestamp?: string;
 }

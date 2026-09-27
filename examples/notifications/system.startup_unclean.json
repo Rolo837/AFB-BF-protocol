@@ -1,0 +1,18 @@
+{
+  "schema": "afb.notification.system.v1",
+  "notification_id": "system-startup-20260927T052405",
+  "kind": "startup",
+  "source": "backend",
+  "state": "unclean",
+  "since": "2026-09-27T05:24:05.000000+03:00",
+  "severity": "critical",
+  "detail": "Маркер предыдущего запуска не был снят штатно — предыдущая остановка, вероятно, OOM/kill.",
+  "user": {
+    "name": "Manager",
+    "telegram": "@manager",
+    "email": "manager@test",
+    "notify_telegram": true,
+    "notify_email": false
+  },
+  "timestamp": "2026-09-27T05:24:05.114500"
+}

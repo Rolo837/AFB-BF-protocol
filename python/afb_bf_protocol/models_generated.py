@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: bd42d523c4d30ab7bef9147ed10cc9b8dd077a17c29d1fc0fa0382bf11009b0e
+# source-hash: ce5eb8819eb0efc53a6da8e6f109696fb9c5cdace7f3c673435fd31d2d45961a
 
 from __future__ import annotations
 
@@ -168,6 +168,8 @@ AfbwsCommonV1ErrorCode: TypeAlias = Literal[
     "forbidden",
     "bf_offline",
     "unsupported_action",
+    "superseded",
+    "busy",
 ]
 
 
@@ -2927,12 +2929,17 @@ class MarketData(TypedDict):
 
 
 class MarketErrorResponse(TypedDict):
+    """
+    Two client-avalanche-protection codes (plan стабильности AFB, Этап 2), both replying to the superseded/rejected `get`'s own `request_id`, not a push: `superseded` — a live `get target=series` (see `$defs/get`) was cancelled because a newer live `get` on the same connection replaced it before it finished; the client should discard the pending request silently, its chart already moved on. `busy` — the connection's concurrent heavy-`get` limit (history+live `target=series`) was exceeded, or the server is under memory pressure; carries `retry_after_sec`, the client may retry once after that delay.
+    """
+
     channel: Literal["market"]
     schema: Literal["afbws.market.error.v1"]
     request_id: NotRequired[AfbwsCommonV1RequestId]
     code: AfbwsCommonV1ErrorCode
     message: str
     details: NotRequired[dict[str, Any]]
+    retry_after_sec: NotRequired[float]
 
 
 class MarketGet(TypedDict):
@@ -3151,6 +3158,24 @@ class NotificationLinkV1(TypedDict):
     incident_started_at: NotRequired[str]
     health: NotRequired[dict[str, Any]]
     display: Display2
+    user: User
+    timestamp: NotRequired[str]
+
+
+class NotificationSystemV1Root(TypedDict):
+    """
+    AFB-side MQTT notification payload published to <topic_base>/system/<user_id> for a backend stability event (source health, data freshness, resource watchdog, startup) that a manager opted into via `me.notify_system`. Consumed by the AFB informer daemon (Telegram/email) exactly like alarm/deal/link notifications — informer never reads AFB settings, the recipient and channels come only from `user`. NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time; `since` is the AFB-observed time the reported state began.
+    """
+
+    schema: Literal["afb.notification.system.v1"]
+    notification_id: str
+    kind: Literal["source_state", "stale_data", "resource", "startup"]
+    source: str
+    state: str
+    prev_state: NotRequired[str]
+    since: str
+    severity: Literal["info", "warning", "critical"]
+    detail: NotRequired[str]
     user: User
     timestamp: NotRequired[str]
 
