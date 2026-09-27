@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/market.channel.v1.json",
   "x-afbws-support-id": "afbws.market.channel.v1",
   "title": "market channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.market.channel.v1). Replaces the legacy `candles` channel (klines + background datasets positions/trades/hhi/orders), `stream/favorites`, `stream/positions`, and `securities/marketdata|futures|positions` for clients that negotiated this capability; legacy stays available as fallback for clients that did not — this migration carries no version-gated behaviour, negotiation is purely by `auth.support`/`auth_ok.support`. Every instrument is addressed by the catalog's full `instrument_key` (see common.v1.json#/$defs/instrumentKey), not a bare SECID. Two data templates cover the subscribable/pushable payload shapes: `series` (candles and every background dataset, keyed by `time`) and `snapshot` (a cross-instrument slice, keyed by `instrument_key`), both columnar (`$defs/table`: `columns` + `rows`). The same schema id serves both as the reply to a `get` (carries `request_id`) and as an unsolicited push to a live subscription (no `request_id`) — deliberately no `.request`/`.response`/`.push` suffix on schema ids. Every data message carries `received_at` (when AFB received the data from its source) and `tz` (the trading venue's IANA zone that row-level `time`/day boundaries are aligned to). Two independent subscription mechanisms exist, deliberately not unified: `subscribe` is explicit and replace-all for the `quotes` (favorites) and `futures` (screener) snapshot scopes — the client states its whole desired scope every time, the server does not diff against a previous statement; the series (candles/dataset) subscription has no separate message at all — a connection has at most one, and it is simply whatever `get` (target=series) was last sent with a live `end_date` (see `get`'s description). There is no client-side calendar lookup at all: a live `series` (`$defs/series`) itself carries an optional `future_times` — AFB derives future (whitespace) bar slots for the chart server-side from its own trading-calendar state and includes them directly in the series answer/push, so the frontend never has to ask separately. `NaN` never appears on the wire — sources that produce it are converted to `null`. See AFB/docs/ws/market.md.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.market.channel.v1). Replaces the legacy `candles` channel (klines + background datasets positions/trades/hhi/orders), `stream/favorites`, `stream/positions`, and `securities/marketdata|futures|positions` for clients that negotiated this capability; legacy stays available as fallback for clients that did not — this migration carries no version-gated behaviour, negotiation is purely by `auth.support`/`auth_ok.support`. Every instrument is addressed by the catalog's full `instrument_key` (see common.v1.json#/$defs/instrumentKey), not a bare SECID. Two data templates cover the subscribable/pushable payload shapes: `series` (candles and every background dataset, keyed by `time`) and `snapshot` (a cross-instrument slice, keyed by `instrument_key`), both columnar (`$defs/table`: `columns` + `rows`). The same schema id serves both as the reply to a `get` (carries `request_id`) and as an unsolicited push to a live subscription (no `request_id`) — deliberately no `.request`/`.response`/`.push` suffix on schema ids. Every data message carries `received_at` (when AFB received the data from its source) and `tz` (the trading venue's IANA zone that row-level `time`/day boundaries are aligned to). Two independent subscription mechanisms exist, deliberately not unified: `subscribe` is explicit and replace-all for the `quotes` (favorites) and `futures` (screener) snapshot scopes — the client states its whole desired scope every time, the server does not diff against a previous statement; the series (candles/dataset) subscription has no separate message at all — a connection has at most one, and it is simply whatever `get` (target=series) was last sent with a live `end_date` (see `get`'s description). There is no client-side calendar lookup at all: a live `series` (`$defs/series`) itself carries an optional `future_times` — AFB derives future (whitespace) bar slots for the chart server-side from its own trading-calendar state and includes them directly in the series answer/push, so the frontend never has to ask separately. `NaN` never appears on the wire — sources that produce it are converted to `null`. Two more optional pieces cover degraded external sources (plan стабильности AFB, Этап 3): `series.data_status` (`$defs/dataStatus`) flags a single reply/push as stale/partial when it did not come from a normal fresh fetch, and `source_status` (`$defs/sourceStatus`, unsolicited push) is a channel-wide health snapshot of AFB's external sources (`moex`/`getcourse`), replacing the removed legacy `stream/loop_status`. See AFB/docs/ws/market.md.",
   "type": "object",
   "oneOf": [
     { "$ref": "#/$defs/subscribe" },
@@ -11,6 +11,7 @@
     { "$ref": "#/$defs/get" },
     { "$ref": "#/$defs/series" },
     { "$ref": "#/$defs/snapshot" },
+    { "$ref": "#/$defs/sourceStatus" },
     { "$ref": "#/$defs/error" }
   ],
   "$defs": {
@@ -229,10 +230,28 @@
           "items": { "type": "integer" },
           "description": "Optional, live series only: UTC unix seconds of the opening tick of each future (not-yet-formed) `period` bar after the last candle in `tables`, per MOEX's trading calendar — strictly increasing, no duplicates. AFB computes this server-side from its own trading-calendar state; there is no client-side calendar lookup. Present on the `mode:\"replace\"` reply to a live `get` (target=series, see `get`'s description) and re-sent on a `mode:\"merge\"` push only when the list actually changed (the remaining count ran low or the trading day rolled over) — a `merge` push without `future_times` means it is unchanged, the client keeps what it already has. Never present on a pure history fetch (`end_date` strictly before today). The frontend renders these as whitespace bar slots past the last real candle."
         },
+        "data_status": { "$ref": "#/$defs/dataStatus" },
         "tables": {
           "type": "array",
           "items": { "$ref": "#/$defs/seriesTableEntry" }
         }
+      }
+    },
+
+    "dataStatus": {
+      "type": "object",
+      "title": "Degraded-data marker (план стабильности AFB, Этап 3).",
+      "description": "Present on a `series` message only when it is NOT a normal fresh fetch: either the `moex` source's circuit breaker was open when this was built (data served from `market_cache` only — no network at all; a `candles` table may be missing entirely since candles have no persistent cache, see AFB `backend/market/tables.py::build_series_tables_cache_only`) or AFB's freshness detector found this instrument's calendar section/kind lagging behind a live market (`backend/sources/freshness.py`) while the underlying fetch itself still nominally succeeded. Absent on `data_status` means a normal, fresh answer.",
+      "required": ["state", "source", "reason", "since"],
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "enum": ["stale", "partial"],
+          "description": "\"partial\": at least one requested `kind` could not be served at all (e.g. `candles`, breaker open). \"stale\": every requested `kind` is present in `tables` but may lag behind the live market."
+        },
+        "source": { "type": "string", "minLength": 1, "description": "Which source this is attributed to, e.g. \"moex\"." },
+        "reason": { "type": "string", "minLength": 1, "description": "Human-readable cause (breaker cooldown, freshness lag, ...)." },
+        "since": { "type": "string", "format": "date-time", "description": "When this degraded condition started, ISO-8601 with offset." }
       }
     },
 
@@ -403,9 +422,39 @@
       ]
     },
 
+    "sourceStatusEntry": {
+      "type": "object",
+      "title": "One `source_status.sources[]` element — one external source's current health.",
+      "required": ["source", "state", "since"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "type": "string", "minLength": 1, "description": "e.g. \"moex\", \"getcourse\" (backend/sources/health.py source names)." },
+        "state": { "enum": ["ok", "degraded", "down"] },
+        "since": { "type": "string", "format": "date-time", "description": "When this source entered its CURRENT state, ISO-8601 with offset." },
+        "reason": { "type": "string", "description": "Human-readable cause (window error rate/p90 for degraded, breaker cooldown for down)." }
+      }
+    },
+
+    "sourceStatus": {
+      "type": "object",
+      "title": "afbws.market.source_status.v1 — health snapshot of AFB's external data sources.",
+      "description": "Unsolicited push, no `request_id`: sent to every connection that negotiated this channel on each health-state transition of an external source (plan стабильности AFB, Этап 3 — `backend/sources/health.py`'s circuit breaker/degraded-window states) and once as a full snapshot right after this channel's first `subscribe`/`get`. Replaces the removed legacy `stream/loop_status`. `sources` lists every source AFB currently tracks (`moex`/`getcourse`); a source absent from the list has never reported a call yet — treat as \"ok\".",
+      "required": ["channel", "schema", "sources"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "market" },
+        "schema": { "const": "afbws.market.source_status.v1" },
+        "sources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/sourceStatusEntry" }
+        }
+      }
+    },
+
     "error": {
       "type": "object",
       "title": "afbws.market.error.v1",
+      "description": "Two client-avalanche-protection codes (plan стабильности AFB, Этап 2), both replying to the superseded/rejected `get`'s own `request_id`, not a push: `superseded` — a live `get target=series` (see `$defs/get`) was cancelled because a newer live `get` on the same connection replaced it before it finished; the client should discard the pending request silently, its chart already moved on. `busy` — the connection's concurrent heavy-`get` limit (history+live `target=series`) was exceeded, or the server is under memory pressure; carries `retry_after_sec`, the client may retry once after that delay.",
       "required": ["channel", "schema", "code", "message"],
       "additionalProperties": false,
       "properties": {
@@ -414,7 +463,12 @@
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
         "code": { "$ref": "common.v1.json#/$defs/errorCode" },
         "message": { "type": "string", "minLength": 1 },
-        "details": { "type": "object" }
+        "details": { "type": "object" },
+        "retry_after_sec": {
+          "type": "number",
+          "minimum": 0,
+          "description": "code=busy only: seconds the client should wait before retrying the same request once."
+        }
       }
     }
   }

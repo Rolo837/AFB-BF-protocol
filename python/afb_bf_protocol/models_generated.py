@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: fcd014c54a4d46117c39c360975a954c88f1948e0c3b9e8180fd7ddfdd381e6b
+# source-hash: ce5eb8819eb0efc53a6da8e6f109696fb9c5cdace7f3c673435fd31d2d45961a
 
 from __future__ import annotations
 
@@ -168,6 +168,8 @@ AfbwsCommonV1ErrorCode: TypeAlias = Literal[
     "forbidden",
     "bf_offline",
     "unsupported_action",
+    "superseded",
+    "busy",
 ]
 
 
@@ -284,6 +286,34 @@ class AfbwsInstrumentChannelV1RefreshMarketReport(TypedDict):
     malformed_rows: NotRequired[int]
     board_conflicts: NotRequired[list[dict[str, Any]]]
     error: NotRequired[str]
+
+
+class AfbwsMarketChannelV1DataStatus(TypedDict):
+    """
+    Present on a `series` message only when it is NOT a normal fresh fetch: either the `moex` source's circuit breaker was open when this was built (data served from `market_cache` only — no network at all; a `candles` table may be missing entirely since candles have no persistent cache, see AFB `backend/market/tables.py::build_series_tables_cache_only`) or AFB's freshness detector found this instrument's calendar section/kind lagging behind a live market (`backend/sources/freshness.py`) while the underlying fetch itself still nominally succeeded. Absent on `data_status` means a normal, fresh answer.
+    """
+
+    state: Literal["stale", "partial"]
+    source: str
+    reason: str
+    since: str
+
+
+class AfbwsMarketChannelV1SourceStatus(TypedDict):
+    """
+    Unsolicited push, no `request_id`: sent to every connection that negotiated this channel on each health-state transition of an external source (plan стабильности AFB, Этап 3 — `backend/sources/health.py`'s circuit breaker/degraded-window states) and once as a full snapshot right after this channel's first `subscribe`/`get`. Replaces the removed legacy `stream/loop_status`. `sources` lists every source AFB currently tracks (`moex`/`getcourse`); a source absent from the list has never reported a call yet — treat as "ok".
+    """
+
+    channel: Literal["market"]
+    schema: Literal["afbws.market.source_status.v1"]
+    sources: list[AfbwsMarketChannelV1SourceStatusEntry]
+
+
+class AfbwsMarketChannelV1SourceStatusEntry(TypedDict):
+    source: str
+    state: Literal["ok", "degraded", "down"]
+    since: str
+    reason: NotRequired[str]
 
 
 class AfbwsTradeplanChannelV1ArchiveRequest(TypedDict):
@@ -2899,12 +2929,17 @@ class MarketData(TypedDict):
 
 
 class MarketErrorResponse(TypedDict):
+    """
+    Two client-avalanche-protection codes (plan стабильности AFB, Этап 2), both replying to the superseded/rejected `get`'s own `request_id`, not a push: `superseded` — a live `get target=series` (see `$defs/get`) was cancelled because a newer live `get` on the same connection replaced it before it finished; the client should discard the pending request silently, its chart already moved on. `busy` — the connection's concurrent heavy-`get` limit (history+live `target=series`) was exceeded, or the server is under memory pressure; carries `retry_after_sec`, the client may retry once after that delay.
+    """
+
     channel: Literal["market"]
     schema: Literal["afbws.market.error.v1"]
     request_id: NotRequired[AfbwsCommonV1RequestId]
     code: AfbwsCommonV1ErrorCode
     message: str
     details: NotRequired[dict[str, Any]]
+    retry_after_sec: NotRequired[float]
 
 
 class MarketGet(TypedDict):
@@ -3012,6 +3047,7 @@ MarketSeries = TypedDict(
         "source": NotRequired[Literal["broker", "cache"]],
         "message": NotRequired[str],
         "future_times": NotRequired[list[int]],
+        "data_status": NotRequired[AfbwsMarketChannelV1DataStatus],
         "tables": list[MarketSeriesTable],
     },
 )
@@ -3023,6 +3059,7 @@ MarketChannelV1Message: TypeAlias = (
     | MarketGet
     | MarketSeries
     | MarketSnapshot
+    | AfbwsMarketChannelV1SourceStatus
     | MarketErrorResponse
 )
 
@@ -3121,6 +3158,24 @@ class NotificationLinkV1(TypedDict):
     incident_started_at: NotRequired[str]
     health: NotRequired[dict[str, Any]]
     display: Display2
+    user: User
+    timestamp: NotRequired[str]
+
+
+class NotificationSystemV1Root(TypedDict):
+    """
+    AFB-side MQTT notification payload published to <topic_base>/system/<user_id> for a backend stability event (source health, data freshness, resource watchdog, startup) that a manager opted into via `me.notify_system`. Consumed by the AFB informer daemon (Telegram/email) exactly like alarm/deal/link notifications — informer never reads AFB settings, the recipient and channels come only from `user`. NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time; `since` is the AFB-observed time the reported state began.
+    """
+
+    schema: Literal["afb.notification.system.v1"]
+    notification_id: str
+    kind: Literal["source_state", "stale_data", "resource", "startup"]
+    source: str
+    state: str
+    prev_state: NotRequired[str]
+    since: str
+    severity: Literal["info", "warning", "critical"]
+    detail: NotRequired[str]
     user: User
     timestamp: NotRequired[str]
 

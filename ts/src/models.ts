@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: fcd014c54a4d46117c39c360975a954c88f1948e0c3b9e8180fd7ddfdd381e6b
+ * source-hash: ce5eb8819eb0efc53a6da8e6f109696fb9c5cdace7f3c673435fd31d2d45961a
  */
 
 /**
@@ -52,7 +52,9 @@ export type AfbwsCommonV1_ErrorCode =
   | 'internal_error'
   | 'forbidden'
   | 'bf_offline'
-  | 'unsupported_action';
+  | 'unsupported_action'
+  | 'superseded'
+  | 'busy';
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.alarm.channel.v1). Replaces bulk settings/get_alarms+set_alarms and mail/alarms+mail/ack for clients that negotiated this capability; legacy stays available as fallback for clients that did not. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
@@ -721,13 +723,19 @@ export type LinkSetInput = LinkUserSetInput | LinkAdminSetInput;
  */
 export type LinkUserSetInput = LinkSetInputShared;
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.market.channel.v1). Replaces the legacy `candles` channel (klines + background datasets positions/trades/hhi/orders), `stream/favorites`, `stream/positions`, and `securities/marketdata|futures|positions` for clients that negotiated this capability; legacy stays available as fallback for clients that did not — this migration carries no version-gated behaviour, negotiation is purely by `auth.support`/`auth_ok.support`. Every instrument is addressed by the catalog's full `instrument_key` (see common.v1.json#/$defs/instrumentKey), not a bare SECID. Two data templates cover the subscribable/pushable payload shapes: `series` (candles and every background dataset, keyed by `time`) and `snapshot` (a cross-instrument slice, keyed by `instrument_key`), both columnar (`$defs/table`: `columns` + `rows`). The same schema id serves both as the reply to a `get` (carries `request_id`) and as an unsolicited push to a live subscription (no `request_id`) — deliberately no `.request`/`.response`/`.push` suffix on schema ids. Every data message carries `received_at` (when AFB received the data from its source) and `tz` (the trading venue's IANA zone that row-level `time`/day boundaries are aligned to). Two independent subscription mechanisms exist, deliberately not unified: `subscribe` is explicit and replace-all for the `quotes` (favorites) and `futures` (screener) snapshot scopes — the client states its whole desired scope every time, the server does not diff against a previous statement; the series (candles/dataset) subscription has no separate message at all — a connection has at most one, and it is simply whatever `get` (target=series) was last sent with a live `end_date` (see `get`'s description). There is no client-side calendar lookup at all: a live `series` (`$defs/series`) itself carries an optional `future_times` — AFB derives future (whitespace) bar slots for the chart server-side from its own trading-calendar state and includes them directly in the series answer/push, so the frontend never has to ask separately. `NaN` never appears on the wire — sources that produce it are converted to `null`. See AFB/docs/ws/market.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.market.channel.v1). Replaces the legacy `candles` channel (klines + background datasets positions/trades/hhi/orders), `stream/favorites`, `stream/positions`, and `securities/marketdata|futures|positions` for clients that negotiated this capability; legacy stays available as fallback for clients that did not — this migration carries no version-gated behaviour, negotiation is purely by `auth.support`/`auth_ok.support`. Every instrument is addressed by the catalog's full `instrument_key` (see common.v1.json#/$defs/instrumentKey), not a bare SECID. Two data templates cover the subscribable/pushable payload shapes: `series` (candles and every background dataset, keyed by `time`) and `snapshot` (a cross-instrument slice, keyed by `instrument_key`), both columnar (`$defs/table`: `columns` + `rows`). The same schema id serves both as the reply to a `get` (carries `request_id`) and as an unsolicited push to a live subscription (no `request_id`) — deliberately no `.request`/`.response`/`.push` suffix on schema ids. Every data message carries `received_at` (when AFB received the data from its source) and `tz` (the trading venue's IANA zone that row-level `time`/day boundaries are aligned to). Two independent subscription mechanisms exist, deliberately not unified: `subscribe` is explicit and replace-all for the `quotes` (favorites) and `futures` (screener) snapshot scopes — the client states its whole desired scope every time, the server does not diff against a previous statement; the series (candles/dataset) subscription has no separate message at all — a connection has at most one, and it is simply whatever `get` (target=series) was last sent with a live `end_date` (see `get`'s description). There is no client-side calendar lookup at all: a live `series` (`$defs/series`) itself carries an optional `future_times` — AFB derives future (whitespace) bar slots for the chart server-side from its own trading-calendar state and includes them directly in the series answer/push, so the frontend never has to ask separately. `NaN` never appears on the wire — sources that produce it are converted to `null`. Two more optional pieces cover degraded external sources (plan стабильности AFB, Этап 3): `series.data_status` (`$defs/dataStatus`) flags a single reply/push as stale/partial when it did not come from a normal fresh fetch, and `source_status` (`$defs/sourceStatus`, unsolicited push) is a channel-wide health snapshot of AFB's external sources (`moex`/`getcourse`), replacing the removed legacy `stream/loop_status`. See AFB/docs/ws/market.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketChannelV1Message".
  */
 export type MarketChannelV1Message =
-  MarketSubscribe | MarketSubscription | MarketGet | MarketSeries | MarketSnapshot | MarketErrorResponse;
+  | MarketSubscribe
+  | MarketSubscription
+  | MarketGet
+  | MarketSeries
+  | MarketSnapshot
+  | AfbwsMarketChannelV1_SourceStatus
+  | MarketErrorResponse;
 /**
  * Reply is `series` (target=series) or `snapshot` (target=snapshot) with the same `request_id`, or `error`. For target=series, `get` doubles as the subscription request: a connection has at most one live series subscription (instrument_key, period, kinds), there is no separate subscribe message for it. If `end_date` is absent, or not earlier than "today" in the instrument's market `tz`, this request ALSO becomes that live subscription, replacing whatever the connection was previously subscribed to — the server then pushes `series` (mode:"merge") for it as new data arrives; the reply and subsequent pushes may also carry `future_times` (see `$defs/series`) — there is no separate calendar lookup. A target=series request with `end_date` strictly before today (history paging, e.g. scrolling a chart back) is a pure history fetch and leaves the live subscription untouched.
  *
@@ -3334,7 +3342,32 @@ export interface MarketSeries {
    * Optional, live series only: UTC unix seconds of the opening tick of each future (not-yet-formed) `period` bar after the last candle in `tables`, per MOEX's trading calendar — strictly increasing, no duplicates. AFB computes this server-side from its own trading-calendar state; there is no client-side calendar lookup. Present on the `mode:"replace"` reply to a live `get` (target=series, see `get`'s description) and re-sent on a `mode:"merge"` push only when the list actually changed (the remaining count ran low or the trading day rolled over) — a `merge` push without `future_times` means it is unchanged, the client keeps what it already has. Never present on a pure history fetch (`end_date` strictly before today). The frontend renders these as whitespace bar slots past the last real candle.
    */
   future_times?: number[];
+  data_status?: AfbwsMarketChannelV1_DataStatus;
   tables: MarketSeriesTable[];
+}
+/**
+ * Present on a `series` message only when it is NOT a normal fresh fetch: either the `moex` source's circuit breaker was open when this was built (data served from `market_cache` only — no network at all; a `candles` table may be missing entirely since candles have no persistent cache, see AFB `backend/market/tables.py::build_series_tables_cache_only`) or AFB's freshness detector found this instrument's calendar section/kind lagging behind a live market (`backend/sources/freshness.py`) while the underlying fetch itself still nominally succeeded. Absent on `data_status` means a normal, fresh answer.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsMarketChannelV1_DataStatus".
+ */
+export interface AfbwsMarketChannelV1_DataStatus {
+  /**
+   * "partial": at least one requested `kind` could not be served at all (e.g. `candles`, breaker open). "stale": every requested `kind` is present in `tables` but may lag behind the live market.
+   */
+  state: 'stale' | 'partial';
+  /**
+   * Which source this is attributed to, e.g. "moex".
+   */
+  source: string;
+  /**
+   * Human-readable cause (breaker cooldown, freshness lag, ...).
+   */
+  reason: string;
+  /**
+   * When this degraded condition started, ISO-8601 with offset.
+   */
+  since: string;
 }
 /**
  * Reply to `get` (target=snapshot) when `request_id` is present; unsolicited push to the `quotes` or `futures` subscription scope when it is absent (see `scope`).
@@ -3365,6 +3398,38 @@ export interface MarketSnapshot {
   tables: MarketSnapshotTable[];
 }
 /**
+ * Unsolicited push, no `request_id`: sent to every connection that negotiated this channel on each health-state transition of an external source (plan стабильности AFB, Этап 3 — `backend/sources/health.py`'s circuit breaker/degraded-window states) and once as a full snapshot right after this channel's first `subscribe`/`get`. Replaces the removed legacy `stream/loop_status`. `sources` lists every source AFB currently tracks (`moex`/`getcourse`); a source absent from the list has never reported a call yet — treat as "ok".
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsMarketChannelV1_SourceStatus".
+ */
+export interface AfbwsMarketChannelV1_SourceStatus {
+  channel: 'market';
+  schema: 'afbws.market.source_status.v1';
+  sources: AfbwsMarketChannelV1_SourceStatusEntry[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsMarketChannelV1_SourceStatusEntry".
+ */
+export interface AfbwsMarketChannelV1_SourceStatusEntry {
+  /**
+   * e.g. "moex", "getcourse" (backend/sources/health.py source names).
+   */
+  source: string;
+  state: 'ok' | 'degraded' | 'down';
+  /**
+   * When this source entered its CURRENT state, ISO-8601 with offset.
+   */
+  since: string;
+  /**
+   * Human-readable cause (window error rate/p90 for degraded, breaker cooldown for down).
+   */
+  reason?: string;
+}
+/**
+ * Two client-avalanche-protection codes (plan стабильности AFB, Этап 2), both replying to the superseded/rejected `get`'s own `request_id`, not a push: `superseded` — a live `get target=series` (see `$defs/get`) was cancelled because a newer live `get` on the same connection replaced it before it finished; the client should discard the pending request silently, its chart already moved on. `busy` — the connection's concurrent heavy-`get` limit (history+live `target=series`) was exceeded, or the server is under memory pressure; carries `retry_after_sec`, the client may retry once after that delay.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketErrorResponse".
  */
@@ -3375,6 +3440,10 @@ export interface MarketErrorResponse {
   code: AfbwsCommonV1_ErrorCode;
   message: string;
   details?: {};
+  /**
+   * code=busy only: seconds the client should wait before retrying the same request once.
+   */
+  retry_after_sec?: number;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -4123,6 +4192,55 @@ export interface NotificationLinkV1 {
   };
   /**
    * ISO-8601 publish time; added by MQTTPublisher, not by the link notification builder.
+   */
+  timestamp?: string;
+}
+/**
+ * AFB-side MQTT notification payload published to <topic_base>/system/<user_id> for a backend stability event (source health, data freshness, resource watchdog, startup) that a manager opted into via `me.notify_system`. Consumed by the AFB informer daemon (Telegram/email) exactly like alarm/deal/link notifications — informer never reads AFB settings, the recipient and channels come only from `user`. NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time; `since` is the AFB-observed time the reported state began.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "NotificationSystemV1_Root".
+ */
+export interface NotificationSystemV1_Root {
+  schema: 'afb.notification.system.v1';
+  /**
+   * Stable per-event id for informer-side deduplication (like notification.link.v1).
+   */
+  notification_id: string;
+  /**
+   * Category of backend stability event this notification reports.
+   */
+  kind: 'source_state' | 'stale_data' | 'resource' | 'startup';
+  /**
+   * What the event is about, meaning depends on `kind`: source_state -> source id (moex_iss, moex_apim, getcourse); stale_data -> "<section>:<candles|positions>"; resource -> watchdog event (loop_blocked, rss_step, memory_pressure); startup -> "backend".
+   */
+  source: string;
+  /**
+   * Current state, meaning depends on `kind`: source_state -> ok|degraded|down; stale_data -> fresh|stale; resource -> event-specific (blocked, step_300mb, on, off); startup -> unclean.
+   */
+  state: string;
+  /**
+   * State before this transition, when known (omitted on the very first observation for a key).
+   */
+  prev_state?: string;
+  /**
+   * ISO-8601 time AFB observed this state begin (market_iso_from_naive/market_now_naive, same convention as source_health/freshness `since`).
+   */
+  since: string;
+  severity: 'info' | 'warning' | 'critical';
+  /**
+   * Human-readable extra detail (window stats, lag minutes, RSS, etc.), pre-rendered by AFB backend.
+   */
+  detail?: string;
+  user: {
+    name: string;
+    telegram: string;
+    email: string;
+    notify_telegram: boolean;
+    notify_email: boolean;
+  };
+  /**
+   * ISO-8601 publish time; added by MQTTPublisher, not by the system notification builder.
    */
   timestamp?: string;
 }

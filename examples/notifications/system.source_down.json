@@ -1,0 +1,19 @@
+{
+  "schema": "afb.notification.system.v1",
+  "notification_id": "system-moex_iss-down-20260927T062400",
+  "kind": "source_state",
+  "source": "moex_iss",
+  "state": "down",
+  "prev_state": "degraded",
+  "since": "2026-09-27T06:24:00.000000+03:00",
+  "severity": "critical",
+  "detail": "4 ошибок подряд, окно: вызовов=20 ошибок=6 p90=8.40s ожидающих_не_дождалось=2",
+  "user": {
+    "name": "Manager",
+    "telegram": "@manager",
+    "email": "manager@test",
+    "notify_telegram": true,
+    "notify_email": false
+  },
+  "timestamp": "2026-09-27T06:24:00.114500"
+}

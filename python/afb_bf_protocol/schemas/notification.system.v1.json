@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/notification.system.v1.json",
+  "title": "System notification afb.notification.system.v1",
+  "description": "AFB-side MQTT notification payload published to <topic_base>/system/<user_id> for a backend stability event (source health, data freshness, resource watchdog, startup) that a manager opted into via `me.notify_system`. Consumed by the AFB informer daemon (Telegram/email) exactly like alarm/deal/link notifications — informer never reads AFB settings, the recipient and channels come only from `user`. NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time; `since` is the AFB-observed time the reported state began.",
+  "type": "object",
+  "required": [
+    "schema",
+    "notification_id",
+    "kind",
+    "source",
+    "state",
+    "since",
+    "severity",
+    "user"
+  ],
+  "properties": {
+    "schema": { "const": "afb.notification.system.v1" },
+    "notification_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable per-event id for informer-side deduplication (like notification.link.v1)."
+    },
+    "kind": {
+      "description": "Category of backend stability event this notification reports.",
+      "enum": ["source_state", "stale_data", "resource", "startup"]
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What the event is about, meaning depends on `kind`: source_state -> source id (moex_iss, moex_apim, getcourse); stale_data -> \"<section>:<candles|positions>\"; resource -> watchdog event (loop_blocked, rss_step, memory_pressure); startup -> \"backend\"."
+    },
+    "state": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Current state, meaning depends on `kind`: source_state -> ok|degraded|down; stale_data -> fresh|stale; resource -> event-specific (blocked, step_300mb, on, off); startup -> unclean."
+    },
+    "prev_state": {
+      "type": "string",
+      "minLength": 1,
+      "description": "State before this transition, when known (omitted on the very first observation for a key)."
+    },
+    "since": {
+      "type": "string",
+      "description": "ISO-8601 time AFB observed this state begin (market_iso_from_naive/market_now_naive, same convention as source_health/freshness `since`)."
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["info", "warning", "critical"]
+    },
+    "detail": {
+      "type": "string",
+      "description": "Human-readable extra detail (window stats, lag minutes, RSS, etc.), pre-rendered by AFB backend."
+    },
+    "user": {
+      "type": "object",
+      "required": ["name", "telegram", "email", "notify_telegram", "notify_email"],
+      "properties": {
+        "name": { "type": "string" },
+        "telegram": { "type": "string" },
+        "email": { "type": "string" },
+        "notify_telegram": { "type": "boolean" },
+        "notify_email": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO-8601 publish time; added by MQTTPublisher, not by the system notification builder."
+    }
+  },
+  "additionalProperties": false
+}

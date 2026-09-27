@@ -10,6 +10,10 @@
     "telegram": { "type": "string" },
     "notify_telegram": { "type": "boolean" },
     "notify_email": { "type": "boolean" },
+    "notify_system": {
+      "type": "boolean",
+      "description": "System stability notifications (afb.notification.system.v1: source health, data freshness, resource watchdog, unclean startup) — manager role only, server ignores writes from other roles (see api/ws_handlers.py::handle_settings)."
+    },
     "sound": { "type": "string" }
   }
 }

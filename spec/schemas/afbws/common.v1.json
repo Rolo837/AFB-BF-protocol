@@ -20,7 +20,9 @@
         "internal_error",
         "forbidden",
         "bf_offline",
-        "unsupported_action"
+        "unsupported_action",
+        "superseded",
+        "busy"
       ]
     },
     "instrumentKey": {

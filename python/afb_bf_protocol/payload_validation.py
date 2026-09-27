@@ -40,6 +40,7 @@ _NOTIFICATION_SCHEMAS = {
     "afb.notification.alarm.v1",
     "afb.notification.deal.v1",
     "afb.notification.link.v1",
+    "afb.notification.system.v1",
 }
 
 
@@ -155,9 +156,10 @@ def validate_alarm(obj: dict[str, Any]) -> str:
 
 def validate_notification(obj: dict[str, Any]) -> str:
     """Validate an AFB MQTT notification against afb.notification.alarm.v1,
-    afb.notification.deal.v1 or afb.notification.link.v1 (dispatched on
-    ``obj["schema"]``). Returns the resolved schema id. Like alarms,
-    notifications never cross the AFB<->BF wire."""
+    afb.notification.deal.v1, afb.notification.link.v1 or
+    afb.notification.system.v1 (dispatched on ``obj["schema"]``). Returns the
+    resolved schema id. Like alarms, notifications never cross the AFB<->BF
+    wire."""
     if not isinstance(obj, dict):
         raise PayloadValidationError("invalid_schema", "notification must be an object")
     schema = obj.get("schema")
