@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: fcd014c54a4d46117c39c360975a954c88f1948e0c3b9e8180fd7ddfdd381e6b
+# source-hash: bd42d523c4d30ab7bef9147ed10cc9b8dd077a17c29d1fc0fa0382bf11009b0e
 
 from __future__ import annotations
 
@@ -284,6 +284,34 @@ class AfbwsInstrumentChannelV1RefreshMarketReport(TypedDict):
     malformed_rows: NotRequired[int]
     board_conflicts: NotRequired[list[dict[str, Any]]]
     error: NotRequired[str]
+
+
+class AfbwsMarketChannelV1DataStatus(TypedDict):
+    """
+    Present on a `series` message only when it is NOT a normal fresh fetch: either the `moex` source's circuit breaker was open when this was built (data served from `market_cache` only — no network at all; a `candles` table may be missing entirely since candles have no persistent cache, see AFB `backend/market/tables.py::build_series_tables_cache_only`) or AFB's freshness detector found this instrument's calendar section/kind lagging behind a live market (`backend/sources/freshness.py`) while the underlying fetch itself still nominally succeeded. Absent on `data_status` means a normal, fresh answer.
+    """
+
+    state: Literal["stale", "partial"]
+    source: str
+    reason: str
+    since: str
+
+
+class AfbwsMarketChannelV1SourceStatus(TypedDict):
+    """
+    Unsolicited push, no `request_id`: sent to every connection that negotiated this channel on each health-state transition of an external source (plan стабильности AFB, Этап 3 — `backend/sources/health.py`'s circuit breaker/degraded-window states) and once as a full snapshot right after this channel's first `subscribe`/`get`. Replaces the removed legacy `stream/loop_status`. `sources` lists every source AFB currently tracks (`moex`/`getcourse`); a source absent from the list has never reported a call yet — treat as "ok".
+    """
+
+    channel: Literal["market"]
+    schema: Literal["afbws.market.source_status.v1"]
+    sources: list[AfbwsMarketChannelV1SourceStatusEntry]
+
+
+class AfbwsMarketChannelV1SourceStatusEntry(TypedDict):
+    source: str
+    state: Literal["ok", "degraded", "down"]
+    since: str
+    reason: NotRequired[str]
 
 
 class AfbwsTradeplanChannelV1ArchiveRequest(TypedDict):
@@ -3012,6 +3040,7 @@ MarketSeries = TypedDict(
         "source": NotRequired[Literal["broker", "cache"]],
         "message": NotRequired[str],
         "future_times": NotRequired[list[int]],
+        "data_status": NotRequired[AfbwsMarketChannelV1DataStatus],
         "tables": list[MarketSeriesTable],
     },
 )
@@ -3023,6 +3052,7 @@ MarketChannelV1Message: TypeAlias = (
     | MarketGet
     | MarketSeries
     | MarketSnapshot
+    | AfbwsMarketChannelV1SourceStatus
     | MarketErrorResponse
 )
 
