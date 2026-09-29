@@ -865,35 +865,35 @@ def test_commit_request_listings_keep_instrument_class_gating(registry):
         _validator("commitRequest", registry).validate(msg)
 
 
-def test_asset_set_upsert_requires_a_client_minted_set_id(registry):
+def test_set_upsert_requires_a_client_minted_set_id(registry):
     """set_id is always client-minted — an upsert without one (the old
     server-generates-on-create shape) is rejected, not treated as a create."""
     from jsonschema import ValidationError
 
     with pytest.raises(ValidationError):
-        _validator("assetSetUpsert", registry).validate({"name": "Новая"})
-    _validator("assetSetUpsert", registry).validate(
+        _validator("setUpsert", registry).validate({"name": "Новая"})
+    _validator("setUpsert", registry).validate(
         {"set_id": "set-new", "name": "Новая"}
     )  # does not raise — server INSERTs since set-new is unknown in the base snapshot
-    _validator("assetSetUpsert", registry).validate(
+    _validator("setUpsert", registry).validate(
         {"set_id": "set-blue-chips", "name": "Голубые фишки"}
     )  # does not raise — server UPDATEs since set-blue-chips is known
 
 
-def test_asset_set_upsert_requires_name(registry):
+def test_set_upsert_requires_name(registry):
     from jsonschema import ValidationError
 
     with pytest.raises(ValidationError):
-        _validator("assetSetUpsert", registry).validate({"set_id": "set-blue-chips"})
+        _validator("setUpsert", registry).validate({"set_id": "set-blue-chips"})
 
 
-def test_asset_set_upsert_states_no_position(registry):
+def test_set_upsert_states_no_position(registry):
     """Order left the entity: it is stated once, wholesale, in
     commitRequest.asset_set_order."""
     from jsonschema import ValidationError
 
     with pytest.raises(ValidationError):
-        _validator("assetSetUpsert", registry).validate(
+        _validator("setUpsert", registry).validate(
             {"set_id": "set-blue-chips", "name": "Голубые фишки", "sort_order": 10}
         )
 
@@ -1544,13 +1544,17 @@ def test_the_asset_level_is_wired_through_both_snapshots():
         assert "memberships" not in required, name
         assert "asset_members" not in defs[name]["properties"], name
         assert "memberships" not in defs[name]["properties"], name
-        assert "sets" not in defs[name]["properties"], name
+        assert defs[name]["properties"]["sets"]["items"]["$ref"] == "#/$defs/setView", name
         assert defs[name]["properties"]["assets"]["items"]["$ref"] == "#/$defs/catalogAsset", name
         assert defs[name]["properties"]["asset_sets"]["items"]["$ref"] == "#/$defs/assetSetView", name
+        assert defs[name]["properties"]["asset_sets"].get("deprecated") is True, name
     assert "members" in defs["catalogAsset"]["required"]
     assert defs["catalogAsset"]["properties"]["members"]["items"]["$ref"] == "#/$defs/catalogAssetMember"
     assert "asset_ids" in defs["assetSetView"]["required"]
+    assert defs["assetSetView"].get("deprecated") is True
     assert defs["userState"]["properties"]["asset_sets"]["items"]["$ref"] == "#/$defs/assetSetView"
+    assert defs["userState"]["properties"]["sets"]["items"]["$ref"] == "#/$defs/setView"
+    assert "sets" not in defs["userState"]["required"]  # optional: additive for old frontends
 
 
 def test_series_read_projection_is_gone_from_both_snapshots():
@@ -1640,7 +1644,7 @@ def test_the_dead_operations_are_gone():
         "applyRequest", "applyResponse",
         "group", "asset", "assets", "catalogSet",
         "assetMember", "assetMembers",
-        "catalogSetEntry", "catalogSetView", "setUpsert", "setMembership",
+        "catalogSetEntry", "catalogSetView", "setMembership",
     ):
         assert name not in defs, name
     branches = {b["$ref"].rsplit("/", 1)[-1] for b in doc["oneOf"]}
@@ -1652,7 +1656,7 @@ def test_no_channel_def_allows_additional_properties():
     for name in (
         "userState", "errorDetails",
         "catalogAssetMember",
-        "collection", "collectionUpsert", "assetSetView", "assetSetUpsert",
+        "collection", "collectionUpsert", "assetSetView", "setView", "setUpsert",
         "inventoryRequest", "inventoryListingEntry", "inventorySeriesEntry", "inventoryResponse",
         "assetSuggestion", "acceptSuggestion",
         "catalogRequest", "catalogResponse", "commitRequest", "commitResponse",
@@ -1756,20 +1760,20 @@ def test_asset_set_view_user_requires_owner(registry):
         )
 
 
-def test_asset_set_upsert_valid(registry):
-    _validator("assetSetUpsert", registry).validate({"set_id": "set-new", "name": "Новая"})
-    _validator("assetSetUpsert", registry).validate(
+def test_set_upsert_valid(registry):
+    _validator("setUpsert", registry).validate({"set_id": "set-new", "name": "Новая"})
+    _validator("setUpsert", registry).validate(
         {"set_id": "set-new", "name": "Новая", "visibility_tier": "manager"}
     )
 
 
-def test_asset_set_upsert_rejects_scope_and_owner(registry):
+def test_set_upsert_rejects_scope_and_owner(registry):
     """scope/owner are the server's business, never a client's."""
     from jsonschema import ValidationError
 
     for extra in ({"scope": "global"}, {"owner_user_id": "u-42"}):
         with pytest.raises(ValidationError):
-            _validator("assetSetUpsert", registry).validate(
+            _validator("setUpsert", registry).validate(
                 {"set_id": "set-new", "name": "Новая", **extra}
             )
 
@@ -1986,21 +1990,23 @@ def test_collection_members_edit_shape(registry):
         )
 
 
-def test_user_request_speaks_the_asset_set_vocabulary():
+def test_user_request_speaks_the_set_vocabulary():
     """The personal operation uses the same shapes and section names as commit:
-    assetSetUpsert, remove_asset_sets, asset_set_members, asset_set_order."""
+    setUpsert, remove_sets, set_members, set_order (+ the deprecated asset_*
+    twins kept for frontends that predate typed sets)."""
     defs = _channel_doc()["$defs"]
-    user_request = defs["userRequest"]
-    props = user_request["properties"]
-    assert props["asset_sets"]["items"]["$ref"] == "#/$defs/assetSetUpsert"
-    assert "remove_asset_sets" in props
-    assert "asset_set_members" in props
-    assert props["asset_set_members"]["items"]["$ref"] == "#/$defs/membersEdit"
-    assert props["asset_set_order"]["items"]["type"] == "string"
-    for gone in ("sets", "remove_sets", "members", "hidden_set_ids", "order"):
+    props = defs["userRequest"]["properties"]
+    assert props["modify_sets"]["items"]["$ref"] == "#/$defs/setUpsert"
+    assert props["remove_sets"]["items"]["type"] == "string"
+    assert props["set_members"]["items"]["$ref"] == "#/$defs/membersEdit"
+    assert props["set_order"]["items"]["type"] == "string"
+    assert props["asset_sets"]["items"]["$ref"] == "#/$defs/setUpsert"
+    for old in ("asset_sets", "remove_asset_sets", "asset_set_members", "asset_set_order"):
+        assert props[old].get("deprecated") is True, old
+    for gone in ("members", "hidden_set_ids", "order"):
         assert gone not in props, gone
     # visibility_tier is a global-set notion; the personal operation rejects it.
-    assert "visibility_tier" in props["asset_sets"]["description"]
+    assert "visibility_tier" in props["modify_sets"]["description"]
     assert "validation_error" in props["asset_sets"]["description"]
 
 
@@ -2085,14 +2091,14 @@ def test_every_local_ref_resolves():
 
 
 def test_commit_request_rejects_the_removed_shadow_sections(registry):
-    """`sets`/`remove_sets`/`members` were the deprecated twins of the
-    asset_set_* sections; a commit that still sends one is rejected."""
+    """`members`/`groups`/`hidden_set_ids` were the shadow twins of the set
+    sections (long gone); a commit that still sends one is rejected."""
     from jsonschema import ValidationError
 
     for extra in (
-        {"sets": [{"set_id": "set-blue-chips", "name": "Голубые фишки"}]},
-        {"remove_sets": ["set-old"]},
         {"members": [{"set_id": "set-blue-chips", "add": ["asset-sber"]}]},
+        {"groups": [{"key": "Stocks", "name": "Акции"}]},
+        {"hidden_set_ids": ["set-old"]},
     ):
         msg = {
             "channel": "instrument", "schema": "afbws.instrument.commit.request.v1", "request_id": "r1",
@@ -2136,3 +2142,170 @@ def test_error_details_collection_and_suggestion_ids(registry):
         "collection_ids": ["col-stocks"],
         "suggestion_ids": ["sug-1"],
     })
+
+
+# --- typed sets: set_type / setView / unisex sections ------------------------
+
+_INSTRUMENT_SET_GLOBAL = {
+    "set_id": "set-fut", "scope": "global", "name": "Фьючерсы", "set_type": "instrument",
+    "instrument_keys": ["MISX:RFUD:SRU6", "MISX:TQBR:SBER"], "visibility_tier": "user",
+}
+_ASSET_SET_TYPED = {
+    "set_id": "set-blue", "scope": "global", "name": "Голубые", "set_type": "asset",
+    "asset_ids": ["asset-sber"], "visibility_tier": "manager",
+}
+_INSTRUMENT_SET_USER = {
+    "set_id": "set-mine-i", "scope": "user", "name": "Мои инструменты", "set_type": "instrument",
+    "owner_user_id": "u-42", "instrument_keys": [],
+}
+
+
+def test_set_view_valid_for_both_types(registry):
+    for view in (_ASSET_SET_TYPED, _INSTRUMENT_SET_GLOBAL, _INSTRUMENT_SET_USER):
+        _validator("setView", registry).validate(view)  # does not raise
+
+
+def test_set_view_requires_set_type(registry):
+    from jsonschema import ValidationError
+
+    without = {k: v for k, v in _ASSET_SET_TYPED.items() if k != "set_type"}
+    with pytest.raises(ValidationError):
+        _validator("setView", registry).validate(without)
+
+
+def test_set_view_member_list_follows_the_set_type(registry):
+    """Exactly the list of the set's own type is present; the other is forbidden."""
+    from jsonschema import ValidationError
+
+    v = _validator("setView", registry)
+    with pytest.raises(ValidationError):  # asset set without asset_ids
+        v.validate({k: x for k, x in _ASSET_SET_TYPED.items() if k != "asset_ids"})
+    with pytest.raises(ValidationError):  # asset set carrying instrument_keys
+        v.validate({**_ASSET_SET_TYPED, "instrument_keys": ["MISX:TQBR:SBER"]})
+    with pytest.raises(ValidationError):  # instrument set without instrument_keys
+        v.validate({k: x for k, x in _INSTRUMENT_SET_GLOBAL.items() if k != "instrument_keys"})
+    with pytest.raises(ValidationError):  # instrument set carrying asset_ids
+        v.validate({**_INSTRUMENT_SET_GLOBAL, "asset_ids": ["asset-sber"]})
+    with pytest.raises(ValidationError):  # unknown type
+        v.validate({**_ASSET_SET_TYPED, "set_type": "derivative"})
+
+
+def test_set_view_keeps_the_scope_rules(registry):
+    from jsonschema import ValidationError
+
+    v = _validator("setView", registry)
+    with pytest.raises(ValidationError):  # global needs visibility_tier
+        v.validate({k: x for k, x in _INSTRUMENT_SET_GLOBAL.items() if k != "visibility_tier"})
+    with pytest.raises(ValidationError):  # user forbids visibility_tier
+        v.validate({**_INSTRUMENT_SET_USER, "visibility_tier": "user"})
+    with pytest.raises(ValidationError):  # user needs owner
+        v.validate({k: x for k, x in _INSTRUMENT_SET_USER.items() if k != "owner_user_id"})
+
+
+def test_set_view_instrument_keys_use_the_shared_instrument_key_def():
+    defs = _channel_doc()["$defs"]
+    items = defs["setView"]["properties"]["instrument_keys"]["items"]
+    assert items == {"$ref": "common.v1.json#/$defs/instrumentKey"}
+
+
+def test_set_upsert_set_type_is_optional_and_typed(registry):
+    from jsonschema import ValidationError
+
+    v = _validator("setUpsert", registry)
+    v.validate({"set_id": "set-new", "name": "Новая"})  # old frontend: type omitted -> server default asset
+    v.validate({"set_id": "set-new", "name": "Новая", "set_type": "instrument"})
+    v.validate({"set_id": "set-new", "name": "Новая", "set_type": "asset"})
+    with pytest.raises(ValidationError):
+        v.validate({"set_id": "set-new", "name": "Новая", "set_type": "derivative"})
+
+
+def test_the_old_asset_set_upsert_def_is_renamed_away():
+    defs = _channel_doc()["$defs"]
+    assert "assetSetUpsert" not in defs
+    assert "setUpsert" in defs
+
+
+def test_commit_request_unisex_set_sections_valid(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.commit.request.v1", "request_id": "r1",
+        "base_revision": 17,
+        "modify_sets": [
+            {"set_id": "set-fut", "name": "Фьючерсы", "set_type": "instrument", "visibility_tier": "user"},
+            {"set_id": "set-blue", "name": "Голубые", "set_type": "asset"},
+        ],
+        "remove_sets": ["set-old"],
+        "set_members": [
+            {"set_id": "set-fut", "add": ["MISX:RFUD:SRU6"]},  # add without order -> end of the set
+            {"set_id": "set-blue", "add": ["asset-sber"], "order": ["asset-sber"]},
+        ],
+        "set_order": ["set-fut", "set-blue"],
+    }
+    _validator("commitRequest", registry).validate(msg)  # does not raise
+
+
+def test_user_request_unisex_set_sections_valid(registry):
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.user.request.v1", "request_id": "r1",
+        "base_revision": 0,
+        "modify_sets": [{"set_id": "set-mine-i", "name": "Мои", "set_type": "instrument"}],
+        "remove_sets": ["set-old-personal"],
+        "set_members": [{"set_id": "set-mine-i", "add": ["MISX:TQBR:SBER"]}],
+        "set_order": ["set-mine-i"],
+    }
+    _validator("userRequest", registry).validate(msg)  # does not raise
+
+
+def test_deprecated_set_sections_still_validate_and_are_marked(registry):
+    """Frontends that predate typed sets keep sending the asset_* sections."""
+    defs = _channel_doc()["$defs"]
+    for name in ("commitRequest", "userRequest"):
+        props = defs[name]["properties"]
+        for old, new in (
+            ("asset_sets", "modify_sets"), ("remove_asset_sets", "remove_sets"),
+            ("asset_set_members", "set_members"), ("asset_set_order", "set_order"),
+        ):
+            assert props[old].get("deprecated") is True, (name, old)
+            assert new in props[old]["description"], (name, old)
+    msg = {
+        "channel": "instrument", "schema": "afbws.instrument.commit.request.v1", "request_id": "r1",
+        "base_revision": 17,
+        "asset_sets": [{"set_id": "set-new", "name": "Новая"}],
+        "remove_asset_sets": ["set-old"],
+        "asset_set_members": [{"set_id": "set-new", "add": ["asset-sber"]}],
+        "asset_set_order": ["set-new"],
+    }
+    _validator("commitRequest", registry).validate(msg)  # does not raise
+
+
+def test_responses_carry_typed_sets_next_to_the_deprecated_view(registry):
+    base_catalog = {
+        "channel": "instrument", "schema": "afbws.instrument.catalog.response.v1", "request_id": "r1",
+        "catalog_revision": 3, "assets": [], "items": [],
+        "sets": [_ASSET_SET_TYPED, _INSTRUMENT_SET_GLOBAL],
+        "asset_sets": [_ASSET_SET_GLOBAL],
+    }
+    _validator("catalogResponse", registry).validate(base_catalog)  # does not raise
+    _validator("commitResponse", registry).validate(
+        {**base_catalog, "schema": "afbws.instrument.commit.response.v1", "applied": {"sets": 1}}
+    )
+    _validator("userState", registry).validate(
+        {"revision": 1, "asset_sets": [], "sets": [_INSTRUMENT_SET_USER]}
+    )
+
+
+def test_members_edit_documents_typed_members_and_append_without_order():
+    defs = _channel_doc()["$defs"]
+    edit = defs["membersEdit"]
+    assert "instrument_key" in edit["description"]
+    assert "END" in edit["description"]
+    assert "END" in edit["properties"]["add"]["description"] or "end" in edit["properties"]["add"]["description"]
+
+
+def test_set_type_def_is_the_two_value_enum():
+    assert _channel_doc()["$defs"]["setType"]["enum"] == ["asset", "instrument"]
+
+
+def test_limit_key_names_max_sets():
+    defs = _channel_doc()["$defs"]
+    desc = defs["errorDetails"]["properties"]["limit"]["properties"]["key"]["description"]
+    assert "max_sets" in desc

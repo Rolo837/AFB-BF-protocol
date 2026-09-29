@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/instrument.channel.v1.json",
   "x-afbws-support-id": "afbws.instrument.channel.v1",
   "title": "instrument channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaced legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` — all removed from the AFB dispatcher in the legacy-protocol cleanup; there is no legacy fallback any more, a connection that has not negotiated this capability gets a typed `invalid_channel` error instead. `catalog` is the one read snapshot of the curated catalog for any authenticated caller. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `asset_sets` are named Sets of assets (not the category tree). `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. `user` is the caller's personal-sets operation and is served. `favorites`/`paint` are the caller's colored favorites: `favorites` is read-only (the current list, in display order), `paint` is the write — an additive, CAS-free delta (`mark`/`unmark`/`order`) over instruments and assets, kept separate from `user` so a favorite click never spuriously conflicts with an open personal-sets edit. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see assetSetView) instead of the single-parent group tree, plus an independent derivatives axis (catalogDerivative) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — \"Brent oil\" is the BR-* and BRM-* series together — and it, not the ticker, is what a set contains (`asset_sets[].asset_ids`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves — an asset set carries its ordered `asset_ids`, an asset its ordered `members`. Order is carried by array position everywhere on the wire: no entity has an order field, and a write restates a full order through the dedicated `asset_set_order`/`collection_order`/`order` sections of `commit`. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaced legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` — all removed from the AFB dispatcher in the legacy-protocol cleanup; there is no legacy fallback any more, a connection that has not negotiated this capability gets a typed `invalid_channel` error instead. `catalog` is the one read snapshot of the curated catalog for any authenticated caller. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `sets` are named Sets — of assets or of instruments, by `set_type` (not the category tree); `asset_sets` is the deprecated legacy view of the asset-type sets. `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. `user` is the caller's personal-sets operation and is served. `favorites`/`paint` are the caller's colored favorites: `favorites` is read-only (the current list, in display order), `paint` is the write — an additive, CAS-free delta (`mark`/`unmark`/`order`) over instruments and assets, kept separate from `user` so a favorite click never spuriously conflicts with an open personal-sets edit. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see assetSetView) instead of the single-parent group tree, plus an independent derivatives axis (catalogDerivative) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — \"Brent oil\" is the BR-* and BRM-* series together — and it, not the ticker, is what a set of type `asset` contains (`sets[].asset_ids`; a set of type `instrument` holds single listings, `sets[].instrument_keys`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves — an asset set carries its ordered `asset_ids`, an asset its ordered `members`. Order is carried by array position everywhere on the wire: no entity has an order field, and a write restates a full order through the dedicated `set_order`/`collection_order`/`order` sections of `commit`. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.",
   "type": "object",
   "oneOf": [
     { "$ref": "#/$defs/getRequest" },
@@ -64,8 +64,9 @@
     },
     "assetSetView": {
       "type": "object",
-      "title": "A named set of assets — not the category tree.",
-      "description": "True asset set (Наборы): metadata plus ordered `asset_ids`. The set's own display position is its position in `asset_sets[]` (and in `userState.sets[]` for a personal set) — there is no order field on the wire; a commit restates that order wholesale through `commitRequest.asset_set_order`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.",
+      "deprecated": true,
+      "title": "DEPRECATED — use `setView`. A named set of assets — not the category tree.",
+      "description": "DEPRECATED: the legacy view behind `asset_sets[]`, superseded by `setView`/`sets[]`; it is removed once every frontend reads `sets[]`. `asset_sets[]` carries only the sets of type `asset` (a set of instruments is never listed here, so an old frontend does not see it). True asset set (Наборы): metadata plus ordered `asset_ids`. The set's own display position is its position in `asset_sets[]` (and in `userState.sets[]` for a personal set) — there is no order field on the wire; a commit restates that order wholesale through `commitRequest.asset_set_order`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.",
       "required": ["set_id", "scope", "name", "asset_ids"],
       "additionalProperties": false,
       "properties": {
@@ -96,15 +97,74 @@
         }
       ]
     },
-    "assetSetUpsert": {
+    "setView": {
       "type": "object",
-      "title": "Create-or-update of one asset set inside a commit.",
-      "description": "Server derives scope/owner — client sends only set_id, name and an optional visibility_tier (default on server: user). Position is not stated here; send `commitRequest.asset_set_order` to fix the order of the sets.",
+      "title": "A named set of assets OR of instruments — not the category tree.",
+      "description": "True set (Наборы): metadata plus its ordered members. `set_type` says what the members are and is fixed when the set is created: `asset` — the members are `asset_ids`; `instrument` — the members are `instrument_keys` (single listings, never derivatives). Exactly the member list of the set's own type is present; the other one is forbidden. The set's own display position is its position in `sets[]` (and in `userState.sets[]` for a personal set) — there is no order field on the wire; a commit restates that order wholesale through `commitRequest.set_order`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.",
+      "required": ["set_id", "scope", "name", "set_type"],
+      "additionalProperties": false,
+      "properties": {
+        "set_id": { "type": "string", "minLength": 1 },
+        "scope": { "enum": ["global", "user"] },
+        "name": { "type": "string", "minLength": 1 },
+        "owner_user_id": { "type": ["string", "null"] },
+        "set_type": { "$ref": "#/$defs/setType" },
+        "asset_ids": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Member assets in display order. Present only when `set_type` is `asset`."
+        },
+        "instrument_keys": {
+          "type": "array",
+          "items": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+          "description": "Member instruments (listings) in display order. Present only when `set_type` is `instrument`. An instrument that is archived (e.g. an expired futures contract) is removed from the set by the backend."
+        },
+        "visibility_tier": { "enum": ["manager", "user", "guest"] },
+        "icon_id": { "type": ["string", "null"], "maxLength": 128, "description": "Same opaque icon key as `collection.icon_id`." },
+        "icon_color": { "anyOf": [{ "$ref": "#/$defs/favoriteColor" }, { "type": "null" }], "description": "Same 10-value palette favorites already use." }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "scope": { "const": "global" } }, "required": ["scope"] },
+          "then": { "required": ["visibility_tier"] }
+        },
+        {
+          "if": { "properties": { "scope": { "const": "user" } }, "required": ["scope"] },
+          "then": {
+            "required": ["owner_user_id"],
+            "properties": { "visibility_tier": false }
+          }
+        },
+        {
+          "if": { "properties": { "set_type": { "const": "asset" } }, "required": ["set_type"] },
+          "then": {
+            "required": ["asset_ids"],
+            "properties": { "instrument_keys": false }
+          }
+        },
+        {
+          "if": { "properties": { "set_type": { "const": "instrument" } }, "required": ["set_type"] },
+          "then": {
+            "required": ["instrument_keys"],
+            "properties": { "asset_ids": false }
+          }
+        }
+      ]
+    },
+    "setType": {
+      "enum": ["asset", "instrument"],
+      "description": "What a set holds. `asset` — assets (a contract's asset keeps a set alive across expirations); `instrument` — single listings. Chosen when the set is created and never changed while it has members."
+    },
+    "setUpsert": {
+      "type": "object",
+      "title": "Create-or-update of one set (of assets or of instruments) inside a commit or a user request.",
+      "description": "Server derives scope/owner — client sends set_id, name, the optional `set_type` and an optional visibility_tier (default on server: user). Position is not stated here; send `set_order` to fix the order of the sets. `set_type` is decided when the set is created: omitted on create means `asset` (what a frontend that predates typed sets creates); on update it may be omitted, and a value that differs from the stored type is rejected with `validation_error`.",
       "required": ["set_id", "name"],
       "additionalProperties": false,
       "properties": {
         "set_id": { "type": "string", "minLength": 1 },
         "name": { "type": "string", "minLength": 1 },
+        "set_type": { "$ref": "#/$defs/setType", "description": "Optional. Create: the type of the new set, default `asset`. Update: must equal the stored type if present." },
         "visibility_tier": { "enum": ["manager", "user", "guest"], "description": "Optional; server default is user." },
         "icon_id": { "type": ["string", "null"], "maxLength": 128, "description": "Omitted: unchanged. null: clears the icon." },
         "icon_color": { "anyOf": [{ "$ref": "#/$defs/favoriteColor" }, { "type": "null" }], "description": "Omitted: unchanged. null: clears the color." }
@@ -168,12 +228,13 @@
     "userState": {
       "type": "object",
       "title": "The caller's personal catalog overlay: own asset sets and their order.",
-      "description": "The caller's personal overlay, served next to the global catalog. `asset_sets[]` are full assetSetView objects — every entry has scope \"user\" and carries its own membership inline as ordered `asset_ids`; there is no parallel membership array. Set order is the order of this array. Personal sets are assembled from the same global assets a manager curates: a user never owns an asset of their own.",
+      "description": "The caller's personal overlay, served next to the global catalog. `sets[]` are full setView objects — every entry has scope \"user\" and carries its own membership inline (ordered `asset_ids` or `instrument_keys`, by `set_type`); there is no parallel membership array. `asset_sets[]` is the deprecated legacy view of the asset-type subset. Set order is the order of this array. Personal sets are assembled from the same global assets a manager curates: a user never owns an asset of their own.",
       "required": ["revision", "asset_sets"],
       "additionalProperties": false,
       "properties": {
         "revision": { "type": "integer", "minimum": 0, "description": "Revision of the PERSONAL aggregate — counted separately from catalog_revision." },
-        "asset_sets": { "type": "array", "items": { "$ref": "#/$defs/assetSetView" }, "description": "The caller's own sets — every entry has scope: \"user\" and states its membership inline as ordered `asset_ids`. Set order is the order of this array." }
+        "sets": { "type": "array", "items": { "$ref": "#/$defs/setView" }, "description": "The caller's own sets of both types — every entry has scope: \"user\" and states its membership inline (`asset_ids` or `instrument_keys` by `set_type`). Set order is the order of this array. The backend always sends it." },
+        "asset_sets": { "type": "array", "deprecated": true, "items": { "$ref": "#/$defs/assetSetView" }, "description": "DEPRECATED — read `sets`. Only the caller's sets of type `asset`, in the legacy view." }
       }
     },
     "getRequest": {
@@ -418,7 +479,7 @@
     "catalogResponse": {
       "type": "object",
       "title": "UI snapshot of the curated catalog: collections, asset sets, assets with nested members, items and derivatives.",
-      "description": "Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Membership is `asset_sets[].asset_ids` in display order. Composition is `assets[].members` (`kind` plus `instrument_key`/`derivative`, with `code`/`label`/`market` for display) in display order. Order is always array position — no entity on this wire carries an order field. `items` are the canonical instrument records (including materialized futures contracts); `derivatives` is the derivatives axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `asset_sets[].asset_ids`.",
+      "description": "Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Set membership is `sets[].asset_ids` / `sets[].instrument_keys` (by `set_type`) in display order; `asset_sets[]` is the deprecated legacy view of the asset-type sets. Composition is `assets[].members` (`kind` plus `instrument_key`/`derivative`, with `code`/`label`/`market` for display) in display order. Order is always array position — no entity on this wire carries an order field. `items` are the canonical instrument records (including materialized futures contracts); `derivatives` is the derivatives axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `sets[].asset_ids`.",
       "required": ["channel", "schema", "request_id", "catalog_revision", "assets", "items"],
       "additionalProperties": false,
       "properties": {
@@ -430,7 +491,8 @@
         "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
         "derivatives": { "type": "array", "items": { "$ref": "#/$defs/catalogDerivative" }, "description": "The derivatives axis: one entry per derivative (serial future, perpetual future, reserved option), not keyed by code." },
         "collections": { "type": "array", "items": { "$ref": "#/$defs/collection" } },
-        "asset_sets": { "type": "array", "items": { "$ref": "#/$defs/assetSetView" } },
+        "sets": { "type": "array", "items": { "$ref": "#/$defs/setView" }, "description": "Sets visible to the caller, of both types, in display order. Membership is inline: `asset_ids` for `set_type: asset`, `instrument_keys` for `set_type: instrument`. The backend always sends it." },
+        "asset_sets": { "type": "array", "deprecated": true, "items": { "$ref": "#/$defs/assetSetView" }, "description": "DEPRECATED — read `sets`. Only the sets of type `asset`, in the legacy view; sets of instruments are never listed here." },
         "suggestions": { "type": "array", "items": { "$ref": "#/$defs/assetSuggestion" } },
         "user": { "$ref": "#/$defs/userState" }
       }
@@ -472,14 +534,15 @@
     },
     "membersEdit": {
       "type": "object",
-      "title": "Set-membership delta for one set, in asset_ids. add/remove are applied first, then `order` (when present) fixes the resulting positions.",
+      "title": "Set-membership delta for one set. add/remove are applied first, then `order` (when present) fixes the resulting positions.",
+      "description": "Members are named by the set's own type: `asset_id` for a set of type `asset`, `instrument_key` for a set of type `instrument`; a value of the other kind is rejected with `validation_error`. Without `order`, every newly added member goes to the END of the set, in the order listed in `add`; the members already there keep their relative order.",
       "required": ["set_id"],
       "additionalProperties": false,
       "properties": {
         "set_id": { "type": "string", "minLength": 1 },
-        "add": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "asset_ids to add; adding an already-present asset is a no-op, not an error." },
-        "remove": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "asset_ids to drop from this set — an asset that ends up in no set is not deleted, it becomes unassigned." },
-        "order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "The FULL asset_id order of this set after add/remove — not a partial reshuffle." }
+        "add": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Members to add (asset_ids or instrument_keys by the set type); adding an already-present member is a no-op, not an error. Appended to the end when `order` is absent." },
+        "remove": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Members to drop from this set — a dropped asset that ends up in no set is not deleted, it becomes unassigned; a dropped instrument stays in the catalog." },
+        "order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "The FULL member order of this set after add/remove — not a partial reshuffle." }
       }
     },
     "collectionMembersEdit": {
@@ -520,7 +583,7 @@
     "commitRequest": {
       "type": "object",
       "title": "manager only. The single write of the phase 2 catalog: a delta applied atomically on top of `base_revision`, never a whole-set replace.",
-      "description": "Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `asset_sets`, `remove_asset_sets`, `assets`, `remove_assets`, `asset_set_members`, `listings`/`archive_listings`, `series`, `collections`, `remove_collections`, `collection_members`. The server plans the whole delta before applying, so a listing or series upserted in this same request may be referenced from `assets[].members` even though those sections are written later — that is how a pending pool entry and the asset composition that contains it travel atomically. A set created here can be filled by `asset_set_members` in the same request, and an asset created here can be put into that set, because both exist by the time `asset_set_members` runs — `asset_set_members`/other same-commit references use the same client-minted `set_id`/`asset_id` the `assetSetUpsert`/`assetUpsert` entry carries. Order is never a field on an entity: `asset_set_order`, `collection_order`, and the `order` of `asset_set_members`/`collection_members` each state a FULL final order, and every read snapshot carries order as array position. `set_id` and `asset_id` are always client-minted opaque ids (assetSetUpsert/assetUpsert), never generated by the server: a `set_id`/`asset_id` absent from the base snapshot is an INSERT, one already present is an UPDATE, and the server never rewrites an id it is given.",
+      "description": "Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `modify_sets`, `remove_sets`, `assets`, `remove_assets`, `set_members`, `listings`/`archive_listings`, `series`, `collections`, `remove_collections`, `collection_members`. The server plans the whole delta before applying, so a listing or series upserted in this same request may be referenced from `assets[].members` even though those sections are written later — that is how a pending pool entry and the asset composition that contains it travel atomically. A set created here can be filled by `set_members` in the same request — with assets or, for a set of type `instrument`, with instruments (a listing upserted in this same request may be named by its `instrument_key`) — and an asset created here can be put into a set of type `asset`, because both exist by the time `set_members` runs — `set_members`/other same-commit references use the same client-minted `set_id`/`asset_id` the `setUpsert`/`assetUpsert` entry carries. Order is never a field on an entity: `set_order`, `collection_order`, and the `order` of `set_members`/`collection_members` each state a FULL final order, and every read snapshot carries order as array position. `set_id` and `asset_id` are always client-minted opaque ids (setUpsert/assetUpsert), never generated by the server (setUpsert/assetUpsert): a `set_id`/`asset_id` absent from the base snapshot is an INSERT, one already present is an UPDATE, and the server never rewrites an id it is given.",
       "required": ["channel", "schema", "request_id", "base_revision"],
       "additionalProperties": false,
       "properties": {
@@ -533,7 +596,7 @@
         "listings": {
           "type": "array",
           "items": { "$ref": "../instrument.v1.json" },
-          "description": "Upsert of the instrument records themselves, by `ticker`. Copy a pool listing entry's `listing` here unchanged. The element's `group` field is IGNORED — membership is expressed only through `asset_set_members`; clients send `group: null`. instrument.v1 is reused verbatim for its class gating (futures-only expiration/step_price/margin/futoi_code, `isin` for stock only), which is exactly what a listing write has to enforce."
+          "description": "Upsert of the instrument records themselves, by `ticker`. Copy a pool listing entry's `listing` here unchanged. The element's `group` field is IGNORED — membership is expressed only through `set_members`; clients send `group: null`. instrument.v1 is reused verbatim for its class gating (futures-only expiration/step_price/margin/futoi_code, `isin` for stock only), which is exactly what a listing write has to enforce."
         },
         "archive_listings": { "type": "array", "items": { "$ref": "#/$defs/listingArchival" } },
         "series": { "type": "array", "items": { "$ref": "#/$defs/seriesUpsert" }, "description": "Upsert of futures series. Copy a pending pool series row here (`code` → `series_code`, `underlying` → `underlying_ticker`). The backend materializes that series' active contracts from the MOEX snapshot in the same transaction. This stays the write form even though the read snapshots now project series as `derivatives[]` — the asymmetry is deliberate: `derivatives[]` is a computed view (its `derivative` code and its contract set are not independently editable), so there is no `commitRequest.derivatives`." },
@@ -541,10 +604,14 @@
         "remove_collections": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "collection_ids to delete outright — any collection, no id is protected from removal. The assets that were in them are not deleted — they end up with no collection (`collection_id: null`)." },
         "collection_order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "The FULL final order of collection_ids — not a partial reshuffle. The list is FLAT: a collection carries one global order key in storage, not a position inside its parent, so parents and children are ordered in the same sequence. Collections absent from the list keep their relative position after the listed ones." },
         "collection_members": { "type": "array", "items": { "$ref": "#/$defs/collectionMembersEdit" }, "description": "Which assets belong to which collection, and in what order inside it. An asset belongs to exactly one collection, so an `add` here also moves it out of its previous one." },
-        "asset_sets": { "type": "array", "items": { "$ref": "#/$defs/assetSetUpsert" }, "description": "Asset sets to create or update — identity and name only; the order of the sets is `asset_set_order`." },
-        "remove_asset_sets": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "set_ids to delete outright (their membership goes with them). There is no archive flag." },
-        "asset_set_members": { "type": "array", "items": { "$ref": "#/$defs/membersEdit" }, "description": "Membership delta of the asset sets, in asset_ids, with the full resulting order per set." },
-        "asset_set_order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "The FULL final order of set_ids — not a partial reshuffle. Sets absent from the list keep their relative position after the listed ones." },
+        "modify_sets": { "type": "array", "items": { "$ref": "#/$defs/setUpsert" }, "description": "Sets (of assets or of instruments) to create or update — identity, name, `set_type` on create; the order of the sets is `set_order`." },
+        "remove_sets": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "set_ids to delete outright (their membership goes with them). There is no archive flag." },
+        "set_members": { "type": "array", "items": { "$ref": "#/$defs/membersEdit" }, "description": "Membership delta of the sets — asset_ids for a set of type `asset`, instrument_keys for a set of type `instrument` — with the full resulting order per set. At most one entry per `set_id`." },
+        "set_order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "The FULL final order of set_ids — not a partial reshuffle. Sets absent from the list keep their relative position after the listed ones." },
+        "asset_sets": { "type": "array", "deprecated": true, "items": { "$ref": "#/$defs/setUpsert" }, "description": "DEPRECATED — use `modify_sets`. Accepted for frontends that predate typed sets; an entry without `set_type` creates a set of type `asset`, and this field can not edit a set of type `instrument`. Sending it together with `modify_sets` in one request is a `validation_error`." },
+        "remove_asset_sets": { "type": "array", "deprecated": true, "items": { "type": "string", "minLength": 1 }, "description": "DEPRECATED — use `remove_sets`. Sending both in one request is a `validation_error`." },
+        "asset_set_members": { "type": "array", "deprecated": true, "items": { "$ref": "#/$defs/membersEdit" }, "description": "DEPRECATED — use `set_members`. Applies to sets of type `asset` only. Sending both in one request is a `validation_error`." },
+        "asset_set_order": { "type": "array", "deprecated": true, "items": { "type": "string", "minLength": 1 }, "description": "DEPRECATED — use `set_order`. Sending both in one request is a `validation_error`." },
         "accept_suggestions": { "type": "array", "items": { "$ref": "#/$defs/acceptSuggestion" } },
         "reject_suggestions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
         "reason": { "type": "string", "description": "Operator's note for this commit — stored verbatim in catalog_audit.reason." }
@@ -565,7 +632,8 @@
         "items": { "type": "array", "items": { "$ref": "../instrument.v1.json" } },
         "derivatives": { "type": "array", "items": { "$ref": "#/$defs/catalogDerivative" }, "description": "The derivatives axis: one entry per derivative, not keyed by code." },
         "collections": { "type": "array", "items": { "$ref": "#/$defs/collection" } },
-        "asset_sets": { "type": "array", "items": { "$ref": "#/$defs/assetSetView" } },
+        "sets": { "type": "array", "items": { "$ref": "#/$defs/setView" }, "description": "Post-commit sets visible to the caller, of both types (see catalogResponse.sets). The backend always sends it." },
+        "asset_sets": { "type": "array", "deprecated": true, "items": { "$ref": "#/$defs/assetSetView" }, "description": "DEPRECATED — read `sets`. Only the sets of type `asset`, in the legacy view." },
         "suggestions": { "type": "array", "items": { "$ref": "#/$defs/assetSuggestion" } },
         "applied": {
           "type": "object",
@@ -586,10 +654,14 @@
         "schema": { "const": "afbws.instrument.user.request.v1" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
         "base_revision": { "type": "integer", "minimum": 0, "description": "userState.revision the edits were built on (CAS guard); a mismatch is `conflict` with details.user_revision." },
-        "asset_sets": { "type": "array", "items": { "$ref": "#/$defs/assetSetUpsert" }, "description": "Personal sets to create or update — identity and name only; the order of the sets is `asset_set_order`. Scope is implied, never sent. `visibility_tier` is FORBIDDEN in this operation and is rejected with `validation_error`: a personal set has scope `user`, and the tier is meaningful only for global sets." },
-        "remove_asset_sets": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Personal set_ids to delete." },
-        "asset_set_members": { "type": "array", "items": { "$ref": "#/$defs/membersEdit" } },
-        "asset_set_order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "The FULL final order of the caller's own set_ids — not a partial reshuffle. Sets absent from the list keep their relative position after the listed ones." }
+        "modify_sets": { "type": "array", "items": { "$ref": "#/$defs/setUpsert" }, "description": "Personal sets (of assets or of instruments) to create or update — identity, name, `set_type` on create; the order of the sets is `set_order`. Scope is implied, never sent. `visibility_tier` is FORBIDDEN in this operation and is rejected with `validation_error`: a personal set has scope `user`, and the tier is meaningful only for global sets." },
+        "remove_sets": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Personal set_ids to delete." },
+        "set_members": { "type": "array", "items": { "$ref": "#/$defs/membersEdit" }, "description": "Membership delta of the caller's own sets — asset_ids for a set of type `asset`, instrument_keys for a set of type `instrument`. At most one entry per `set_id`." },
+        "set_order": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "The FULL final order of the caller's own set_ids — not a partial reshuffle. Sets absent from the list keep their relative position after the listed ones." },
+        "asset_sets": { "type": "array", "deprecated": true, "items": { "$ref": "#/$defs/setUpsert" }, "description": "DEPRECATED — use `modify_sets`. An entry without `set_type` creates a set of type `asset`; this field can not edit a set of type `instrument`. Together with `modify_sets` in one request — `validation_error`." },
+        "remove_asset_sets": { "type": "array", "deprecated": true, "items": { "type": "string", "minLength": 1 }, "description": "DEPRECATED — use `remove_sets`. Together with `remove_sets` in one request — `validation_error`." },
+        "asset_set_members": { "type": "array", "deprecated": true, "items": { "$ref": "#/$defs/membersEdit" }, "description": "DEPRECATED — use `set_members`. Applies to sets of type `asset` only. Together with `set_members` in one request — `validation_error`." },
+        "asset_set_order": { "type": "array", "deprecated": true, "items": { "type": "string", "minLength": 1 }, "description": "DEPRECATED — use `set_order`. Together with `set_order` in one request — `validation_error`." }
       }
     },
     "userResponse": {
@@ -894,14 +966,14 @@
         "tickers": { "type": "array", "items": { "type": "string", "minLength": 1 } },
         "collection_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
         "suggestion_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-        "instrument_keys": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "favorite/paint refs of kind \"instrument\" that failed to resolve." },
+        "instrument_keys": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Instrument refs that failed to resolve: favorite/paint refs of kind \"instrument\" and members of a set of type `instrument`." },
         "limit": {
           "type": "object",
           "title": "A tier-limit rejection — the whole delta was rejected, not truncated to fit.",
           "required": ["key", "allowed", "requested"],
           "additionalProperties": false,
           "properties": {
-            "key": { "type": "string", "minLength": 1, "description": "The limit key, e.g. max_favorite_colors, max_asset_sets." },
+            "key": { "type": "string", "minLength": 1, "description": "The limit key, e.g. max_favorite_colors, max_sets (max_asset_sets is its deprecated alias and is never reported here)." },
             "allowed": { "type": "integer", "minimum": 0 },
             "requested": { "type": "integer", "minimum": 0 }
           }

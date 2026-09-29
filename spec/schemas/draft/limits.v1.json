@@ -7,6 +7,9 @@
   "additionalProperties": true,
   "properties": {
     "max_favorites_tickers": { "type": "integer" },
-    "max_primitives_per_user": { "type": "integer" }
+    "max_primitives_per_user": { "type": "integer" },
+    "max_sets": { "type": "integer", "description": "Personal sets (of assets or of instruments, both types together) per user." },
+    "max_asset_sets": { "type": "integer", "deprecated": true, "description": "DEPRECATED alias of `max_sets` (always equal to it); kept for frontends that predate `max_sets`, removed later." },
+    "max_favorite_colors": { "type": "integer", "description": "How many of the first ACCENT_PALETTES colors are available for favorites." }
   }
 }
