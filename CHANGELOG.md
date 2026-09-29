@@ -7,6 +7,19 @@
 
 ## Unreleased
 
+## v2.7.2 — 2026-09-29
+
+- **Канал `instrument`** (`spec/schemas/afbws/instrument.channel.v1.json`): наборы (Sets) могут состоять из **инструментов**, а не только из активов. Не входит в `spec/asyncapi.yaml`, канал AFB↔BF не затрагивается. Все правки обратно совместимы для фронтенда, не знающего про типы наборов:
+  - Новый `$defs/setType` (`asset` | `instrument`) — тип набора задаётся при создании и не меняется, пока в наборе есть члены; члены инструментального набора — отдельные листинги (`instrument_key`), не деривативы.
+  - `assetSetUpsert` переименован в **`setUpsert`** (форма на проводе та же) + опциональное `set_type` (на создании по умолчанию `asset`; на обновлении, если передано, должно совпадать с хранимым).
+  - Новый **`setView`** (`set_type` обязателен; `asset_ids` — только у типа `asset`, `instrument_keys` — только у типа `instrument`); прежний `assetSetView` помечен `deprecated`.
+  - «Унисекс»-секции в `commitRequest` и `userRequest`: `modify_sets`, `remove_sets`, `set_members`, `set_order`; старые `asset_sets`, `remove_asset_sets`, `asset_set_members`, `asset_set_order` — `deprecated` (совместное присутствие пары старое/новое в одном запросе — `validation_error`; старые поля создают/правят только наборы типа `asset`). Удаляются отдельной доработкой после обновления фронтендов.
+  - Ответы `catalogResponse`, `commitResponse`, `userState`: новое `sets[]` (`setView`, оба типа); `asset_sets[]` — deprecated, содержит только наборы типа `asset`.
+  - `membersEdit`: значения — `asset_id` или `instrument_key` по типу набора; `add` без `order` дописывает элемент в конец набора.
+  - `draft/limits.v1.json`: описаны `max_sets` (новый лимит личных наборов обоих типов), `max_asset_sets` (deprecated, всегда равен `max_sets`), `max_favorite_colors`.
+  - `errorDetails`: `limit.key` теперь называет `max_sets`; `instrument_keys` описывает и члены инструментальных наборов.
+  - Сгенерировано: `models.ts`/`models_generated.py` (`InstrumentSetView`, `InstrumentSetUpsert`, `InstrumentSetType`; `InstrumentAssetSetUpsert` удалён — потребителям переименовать импорт), синхронизирована копия схем в `python/afb_bf_protocol/schemas`.
+
 ## v2.7.1 — 2026-09-28
 
 - **`draft/me.v1.json`**: новое опциональное `notify_system` (boolean) — Switch «Системные уведомления» в настройках пользователя (только роль manager, план стабильности AFB, Этап 5). Doc-only (`additionalProperties: true`), не пересекает канал AFB↔BF.
