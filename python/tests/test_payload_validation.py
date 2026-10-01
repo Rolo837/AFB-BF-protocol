@@ -240,7 +240,7 @@ def test_validate_gp_dispatches_v1_and_v2():
     pt = {"time": 1721000000, "price": 1.5}
     assert validate_gp({"schema": "afb.gp.v1", "id": "a", "ticker": "SBER", "kind": "line", "start": pt}) == "afb.gp.v1"
     assert validate_gp(
-        {"schema": "afb.gp.v2", "id": "a", "instrument_key": "MISX:TQBR:SBER", "kind": "fibonacci", "start": pt, "stop": pt}
+        {"schema": "afb.gp.v2", "id": "a", "instrument_key": "MISX:TQBR:SBER", "kind": "fibonacci", "settings": {"start": pt, "stop": pt}}
     ) == "afb.gp.v2"
     with pytest.raises(PayloadValidationError):
         validate_gp({"schema": "afb.gp.v3"})

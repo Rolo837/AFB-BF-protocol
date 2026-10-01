@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: e7373897d0284e94a0692ddf90623be7cf32050605ef79d76f8ca0d6eea12317
+ * source-hash: 8b4ab1e11ef6f703e914fc1c6b025efce393bdbf5d3a1752ac9c94e6e33383a5
  */
 
 /**
@@ -130,24 +130,13 @@ export type ConditionV1_PriceLevelOp = 'above' | 'below';
  */
 export type ConditionV1_ScalarOp = 'above' | 'below' | 'crosses_above' | 'crosses_below' | 'crossing';
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.alarm.channel.v2). Full copy of alarm.channel.v1 where items are afb.alarm.v2 (`instrument_key` instead of `ticker`) and `list` filters by `instrument_key`. A client negotiates v1 or v2 (v2 preferred if both are offered); the backend answers in the negotiated version only. See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.alarm.channel.v2). Items are afb.alarm.v2 (`instrument_key` instead of `ticker`). Same convention as afbws.market: ONE schema id per message (`afbws.alarm.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`). Collections are arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. `triggered` is the only server push (no `request_id`). A client negotiates v1 or v2 (v2 preferred if both are offered); the backend answers in the negotiated version only. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AlarmChannelV2Message".
  */
 export type AlarmChannelV2Message =
-  | AlarmV2GetRequest
-  | AlarmV2GetResponse
-  | AlarmV2ListRequest
-  | AlarmV2ListResponse
-  | AlarmV2SetRequest
-  | AlarmV2SetResponse
-  | AlarmV2DeleteRequest
-  | AlarmV2DeleteResponse
-  | AlarmV2ErrorResponse
-  | AlarmV2TriggeredPush
-  | AlarmV2AckRequest
-  | AlarmV2AckResponse;
+  AlarmV2List | AlarmV2Set | AlarmV2Delete | AlarmV2Ack | AlarmV2Triggered | AlarmV2Error;
 /**
  * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
  *
@@ -186,6 +175,44 @@ export type AlarmV2_AlarmConditionNode =
       right?: ConditionV1_RightConst | ConditionV1_DatasetExpr;
       op: ConditionV1_ScalarOp;
     };
+/**
+ * Request: `ids[]` and/or `instrument_keys[]` (at least one; `instrument_keys` = every alarm of those instruments). Response (same `request_id`): `ids[]` actually removed (possibly empty) + `rejected[]`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmV2Delete".
+ */
+export type AlarmV2Delete = AlarmV2Delete1 & {
+  channel: 'alarm';
+  schema: 'afbws.alarm.delete.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  ids?: string[];
+  /**
+   * @minItems 1
+   */
+  instrument_keys?: [AfbwsCommonV1_InstrumentKey, ...AfbwsCommonV1_InstrumentKey[]];
+  rejected?: AlarmV2Rejection[];
+};
+export type AlarmV2Delete1 = {
+  [k: string]: unknown;
+};
+/**
+ * Request: `events[]` (afb.alarm.trigger_ack.v2), at least one. Response (same `request_id`): `results[]` — one per event, `status` ok | not_found. A request carrying `results` is invalid.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmV2Ack".
+ */
+export type AlarmV2Ack = {
+  [k: string]: unknown;
+} & {
+  channel: 'alarm';
+  schema: 'afbws.alarm.ack.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * @minItems 1
+   */
+  events?: [AlarmV2AckEvent, ...AlarmV2AckEvent[]];
+  results?: AlarmV2AckResultItem[];
+};
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "BfsRegistryEntry".
@@ -439,31 +466,15 @@ export type GpV1 = {
   tradeplan_id?: string;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.gp.channel.v2). Full copy of gp.channel.v1 with items afb.gp.v2 (`instrument_key`, kinds trendline/fibonacci) plus chart-indicator management (replaces legacy settings/{get,set,get_default,set_default} `indicators`): `indicator.list` returns the caller's merged list (shared + personal); `indicator.set` is an upsert by id (personal for everyone; `scope: shared` only for a manager, otherwise `forbidden`; for an existing shared indicator a non-manager may change only the outer `enabled`); `indicator.delete` removes by id (shared: manager only). `indicator.sync` is a server push of changed/removed SHARED indicators to every connection with this capability. `list()` (no instrument_key) returns every primitive the caller owns. `set` is a plain upsert by item.id; the backend alone decides whether a move/delete is safe against linked tradeplans (typed conflict). See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.gp.channel.v2). Items are afb.gp.v2 (`instrument_key`, kinds trendline/fibonacci; primitive parameters `start`/`stop`/`text` live in the `settings` dictionary, strictly typed by `kind`). Same convention as afbws.market: ONE schema id per message (`afbws.gp.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response and, where documented, a server push. Requests and responses are told apart by direction and fields (a response echoes the request's `request_id`); a message WITHOUT `request_id` is a server push. Collections are always arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. Chart-indicator management (replaces legacy settings/{get,set,get_default,set_default} `indicators`) is `indicator.list|set|delete`; shared indicators are changed by a manager only and pushed to everyone via `indicator.set`/`indicator.delete` without `request_id`. Primitive display settings: `style`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpChannelV2Message".
  */
 export type GpChannelV2Message =
-  | GpV2GetRequest
-  | GpV2GetResponse
-  | GpV2ListRequest
-  | GpV2ListResponse
-  | GpV2SetRequest
-  | GpV2SetResponse
-  | GpV2DeleteRequest
-  | GpV2DeleteResponse
-  | AfbwsGpChannelV2_SyncPush
-  | GpV2ErrorResponse
-  | GpV2IndicatorListRequest
-  | GpV2IndicatorListResponse
-  | GpV2IndicatorSetRequest
-  | GpV2IndicatorSetResponse
-  | GpV2IndicatorDeleteRequest
-  | GpV2IndicatorDeleteResponse
-  | GpV2IndicatorSyncPush;
+  GpV2List | GpV2Set | GpV2Delete | GpV2IndicatorList | GpV2IndicatorSet | GpV2IndicatorDelete | GpV2Style | GpV2Error;
 /**
- * v2 of afb.gp.v1 (full copy) with two differences: (1) the instrument is identified by the full composite `instrument_key` (afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`; (2) new kinds `trendline` and `fibonacci` — both are two-anchor primitives (`start` and `stop` required, `text` forbidden); their rendering is not specified yet. v1 stays supported for frontends without afbws.gp.channel.v2; v1 clients never receive trendline/fibonacci. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`. `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).
+ * v2 of afb.gp.v1 with differences: (1) the instrument is identified by the full composite `instrument_key` (afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`; (2) new kinds `trendline` and `fibonacci` — both two-anchor primitives; their rendering is not specified yet; (3) the primitive's own parameters (`start`, `stop`, `text`) live in the `settings` dictionary, not at the root, so a kind can gain parameters without touching the envelope. ROOT = identity and server-side ownership: `schema`, `id`, `instrument_key`, `kind`, `tradeplan_id` (all other parameters go to `settings`). `settings` is REQUIRED and strictly typed by `kind` (enforced by the `allOf` below, each branch is additionalProperties:false): line/line_enter/line_sl/line_tp → `primitiveSettingsLine` {start}; note → `primitiveSettingsNote` {start, text? (≤160)}; zone/ruler/trendline/fibonacci → `primitiveSettingsTwoPoint` {start, stop}. v1 (`afb.gp.v1`, flat start/stop/text) stays supported for frontends without afbws.gp.channel.v2; v1 clients never receive trendline/fibonacci. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpV2".
@@ -475,37 +486,92 @@ export type GpV2 = {
   id: string;
   instrument_key: AfbwsCommonV1_InstrumentKey;
   kind: 'line' | 'line_enter' | 'line_sl' | 'line_tp' | 'note' | 'zone' | 'ruler' | 'trendline' | 'fibonacci';
-  start: GpV2_Point;
-  stop?: GpV2_Point;
   /**
-   * note only (optional even there).
+   * Primitive parameters, strictly typed by `kind` (see root description). Replaced as a whole on `set`.
    */
-  text?: string;
+  settings: GpV2PrimitiveSettingsLine | GpV2PrimitiveSettingsNote | GpV2PrimitiveSettingsTwoPoint;
   /**
    * Владеющий торговый план. Проставляется сервером при компиляции плана в сделку (публикация/amend); снимается только при физическом удалении плана. Клиент это поле не задаёт и не меняет — в set-запросе оно игнорируется в пользу хранимого значения. Пустое/отсутствующее — свободный примитив, доступный любому плану. При архивации плана его уровни физически удаляются из этого хранилища, но условия плана НЕ переписываются в числа — план сохраняет исходные ссылки на примитивы; полная копия каждого удалённого уровня (kind/координаты/стиль) переносится в archived_components плана и является источником его исторической отрисовки.
    */
   tradeplan_id?: string;
 };
 /**
- * items[] — upsert by id (full authoritative record); removed_ids[] — shared indicators deleted by a manager. At least one of them is non-empty. Personal indicators are never pushed (each user's own set/delete is answered by its response).
+ * Request (`request_id` present, `items` = what the client wants stored): upsert by `item.id`, batched (each item carries `settings`; `settings` is replaced as a whole; a client-sent `tradeplan_id` is ignored in favour of the stored one); moving a primitive is the same request as creating or editing one. Response (same `request_id`): `items` = the authoritative stored records that were applied (possibly empty), `rejected[]` = items that were NOT applied, each with a typed reason (partial failure never fails the whole message; the backend alone decides whether a move is safe against linked tradeplans). Push (no `request_id`, server-initiated): ownership delta by id — `items[]` are authoritative afb.gp.v2 records (bind: `tradeplan_id` set on publish/amend; release: `tradeplan_id` cleared on plan physical delete); never a snapshot, `rejected` is not allowed. Primitive removal is conveyed by `afbws.gp.delete.v2` without `request_id`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2IndicatorSyncPush".
+ * via the `definition` "GpV2Set".
  */
-export type GpV2IndicatorSyncPush = GpV2IndicatorSyncPush1 & {
-  channel: 'gp';
-  schema: 'afbws.gp.indicator.sync.push.v2';
-  /**
-   * @minItems 1
-   */
-  items?: [GpV2Indicator, ...GpV2Indicator[]];
-  /**
-   * @minItems 1
-   */
-  removed_ids?: [string, ...string[]];
-};
-export type GpV2IndicatorSyncPush1 = {
+export type GpV2Set = {
   [k: string]: unknown;
+} & {
+  channel: 'gp';
+  schema: 'afbws.gp.set.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  items: GpV2[];
+  rejected?: GpV2Rejection[];
+};
+/**
+ * Request (`request_id` present): `ids[]` and/or `instrument_keys[]` (at least one; `instrument_keys` = every FREE primitive of those instruments in one call). Primitives owned by a tradeplan (`tradeplan_id`) are never removed here — they come back in `rejected[]` with `code: conflict` and `details` (linked plans/deals). Response (same `request_id`): `ids[]` = ids actually removed (possibly empty), `rejected[]`. Push (no `request_id`): `ids[]` removed by the server; `instrument_keys`/`rejected` are not allowed.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2Delete".
+ */
+export type GpV2Delete = {
+  [k: string]: unknown;
+} & {
+  channel: 'gp';
+  schema: 'afbws.gp.delete.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  ids?: string[];
+  /**
+   * @minItems 1
+   */
+  instrument_keys?: [AfbwsCommonV1_InstrumentKey, ...AfbwsCommonV1_InstrumentKey[]];
+  rejected?: GpV2Rejection[];
+};
+/**
+ * Request: upsert by `id`, batched. Personal indicators for everyone; `scope: shared` only for a manager (otherwise that item is rejected with `forbidden`). Response (same `request_id`): applied `items[]` (possibly empty) + `rejected[]`. Push (no `request_id`): changed SHARED indicators to every connection with this capability (full authoritative records); personal ones are never pushed. Whether an indicator is drawn on the chart is NOT part of the protocol — it is a per-device view setting kept in the client's localStorage.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2IndicatorSet".
+ */
+export type GpV2IndicatorSet = {
+  [k: string]: unknown;
+} & {
+  channel: 'gp';
+  schema: 'afbws.gp.indicator.set.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  items: GpV2Indicator[];
+  rejected?: GpV2IndicatorRejection[];
+};
+/**
+ * Request: `ids[]` (shared ones: manager only, otherwise rejected with `forbidden`; unknown id: `not_found`). Response (same `request_id`): `ids[]` actually removed + `rejected[]`. Push (no `request_id`): shared indicators deleted by a manager (`ids[]`, `rejected` not allowed).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2IndicatorDelete".
+ */
+export type GpV2IndicatorDelete = {
+  [k: string]: unknown;
+} & {
+  channel: 'gp';
+  schema: 'afbws.gp.indicator.delete.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  ids: string[];
+  rejected?: GpV2IndicatorRejection[];
+};
+/**
+ * Per-user chart styling of primitives by kind (replaces the legacy `settings.interface.primitive_styles`). Request without `styles` = read. Request with `styles` = write: the supplied kinds replace the stored ones, kinds not supplied are left as they are. Response (same `request_id`) always carries the full stored `styles`. Push (no `request_id`) delivers the full `styles` to the user's other connections after a write; `styles` is required there.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2Style".
+ */
+export type GpV2Style = {
+  [k: string]: unknown;
+} & {
+  channel: 'gp';
+  schema: 'afbws.gp.style.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  styles?: GpV2PrimitiveStyles;
 };
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaced legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` — all removed from the AFB dispatcher in the legacy-protocol cleanup; there is no legacy fallback any more, a connection that has not negotiated this capability gets a typed `invalid_channel` error instead. `catalog` is the one read snapshot of the curated catalog for any authenticated caller. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `sets` are named Sets — of assets or of instruments, by `set_type` (not the category tree); `asset_sets` is the deprecated legacy view of the asset-type sets. `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. `user` is the caller's personal-sets operation and is served. `favorites`/`paint` are the caller's colored favorites: `favorites` is read-only (the current list, in display order), `paint` is the write — an additive, CAS-free delta (`mark`/`unmark`/`order`) over instruments and assets, kept separate from `user` so a favorite click never spuriously conflicts with an open personal-sets edit. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see assetSetView) instead of the single-parent group tree, plus an independent derivatives axis (catalogDerivative) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — "Brent oil" is the BR-* and BRM-* series together — and it, not the ticker, is what a set of type `asset` contains (`sets[].asset_ids`; a set of type `instrument` holds single listings, `sets[].instrument_keys`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves — an asset set carries its ordered `asset_ids`, an asset its ordered `members`. Order is carried by array position everywhere on the wire: no entity has an order field, and a write restates a full order through the dedicated `set_order`/`collection_order`/`order` sections of `commit`. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.
@@ -1475,24 +1541,24 @@ export interface AlarmAckResultItem {
   status: 'ok' | 'not_found';
 }
 /**
+ * Request: optional filters `ids[]` and/or `instrument_keys[]` (both = intersection; none = every alarm of the caller). Response (same `request_id`): `items[]` (afb.alarm.v2). There is no separate `get`: use `ids`. A request carrying `items` is invalid.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2GetRequest".
+ * via the `definition` "AlarmV2List".
  */
-export interface AlarmV2GetRequest {
+export interface AlarmV2List {
   channel: 'alarm';
-  schema: 'afbws.alarm.get.request.v2';
+  schema: 'afbws.alarm.list.v2';
   request_id: AfbwsCommonV1_RequestId;
-  id: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2GetResponse".
- */
-export interface AlarmV2GetResponse {
-  channel: 'alarm';
-  schema: 'afbws.alarm.get.response.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  item: AlarmV2;
+  /**
+   * @minItems 1
+   */
+  ids?: [string, ...string[]];
+  /**
+   * @minItems 1
+   */
+  instrument_keys?: [AfbwsCommonV1_InstrumentKey, ...AfbwsCommonV1_InstrumentKey[]];
+  items?: AlarmV2[];
 }
 /**
  * v2 of afb.alarm.v1 (full copy): the only difference is that the instrument is identified by the full composite `instrument_key` (<MIC>[:<board|market>]:<ticker>, case-sensitive, never normalized — see afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`. v1 stays supported for frontends that did not negotiate afbws.alarm.channel.v2; the backend stores v2 and converts v1<->v2 at the channel boundary. AFB-side entity, NOT an AsyncAPI wire message, never crosses the AFB<->BF channel. it is documented here (rather than only in AFB) because it shares condition.v1.json's operator vocabulary with deal.v2 and tradeplan.v2. Replaces the legacy YAML shape (condition_type/trigger_type/value_type/value/value_ref flat fields, break_up/break_down operator names) with a conditionNode. Legacy alarms are read via a lazy converter (see docs/PROTOCOL.md 'Алармы' mapping table) and rewritten in this format on next save/reactivation; the API layer only accepts/emits this format going forward. `period` is the alarm's overall computation timeframe (legacy default '10min'); when `condition` is a price candle operator, `condition.timeframe` carries the candle timeframe and by construction equals `period`.
@@ -1528,84 +1594,56 @@ export interface AlarmV2_AlarmIndicatorExpr {
   params?: {};
 }
 /**
+ * Request: `items[]` — upsert by `item.id`, batched. Response (same `request_id`): applied `items[]` (authoritative records, possibly empty) + `rejected[]` for items that were not applied.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2ListRequest".
+ * via the `definition` "AlarmV2Set".
  */
-export interface AlarmV2ListRequest {
+export interface AlarmV2Set {
   channel: 'alarm';
-  schema: 'afbws.alarm.list.request.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  instrument_key?: AfbwsCommonV1_InstrumentKey;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2ListResponse".
- */
-export interface AlarmV2ListResponse {
-  channel: 'alarm';
-  schema: 'afbws.alarm.list.response.v2';
+  schema: 'afbws.alarm.set.v2';
   request_id: AfbwsCommonV1_RequestId;
   items: AlarmV2[];
+  rejected?: AlarmV2Rejection[];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2SetRequest".
+ * via the `definition` "AlarmV2Rejection".
  */
-export interface AlarmV2SetRequest {
-  channel: 'alarm';
-  schema: 'afbws.alarm.set.request.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  item: AlarmV2;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2SetResponse".
- */
-export interface AlarmV2SetResponse {
-  channel: 'alarm';
-  schema: 'afbws.alarm.set.response.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  item: AlarmV2;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2DeleteRequest".
- */
-export interface AlarmV2DeleteRequest {
-  channel: 'alarm';
-  schema: 'afbws.alarm.delete.request.v2';
-  request_id: AfbwsCommonV1_RequestId;
+export interface AlarmV2Rejection {
   id: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2DeleteResponse".
- */
-export interface AlarmV2DeleteResponse {
-  channel: 'alarm';
-  schema: 'afbws.alarm.delete.response.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  id: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2ErrorResponse".
- */
-export interface AlarmV2ErrorResponse {
-  channel: 'alarm';
-  schema: 'afbws.alarm.error.response.v2';
-  request_id: AfbwsCommonV1_RequestId;
   code: AfbwsCommonV1_ErrorCode;
-  message: string;
+  message?: string;
   details?: {};
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2TriggeredPush".
+ * via the `definition` "AlarmV2AckEvent".
  */
-export interface AlarmV2TriggeredPush {
+export interface AlarmV2AckEvent {
+  schema: 'afb.alarm.trigger_ack.v2';
+  alarm_id: string;
+  triggered_at: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmV2AckResultItem".
+ */
+export interface AlarmV2AckResultItem {
+  schema: 'afbws.alarm.ack_result.v2';
+  alarm_id: string;
+  triggered_at: string;
+  status: 'ok' | 'not_found';
+}
+/**
+ * Server-initiated; `events[]` carry the fired alarm with its authoritative afb.alarm.v2 record.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmV2Triggered".
+ */
+export interface AlarmV2Triggered {
   channel: 'alarm';
-  schema: 'afbws.alarm.triggered.push.v2';
+  schema: 'afbws.alarm.triggered.v2';
   /**
    * @minItems 1
    */
@@ -1623,46 +1661,18 @@ export interface AlarmV2TriggerEvent {
   current_price?: number;
 }
 /**
+ * Per-item failures of a batched set/delete are reported in that response's `rejected[]`, not here.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2AckRequest".
+ * via the `definition` "AlarmV2Error".
  */
-export interface AlarmV2AckRequest {
+export interface AlarmV2Error {
   channel: 'alarm';
-  schema: 'afbws.alarm.ack.request.v2';
+  schema: 'afbws.alarm.error.v2';
   request_id: AfbwsCommonV1_RequestId;
-  /**
-   * @minItems 1
-   */
-  events: [AlarmV2AckEvent, ...AlarmV2AckEvent[]];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2AckEvent".
- */
-export interface AlarmV2AckEvent {
-  schema: 'afb.alarm.trigger_ack.v2';
-  alarm_id: string;
-  triggered_at: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2AckResponse".
- */
-export interface AlarmV2AckResponse {
-  channel: 'alarm';
-  schema: 'afbws.alarm.ack.response.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  results: AlarmV2AckResultItem[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2AckResultItem".
- */
-export interface AlarmV2AckResultItem {
-  schema: 'afbws.alarm.ack_result.v2';
-  alarm_id: string;
-  triggered_at: string;
-  status: 'ok' | 'not_found';
+  code: AfbwsCommonV1_ErrorCode;
+  message: string;
+  details?: {};
 }
 /**
  * Shared public-view basis for `bfs` (registry push) and `connector` (record CRUD) — see BFRegistryEntry.to_public_dict() in AFB/backend/trade/models.py.
@@ -2447,30 +2457,39 @@ export interface GpErrorDetails {
   locked_scopes?: ('entry' | 'stop_loss' | 'take_profit')[];
 }
 /**
+ * Request: optional filters `ids[]` and/or `instrument_keys[]` (both given = intersection; none = every primitive the caller owns). Response: same `request_id`, `items[]` (afb.gp.v2) — possibly empty, never an error for a missing id. There is no separate `get`: use `ids`. `items` is response-only; a request carrying `items` together with a filter is invalid.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2GetRequest".
+ * via the `definition` "GpV2List".
  */
-export interface GpV2GetRequest {
+export interface GpV2List {
   channel: 'gp';
-  schema: 'afbws.gp.get.request.v2';
+  schema: 'afbws.gp.list.v2';
   request_id: AfbwsCommonV1_RequestId;
-  id: string;
+  /**
+   * @minItems 1
+   */
+  ids?: [string, ...string[]];
+  /**
+   * @minItems 1
+   */
+  instrument_keys?: [AfbwsCommonV1_InstrumentKey, ...AfbwsCommonV1_InstrumentKey[]];
+  items?: GpV2[];
+}
+/**
+ * line, line_enter, line_sl, line_tp.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2PrimitiveSettingsLine".
+ */
+export interface GpV2PrimitiveSettingsLine {
+  start: GpV2Point;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2GetResponse".
+ * via the `definition` "GpV2Point".
  */
-export interface GpV2GetResponse {
-  channel: 'gp';
-  schema: 'afbws.gp.get.response.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  item: GpV2;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2_Point".
- */
-export interface GpV2_Point {
+export interface GpV2Point {
   /**
    * Unix seconds, as in klines.
    */
@@ -2478,89 +2497,35 @@ export interface GpV2_Point {
   price: number;
 }
 /**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2ListRequest".
- */
-export interface GpV2ListRequest {
-  channel: 'gp';
-  schema: 'afbws.gp.list.request.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  instrument_key?: AfbwsCommonV1_InstrumentKey;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2ListResponse".
- */
-export interface GpV2ListResponse {
-  channel: 'gp';
-  schema: 'afbws.gp.list.response.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  items: GpV2[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2SetRequest".
- */
-export interface GpV2SetRequest {
-  channel: 'gp';
-  schema: 'afbws.gp.set.request.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  item: GpV2;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2SetResponse".
- */
-export interface GpV2SetResponse {
-  channel: 'gp';
-  schema: 'afbws.gp.set.response.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  item: GpV2;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2DeleteRequest".
- */
-export interface GpV2DeleteRequest {
-  channel: 'gp';
-  schema: 'afbws.gp.delete.request.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  id: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2DeleteResponse".
- */
-export interface GpV2DeleteResponse {
-  channel: 'gp';
-  schema: 'afbws.gp.delete.response.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  id: string;
-}
-/**
- * items[] — upsert by id (bind: tradeplan_id set on publish/amend; release: tradeplan_id cleared on plan physical delete), full authoritative afb.gp.v2 record, same shape as set.response. Never a snapshot. Primitive deletion (archival freeze) is NOT conveyed by this push — a dropped primitive was, by construction, bound to a plan and only rendered while that plan is selected; the plan's own afbws.tradeplan.sync.push.v1 (status: archived, frozen numeric conditions) already replaces its on-chart representation.
+ * note.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsGpChannelV2_SyncPush".
+ * via the `definition` "GpV2PrimitiveSettingsNote".
  */
-export interface AfbwsGpChannelV2_SyncPush {
-  channel: 'gp';
-  schema: 'afbws.gp.sync.push.v2';
-  /**
-   * @minItems 1
-   */
-  items: [GpV2, ...GpV2[]];
+export interface GpV2PrimitiveSettingsNote {
+  start: GpV2Point;
+  text?: string;
 }
 /**
+ * zone, ruler, trendline, fibonacci.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2ErrorResponse".
+ * via the `definition` "GpV2PrimitiveSettingsTwoPoint".
  */
-export interface GpV2ErrorResponse {
-  channel: 'gp';
-  schema: 'afbws.gp.error.response.v2';
-  request_id: AfbwsCommonV1_RequestId;
+export interface GpV2PrimitiveSettingsTwoPoint {
+  start: GpV2Point;
+  stop: GpV2Point;
+}
+/**
+ * `item` carries the authoritative current record when the client should see it (a rejected move restores the server's version, not the client's optimistic one). `details` is populated on `conflict` (linked tradeplans/deals, locked scopes).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2Rejection".
+ */
+export interface GpV2Rejection {
+  id: string;
   code: AfbwsCommonV1_ErrorCode;
-  message: string;
+  message?: string;
   item?: GpV2;
   details?: GpV2ErrorDetails;
 }
@@ -2574,26 +2539,19 @@ export interface GpV2ErrorDetails {
   locked_scopes?: ('entry' | 'stop_loss' | 'take_profit')[];
 }
 /**
+ * Request: only `request_id`. Response (same `request_id`): `items[]` — the caller's merged list (shared + personal).
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2IndicatorListRequest".
+ * via the `definition` "GpV2IndicatorList".
  */
-export interface GpV2IndicatorListRequest {
+export interface GpV2IndicatorList {
   channel: 'gp';
-  schema: 'afbws.gp.indicator.list.request.v2';
+  schema: 'afbws.gp.indicator.list.v2';
   request_id: AfbwsCommonV1_RequestId;
+  items?: GpV2Indicator[];
 }
 /**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2IndicatorListResponse".
- */
-export interface GpV2IndicatorListResponse {
-  channel: 'gp';
-  schema: 'afbws.gp.indicator.list.response.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  items: GpV2Indicator[];
-}
-/**
- * `scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `enabled` (outer) is the per-user on/off switch (for shared ones it is the only field a non-manager may change — stored in the user's file); `settings` carry the parameters. Type `cot` is chart-only; alarm indicator conditions support wma/kama/psar.
+ * `scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `settings` carry the parameters. Whether an indicator is shown on the chart is not part of the protocol (per-device view setting kept in the client's localStorage). Type `cot` is chart-only; alarm indicator conditions support wma/kama/psar.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpV2Indicator".
@@ -2601,18 +2559,16 @@ export interface GpV2IndicatorListResponse {
 export interface GpV2Indicator {
   id: string;
   type: 'wma' | 'kama' | 'psar' | 'cot';
-  enabled: boolean;
   settings: GpV2IndicatorSettings;
   scope: 'shared' | 'personal';
 }
 /**
- * Display + calculation settings. Common: enabled/color/lineWidth/lineStyle; period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml.
+ * Display + calculation settings. Common: color/lineWidth/lineStyle; period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpV2IndicatorSettings".
  */
 export interface GpV2IndicatorSettings {
-  enabled: boolean;
   color: string;
   lineWidth: number;
   lineStyle: 'Solid' | 'Dots';
@@ -2626,43 +2582,58 @@ export interface GpV2IndicatorSettings {
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2IndicatorSetRequest".
+ * via the `definition` "GpV2IndicatorRejection".
  */
-export interface GpV2IndicatorSetRequest {
-  channel: 'gp';
-  schema: 'afbws.gp.indicator.set.request.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  item: GpV2Indicator;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2IndicatorSetResponse".
- */
-export interface GpV2IndicatorSetResponse {
-  channel: 'gp';
-  schema: 'afbws.gp.indicator.set.response.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  item: GpV2Indicator;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2IndicatorDeleteRequest".
- */
-export interface GpV2IndicatorDeleteRequest {
-  channel: 'gp';
-  schema: 'afbws.gp.indicator.delete.request.v2';
-  request_id: AfbwsCommonV1_RequestId;
+export interface GpV2IndicatorRejection {
   id: string;
+  code: AfbwsCommonV1_ErrorCode;
+  message?: string;
+}
+/**
+ * Keys are primitive kinds; a kind that is absent has no stored override (the client falls back to its defaults).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2PrimitiveStyles".
+ */
+export interface GpV2PrimitiveStyles {
+  line?: GpV2PrimitiveKindStyle;
+  line_enter?: GpV2PrimitiveKindStyle;
+  line_sl?: GpV2PrimitiveKindStyle;
+  line_tp?: GpV2PrimitiveKindStyle;
+  note?: GpV2PrimitiveKindStyle;
+  zone?: GpV2PrimitiveKindStyle;
+  ruler?: GpV2PrimitiveKindStyle;
+  trendline?: GpV2PrimitiveKindStyle;
+  fibonacci?: GpV2PrimitiveKindStyle;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2IndicatorDeleteResponse".
+ * via the `definition` "GpV2PrimitiveKindStyle".
  */
-export interface GpV2IndicatorDeleteResponse {
+export interface GpV2PrimitiveKindStyle {
+  /**
+   * hex colour; for `note` the callout line / frame / text colour.
+   */
+  color: string;
+  lineWidth: 1 | 2 | 3 | 4;
+  /**
+   * lightweight-charts LineStyle: 0 Solid, 1 Dotted, 2 Dashed, 3 LargeDashed, 4 SparseDotted.
+   */
+  lineStyle: number;
+}
+/**
+ * Used when the request as a whole fails (invalid_schema, forbidden channel, internal_error, ...). Per-item failures of a batched set/delete/indicator.* are reported in that response's `rejected[]`, not here. `details` is populated on `conflict`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2Error".
+ */
+export interface GpV2Error {
   channel: 'gp';
-  schema: 'afbws.gp.indicator.delete.response.v2';
+  schema: 'afbws.gp.error.v2';
   request_id: AfbwsCommonV1_RequestId;
-  id: string;
+  code: AfbwsCommonV1_ErrorCode;
+  message: string;
+  details?: GpV2ErrorDetails;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

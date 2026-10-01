@@ -544,16 +544,47 @@ Top-level `period` — общий таймфрейм вычисления ала
 - Версия клиента определяется только по `auth.support`: `afbws.alarm.channel.v2` /
   `afbws.gp.channel.v2` (новые каналы со своими схемами сообщений `*.v2`);
   v1-каналы работают без изменений. Бэкенд хранит v2 и конвертирует v1↔v2 на границе.
+- Соглашение каналов v2 — как у `afbws.market`: **одна схема на сообщение**
+  (`afbws.<канал>.<op>.v2`, без суффиксов `.request/.response/.push`); та же схема
+  служит запросом, ответом (эхо `request_id`) и — где указано — серверным push-ом
+  (сообщение без `request_id`). Коллекции — всегда массивы (`items[]`, `ids[]`,
+  `instrument_keys[]`), поэтому массовые операции — одно сообщение; частичные отказы
+  возвращаются в `rejected[]` (`{id, code, message?, details?}`), а не ошибкой всего
+  запроса. Ошибка запроса целиком — `afbws.<канал>.error.v2`.
+  - `alarm.channel.v2`: `list` (фильтры `ids[]`/`instrument_keys[]`, ответ `items[]`;
+    отдельного `get` нет), `set` (`items[]`), `delete` (`ids[]` и/или
+    `instrument_keys[]`), `ack` (`events[]` → `results[]`), `triggered` (push),
+    `error`.
+  - `gp.channel.v2`: `list`, `set` (`items[]`; без `request_id` — push владения),
+    `delete` (`ids[]` и/или `instrument_keys[]` — «удалить все свободные примитивы
+    инструмента» одним сообщением; примитивы плана в `rejected[]` с `conflict`;
+    без `request_id` — push удаления), `indicator.list|set|delete`, `style`, `error`.
 - `afb.gp.v2` добавляет категории `trendline` и `fibonacci`: обе двухточечные
   (`start` и `stop` обязательны, `text` запрещён). Вид примитивов не специфицирован.
   v1-клиентам эти категории не отдаются.
+- Параметры самого примитива (`start`, `stop`, `text`) в `afb.gp.v2` лежат не на корне,
+  а в словаре `settings` (обязателен). Корень — только идентичность и серверное
+  владение: `schema`, `id`, `instrument_key`, `kind`, `tradeplan_id`. `settings` строго
+  типизирован по `kind` (каждая ветка `additionalProperties: false`):
+  `line`/`line_enter`/`line_sl`/`line_tp` → `{start}` (`$defs/primitiveSettingsLine`),
+  `note` → `{start, text?}` (`primitiveSettingsNote`, `text` ≤160),
+  `zone`/`ruler`/`trendline`/`fibonacci` → `{start, stop}`
+  (`primitiveSettingsTwoPoint`). Новые параметры вида добавляются в `settings`, не
+  затрагивая конверт. `set` заменяет `settings` целиком; `tradeplan_id` от клиента
+  по-прежнему игнорируется. `afb.gp.v1` (плоские `start`/`stop`/`text`) не менялся.
 - Управление индикаторами (замена легаси `settings/*` `indicators`) живёт в
-  `gp.channel.v2`: `indicator.list` / `indicator.set` (upsert по `id`) /
-  `indicator.delete`, push `indicator.sync` (дельта **общих** индикаторов:
-  `items[]` + `removed_ids[]`). `$defs/indicator` в `gp.v2.json`:
-  `id`, `type` (`wma|kama|psar|cot`), `enabled`, `scope` (`shared|personal`),
-  `settings`. Общие индикаторы создаёт/правит/удаляет только manager (иначе
-  `forbidden`); неменеджер для общего индикатора меняет лишь внешний `enabled`.
+  `gp.channel.v2`: `indicator.list` / `indicator.set` (upsert массива по `id`) /
+  `indicator.delete`; дельта **общих** индикаторов приходит теми же `indicator.set`
+  / `indicator.delete` без `request_id`. `$defs/indicator` в `gp.v2.json`: `id`,
+  `type` (`wma|kama|psar|cot`), `scope` (`shared|personal`), `settings`. Общие
+  индикаторы создаёт/правит/удаляет только manager (иначе элемент в `rejected[]` с
+  `forbidden`). Флага `enabled` в протоколе **нет**: показан ли индикатор на графике —
+  настройка вида на устройстве (localStorage клиента).
+- Стили отображения примитивов (замена `settings.interface.primitive_styles`):
+  `afbws.gp.style.v2` — `styles` по видам примитивов (`$defs/primitiveStyles` в
+  `gp.v2.json`: `color` hex, `lineWidth` 1–4, `lineStyle` 0–4). Запрос без `styles` —
+  чтение, с `styles` — запись (переданные виды заменяют хранимые); ответ и push на
+  остальные соединения несут полный `styles`.
 - `notification.alarm.v1.json`: опциональное `instrument_key` (добавляется, когда
   аларм хранится как v2).
 - Валидация: `payload_validation.validate_alarm` (v1/v2), `validate_gp` (v1/v2).
