@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/gp.v2.json",
+  "title": "Graphic primitive afb.gp.v2",
+  "description": "v2 of afb.gp.v1 (full copy) with two differences: (1) the instrument is identified by the full composite `instrument_key` (afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`; (2) new kinds `trendline` and `fibonacci` — both are two-anchor primitives (`start` and `stop` required, `text` forbidden); their rendering is not specified yet. v1 stays supported for frontends without afbws.gp.channel.v2; v1 clients never receive trendline/fibonacci. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`. `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).",
+  "type": "object",
+  "required": [
+    "schema",
+    "id",
+    "instrument_key",
+    "kind",
+    "start"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": "afb.gp.v2"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "instrument_key": {
+      "$ref": "afbws/common.v1.json#/$defs/instrumentKey"
+    },
+    "kind": {
+      "enum": [
+        "line",
+        "line_enter",
+        "line_sl",
+        "line_tp",
+        "note",
+        "zone",
+        "ruler",
+        "trendline",
+        "fibonacci"
+      ]
+    },
+    "start": {
+      "$ref": "#/$defs/point"
+    },
+    "stop": {
+      "$ref": "#/$defs/point"
+    },
+    "text": {
+      "type": "string",
+      "maxLength": 160,
+      "description": "note only (optional even there)."
+    },
+    "tradeplan_id": {
+      "type": "string",
+      "description": "Владеющий торговый план. Проставляется сервером при компиляции плана в сделку (публикация/amend); снимается только при физическом удалении плана. Клиент это поле не задаёт и не меняет — в set-запросе оно игнорируется в пользу хранимого значения. Пустое/отсутствующее — свободный примитив, доступный любому плану. При архивации плана его уровни физически удаляются из этого хранилища, но условия плана НЕ переписываются в числа — план сохраняет исходные ссылки на примитивы; полная копия каждого удалённого уровня (kind/координаты/стиль) переносится в archived_components плана и является источником его исторической отрисовки."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "zone",
+              "ruler",
+              "trendline",
+              "fibonacci"
+            ]
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "stop"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "stop"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "not": {
+          "properties": {
+            "kind": {
+              "const": "note"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "text"
+          ]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "point": {
+      "type": "object",
+      "required": [
+        "time",
+        "price"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "time": {
+          "type": "integer",
+          "description": "Unix seconds, as in klines."
+        },
+        "price": {
+          "type": "number"
+        }
+      }
+    },
+    "indicatorSettings": {
+      "type": "object",
+      "description": "Display + calculation settings. Common: enabled/color/lineWidth/lineStyle; period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml.",
+      "required": [
+        "enabled",
+        "color",
+        "lineWidth",
+        "lineStyle"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "color": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lineWidth": {
+          "type": "number",
+          "minimum": 1
+        },
+        "lineStyle": {
+          "enum": [
+            "Solid",
+            "Dots"
+          ]
+        },
+        "period": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "erPeriod": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fastPeriod": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "slowPeriod": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "start": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "increment": {
+          "type": "number"
+        }
+      }
+    },
+    "indicator": {
+      "type": "object",
+      "title": "Chart indicator (user or shared)",
+      "description": "`scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `enabled` (outer) is the per-user on/off switch (for shared ones it is the only field a non-manager may change — stored in the user's file); `settings` carry the parameters. Type `cot` is chart-only; alarm indicator conditions support wma/kama/psar.",
+      "required": [
+        "id",
+        "type",
+        "enabled",
+        "settings",
+        "scope"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "enum": [
+            "wma",
+            "kama",
+            "psar",
+            "cot"
+          ]
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "settings": {
+          "$ref": "#/$defs/indicatorSettings"
+        },
+        "scope": {
+          "enum": [
+            "shared",
+            "personal"
+          ]
+        }
+      }
+    }
+  }
+}

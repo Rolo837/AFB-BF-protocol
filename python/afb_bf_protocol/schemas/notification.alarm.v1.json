@@ -16,6 +16,10 @@
     "schema": {"const": "afb.notification.alarm.v1"},
     "alarm_id": {"type": "string", "minLength": 1},
     "ticker": {"type": "string", "minLength": 1},
+    "instrument_key": {
+      "description": "Optional full instrument key; set when the alarm is stored as afb.alarm.v2.",
+      "$ref": "afbws/common.v1.json#/$defs/instrumentKey"
+    },
     "instrument": {
       "type": "object",
       "properties": {

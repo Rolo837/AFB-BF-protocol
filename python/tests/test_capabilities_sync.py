@@ -8,9 +8,11 @@ from pathlib import Path
 from afb_bf_protocol import (
     ACCOUNT_CHANNEL_V1,
     ALARM_CHANNEL_V1,
+    ALARM_CHANNEL_V2,
     ALL_CAPABILITY_IDS,
     DEAL_CHANNEL_V1,
     GP_CHANNEL_V1,
+    GP_CHANNEL_V2,
     INSTRUMENT_CHANNEL_V1,
     LINK_CHANNEL_V1,
     MARKET_CHANNEL_V1,
@@ -32,9 +34,11 @@ def _repo_root() -> Path:
 def test_capability_ids_match_schema_declarations():
     assert collect_afbws_capability_ids() == {
         ALARM_CHANNEL_V1: "ALARM_CHANNEL_V1",
+        ALARM_CHANNEL_V2: "ALARM_CHANNEL_V2",
         TRADEPLAN_CHANNEL_V1: "TRADEPLAN_CHANNEL_V1",
         LINK_CHANNEL_V1: "LINK_CHANNEL_V1",
         GP_CHANNEL_V1: "GP_CHANNEL_V1",
+        GP_CHANNEL_V2: "GP_CHANNEL_V2",
         DEAL_CHANNEL_V1: "DEAL_CHANNEL_V1",
         INSTRUMENT_CHANNEL_V1: "INSTRUMENT_CHANNEL_V1",
         ACCOUNT_CHANNEL_V1: "ACCOUNT_CHANNEL_V1",
@@ -42,9 +46,11 @@ def test_capability_ids_match_schema_declarations():
     }
     assert ALL_CAPABILITY_IDS == {
         ALARM_CHANNEL_V1,
+        ALARM_CHANNEL_V2,
         TRADEPLAN_CHANNEL_V1,
         LINK_CHANNEL_V1,
         GP_CHANNEL_V1,
+        GP_CHANNEL_V2,
         DEAL_CHANNEL_V1,
         INSTRUMENT_CHANNEL_V1,
         ACCOUNT_CHANNEL_V1,
