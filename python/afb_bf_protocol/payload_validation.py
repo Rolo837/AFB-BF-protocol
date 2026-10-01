@@ -29,13 +29,15 @@ __all__ = [
     "validate_tradeplan",
     "resolve_tradeplan_schema",
     "validate_alarm",
+    "validate_gp",
     "validate_notification",
 ]
 
 _DEAL_SCHEMAS = {"afb.deal.v1", "afb.deal.v2"}
 _TRADEPLAN_SCHEMAS = {"afb.tradeplan.v1", "afb.tradeplan.v2"}
 _DEFAULT_TRADEPLAN_SCHEMA = "afb.tradeplan.v1"
-_ALARM_SCHEMAS = {"afb.alarm.v1"}
+_ALARM_SCHEMAS = {"afb.alarm.v1", "afb.alarm.v2"}
+_GP_SCHEMAS = {"afb.gp.v1", "afb.gp.v2"}
 _NOTIFICATION_SCHEMAS = {
     "afb.notification.alarm.v1",
     "afb.notification.deal.v1",
@@ -142,7 +144,7 @@ def validate_tradeplan(obj: dict[str, Any]) -> str:
 
 
 def validate_alarm(obj: dict[str, Any]) -> str:
-    """Validate an AFB alarm against afb.alarm.v1 (dispatched on
+    """Validate an AFB alarm against afb.alarm.v1 or afb.alarm.v2 (dispatched on
     ``obj["schema"]``). Returns the resolved schema id. Like trade plans,
     alarms never cross the AFB<->BF wire."""
     if not isinstance(obj, dict):
@@ -151,6 +153,19 @@ def validate_alarm(obj: dict[str, Any]) -> str:
     if schema not in _ALARM_SCHEMAS:
         raise PayloadValidationError("invalid_schema", f"unknown alarm schema: {schema!r}")
     _validate(obj, schema_filename=_schema_filename(schema), what="alarm")
+    return schema
+
+
+def validate_gp(obj: dict[str, Any]) -> str:
+    """Validate an AFB graphic primitive against afb.gp.v1 or afb.gp.v2
+    (dispatched on ``obj["schema"]``). Returns the resolved schema id. Like
+    alarms, primitives never cross the AFB<->BF wire."""
+    if not isinstance(obj, dict):
+        raise PayloadValidationError("invalid_schema", "gp must be an object")
+    schema = obj.get("schema")
+    if schema not in _GP_SCHEMAS:
+        raise PayloadValidationError("invalid_schema", f"unknown gp schema: {schema!r}")
+    _validate(obj, schema_filename=_schema_filename(schema), what="gp")
     return schema
 
 

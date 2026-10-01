@@ -167,7 +167,7 @@ def test_validate_alarm_accepts_breakout_example():
 
 def test_validate_alarm_rejects_unknown_schema():
     with pytest.raises(PayloadValidationError):
-        validate_alarm({"schema": "afb.alarm.v2"})
+        validate_alarm({"schema": "afb.alarm.v3"})
 
 
 def test_validate_alarm_rejects_candle_op_without_timeframe():
@@ -219,3 +219,30 @@ def test_validate_notification_rejects_link_missing_notification_id():
 def test_validate_notification_rejects_unknown_schema():
     with pytest.raises(PayloadValidationError):
         validate_notification({"schema": "afb.notification.unknown.v1"})
+
+
+def test_validate_alarm_accepts_v2_example():
+    data = json.loads((EXAMPLES / "alarms_v2" / "alarm.touch.json").read_text())
+    assert validate_alarm(data) == "afb.alarm.v2"
+
+
+def test_validate_alarm_v2_rejects_ticker():
+    data = json.loads((EXAMPLES / "alarms_v2" / "alarm.touch.json").read_text())
+    del data["instrument_key"]
+    data["ticker"] = "SBER"
+    with pytest.raises(PayloadValidationError):
+        validate_alarm(data)
+
+
+def test_validate_gp_dispatches_v1_and_v2():
+    from afb_bf_protocol.payload_validation import validate_gp
+
+    pt = {"time": 1721000000, "price": 1.5}
+    assert validate_gp({"schema": "afb.gp.v1", "id": "a", "ticker": "SBER", "kind": "line", "start": pt}) == "afb.gp.v1"
+    assert validate_gp(
+        {"schema": "afb.gp.v2", "id": "a", "instrument_key": "MISX:TQBR:SBER", "kind": "fibonacci", "start": pt, "stop": pt}
+    ) == "afb.gp.v2"
+    with pytest.raises(PayloadValidationError):
+        validate_gp({"schema": "afb.gp.v3"})
+    with pytest.raises(PayloadValidationError):
+        validate_gp({"schema": "afb.gp.v1", "id": "a", "ticker": "SBER", "kind": "trendline", "start": pt, "stop": pt})

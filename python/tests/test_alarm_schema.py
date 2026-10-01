@@ -72,3 +72,20 @@ def test_indicator_condition_does_not_require_type_or_params(registry):
     plan = json.loads((EXAMPLES / "alarms" / "alarm.indicator_crossing.json").read_text())
     assert "type" not in plan["condition"]["left"]
     _validator(registry).validate(plan)  # does not raise
+
+
+ALARM_V2_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/alarm.v2.json"
+
+
+def test_v2_example_validates_and_requires_instrument_key(registry):
+    import copy
+
+    from jsonschema import Draft202012Validator, ValidationError
+
+    v = Draft202012Validator({"$ref": ALARM_V2_ID}, registry=registry)
+    data = json.loads((EXAMPLES / "alarms_v2" / "alarm.touch.json").read_text())
+    v.validate(data)
+    bad = copy.deepcopy(data)
+    del bad["instrument_key"]
+    with pytest.raises(ValidationError):
+        v.validate(bad)

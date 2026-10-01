@@ -404,10 +404,14 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/schemas/tradeplan.v2.json` | Шаблон торгового плана v2 (AFB-сторонний, см. §10) |
 | `spec/schemas/condition.v1.json` | Единый словарь операторов условия (см. §12) |
 | `spec/schemas/alarm.v1.json` | Аларм AFB (AFB-сторонний, см. §11) |
+| `spec/schemas/alarm.v2.json` | Аларм AFB v2: `instrument_key` вместо `ticker` (см. §11.1) |
+| `spec/schemas/gp.v1.json` / `gp.v2.json` | Графический примитив AFB v1 / v2 (см. §11.1) |
+| `spec/schemas/afbws/{alarm,gp}.channel.v2.json` | Каналы alarm/gp v2 (capability `afbws.alarm.channel.v2`, `afbws.gp.channel.v2`) |
 | `spec/schemas/payloads/` | JSON Schema каждого payload |
 | `examples/` | Подписанные примеры конвертов |
 | `examples/tradeplans/` | Примеры шаблонов ТП (не конверты, не подписываются) |
 | `examples/alarms/` | Примеры алармов (не конверты, не подписываются) |
+| `examples/alarms_v2/` | Примеры алармов `afb.alarm.v2` |
 | `python/afb_bf_protocol/` | Python-пакет: модели, подпись, валидация |
 | `python/afb_bf_protocol/payload_validation.py` | Рантайм-валидация deal/tradeplan/alarm payload'ов (extra `[validation]`) |
 | `python/afb_bf_protocol/condition_semantics.py` | Эталонный evaluator операторов условия (см. §12) |
@@ -529,6 +533,30 @@ Top-level `period` — общий таймфрейм вычисления ала
 
 Валидация на рантайме — `afb_bf_protocol.payload_validation.validate_alarm`
 (тот же extra `[validation]`, что и `validate_tradeplan`/`validate_deal`).
+
+### 11.1 v2: `instrument_key` вместо `ticker`, примитивы и индикаторы
+
+`afb.alarm.v2` и `afb.gp.v2` — полные копии v1, отличающиеся тем, что инструмент
+задаётся полным составным `instrument_key` (`<MIC>[:<board|market>]:<ticker>`,
+регистрозависимый, см. `afbws/common.v1.json#/$defs/instrumentKey`), а не коротким
+`ticker`. Это AFB-сторонние сущности (не AsyncAPI, канал AFB↔BF не пересекают).
+
+- Версия клиента определяется только по `auth.support`: `afbws.alarm.channel.v2` /
+  `afbws.gp.channel.v2` (новые каналы со своими схемами сообщений `*.v2`);
+  v1-каналы работают без изменений. Бэкенд хранит v2 и конвертирует v1↔v2 на границе.
+- `afb.gp.v2` добавляет категории `trendline` и `fibonacci`: обе двухточечные
+  (`start` и `stop` обязательны, `text` запрещён). Вид примитивов не специфицирован.
+  v1-клиентам эти категории не отдаются.
+- Управление индикаторами (замена легаси `settings/*` `indicators`) живёт в
+  `gp.channel.v2`: `indicator.list` / `indicator.set` (upsert по `id`) /
+  `indicator.delete`, push `indicator.sync` (дельта **общих** индикаторов:
+  `items[]` + `removed_ids[]`). `$defs/indicator` в `gp.v2.json`:
+  `id`, `type` (`wma|kama|psar|cot`), `enabled`, `scope` (`shared|personal`),
+  `settings`. Общие индикаторы создаёт/правит/удаляет только manager (иначе
+  `forbidden`); неменеджер для общего индикатора меняет лишь внешний `enabled`.
+- `notification.alarm.v1.json`: опциональное `instrument_key` (добавляется, когда
+  аларм хранится как v2).
+- Валидация: `payload_validation.validate_alarm` (v1/v2), `validate_gp` (v1/v2).
 
 ## 12. Семантика операторов условий (condition.v1.json)
 

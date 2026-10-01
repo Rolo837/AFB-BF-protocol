@@ -7,6 +7,12 @@
 
 ## Unreleased
 
+- **alarm/gp v2** (AFB-сторонние схемы и каналы AFB backend↔frontend, вне `asyncapi.yaml`, канал AFB↔BF не затрагивается — PATCH):
+  - `spec/schemas/alarm.v2.json`, `gp.v2.json` — полные копии v1, но `ticker` → обязательный `instrument_key` (`afbws/common.v1.json#/$defs/instrumentKey`). `gp.v2`: новые `kind` `trendline` и `fibonacci` (оба `start`+`stop`, без `text`; вид не специфицирован), `$defs/indicator`, `$defs/indicatorSettings`.
+  - Новые каналы `afbws/alarm.channel.v2.json` (capability `afbws.alarm.channel.v2`) и `afbws/gp.channel.v2.json` (`afbws.gp.channel.v2`): сообщения `afbws.{alarm,gp}.*.v2`; в gp — команды индикаторов `indicator.list|set|delete` и push `indicator.sync`. v1-схемы и каналы не менялись.
+  - `notification.alarm.v1.json`: опциональное `instrument_key`.
+  - Python: `validate_alarm` принимает v1/v2, новый `validate_gp`; константы `ALARM_CHANNEL_V2`, `GP_CHANNEL_V2`. TS-модели: `AlarmV2*`, `GpV2*` (`GpV2Indicator`, `GpV2IndicatorSyncPush` и др.).
+
 ## v2.7.2 — 2026-09-29
 
 - **Канал `instrument`** (`spec/schemas/afbws/instrument.channel.v1.json`): наборы (Sets) могут состоять из **инструментов**, а не только из активов. Не входит в `spec/asyncapi.yaml`, канал AFB↔BF не затрагивается. Все правки обратно совместимы для фронтенда, не знающего про типы наборов:
