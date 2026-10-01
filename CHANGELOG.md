@@ -7,6 +7,8 @@
 
 ## Unreleased
 
+## v2.7.4 — 2026-10-01
+
 - **gp/alarm channel v2 — без дублей, батчи, без `enabled`** (переработка схем, выпущенных в v2.7.3; AFB-сторонние каналы вне `asyncapi.yaml`, канал AFB↔BF не затрагивается — PATCH). Старые id сообщений из v2.7.3 удаляются без периода совместимости (потребители — AFB backend/frontend, обновляются вместе):
   - `afbws/gp.channel.v2.json` и `afbws/alarm.channel.v2.json`: вместо пар `*.request.v2`/`*.response.v2` (+ `sync`/`indicator.sync` push) — **одна схема на сообщение** по соглашению `afbws.market`: `afbws.gp.{list,set,delete,style,error}.v2`, `afbws.gp.indicator.{list,set,delete}.v2`, `afbws.alarm.{list,set,delete,ack,triggered,error}.v2`; запрос, ответ и серверный push — одна схема (push = сообщение без `request_id`). `get` убран (`list` с `ids[]`). `item`/`id` → массивы `items[]`/`ids[]`, добавлен `instrument_keys[]` (например, `gp.delete{instrument_keys}` удаляет все свободные примитивы инструмента одним сообщением); частичные отказы — `rejected[]`.
   - `gp.v2.json`: из `$defs/indicator` и `$defs/indicatorSettings` убран `enabled` (показ индикатора — настройка вида в localStorage клиента), `indicatorSettings` стал строгим (`additionalProperties: false`); новые `$defs/primitiveKindStyle`, `$defs/primitiveStyles` и сообщение `afbws.gp.style.v2` (стили отображения примитивов, замена `settings.interface.primitive_styles`).
