@@ -7,6 +7,8 @@
 
 ## Unreleased
 
+## v2.7.3 — 2026-10-01
+
 - **alarm/gp v2** (AFB-сторонние схемы и каналы AFB backend↔frontend, вне `asyncapi.yaml`, канал AFB↔BF не затрагивается — PATCH):
   - `spec/schemas/alarm.v2.json`, `gp.v2.json` — полные копии v1, но `ticker` → обязательный `instrument_key` (`afbws/common.v1.json#/$defs/instrumentKey`). `gp.v2`: новые `kind` `trendline` и `fibonacci` (оба `start`+`stop`, без `text`; вид не специфицирован), `$defs/indicator`, `$defs/indicatorSettings`.
   - Новые каналы `afbws/alarm.channel.v2.json` (capability `afbws.alarm.channel.v2`) и `afbws/gp.channel.v2.json` (`afbws.gp.channel.v2`): сообщения `afbws.{alarm,gp}.*.v2`; в gp — команды индикаторов `indicator.list|set|delete` и push `indicator.sync`. v1-схемы и каналы не менялись.
