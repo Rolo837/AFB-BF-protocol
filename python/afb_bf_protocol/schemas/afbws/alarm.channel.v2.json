@@ -3,98 +3,33 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/alarm.channel.v2.json",
   "x-afbws-support-id": "afbws.alarm.channel.v2",
   "title": "alarm channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.alarm.channel.v2). Full copy of alarm.channel.v1 where items are afb.alarm.v2 (`instrument_key` instead of `ticker`) and `list` filters by `instrument_key`. A client negotiates v1 or v2 (v2 preferred if both are offered); the backend answers in the negotiated version only. See AFB/docs/ENTITY_WS_PROTOCOL.md.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.alarm.channel.v2). Items are afb.alarm.v2 (`instrument_key` instead of `ticker`). Same convention as afbws.market: ONE schema id per message (`afbws.alarm.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`). Collections are arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. `triggered` is the only server push (no `request_id`). A client negotiates v1 or v2 (v2 preferred if both are offered); the backend answers in the negotiated version only. See AFB/docs/ENTITY_WS_PROTOCOL.md.",
   "type": "object",
   "oneOf": [
     {
-      "$ref": "#/$defs/getRequest"
+      "$ref": "#/$defs/list"
     },
     {
-      "$ref": "#/$defs/getResponse"
+      "$ref": "#/$defs/set"
     },
     {
-      "$ref": "#/$defs/listRequest"
+      "$ref": "#/$defs/delete"
     },
     {
-      "$ref": "#/$defs/listResponse"
+      "$ref": "#/$defs/ack"
     },
     {
-      "$ref": "#/$defs/setRequest"
+      "$ref": "#/$defs/triggered"
     },
     {
-      "$ref": "#/$defs/setResponse"
-    },
-    {
-      "$ref": "#/$defs/deleteRequest"
-    },
-    {
-      "$ref": "#/$defs/deleteResponse"
-    },
-    {
-      "$ref": "#/$defs/errorResponse"
-    },
-    {
-      "$ref": "#/$defs/triggeredPush"
-    },
-    {
-      "$ref": "#/$defs/ackRequest"
-    },
-    {
-      "$ref": "#/$defs/ackResponse"
+      "$ref": "#/$defs/error"
     }
   ],
   "$defs": {
-    "getRequest": {
+    "list": {
       "type": "object",
-      "required": [
-        "channel",
-        "schema",
-        "request_id",
-        "id"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "channel": {
-          "const": "alarm"
-        },
-        "schema": {
-          "const": "afbws.alarm.get.request.v2"
-        },
-        "request_id": {
-          "$ref": "common.v1.json#/$defs/requestId"
-        },
-        "id": {
-          "type": "string",
-          "minLength": 1
-        }
-      }
-    },
-    "getResponse": {
-      "type": "object",
-      "required": [
-        "channel",
-        "schema",
-        "request_id",
-        "item"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "channel": {
-          "const": "alarm"
-        },
-        "schema": {
-          "const": "afbws.alarm.get.response.v2"
-        },
-        "request_id": {
-          "$ref": "common.v1.json#/$defs/requestId"
-        },
-        "item": {
-          "$ref": "../alarm.v2.json"
-        }
-      }
-    },
-    "listRequest": {
-      "type": "object",
+      "title": "afbws.alarm.list.v2 — read alarms (request / response).",
+      "description": "Request: optional filters `ids[]` and/or `instrument_keys[]` (both = intersection; none = every alarm of the caller). Response (same `request_id`): `items[]` (afb.alarm.v2). There is no separate `get`: use `ids`. A request carrying `items` is invalid.",
       "required": [
         "channel",
         "schema",
@@ -106,18 +41,57 @@
           "const": "alarm"
         },
         "schema": {
-          "const": "afbws.alarm.list.request.v2"
+          "const": "afbws.alarm.list.v2"
         },
         "request_id": {
           "$ref": "common.v1.json#/$defs/requestId"
         },
-        "instrument_key": {
-          "$ref": "common.v1.json#/$defs/instrumentKey"
+        "ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "instrument_keys": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.v1.json#/$defs/instrumentKey"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "../alarm.v2.json"
+          }
         }
+      },
+      "not": {
+        "required": [
+          "items"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "ids"
+            ]
+          },
+          {
+            "required": [
+              "instrument_keys"
+            ]
+          }
+        ]
       }
     },
-    "listResponse": {
+    "set": {
       "type": "object",
+      "title": "afbws.alarm.set.v2 — upsert alarms (request / response).",
+      "description": "Request: `items[]` — upsert by `item.id`, batched. Response (same `request_id`): applied `items[]` (authoritative records, possibly empty) + `rejected[]` for items that were not applied.",
       "required": [
         "channel",
         "schema",
@@ -130,7 +104,7 @@
           "const": "alarm"
         },
         "schema": {
-          "const": "afbws.alarm.list.response.v2"
+          "const": "afbws.alarm.set.v2"
         },
         "request_id": {
           "$ref": "common.v1.json#/$defs/requestId"
@@ -140,16 +114,23 @@
           "items": {
             "$ref": "../alarm.v2.json"
           }
+        },
+        "rejected": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rejection"
+          }
         }
       }
     },
-    "setRequest": {
+    "delete": {
       "type": "object",
+      "title": "afbws.alarm.delete.v2 — delete alarms (request / response).",
+      "description": "Request: `ids[]` and/or `instrument_keys[]` (at least one; `instrument_keys` = every alarm of those instruments). Response (same `request_id`): `ids[]` actually removed (possibly empty) + `rejected[]`.",
       "required": [
         "channel",
         "schema",
-        "request_id",
-        "item"
+        "request_id"
       ],
       "additionalProperties": false,
       "properties": {
@@ -157,116 +138,65 @@
           "const": "alarm"
         },
         "schema": {
-          "const": "afbws.alarm.set.request.v2"
+          "const": "afbws.alarm.delete.v2"
         },
         "request_id": {
           "$ref": "common.v1.json#/$defs/requestId"
         },
-        "item": {
-          "$ref": "../alarm.v2.json"
+        "ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "instrument_keys": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.v1.json#/$defs/instrumentKey"
+          }
+        },
+        "rejected": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rejection"
+          }
         }
-      }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "ids"
+          ]
+        },
+        {
+          "required": [
+            "instrument_keys"
+          ]
+        }
+      ]
     },
-    "setResponse": {
+    "rejection": {
       "type": "object",
+      "title": "One alarm that was not applied by set/delete.",
       "required": [
-        "channel",
-        "schema",
-        "request_id",
-        "item"
+        "id",
+        "code"
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "alarm"
-        },
-        "schema": {
-          "const": "afbws.alarm.set.response.v2"
-        },
-        "request_id": {
-          "$ref": "common.v1.json#/$defs/requestId"
-        },
-        "item": {
-          "$ref": "../alarm.v2.json"
-        }
-      }
-    },
-    "deleteRequest": {
-      "type": "object",
-      "required": [
-        "channel",
-        "schema",
-        "request_id",
-        "id"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "channel": {
-          "const": "alarm"
-        },
-        "schema": {
-          "const": "afbws.alarm.delete.request.v2"
-        },
-        "request_id": {
-          "$ref": "common.v1.json#/$defs/requestId"
-        },
         "id": {
           "type": "string",
           "minLength": 1
-        }
-      }
-    },
-    "deleteResponse": {
-      "type": "object",
-      "required": [
-        "channel",
-        "schema",
-        "request_id",
-        "id"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "channel": {
-          "const": "alarm"
-        },
-        "schema": {
-          "const": "afbws.alarm.delete.response.v2"
-        },
-        "request_id": {
-          "$ref": "common.v1.json#/$defs/requestId"
-        },
-        "id": {
-          "type": "string",
-          "minLength": 1
-        }
-      }
-    },
-    "errorResponse": {
-      "type": "object",
-      "required": [
-        "channel",
-        "schema",
-        "request_id",
-        "code",
-        "message"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "channel": {
-          "const": "alarm"
-        },
-        "schema": {
-          "const": "afbws.alarm.error.response.v2"
-        },
-        "request_id": {
-          "$ref": "common.v1.json#/$defs/requestId"
         },
         "code": {
           "$ref": "common.v1.json#/$defs/errorCode"
         },
         "message": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "details": {
           "type": "object"
@@ -302,9 +232,10 @@
         }
       }
     },
-    "triggeredPush": {
+    "triggered": {
       "type": "object",
-      "title": "alarm/triggered push (server-initiated, no request_id)",
+      "title": "afbws.alarm.triggered.v2 — alarm fired (server push, no request_id).",
+      "description": "Server-initiated; `events[]` carry the fired alarm with its authoritative afb.alarm.v2 record.",
       "required": [
         "channel",
         "schema",
@@ -316,7 +247,7 @@
           "const": "alarm"
         },
         "schema": {
-          "const": "afbws.alarm.triggered.push.v2"
+          "const": "afbws.alarm.triggered.v2"
         },
         "events": {
           "type": "array",
@@ -349,34 +280,6 @@
         }
       }
     },
-    "ackRequest": {
-      "type": "object",
-      "required": [
-        "channel",
-        "schema",
-        "request_id",
-        "events"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "channel": {
-          "const": "alarm"
-        },
-        "schema": {
-          "const": "afbws.alarm.ack.request.v2"
-        },
-        "request_id": {
-          "$ref": "common.v1.json#/$defs/requestId"
-        },
-        "events": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "$ref": "#/$defs/ackEvent"
-          }
-        }
-      }
-    },
     "ackResultItem": {
       "type": "object",
       "required": [
@@ -406,13 +309,14 @@
         }
       }
     },
-    "ackResponse": {
+    "ack": {
       "type": "object",
+      "title": "afbws.alarm.ack.v2 — acknowledge fired alarms (request / response).",
+      "description": "Request: `events[]` (afb.alarm.trigger_ack.v2), at least one. Response (same `request_id`): `results[]` — one per event, `status` ok | not_found. A request carrying `results` is invalid.",
       "required": [
         "channel",
         "schema",
-        "request_id",
-        "results"
+        "request_id"
       ],
       "additionalProperties": false,
       "properties": {
@@ -420,16 +324,83 @@
           "const": "alarm"
         },
         "schema": {
-          "const": "afbws.alarm.ack.response.v2"
+          "const": "afbws.alarm.ack.v2"
         },
         "request_id": {
           "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ackEvent"
+          }
         },
         "results": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/ackResultItem"
           }
+        }
+      },
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "required": [
+                "events"
+              ],
+              "not": {
+                "required": [
+                  "results"
+                ]
+              }
+            },
+            {
+              "required": [
+                "results"
+              ],
+              "not": {
+                "required": [
+                  "events"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "error": {
+      "type": "object",
+      "title": "afbws.alarm.error.v2 — typed error for a whole request (server -> client).",
+      "description": "Per-item failures of a batched set/delete are reported in that response's `rejected[]`, not here.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "code",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "alarm"
+        },
+        "schema": {
+          "const": "afbws.alarm.error.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "code": {
+          "$ref": "common.v1.json#/$defs/errorCode"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "details": {
+          "type": "object"
         }
       }
     }

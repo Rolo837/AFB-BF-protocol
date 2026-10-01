@@ -124,17 +124,14 @@
     },
     "indicatorSettings": {
       "type": "object",
-      "description": "Display + calculation settings. Common: enabled/color/lineWidth/lineStyle; period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml.",
+      "description": "Display + calculation settings. Common: color/lineWidth/lineStyle; period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.",
       "required": [
-        "enabled",
         "color",
         "lineWidth",
         "lineStyle"
       ],
+      "additionalProperties": false,
       "properties": {
-        "enabled": {
-          "type": "boolean"
-        },
         "color": {
           "type": "string",
           "minLength": 1
@@ -179,11 +176,10 @@
     "indicator": {
       "type": "object",
       "title": "Chart indicator (user or shared)",
-      "description": "`scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `enabled` (outer) is the per-user on/off switch (for shared ones it is the only field a non-manager may change — stored in the user's file); `settings` carry the parameters. Type `cot` is chart-only; alarm indicator conditions support wma/kama/psar.",
+      "description": "`scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `settings` carry the parameters. Whether an indicator is shown on the chart is not part of the protocol (per-device view setting kept in the client's localStorage). Type `cot` is chart-only; alarm indicator conditions support wma/kama/psar.",
       "required": [
         "id",
         "type",
-        "enabled",
         "settings",
         "scope"
       ],
@@ -201,9 +197,6 @@
             "cot"
           ]
         },
-        "enabled": {
-          "type": "boolean"
-        },
         "settings": {
           "$ref": "#/$defs/indicatorSettings"
         },
@@ -212,6 +205,72 @@
             "shared",
             "personal"
           ]
+        }
+      }
+    },
+    "primitiveKindStyle": {
+      "type": "object",
+      "title": "Display style of one primitive kind.",
+      "required": [
+        "color",
+        "lineWidth",
+        "lineStyle"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "hex colour; for `note` the callout line / frame / text colour."
+        },
+        "lineWidth": {
+          "enum": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "lineStyle": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4,
+          "description": "lightweight-charts LineStyle: 0 Solid, 1 Dotted, 2 Dashed, 3 LargeDashed, 4 SparseDotted."
+        }
+      }
+    },
+    "primitiveStyles": {
+      "type": "object",
+      "title": "Per-user display styles of primitives by kind (afbws.gp.style.v2).",
+      "description": "Keys are primitive kinds; a kind that is absent has no stored override (the client falls back to its defaults).",
+      "additionalProperties": false,
+      "properties": {
+        "line": {
+          "$ref": "#/$defs/primitiveKindStyle"
+        },
+        "line_enter": {
+          "$ref": "#/$defs/primitiveKindStyle"
+        },
+        "line_sl": {
+          "$ref": "#/$defs/primitiveKindStyle"
+        },
+        "line_tp": {
+          "$ref": "#/$defs/primitiveKindStyle"
+        },
+        "note": {
+          "$ref": "#/$defs/primitiveKindStyle"
+        },
+        "zone": {
+          "$ref": "#/$defs/primitiveKindStyle"
+        },
+        "ruler": {
+          "$ref": "#/$defs/primitiveKindStyle"
+        },
+        "trendline": {
+          "$ref": "#/$defs/primitiveKindStyle"
+        },
+        "fibonacci": {
+          "$ref": "#/$defs/primitiveKindStyle"
         }
       }
     }

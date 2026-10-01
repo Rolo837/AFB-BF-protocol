@@ -69,8 +69,8 @@ def test_v1_schema_const_rejected(registry):
 
 def _indicator(**overrides):
     ind = {
-        "id": "ind-1", "type": "wma", "enabled": True, "scope": "personal",
-        "settings": {"enabled": False, "color": "#2962FF", "lineWidth": 2, "lineStyle": "Solid", "period": 5},
+        "id": "ind-1", "type": "wma", "scope": "personal",
+        "settings": {"color": "#2962FF", "lineWidth": 2, "lineStyle": "Solid", "period": 5},
     }
     ind.update(overrides)
     return ind
@@ -87,3 +87,34 @@ def test_indicator_rejects_bad_scope_and_type(registry):
     for bad in (_indicator(scope="global"), _indicator(type="rsi")):
         with pytest.raises(ValidationError):
             _validator(registry, "#/$defs/indicator").validate(bad)
+
+
+def test_indicator_rejects_enabled_flag(registry):
+    """`enabled` is a per-device view setting (localStorage), not protocol."""
+    import pytest
+    from jsonschema import ValidationError
+
+    bad_outer = dict(_indicator(), enabled=True)
+    bad_inner = _indicator()
+    bad_inner["settings"] = dict(bad_inner["settings"], enabled=True)
+    for bad in (bad_outer, bad_inner):
+        with pytest.raises(ValidationError):
+            _validator(registry, "#/$defs/indicator").validate(bad)
+
+
+def test_primitive_styles_valid_and_strict(registry):
+    import pytest
+    from jsonschema import ValidationError
+
+    v = _validator(registry, "#/$defs/primitiveStyles")
+    v.validate({"line": {"color": "#112233", "lineWidth": 3, "lineStyle": 0}, "note": {"color": "#AABBCC", "lineWidth": 2, "lineStyle": 2}})
+    v.validate({})
+    for bad in (
+        {"rsi": {"color": "#112233", "lineWidth": 3, "lineStyle": 0}},
+        {"line": {"color": "red", "lineWidth": 3, "lineStyle": 0}},
+        {"line": {"color": "#112233", "lineWidth": 7, "lineStyle": 0}},
+        {"line": {"color": "#112233", "lineWidth": 3, "lineStyle": 9}},
+        {"line": {"color": "#112233", "lineWidth": 3}},
+    ):
+        with pytest.raises(ValidationError):
+            v.validate(bad)

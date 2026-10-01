@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: e7373897d0284e94a0692ddf90623be7cf32050605ef79d76f8ca0d6eea12317
+# source-hash: a21d4315624b85289f5c29c84eb473217e37e393ba025b952beb4c0608c341eb
 
 from __future__ import annotations
 
@@ -201,16 +201,6 @@ class AfbwsGpChannelV1SyncPush(TypedDict):
     channel: Literal["gp"]
     schema: Literal["afbws.gp.sync.push.v1"]
     items: list[GpV1]
-
-
-class AfbwsGpChannelV2SyncPush(TypedDict):
-    """
-    items[] — upsert by id (bind: tradeplan_id set on publish/amend; release: tradeplan_id cleared on plan physical delete), full authoritative afb.gp.v2 record, same shape as set.response. Never a snapshot. Primitive deletion (archival freeze) is NOT conveyed by this push — a dropped primitive was, by construction, bound to a plan and only rendered while that plan is selected; the plan's own afbws.tradeplan.sync.push.v1 (status: archived, frozen numeric conditions) already replaces its on-chart representation.
-    """
-
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.sync.push.v2"]
-    items: list[GpV2]
 
 
 class AfbwsInstrumentChannelV1CatalogDerivative(TypedDict):
@@ -552,24 +542,22 @@ class AlarmV2(TypedDict):
     trigger_count: NotRequired[int]
 
 
+class AlarmV2Ack(TypedDict):
+    """
+    Request: `events[]` (afb.alarm.trigger_ack.v2), at least one. Response (same `request_id`): `results[]` — one per event, `status` ok | not_found. A request carrying `results` is invalid.
+    """
+
+    channel: Literal["alarm"]
+    schema: Literal["afbws.alarm.ack.v2"]
+    request_id: AfbwsCommonV1RequestId
+    events: NotRequired[list[AlarmV2AckEvent]]
+    results: NotRequired[list[AlarmV2AckResultItem]]
+
+
 class AlarmV2AckEvent(TypedDict):
     schema: Literal["afb.alarm.trigger_ack.v2"]
     alarm_id: str
     triggered_at: str
-
-
-class AlarmV2AckRequest(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.ack.request.v2"]
-    request_id: AfbwsCommonV1RequestId
-    events: list[AlarmV2AckEvent]
-
-
-class AlarmV2AckResponse(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.ack.response.v2"]
-    request_id: AfbwsCommonV1RequestId
-    results: list[AlarmV2AckResultItem]
 
 
 class AlarmV2AckResultItem(TypedDict):
@@ -631,69 +619,78 @@ class AlarmV2AlarmIndicatorExpr(TypedDict):
     params: NotRequired[dict[str, Any]]
 
 
-class AlarmV2DeleteRequest(TypedDict):
+class AlarmV2Delete1(TypedDict):
+    """
+    Request: `ids[]` and/or `instrument_keys[]` (at least one; `instrument_keys` = every alarm of those instruments). Response (same `request_id`): `ids[]` actually removed (possibly empty) + `rejected[]`.
+    """
+
     channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.delete.request.v2"]
+    schema: Literal["afbws.alarm.delete.v2"]
     request_id: AfbwsCommonV1RequestId
-    id: str
+    ids: list[Id]
+    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
+    rejected: NotRequired[list[AlarmV2Rejection]]
 
 
-class AlarmV2DeleteResponse(TypedDict):
+class AlarmV2Delete2(TypedDict):
+    """
+    Request: `ids[]` and/or `instrument_keys[]` (at least one; `instrument_keys` = every alarm of those instruments). Response (same `request_id`): `ids[]` actually removed (possibly empty) + `rejected[]`.
+    """
+
     channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.delete.response.v2"]
+    schema: Literal["afbws.alarm.delete.v2"]
     request_id: AfbwsCommonV1RequestId
-    id: str
+    ids: NotRequired[list[Id]]
+    instrument_keys: list[AfbwsCommonV1InstrumentKey]
+    rejected: NotRequired[list[AlarmV2Rejection]]
 
 
-class AlarmV2ErrorResponse(TypedDict):
+AlarmV2Delete: TypeAlias = AlarmV2Delete1 | AlarmV2Delete2
+
+
+class AlarmV2Error(TypedDict):
+    """
+    Per-item failures of a batched set/delete are reported in that response's `rejected[]`, not here.
+    """
+
     channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.error.response.v2"]
+    schema: Literal["afbws.alarm.error.v2"]
     request_id: AfbwsCommonV1RequestId
     code: AfbwsCommonV1ErrorCode
     message: str
     details: NotRequired[dict[str, Any]]
 
 
-class AlarmV2GetRequest(TypedDict):
+class AlarmV2List(TypedDict):
+    """
+    Request: optional filters `ids[]` and/or `instrument_keys[]` (both = intersection; none = every alarm of the caller). Response (same `request_id`): `items[]` (afb.alarm.v2). There is no separate `get`: use `ids`. A request carrying `items` is invalid.
+    """
+
     channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.get.request.v2"]
+    schema: Literal["afbws.alarm.list.v2"]
     request_id: AfbwsCommonV1RequestId
+    ids: NotRequired[list[Id]]
+    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
+    items: NotRequired[list[AlarmV2]]
+
+
+class AlarmV2Rejection(TypedDict):
     id: str
+    code: AfbwsCommonV1ErrorCode
+    message: NotRequired[str]
+    details: NotRequired[dict[str, Any]]
 
 
-class AlarmV2GetResponse(TypedDict):
+class AlarmV2Set(TypedDict):
+    """
+    Request: `items[]` — upsert by `item.id`, batched. Response (same `request_id`): applied `items[]` (authoritative records, possibly empty) + `rejected[]` for items that were not applied.
+    """
+
     channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.get.response.v2"]
-    request_id: AfbwsCommonV1RequestId
-    item: AlarmV2
-
-
-class AlarmV2ListRequest(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.list.request.v2"]
-    request_id: AfbwsCommonV1RequestId
-    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
-
-
-class AlarmV2ListResponse(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.list.response.v2"]
+    schema: Literal["afbws.alarm.set.v2"]
     request_id: AfbwsCommonV1RequestId
     items: list[AlarmV2]
-
-
-class AlarmV2SetRequest(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.set.request.v2"]
-    request_id: AfbwsCommonV1RequestId
-    item: AlarmV2
-
-
-class AlarmV2SetResponse(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.set.response.v2"]
-    request_id: AfbwsCommonV1RequestId
-    item: AlarmV2
+    rejected: NotRequired[list[AlarmV2Rejection]]
 
 
 class AlarmV2TriggerEvent(TypedDict):
@@ -704,25 +701,23 @@ class AlarmV2TriggerEvent(TypedDict):
     current_price: NotRequired[float]
 
 
-class AlarmV2TriggeredPush(TypedDict):
+class AlarmV2Triggered(TypedDict):
+    """
+    Server-initiated; `events[]` carry the fired alarm with its authoritative afb.alarm.v2 record.
+    """
+
     channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.triggered.push.v2"]
+    schema: Literal["afbws.alarm.triggered.v2"]
     events: list[AlarmV2TriggerEvent]
 
 
 AlarmChannelV2Message: TypeAlias = (
-    AlarmV2GetRequest
-    | AlarmV2GetResponse
-    | AlarmV2ListRequest
-    | AlarmV2ListResponse
-    | AlarmV2SetRequest
-    | AlarmV2SetResponse
-    | AlarmV2DeleteRequest
-    | AlarmV2DeleteResponse
-    | AlarmV2ErrorResponse
-    | AlarmV2TriggeredPush
-    | AlarmV2AckRequest
-    | AlarmV2AckResponse
+    AlarmV2List
+    | AlarmV2Set
+    | AlarmV2Delete
+    | AlarmV2Ack
+    | AlarmV2Triggered
+    | AlarmV2Error
 )
 
 
@@ -2236,18 +2231,30 @@ class GpV2(TypedDict):
     tradeplan_id: NotRequired[str]
 
 
-class GpV2DeleteRequest(TypedDict):
+class GpV2Delete(TypedDict):
+    """
+    Request (`request_id` present): `ids[]` and/or `instrument_keys[]` (at least one; `instrument_keys` = every FREE primitive of those instruments in one call). Primitives owned by a tradeplan (`tradeplan_id`) are never removed here — they come back in `rejected[]` with `code: conflict` and `details` (linked plans/deals). Response (same `request_id`): `ids[]` = ids actually removed (possibly empty), `rejected[]`. Push (no `request_id`): `ids[]` removed by the server; `instrument_keys`/`rejected` are not allowed.
+    """
+
     channel: Literal["gp"]
-    schema: Literal["afbws.gp.delete.request.v2"]
-    request_id: AfbwsCommonV1RequestId
-    id: str
+    schema: Literal["afbws.gp.delete.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    ids: NotRequired[list[Id]]
+    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
+    rejected: NotRequired[list[GpV2Rejection]]
 
 
-class GpV2DeleteResponse(TypedDict):
+class GpV2Error(TypedDict):
+    """
+    Used when the request as a whole fails (invalid_schema, forbidden channel, internal_error, ...). Per-item failures of a batched set/delete/indicator.* are reported in that response's `rejected[]`, not here. `details` is populated on `conflict`.
+    """
+
     channel: Literal["gp"]
-    schema: Literal["afbws.gp.delete.response.v2"]
+    schema: Literal["afbws.gp.error.v2"]
     request_id: AfbwsCommonV1RequestId
-    id: str
+    code: AfbwsCommonV1ErrorCode
+    message: str
+    details: NotRequired[GpV2ErrorDetails]
 
 
 class GpV2ErrorDetails(TypedDict):
@@ -2256,89 +2263,63 @@ class GpV2ErrorDetails(TypedDict):
     locked_scopes: NotRequired[list[Literal["entry", "stop_loss", "take_profit"]]]
 
 
-class GpV2ErrorResponse(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.error.response.v2"]
-    request_id: AfbwsCommonV1RequestId
-    code: AfbwsCommonV1ErrorCode
-    message: str
-    item: NotRequired[GpV2]
-    details: NotRequired[GpV2ErrorDetails]
-
-
-class GpV2GetRequest(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.get.request.v2"]
-    request_id: AfbwsCommonV1RequestId
-    id: str
-
-
-class GpV2GetResponse(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.get.response.v2"]
-    request_id: AfbwsCommonV1RequestId
-    item: GpV2
-
-
 class GpV2Indicator(TypedDict):
     """
-    `scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `enabled` (outer) is the per-user on/off switch (for shared ones it is the only field a non-manager may change — stored in the user's file); `settings` carry the parameters. Type `cot` is chart-only; alarm indicator conditions support wma/kama/psar.
+    `scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `settings` carry the parameters. Whether an indicator is shown on the chart is not part of the protocol (per-device view setting kept in the client's localStorage). Type `cot` is chart-only; alarm indicator conditions support wma/kama/psar.
     """
 
     id: str
     type: Literal["wma", "kama", "psar", "cot"]
-    enabled: bool
     settings: GpV2IndicatorSettings
     scope: Literal["shared", "personal"]
 
 
-class GpV2IndicatorDeleteRequest(TypedDict):
+class GpV2IndicatorDelete(TypedDict):
+    """
+    Request: `ids[]` (shared ones: manager only, otherwise rejected with `forbidden`; unknown id: `not_found`). Response (same `request_id`): `ids[]` actually removed + `rejected[]`. Push (no `request_id`): shared indicators deleted by a manager (`ids[]`, `rejected` not allowed).
+    """
+
     channel: Literal["gp"]
-    schema: Literal["afbws.gp.indicator.delete.request.v2"]
+    schema: Literal["afbws.gp.indicator.delete.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    ids: list[Id]
+    rejected: NotRequired[list[GpV2IndicatorRejection]]
+
+
+class GpV2IndicatorList(TypedDict):
+    """
+    Request: only `request_id`. Response (same `request_id`): `items[]` — the caller's merged list (shared + personal).
+    """
+
+    channel: Literal["gp"]
+    schema: Literal["afbws.gp.indicator.list.v2"]
     request_id: AfbwsCommonV1RequestId
+    items: NotRequired[list[GpV2Indicator]]
+
+
+class GpV2IndicatorRejection(TypedDict):
     id: str
+    code: AfbwsCommonV1ErrorCode
+    message: NotRequired[str]
 
 
-class GpV2IndicatorDeleteResponse(TypedDict):
+class GpV2IndicatorSet(TypedDict):
+    """
+    Request: upsert by `id`, batched. Personal indicators for everyone; `scope: shared` only for a manager (otherwise that item is rejected with `forbidden`). Response (same `request_id`): applied `items[]` (possibly empty) + `rejected[]`. Push (no `request_id`): changed SHARED indicators to every connection with this capability (full authoritative records); personal ones are never pushed. Whether an indicator is drawn on the chart is NOT part of the protocol — it is a per-device view setting kept in the client's localStorage.
+    """
+
     channel: Literal["gp"]
-    schema: Literal["afbws.gp.indicator.delete.response.v2"]
-    request_id: AfbwsCommonV1RequestId
-    id: str
-
-
-class GpV2IndicatorListRequest(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.indicator.list.request.v2"]
-    request_id: AfbwsCommonV1RequestId
-
-
-class GpV2IndicatorListResponse(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.indicator.list.response.v2"]
-    request_id: AfbwsCommonV1RequestId
+    schema: Literal["afbws.gp.indicator.set.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
     items: list[GpV2Indicator]
-
-
-class GpV2IndicatorSetRequest(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.indicator.set.request.v2"]
-    request_id: AfbwsCommonV1RequestId
-    item: GpV2Indicator
-
-
-class GpV2IndicatorSetResponse(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.indicator.set.response.v2"]
-    request_id: AfbwsCommonV1RequestId
-    item: GpV2Indicator
+    rejected: NotRequired[list[GpV2IndicatorRejection]]
 
 
 class GpV2IndicatorSettings(TypedDict):
     """
-    Display + calculation settings. Common: enabled/color/lineWidth/lineStyle; period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml.
+    Display + calculation settings. Common: color/lineWidth/lineStyle; period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.
     """
 
-    enabled: bool
     color: str
     lineWidth: float
     lineStyle: Literal["Solid", "Dots"]
@@ -2351,43 +2332,17 @@ class GpV2IndicatorSettings(TypedDict):
     increment: NotRequired[float]
 
 
-class GpV2IndicatorSyncPush1(TypedDict):
+class GpV2List(TypedDict):
     """
-    items[] — upsert by id (full authoritative record); removed_ids[] — shared indicators deleted by a manager. At least one of them is non-empty. Personal indicators are never pushed (each user's own set/delete is answered by its response).
-    """
-
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.indicator.sync.push.v2"]
-    items: list[GpV2Indicator]
-    removed_ids: NotRequired[list[RemovedId]]
-
-
-class GpV2IndicatorSyncPush2(TypedDict):
-    """
-    items[] — upsert by id (full authoritative record); removed_ids[] — shared indicators deleted by a manager. At least one of them is non-empty. Personal indicators are never pushed (each user's own set/delete is answered by its response).
+    Request: optional filters `ids[]` and/or `instrument_keys[]` (both given = intersection; none = every primitive the caller owns). Response: same `request_id`, `items[]` (afb.gp.v2) — possibly empty, never an error for a missing id. There is no separate `get`: use `ids`. `items` is response-only; a request carrying `items` together with a filter is invalid.
     """
 
     channel: Literal["gp"]
-    schema: Literal["afbws.gp.indicator.sync.push.v2"]
-    items: NotRequired[list[GpV2Indicator]]
-    removed_ids: list[RemovedId]
-
-
-GpV2IndicatorSyncPush: TypeAlias = GpV2IndicatorSyncPush1 | GpV2IndicatorSyncPush2
-
-
-class GpV2ListRequest(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.list.request.v2"]
+    schema: Literal["afbws.gp.list.v2"]
     request_id: AfbwsCommonV1RequestId
-    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
-
-
-class GpV2ListResponse(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.list.response.v2"]
-    request_id: AfbwsCommonV1RequestId
-    items: list[GpV2]
+    ids: NotRequired[list[Id]]
+    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
+    items: NotRequired[list[GpV2]]
 
 
 class GpV2Point(TypedDict):
@@ -2395,44 +2350,81 @@ class GpV2Point(TypedDict):
     price: float
 
 
-class GpV2SetRequest(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.set.request.v2"]
-    request_id: AfbwsCommonV1RequestId
-    item: GpV2
+class GpV2PrimitiveKindStyle(TypedDict):
+    color: str
+    lineWidth: Literal[1, 2, 3, 4]
+    lineStyle: int
 
 
-class GpV2SetResponse(TypedDict):
+class GpV2PrimitiveStyles(TypedDict):
+    """
+    Keys are primitive kinds; a kind that is absent has no stored override (the client falls back to its defaults).
+    """
+
+    line: NotRequired[GpV2PrimitiveKindStyle]
+    line_enter: NotRequired[GpV2PrimitiveKindStyle]
+    line_sl: NotRequired[GpV2PrimitiveKindStyle]
+    line_tp: NotRequired[GpV2PrimitiveKindStyle]
+    note: NotRequired[GpV2PrimitiveKindStyle]
+    zone: NotRequired[GpV2PrimitiveKindStyle]
+    ruler: NotRequired[GpV2PrimitiveKindStyle]
+    trendline: NotRequired[GpV2PrimitiveKindStyle]
+    fibonacci: NotRequired[GpV2PrimitiveKindStyle]
+
+
+class GpV2Rejection(TypedDict):
+    """
+    `item` carries the authoritative current record when the client should see it (a rejected move restores the server's version, not the client's optimistic one). `details` is populated on `conflict` (linked tradeplans/deals, locked scopes).
+    """
+
+    id: str
+    code: AfbwsCommonV1ErrorCode
+    message: NotRequired[str]
+    item: NotRequired[GpV2]
+    details: NotRequired[GpV2ErrorDetails]
+
+
+class GpV2Set(TypedDict):
+    """
+    Request (`request_id` present, `items` = what the client wants stored): upsert by `item.id`, batched; moving a primitive is the same request as creating or editing one. Response (same `request_id`): `items` = the authoritative stored records that were applied (possibly empty), `rejected[]` = items that were NOT applied, each with a typed reason (partial failure never fails the whole message; the backend alone decides whether a move is safe against linked tradeplans). Push (no `request_id`, server-initiated): ownership delta by id — `items[]` are authoritative afb.gp.v2 records (bind: `tradeplan_id` set on publish/amend; release: `tradeplan_id` cleared on plan physical delete); never a snapshot, `rejected` is not allowed. Primitive removal is conveyed by `afbws.gp.delete.v2` without `request_id`.
+    """
+
     channel: Literal["gp"]
-    schema: Literal["afbws.gp.set.response.v2"]
-    request_id: AfbwsCommonV1RequestId
-    item: GpV2
+    schema: Literal["afbws.gp.set.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    items: list[GpV2]
+    rejected: NotRequired[list[GpV2Rejection]]
+
+
+class GpV2Style(TypedDict):
+    """
+    Per-user chart styling of primitives by kind (replaces the legacy `settings.interface.primitive_styles`). Request without `styles` = read. Request with `styles` = write: the supplied kinds replace the stored ones, kinds not supplied are left as they are. Response (same `request_id`) always carries the full stored `styles`. Push (no `request_id`) delivers the full `styles` to the user's other connections after a write; `styles` is required there.
+    """
+
+    channel: Literal["gp"]
+    schema: Literal["afbws.gp.style.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    styles: NotRequired[GpV2PrimitiveStyles]
 
 
 GpChannelV2Message: TypeAlias = (
-    GpV2GetRequest
-    | GpV2GetResponse
-    | GpV2ListRequest
-    | GpV2ListResponse
-    | GpV2SetRequest
-    | GpV2SetResponse
-    | GpV2DeleteRequest
-    | GpV2DeleteResponse
-    | AfbwsGpChannelV2SyncPush
-    | GpV2ErrorResponse
-    | GpV2IndicatorListRequest
-    | GpV2IndicatorListResponse
-    | GpV2IndicatorSetRequest
-    | GpV2IndicatorSetResponse
-    | GpV2IndicatorDeleteRequest
-    | GpV2IndicatorDeleteResponse
-    | GpV2IndicatorSyncPush
+    GpV2List
+    | GpV2Set
+    | GpV2Delete
+    | GpV2IndicatorList
+    | GpV2IndicatorSet
+    | GpV2IndicatorDelete
+    | GpV2Style
+    | GpV2Error
 )
 
 
 class Health(TypedDict):
     overall: NotRequired[Literal["ok", "warning", "critical"]]
     points: NotRequired[dict[str, Any]]
+
+
+Id: TypeAlias = str
 
 
 class Instrument(TypedDict):
@@ -3773,9 +3765,6 @@ class Publish(TypedDict):
 
     bf_id: NotRequired[str]
     account_id: NotRequired[str]
-
-
-RemovedId: TypeAlias = str
 
 
 class Right(TypedDict):
