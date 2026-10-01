@@ -562,6 +562,16 @@ Top-level `period` — общий таймфрейм вычисления ала
 - `afb.gp.v2` добавляет категории `trendline` и `fibonacci`: обе двухточечные
   (`start` и `stop` обязательны, `text` запрещён). Вид примитивов не специфицирован.
   v1-клиентам эти категории не отдаются.
+- Параметры самого примитива (`start`, `stop`, `text`) в `afb.gp.v2` лежат не на корне,
+  а в словаре `settings` (обязателен). Корень — только идентичность и серверное
+  владение: `schema`, `id`, `instrument_key`, `kind`, `tradeplan_id`. `settings` строго
+  типизирован по `kind` (каждая ветка `additionalProperties: false`):
+  `line`/`line_enter`/`line_sl`/`line_tp` → `{start}` (`$defs/primitiveSettingsLine`),
+  `note` → `{start, text?}` (`primitiveSettingsNote`, `text` ≤160),
+  `zone`/`ruler`/`trendline`/`fibonacci` → `{start, stop}`
+  (`primitiveSettingsTwoPoint`). Новые параметры вида добавляются в `settings`, не
+  затрагивая конверт. `set` заменяет `settings` целиком; `tradeplan_id` от клиента
+  по-прежнему игнорируется. `afb.gp.v1` (плоские `start`/`stop`/`text`) не менялся.
 - Управление индикаторами (замена легаси `settings/*` `indicators`) живёт в
   `gp.channel.v2`: `indicator.list` / `indicator.set` (upsert массива по `id`) /
   `indicator.delete`; дельта **общих** индикаторов приходит теми же `indicator.set`

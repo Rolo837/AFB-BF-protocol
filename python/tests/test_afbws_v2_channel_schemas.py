@@ -19,7 +19,7 @@ _GP = _BASE + "gp.channel.v2.json"
 _ALARM_ITEM = json.loads((EXAMPLES / "alarms_v2" / "alarm.touch.json").read_text())
 _GP_ITEM = {
     "schema": "afb.gp.v2", "id": "gp-1", "instrument_key": "MISX:TQBR:SBER", "kind": "trendline",
-    "start": {"time": 1721000000, "price": 1.0}, "stop": {"time": 1721000600, "price": 2.0},
+    "settings": {"start": {"time": 1721000000, "price": 1.0}, "stop": {"time": 1721000600, "price": 2.0}},
 }
 _IND = {
     "id": "ind-1", "type": "kama", "scope": "shared",

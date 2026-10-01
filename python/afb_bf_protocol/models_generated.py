@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: a21d4315624b85289f5c29c84eb473217e37e393ba025b952beb4c0608c341eb
+# source-hash: 8b4ab1e11ef6f703e914fc1c6b025efce393bdbf5d3a1752ac9c94e6e33383a5
 
 from __future__ import annotations
 
@@ -2208,7 +2208,7 @@ class GpV1Point(TypedDict):
 
 class GpV2(TypedDict):
     """
-    v2 of afb.gp.v1 (full copy) with two differences: (1) the instrument is identified by the full composite `instrument_key` (afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`; (2) new kinds `trendline` and `fibonacci` — both are two-anchor primitives (`start` and `stop` required, `text` forbidden); their rendering is not specified yet. v1 stays supported for frontends without afbws.gp.channel.v2; v1 clients never receive trendline/fibonacci. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`. `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).
+    v2 of afb.gp.v1 with differences: (1) the instrument is identified by the full composite `instrument_key` (afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`; (2) new kinds `trendline` and `fibonacci` — both two-anchor primitives; their rendering is not specified yet; (3) the primitive's own parameters (`start`, `stop`, `text`) live in the `settings` dictionary, not at the root, so a kind can gain parameters without touching the envelope. ROOT = identity and server-side ownership: `schema`, `id`, `instrument_key`, `kind`, `tradeplan_id` (all other parameters go to `settings`). `settings` is REQUIRED and strictly typed by `kind` (enforced by the `allOf` below, each branch is additionalProperties:false): line/line_enter/line_sl/line_tp → `primitiveSettingsLine` {start}; note → `primitiveSettingsNote` {start, text? (≤160)}; zone/ruler/trendline/fibonacci → `primitiveSettingsTwoPoint` {start, stop}. v1 (`afb.gp.v1`, flat start/stop/text) stays supported for frontends without afbws.gp.channel.v2; v1 clients never receive trendline/fibonacci. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`.
     """
 
     schema: Literal["afb.gp.v2"]
@@ -2225,9 +2225,11 @@ class GpV2(TypedDict):
         "trendline",
         "fibonacci",
     ]
-    start: GpV2Point
-    stop: NotRequired[GpV2Point]
-    text: NotRequired[str]
+    settings: (
+        GpV2PrimitiveSettingsLine
+        | GpV2PrimitiveSettingsNote
+        | GpV2PrimitiveSettingsTwoPoint
+    )
     tradeplan_id: NotRequired[str]
 
 
@@ -2356,6 +2358,32 @@ class GpV2PrimitiveKindStyle(TypedDict):
     lineStyle: int
 
 
+class GpV2PrimitiveSettingsLine(TypedDict):
+    """
+    line, line_enter, line_sl, line_tp.
+    """
+
+    start: GpV2Point
+
+
+class GpV2PrimitiveSettingsNote(TypedDict):
+    """
+    note.
+    """
+
+    start: GpV2Point
+    text: NotRequired[str]
+
+
+class GpV2PrimitiveSettingsTwoPoint(TypedDict):
+    """
+    zone, ruler, trendline, fibonacci.
+    """
+
+    start: GpV2Point
+    stop: GpV2Point
+
+
 class GpV2PrimitiveStyles(TypedDict):
     """
     Keys are primitive kinds; a kind that is absent has no stored override (the client falls back to its defaults).
@@ -2386,7 +2414,7 @@ class GpV2Rejection(TypedDict):
 
 class GpV2Set(TypedDict):
     """
-    Request (`request_id` present, `items` = what the client wants stored): upsert by `item.id`, batched; moving a primitive is the same request as creating or editing one. Response (same `request_id`): `items` = the authoritative stored records that were applied (possibly empty), `rejected[]` = items that were NOT applied, each with a typed reason (partial failure never fails the whole message; the backend alone decides whether a move is safe against linked tradeplans). Push (no `request_id`, server-initiated): ownership delta by id — `items[]` are authoritative afb.gp.v2 records (bind: `tradeplan_id` set on publish/amend; release: `tradeplan_id` cleared on plan physical delete); never a snapshot, `rejected` is not allowed. Primitive removal is conveyed by `afbws.gp.delete.v2` without `request_id`.
+    Request (`request_id` present, `items` = what the client wants stored): upsert by `item.id`, batched (each item carries `settings`; `settings` is replaced as a whole; a client-sent `tradeplan_id` is ignored in favour of the stored one); moving a primitive is the same request as creating or editing one. Response (same `request_id`): `items` = the authoritative stored records that were applied (possibly empty), `rejected[]` = items that were NOT applied, each with a typed reason (partial failure never fails the whole message; the backend alone decides whether a move is safe against linked tradeplans). Push (no `request_id`, server-initiated): ownership delta by id — `items[]` are authoritative afb.gp.v2 records (bind: `tradeplan_id` set on publish/amend; release: `tradeplan_id` cleared on plan physical delete); never a snapshot, `rejected` is not allowed. Primitive removal is conveyed by `afbws.gp.delete.v2` without `request_id`.
     """
 
     channel: Literal["gp"]

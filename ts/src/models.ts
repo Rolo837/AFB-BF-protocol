@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: a21d4315624b85289f5c29c84eb473217e37e393ba025b952beb4c0608c341eb
+ * source-hash: 8b4ab1e11ef6f703e914fc1c6b025efce393bdbf5d3a1752ac9c94e6e33383a5
  */
 
 /**
@@ -466,7 +466,7 @@ export type GpV1 = {
   tradeplan_id?: string;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.gp.channel.v2). Items are afb.gp.v2 (`instrument_key`, kinds trendline/fibonacci). Same convention as afbws.market: ONE schema id per message (`afbws.gp.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response and, where documented, a server push. Requests and responses are told apart by direction and fields (a response echoes the request's `request_id`); a message WITHOUT `request_id` is a server push. Collections are always arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. Chart-indicator management (replaces legacy settings/{get,set,get_default,set_default} `indicators`) is `indicator.list|set|delete`; shared indicators are changed by a manager only and pushed to everyone via `indicator.set`/`indicator.delete` without `request_id`. Primitive display settings: `style`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.gp.channel.v2). Items are afb.gp.v2 (`instrument_key`, kinds trendline/fibonacci; primitive parameters `start`/`stop`/`text` live in the `settings` dictionary, strictly typed by `kind`). Same convention as afbws.market: ONE schema id per message (`afbws.gp.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response and, where documented, a server push. Requests and responses are told apart by direction and fields (a response echoes the request's `request_id`); a message WITHOUT `request_id` is a server push. Collections are always arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. Chart-indicator management (replaces legacy settings/{get,set,get_default,set_default} `indicators`) is `indicator.list|set|delete`; shared indicators are changed by a manager only and pushed to everyone via `indicator.set`/`indicator.delete` without `request_id`. Primitive display settings: `style`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpChannelV2Message".
@@ -474,7 +474,7 @@ export type GpV1 = {
 export type GpChannelV2Message =
   GpV2List | GpV2Set | GpV2Delete | GpV2IndicatorList | GpV2IndicatorSet | GpV2IndicatorDelete | GpV2Style | GpV2Error;
 /**
- * v2 of afb.gp.v1 (full copy) with two differences: (1) the instrument is identified by the full composite `instrument_key` (afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`; (2) new kinds `trendline` and `fibonacci` — both are two-anchor primitives (`start` and `stop` required, `text` forbidden); their rendering is not specified yet. v1 stays supported for frontends without afbws.gp.channel.v2; v1 clients never receive trendline/fibonacci. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`. `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).
+ * v2 of afb.gp.v1 with differences: (1) the instrument is identified by the full composite `instrument_key` (afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`; (2) new kinds `trendline` and `fibonacci` — both two-anchor primitives; their rendering is not specified yet; (3) the primitive's own parameters (`start`, `stop`, `text`) live in the `settings` dictionary, not at the root, so a kind can gain parameters without touching the envelope. ROOT = identity and server-side ownership: `schema`, `id`, `instrument_key`, `kind`, `tradeplan_id` (all other parameters go to `settings`). `settings` is REQUIRED and strictly typed by `kind` (enforced by the `allOf` below, each branch is additionalProperties:false): line/line_enter/line_sl/line_tp → `primitiveSettingsLine` {start}; note → `primitiveSettingsNote` {start, text? (≤160)}; zone/ruler/trendline/fibonacci → `primitiveSettingsTwoPoint` {start, stop}. v1 (`afb.gp.v1`, flat start/stop/text) stays supported for frontends without afbws.gp.channel.v2; v1 clients never receive trendline/fibonacci. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpV2".
@@ -486,19 +486,17 @@ export type GpV2 = {
   id: string;
   instrument_key: AfbwsCommonV1_InstrumentKey;
   kind: 'line' | 'line_enter' | 'line_sl' | 'line_tp' | 'note' | 'zone' | 'ruler' | 'trendline' | 'fibonacci';
-  start: GpV2_Point;
-  stop?: GpV2_Point;
   /**
-   * note only (optional even there).
+   * Primitive parameters, strictly typed by `kind` (see root description). Replaced as a whole on `set`.
    */
-  text?: string;
+  settings: GpV2PrimitiveSettingsLine | GpV2PrimitiveSettingsNote | GpV2PrimitiveSettingsTwoPoint;
   /**
    * Владеющий торговый план. Проставляется сервером при компиляции плана в сделку (публикация/amend); снимается только при физическом удалении плана. Клиент это поле не задаёт и не меняет — в set-запросе оно игнорируется в пользу хранимого значения. Пустое/отсутствующее — свободный примитив, доступный любому плану. При архивации плана его уровни физически удаляются из этого хранилища, но условия плана НЕ переписываются в числа — план сохраняет исходные ссылки на примитивы; полная копия каждого удалённого уровня (kind/координаты/стиль) переносится в archived_components плана и является источником его исторической отрисовки.
    */
   tradeplan_id?: string;
 };
 /**
- * Request (`request_id` present, `items` = what the client wants stored): upsert by `item.id`, batched; moving a primitive is the same request as creating or editing one. Response (same `request_id`): `items` = the authoritative stored records that were applied (possibly empty), `rejected[]` = items that were NOT applied, each with a typed reason (partial failure never fails the whole message; the backend alone decides whether a move is safe against linked tradeplans). Push (no `request_id`, server-initiated): ownership delta by id — `items[]` are authoritative afb.gp.v2 records (bind: `tradeplan_id` set on publish/amend; release: `tradeplan_id` cleared on plan physical delete); never a snapshot, `rejected` is not allowed. Primitive removal is conveyed by `afbws.gp.delete.v2` without `request_id`.
+ * Request (`request_id` present, `items` = what the client wants stored): upsert by `item.id`, batched (each item carries `settings`; `settings` is replaced as a whole; a client-sent `tradeplan_id` is ignored in favour of the stored one); moving a primitive is the same request as creating or editing one. Response (same `request_id`): `items` = the authoritative stored records that were applied (possibly empty), `rejected[]` = items that were NOT applied, each with a typed reason (partial failure never fails the whole message; the backend alone decides whether a move is safe against linked tradeplans). Push (no `request_id`, server-initiated): ownership delta by id — `items[]` are authoritative afb.gp.v2 records (bind: `tradeplan_id` set on publish/amend; release: `tradeplan_id` cleared on plan physical delete); never a snapshot, `rejected` is not allowed. Primitive removal is conveyed by `afbws.gp.delete.v2` without `request_id`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpV2Set".
@@ -2479,15 +2477,44 @@ export interface GpV2List {
   items?: GpV2[];
 }
 /**
+ * line, line_enter, line_sl, line_tp.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2_Point".
+ * via the `definition` "GpV2PrimitiveSettingsLine".
  */
-export interface GpV2_Point {
+export interface GpV2PrimitiveSettingsLine {
+  start: GpV2Point;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2Point".
+ */
+export interface GpV2Point {
   /**
    * Unix seconds, as in klines.
    */
   time: number;
   price: number;
+}
+/**
+ * note.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2PrimitiveSettingsNote".
+ */
+export interface GpV2PrimitiveSettingsNote {
+  start: GpV2Point;
+  text?: string;
+}
+/**
+ * zone, ruler, trendline, fibonacci.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2PrimitiveSettingsTwoPoint".
+ */
+export interface GpV2PrimitiveSettingsTwoPoint {
+  start: GpV2Point;
+  stop: GpV2Point;
 }
 /**
  * `item` carries the authoritative current record when the client should see it (a rejected move restores the server's version, not the client's optimistic one). `details` is populated on `conflict` (linked tradeplans/deals, locked scopes).

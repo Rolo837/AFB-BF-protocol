@@ -2,14 +2,14 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/gp.v2.json",
   "title": "Graphic primitive afb.gp.v2",
-  "description": "v2 of afb.gp.v1 (full copy) with two differences: (1) the instrument is identified by the full composite `instrument_key` (afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`; (2) new kinds `trendline` and `fibonacci` — both are two-anchor primitives (`start` and `stop` required, `text` forbidden); their rendering is not specified yet. v1 stays supported for frontends without afbws.gp.channel.v2; v1 clients never receive trendline/fibonacci. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`. `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).",
+  "description": "v2 of afb.gp.v1 with differences: (1) the instrument is identified by the full composite `instrument_key` (afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`; (2) new kinds `trendline` and `fibonacci` — both two-anchor primitives; their rendering is not specified yet; (3) the primitive's own parameters (`start`, `stop`, `text`) live in the `settings` dictionary, not at the root, so a kind can gain parameters without touching the envelope. ROOT = identity and server-side ownership: `schema`, `id`, `instrument_key`, `kind`, `tradeplan_id` (all other parameters go to `settings`). `settings` is REQUIRED and strictly typed by `kind` (enforced by the `allOf` below, each branch is additionalProperties:false): line/line_enter/line_sl/line_tp → `primitiveSettingsLine` {start}; note → `primitiveSettingsNote` {start, text? (≤160)}; zone/ruler/trendline/fibonacci → `primitiveSettingsTwoPoint` {start, stop}. v1 (`afb.gp.v1`, flat start/stop/text) stays supported for frontends without afbws.gp.channel.v2; v1 clients never receive trendline/fibonacci. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`.",
   "type": "object",
   "required": [
     "schema",
     "id",
     "instrument_key",
     "kind",
-    "start"
+    "settings"
   ],
   "additionalProperties": false,
   "properties": {
@@ -36,16 +36,19 @@
         "fibonacci"
       ]
     },
-    "start": {
-      "$ref": "#/$defs/point"
-    },
-    "stop": {
-      "$ref": "#/$defs/point"
-    },
-    "text": {
-      "type": "string",
-      "maxLength": 160,
-      "description": "note only (optional even there)."
+    "settings": {
+      "description": "Primitive parameters, strictly typed by `kind` (see root description). Replaced as a whole on `set`.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/primitiveSettingsLine"
+        },
+        {
+          "$ref": "#/$defs/primitiveSettingsNote"
+        },
+        {
+          "$ref": "#/$defs/primitiveSettingsTwoPoint"
+        }
+      ]
     },
     "tradeplan_id": {
       "type": "string",
@@ -53,6 +56,51 @@
     }
   },
   "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "line",
+              "line_enter",
+              "line_sl",
+              "line_tp"
+            ]
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "$ref": "#/$defs/primitiveSettingsLine"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "note"
+            ]
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "$ref": "#/$defs/primitiveSettingsNote"
+          }
+        }
+      }
+    },
     {
       "if": {
         "properties": {
@@ -70,36 +118,10 @@
         ]
       },
       "then": {
-        "required": [
-          "stop"
-        ]
-      },
-      "else": {
-        "not": {
-          "required": [
-            "stop"
-          ]
-        }
-      }
-    },
-    {
-      "if": {
-        "not": {
-          "properties": {
-            "kind": {
-              "const": "note"
-            }
-          },
-          "required": [
-            "kind"
-          ]
-        }
-      },
-      "then": {
-        "not": {
-          "required": [
-            "text"
-          ]
+        "properties": {
+          "settings": {
+            "$ref": "#/$defs/primitiveSettingsTwoPoint"
+          }
         }
       }
     }
@@ -119,6 +141,53 @@
         },
         "price": {
           "type": "number"
+        }
+      }
+    },
+    "primitiveSettingsLine": {
+      "type": "object",
+      "required": [
+        "start"
+      ],
+      "additionalProperties": false,
+      "description": "line, line_enter, line_sl, line_tp.",
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/point"
+        }
+      }
+    },
+    "primitiveSettingsNote": {
+      "type": "object",
+      "required": [
+        "start"
+      ],
+      "additionalProperties": false,
+      "description": "note.",
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/point"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 160
+        }
+      }
+    },
+    "primitiveSettingsTwoPoint": {
+      "type": "object",
+      "required": [
+        "start",
+        "stop"
+      ],
+      "additionalProperties": false,
+      "description": "zone, ruler, trendline, fibonacci.",
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/point"
+        },
+        "stop": {
+          "$ref": "#/$defs/point"
         }
       }
     },

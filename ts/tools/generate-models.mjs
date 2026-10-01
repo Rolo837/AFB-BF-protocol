@@ -96,6 +96,10 @@ const NAMED_DEF_SCHEMAS = {
   "gp.v2.json": {
     indicator: "GpV2Indicator",
     indicatorSettings: "GpV2IndicatorSettings",
+    primitiveSettingsLine: "GpV2PrimitiveSettingsLine",
+    primitiveSettingsNote: "GpV2PrimitiveSettingsNote",
+    primitiveSettingsTwoPoint: "GpV2PrimitiveSettingsTwoPoint",
+    point: "GpV2Point",
     primitiveKindStyle: "GpV2PrimitiveKindStyle",
     primitiveStyles: "GpV2PrimitiveStyles",
   },
