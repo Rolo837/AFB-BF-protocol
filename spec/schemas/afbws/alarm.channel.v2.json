@@ -90,12 +90,11 @@
     },
     "set": {
       "type": "object",
-      "title": "afbws.alarm.set.v2 — upsert alarms (request / response).",
-      "description": "Request: `items[]` — upsert by `item.id`, batched. Response (same `request_id`): applied `items[]` (authoritative records, possibly empty) + `rejected[]` for items that were not applied.",
+      "title": "afbws.alarm.set.v2 — upsert alarms (request / response / server push).",
+      "description": "Request (`request_id` present): `items[]` — upsert by `item.id`, batched. Response (same `request_id`): applied `items[]` (authoritative records, possibly empty) + `rejected[]` for items that were not applied. Push (no `request_id`, server-initiated): `items[]` (at least one) are authoritative afb.alarm.v2 records that the server created or changed on its own (e.g. alarms moved to another contract by the expiration replace) — upsert by id on the client, never a snapshot; `rejected` is not allowed. Removal is conveyed by `afbws.alarm.delete.v2` without `request_id`.",
       "required": [
         "channel",
         "schema",
-        "request_id",
         "items"
       ],
       "additionalProperties": false,
@@ -121,16 +120,38 @@
             "$ref": "#/$defs/rejection"
           }
         }
-      }
+      },
+      "dependentRequired": {
+        "rejected": [
+          "request_id"
+        ]
+      },
+      "allOf": [
+        {
+          "if": {
+            "not": {
+              "required": [
+                "request_id"
+              ]
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
     },
     "delete": {
       "type": "object",
-      "title": "afbws.alarm.delete.v2 — delete alarms (request / response).",
-      "description": "Request: `ids[]` and/or `instrument_keys[]` (at least one; `instrument_keys` = every alarm of those instruments). Response (same `request_id`): `ids[]` actually removed (possibly empty) + `rejected[]`.",
+      "title": "afbws.alarm.delete.v2 — delete alarms (request / response / server push).",
+      "description": "Request (`request_id` present): `ids[]` and/or `instrument_keys[]` (at least one; `instrument_keys` = every alarm of those instruments). Response (same `request_id`): `ids[]` actually removed (possibly empty) + `rejected[]`. Push (no `request_id`): `ids[]` (at least one) removed by the server on its own (e.g. alarms of an expired contract cleaned by the expiration policy); `instrument_keys`/`rejected` are not allowed.",
       "required": [
         "channel",
-        "schema",
-        "request_id"
+        "schema"
       ],
       "additionalProperties": false,
       "properties": {
@@ -166,16 +187,47 @@
           }
         }
       },
-      "anyOf": [
+      "dependentRequired": {
+        "rejected": [
+          "request_id"
+        ]
+      },
+      "allOf": [
         {
-          "required": [
-            "ids"
-          ]
-        },
-        {
-          "required": [
-            "instrument_keys"
-          ]
+          "if": {
+            "required": [
+              "request_id"
+            ]
+          },
+          "then": {
+            "anyOf": [
+              {
+                "required": [
+                  "ids"
+                ]
+              },
+              {
+                "required": [
+                  "instrument_keys"
+                ]
+              }
+            ]
+          },
+          "else": {
+            "required": [
+              "ids"
+            ],
+            "properties": {
+              "ids": {
+                "minItems": 1
+              }
+            },
+            "not": {
+              "required": [
+                "instrument_keys"
+              ]
+            }
+          }
         }
       ]
     },

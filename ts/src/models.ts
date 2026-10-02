@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 8b4ab1e11ef6f703e914fc1c6b025efce393bdbf5d3a1752ac9c94e6e33383a5
+ * source-hash: 00a9eed8114e48acb24ca0753444666626db2794dc1a391d758c14c397fa6fd0
  */
 
 /**
@@ -176,24 +176,38 @@ export type AlarmV2_AlarmConditionNode =
       op: ConditionV1_ScalarOp;
     };
 /**
- * Request: `ids[]` and/or `instrument_keys[]` (at least one; `instrument_keys` = every alarm of those instruments). Response (same `request_id`): `ids[]` actually removed (possibly empty) + `rejected[]`.
+ * Request (`request_id` present): `items[]` — upsert by `item.id`, batched. Response (same `request_id`): applied `items[]` (authoritative records, possibly empty) + `rejected[]` for items that were not applied. Push (no `request_id`, server-initiated): `items[]` (at least one) are authoritative afb.alarm.v2 records that the server created or changed on its own (e.g. alarms moved to another contract by the expiration replace) — upsert by id on the client, never a snapshot; `rejected` is not allowed. Removal is conveyed by `afbws.alarm.delete.v2` without `request_id`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmV2Set".
+ */
+export type AlarmV2Set = {
+  [k: string]: unknown;
+} & {
+  channel: 'alarm';
+  schema: 'afbws.alarm.set.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  items: AlarmV2[];
+  rejected?: AlarmV2Rejection[];
+};
+/**
+ * Request (`request_id` present): `ids[]` and/or `instrument_keys[]` (at least one; `instrument_keys` = every alarm of those instruments). Response (same `request_id`): `ids[]` actually removed (possibly empty) + `rejected[]`. Push (no `request_id`): `ids[]` (at least one) removed by the server on its own (e.g. alarms of an expired contract cleaned by the expiration policy); `instrument_keys`/`rejected` are not allowed.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AlarmV2Delete".
  */
-export type AlarmV2Delete = AlarmV2Delete1 & {
+export type AlarmV2Delete = {
+  [k: string]: unknown;
+} & {
   channel: 'alarm';
   schema: 'afbws.alarm.delete.v2';
-  request_id: AfbwsCommonV1_RequestId;
+  request_id?: AfbwsCommonV1_RequestId;
   ids?: string[];
   /**
    * @minItems 1
    */
   instrument_keys?: [AfbwsCommonV1_InstrumentKey, ...AfbwsCommonV1_InstrumentKey[]];
   rejected?: AlarmV2Rejection[];
-};
-export type AlarmV2Delete1 = {
-  [k: string]: unknown;
 };
 /**
  * Request: `events[]` (afb.alarm.trigger_ack.v2), at least one. Response (same `request_id`): `results[]` — one per event, `status` ok | not_found. A request carrying `results` is invalid.
@@ -604,6 +618,11 @@ export type InstrumentChannelV1Message =
   | InstrumentRefreshResponse
   | InstrumentInventoryRequest
   | InstrumentInventoryResponse
+  | AfbwsInstrumentChannelV1_ExpirationListRequest
+  | AfbwsInstrumentChannelV1_ExpirationListResponse
+  | AfbwsInstrumentChannelV1_ExpirationPush
+  | AfbwsInstrumentChannelV1_ReplaceRequest
+  | AfbwsInstrumentChannelV1_ReplaceResponse
   | InstrumentErrorResponse;
 /**
  * AFB-side canonical instrument — like afb.gp.v1/afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. One broker-agnostic shape for every market class (stock/futures/currency/index); class-specific fields are gated by `market` via the `allOf`/`if` blocks below (forbidden, not just absent, for classes they don't apply to), but the wire type stays a single schema. `ticker` is the canonical identity: bare SECID for MOEX (e.g. "SBER"), `EXCHANGE:TICKER` for everything else (e.g. "XNAS:AAPL") — `exchange`/`board`/`market` are still carried as explicit fields so nothing but one shared parser (AFB backend/instruments/identity.py, frontend utils/instrumentId.ts) ever splits the string. `group`/`asset` place the instrument in the curated catalog tree (config/instruments.yaml) that AFB users actually see — `group: null` means not yet distributed into a group, the flat-list replacement for the old `lost` bucket. `source` says who refreshes this record's trading params ("moex" for the daily ISS refresh, a broker id like "finam" for instruments obtained from that broker's catalog) — it is NOT a broker binding: which connector can actually trade this instrument, and under what broker-native symbol, is resolved at publish time (see deal.v1.json's target.instrument + BF's own catalog), never persisted here.
@@ -867,6 +886,13 @@ export type InstrumentInventoryListingEntry = {
   lifecycle?: string;
   series_code?: string;
 };
+/**
+ * A structure kind the replace moves from the expiring contract to the new one.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_ReplaceKind".
+ */
+export type AfbwsInstrumentChannelV1_ReplaceKind = 'alarms' | 'primitives' | 'sets' | 'favorites';
 /**
  * Manager view of a BF connector config record — reuses link.user.v1.json#/$defs/sharedFields (via $ref, not redeclared, so the two views can't drift apart) plus ACL/key management fields. Never carries `connected`/`daemon`/session runtime — see link.status.v1.json.
  *
@@ -1592,19 +1618,6 @@ export interface AlarmV2_AlarmIndicatorExpr {
   type?: 'wma' | 'kama' | 'psar';
   field?: string;
   params?: {};
-}
-/**
- * Request: `items[]` — upsert by `item.id`, batched. Response (same `request_id`): applied `items[]` (authoritative records, possibly empty) + `rejected[]` for items that were not applied.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2Set".
- */
-export interface AlarmV2Set {
-  channel: 'alarm';
-  schema: 'afbws.alarm.set.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  items: AlarmV2[];
-  rejected?: AlarmV2Rejection[];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -3541,6 +3554,156 @@ export interface InstrumentInventorySeriesEntry {
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_ExpirationListRequest".
+ */
+export interface AfbwsInstrumentChannelV1_ExpirationListRequest {
+  channel: 'instrument';
+  schema: 'afbws.instrument.expiration.list.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_ExpirationListResponse".
+ */
+export interface AfbwsInstrumentChannelV1_ExpirationListResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.expiration.list.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  items: AfbwsInstrumentChannelV1_ExpirationNotice[];
+}
+/**
+ * Present while `0 <= days_left <= <the caller's `interface.futures_days_to_expiration`>` (0 disables the notice entirely) and the caller uses the contract (`usage` is not all-zero). `candidates[]` are the other ACTIVE contracts of the same derivative that expire AFTER this one, ordered by expiration then key; the FIRST is the default proposal (the nearest by expiration). Empty when no later contract exists.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_ExpirationNotice".
+ */
+export interface AfbwsInstrumentChannelV1_ExpirationNotice {
+  instrument_key: AfbwsCommonV1_InstrumentKey;
+  ticker: string;
+  shortname?: string;
+  /**
+   * `YYYY-MM-DD`.
+   */
+  expiration: string;
+  /**
+   * Calendar days from the server's market date to `expiration` (0 on the expiration day).
+   */
+  days_left: number;
+  usage: AfbwsInstrumentChannelV1_ExpirationUsage;
+  candidates: AfbwsInstrumentChannelV1_ExpirationCandidate[];
+}
+/**
+ * Trade plans and deals are deliberately not listed: they carry only a bare `ticker`, are level-sensitive and are never replaced by the contract-roll flow — after expiration they are archived by the server's expiration policy.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_ExpirationUsage".
+ */
+export interface AfbwsInstrumentChannelV1_ExpirationUsage {
+  alarms: number;
+  /**
+   * Free graphic primitives (not owned by a trade plan).
+   */
+  primitives: number;
+  /**
+   * Memberships in the caller's personal instrument sets.
+   */
+  sets: number;
+  /**
+   * Colored favorites.
+   */
+  favorites: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_ExpirationCandidate".
+ */
+export interface AfbwsInstrumentChannelV1_ExpirationCandidate {
+  instrument_key: AfbwsCommonV1_InstrumentKey;
+  ticker: string;
+  /**
+   * `YYYY-MM-DD`.
+   */
+  expiration: string;
+  shortname?: string;
+}
+/**
+ * Sent by the daily expiration job to connected users when a new notice stage is reached, so the card appears without a reload. An empty `items[]` clears the card.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_ExpirationPush".
+ */
+export interface AfbwsInstrumentChannelV1_ExpirationPush {
+  channel: 'instrument';
+  schema: 'afbws.instrument.expiration.push.v1';
+  items: AfbwsInstrumentChannelV1_ExpirationNotice[];
+}
+/**
+ * `to_key` must be an ACTIVE contract of the same derivative as `from_key` (the server validates; the card offers `expirationNotice.candidates[]`, the first being the default). `kinds` limits what is moved; omitted = all four. Prices and levels are NEVER adjusted — alarm conditions and primitive levels are copied as they are. Partial results are normal: what could not be moved is listed in `rejected[]`, the rest is applied. Idempotent: repeating the request moves nothing more.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_ReplaceRequest".
+ */
+export interface AfbwsInstrumentChannelV1_ReplaceRequest {
+  channel: 'instrument';
+  schema: 'afbws.instrument.replace.request.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  from_key: AfbwsCommonV1_InstrumentKey;
+  to_key: AfbwsCommonV1_InstrumentKey;
+  /**
+   * @minItems 1
+   */
+  kinds?: [AfbwsInstrumentChannelV1_ReplaceKind, ...AfbwsInstrumentChannelV1_ReplaceKind[]];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_ReplaceResponse".
+ */
+export interface AfbwsInstrumentChannelV1_ReplaceResponse {
+  channel: 'instrument';
+  schema: 'afbws.instrument.replace.response.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  from_key: AfbwsCommonV1_InstrumentKey;
+  to_key: AfbwsCommonV1_InstrumentKey;
+  replaced: AfbwsInstrumentChannelV1_ExpirationUsage1;
+  rejected: AfbwsInstrumentChannelV1_ReplaceRejection[];
+  /**
+   * The caller's pending expiration notices after the move (same as a fresh `expiration.list`).
+   */
+  items: AfbwsInstrumentChannelV1_ExpirationNotice[];
+}
+/**
+ * Trade plans and deals are deliberately not listed: they carry only a bare `ticker`, are level-sensitive and are never replaced by the contract-roll flow — after expiration they are archived by the server's expiration policy.
+ */
+export interface AfbwsInstrumentChannelV1_ExpirationUsage1 {
+  alarms: number;
+  /**
+   * Free graphic primitives (not owned by a trade plan).
+   */
+  primitives: number;
+  /**
+   * Memberships in the caller's personal instrument sets.
+   */
+  sets: number;
+  /**
+   * Colored favorites.
+   */
+  favorites: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV1_ReplaceRejection".
+ */
+export interface AfbwsInstrumentChannelV1_ReplaceRejection {
+  kind: AfbwsInstrumentChannelV1_ReplaceKind;
+  /**
+   * alarm_id / primitive id / set_id; for `favorites` the old `instrument_key`.
+   */
+  id: string;
+  code: AfbwsCommonV1_ErrorCode;
+  message?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentErrorResponse".
  */
 export interface InstrumentErrorResponse {
@@ -4739,6 +4902,62 @@ export interface NotificationDealV1 {
   };
   /**
    * ISO-8601 publish time; added by MQTTPublisher, not by build_deal_notification.
+   */
+  timestamp?: string;
+}
+/**
+ * AFB-side MQTT notification payload published to <topic_base>/system/<user_id> when a futures contract the user works with (alarms, free primitives, personal-set memberships, favorites) is about to expire. Consumed by the AFB informer daemon (Telegram/email) exactly like alarm/deal/link/system notifications — informer never reads AFB settings, the recipient and channels come only from `user`. Sent at most once per (user, contract, `stage`). Not sent when the user's `interface.futures_days_to_expiration` is 0. NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "NotificationExpirationV1_Root".
+ */
+export interface NotificationExpirationV1_Root {
+  schema: 'afb.notification.expiration.v1';
+  /**
+   * Stable per-(user, contract, stage) id for informer-side deduplication (like notification.link.v1).
+   */
+  notification_id: string;
+  /**
+   * Full catalog key of the expiring contract, e.g. `MISX:RFUD:SRU6`. Case-sensitive.
+   */
+  instrument_key: string;
+  ticker: string;
+  shortname?: string;
+  /**
+   * `YYYY-MM-DD`.
+   */
+  expiration: string;
+  /**
+   * Calendar days from the market date of the notice to `expiration` (0 on the expiration day).
+   */
+  days_left: number;
+  /**
+   * `warn` — the user's threshold (`futures_days_to_expiration`) was reached; `d1` — one day left (only when the threshold is above 1); `d0` — the expiration day, the last chance.
+   */
+  stage: 'warn' | 'd1' | 'd0';
+  usage: {
+    alarms: number;
+    primitives: number;
+    sets: number;
+    favorites: number;
+  };
+  /**
+   * The default replacement proposal — the nearest ACTIVE contract of the same derivative expiring after this one. Absent when there is none.
+   */
+  next_contract?: {
+    instrument_key: string;
+    ticker: string;
+    expiration: string;
+  };
+  user: {
+    name: string;
+    telegram: string;
+    email: string;
+    notify_telegram: boolean;
+    notify_email: boolean;
+  };
+  /**
+   * ISO-8601 publish time; added by MQTTPublisher, not by the notification builder.
    */
   timestamp?: string;
 }

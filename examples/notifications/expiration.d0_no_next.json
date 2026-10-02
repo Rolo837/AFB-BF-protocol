@@ -1,0 +1,17 @@
+{
+  "schema": "afb.notification.expiration.v1",
+  "notification_id": "exp-id_9139066366-MISX:RFUD:SRZ7-d0",
+  "instrument_key": "MISX:RFUD:SRZ7",
+  "ticker": "SRZ7",
+  "expiration": "2027-12-16",
+  "days_left": 0,
+  "stage": "d0",
+  "usage": { "alarms": 1, "primitives": 0, "sets": 0, "favorites": 1 },
+  "user": {
+    "name": "Trader",
+    "telegram": "",
+    "email": "trader@example.com",
+    "notify_telegram": false,
+    "notify_email": true
+  }
+}
