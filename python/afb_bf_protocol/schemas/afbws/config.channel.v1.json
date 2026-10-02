@@ -86,9 +86,9 @@
         },
         "default_tier": { "type": "string" },
         "groups_yaml": {
-          "type": "object",
-          "additionalProperties": true,
-          "description": "Response only: contents of groups.yaml."
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true },
+          "description": "Response only: `groups` list from groups.yaml."
         },
         "getcourse_groups": {
           "type": "array",

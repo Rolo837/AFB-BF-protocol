@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: c6a1be8e5ab0e9cbdfb1651642f5ee52c2ba212bb2d6300be9b15f2ffafbb2f7
+# source-hash: 53c49051d4a81fd25bef5d5ee4f4bc2a669bc38eabea323b048fcea631228b20
 
 from __future__ import annotations
 
@@ -1311,7 +1311,7 @@ class ConfigRoles(TypedDict):
     tiers: NotRequired[dict[str, ConfigRoleTier]]
     capabilities: NotRequired[dict[str, Any]]
     default_tier: NotRequired[str]
-    groups_yaml: NotRequired[dict[str, Any]]
+    groups_yaml: NotRequired[list[dict[str, Any]]]
     getcourse_groups: NotRequired[list[dict[str, Any]]]
     getcourse_groups_error: NotRequired[str | None]
     limits_template: NotRequired[LimitsTemplate]

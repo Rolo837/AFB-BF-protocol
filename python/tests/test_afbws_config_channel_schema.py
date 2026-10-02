@@ -103,7 +103,7 @@ def test_roles(registry):
             tiers={},
             capabilities={},
             default_tier="user",
-            groups_yaml={},
+            groups_yaml=[],
             getcourse_groups=[],
             getcourse_groups_error=None,
             limits_template={"keys": ["max_sets"], "defaults": {"max_sets": 1}},

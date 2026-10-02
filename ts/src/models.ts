@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: c6a1be8e5ab0e9cbdfb1651642f5ee52c2ba212bb2d6300be9b15f2ffafbb2f7
+ * source-hash: 53c49051d4a81fd25bef5d5ee4f4bc2a669bc38eabea323b048fcea631228b20
  */
 
 /**
@@ -2018,11 +2018,11 @@ export interface ConfigRoles {
   };
   default_tier?: string;
   /**
-   * Response only: contents of groups.yaml.
+   * Response only: `groups` list from groups.yaml.
    */
   groups_yaml?: {
     [k: string]: unknown;
-  };
+  }[];
   /**
    * Response only: GetCourse groups.
    */
