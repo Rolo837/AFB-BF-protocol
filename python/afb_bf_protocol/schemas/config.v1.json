@@ -183,7 +183,6 @@
       "description": "`default_capital` is persisted by the server into the user's virtual account, not into the settings file; reads return the live value.",
       "additionalProperties": true,
       "properties": {
-        "real_trade": { "type": "boolean" },
         "auto_execute": { "type": "boolean" },
         "default_connector": { "type": "string" },
         "default_capital": { "type": "number" },

@@ -11,6 +11,7 @@
 - **`config.v1.json`** — канон payload настроек: `profile` (бывший `me`), `interface` (с `layout` вместо отдельного `service`), `dataset`, `dashboard`, `trade` (+ `notify.link`, `plan_editor_placement`) и `$defs/defaults`. Из payload убраны `limits` (идут в `auth_ok`), `favorites`, `indicators`; `name` отдаётся как read-only `profile.name`; булевы — только boolean. Типы: `ConfigSettingsV1`, `ConfigProfile`, `ConfigInterface`, `ConfigLayout`, `ConfigDataset`, `ConfigDashboard`, `ConfigTrade`, `ConfigDefaults`, `ConfigChannelV1Message`, `ConfigSettings`, `ConfigDefaultsMessage`, `ConfigHelp`, `ConfigRoles`, `ConfigToken`, `ConfigError`.
 - Каталог `spec/schemas/draft/` (запаркованные схемы настроек) удалён вместе с исключениями `draft` в генераторах и тестах; нужное перенесено в `config.v1.json`.
 - `afbws.config.roles.v1`: `groups_yaml` — массив объектов (список `groups` из groups.yaml), а не объект. `profile.name` — read-only отображаемое имя в payload настроек (запись клиентом игнорируется).
+- `config.v1.json`: из `trade` убрано мёртвое поле `real_trade` (фронтенд его не читал и всегда слал `false`; цель публикации определяют `default_connector`/`tradeplan.publish.bf_id`). `trade` по-прежнему `additionalProperties: true`, лишний ключ от старого клиента не даёт `validation_error`.
 
 ## v2.7.5 — 2026-10-02
 

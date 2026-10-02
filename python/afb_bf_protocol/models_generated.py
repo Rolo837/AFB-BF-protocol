@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: e90b9536e77c638e4df6015e211d032d63e4176505778fa0db31ba6a8237adc2
+# source-hash: 204b040efa77062e6ceb3033c6517e9e72917bd88c303456fa596d7f14c49bef
 
 from __future__ import annotations
 
@@ -1385,7 +1385,6 @@ class ConfigTrade(TypedDict):
     `default_capital` is persisted by the server into the user's virtual account, not into the settings file; reads return the live value.
     """
 
-    real_trade: NotRequired[bool]
     auto_execute: NotRequired[bool]
     default_connector: NotRequired[str]
     default_capital: NotRequired[float]

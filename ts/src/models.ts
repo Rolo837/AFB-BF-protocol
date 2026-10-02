@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: e90b9536e77c638e4df6015e211d032d63e4176505778fa0db31ba6a8237adc2
+ * source-hash: 204b040efa77062e6ceb3033c6517e9e72917bd88c303456fa596d7f14c49bef
  */
 
 /**
@@ -1954,7 +1954,6 @@ export interface ConfigV1_DashboardLayoutItem {
  * via the `definition` "ConfigTrade".
  */
 export interface ConfigTrade {
-  real_trade?: boolean;
   auto_execute?: boolean;
   default_connector?: string;
   default_capital?: number;
