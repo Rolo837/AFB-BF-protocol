@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/notification.expiration.v1.json",
+  "title": "Expiration notification afb.notification.expiration.v1",
+  "description": "AFB-side MQTT notification payload published to <topic_base>/system/<user_id> when a futures contract the user works with (alarms, free primitives, personal-set memberships, favorites) is about to expire. Consumed by the AFB informer daemon (Telegram/email) exactly like alarm/deal/link/system notifications — informer never reads AFB settings, the recipient and channels come only from `user`. Sent at most once per (user, contract, `stage`). Not sent when the user's `interface.futures_days_to_expiration` is 0. NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time.",
+  "type": "object",
+  "required": ["schema", "notification_id", "instrument_key", "ticker", "expiration", "days_left", "stage", "usage", "user"],
+  "properties": {
+    "schema": { "const": "afb.notification.expiration.v1" },
+    "notification_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable per-(user, contract, stage) id for informer-side deduplication (like notification.link.v1)."
+    },
+    "instrument_key": { "type": "string", "minLength": 1, "description": "Full catalog key of the expiring contract, e.g. `MISX:RFUD:SRU6`. Case-sensitive." },
+    "ticker": { "type": "string", "minLength": 1 },
+    "shortname": { "type": "string" },
+    "expiration": { "type": "string", "format": "date", "description": "`YYYY-MM-DD`." },
+    "days_left": { "type": "integer", "minimum": 0, "description": "Calendar days from the market date of the notice to `expiration` (0 on the expiration day)." },
+    "stage": {
+      "enum": ["warn", "d1", "d0"],
+      "description": "`warn` — the user's threshold (`futures_days_to_expiration`) was reached; `d1` — one day left (only when the threshold is above 1); `d0` — the expiration day, the last chance."
+    },
+    "usage": {
+      "type": "object",
+      "required": ["alarms", "primitives", "sets", "favorites"],
+      "additionalProperties": false,
+      "properties": {
+        "alarms": { "type": "integer", "minimum": 0 },
+        "primitives": { "type": "integer", "minimum": 0 },
+        "sets": { "type": "integer", "minimum": 0 },
+        "favorites": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "next_contract": {
+      "type": "object",
+      "description": "The default replacement proposal — the nearest ACTIVE contract of the same derivative expiring after this one. Absent when there is none.",
+      "required": ["instrument_key", "ticker", "expiration"],
+      "additionalProperties": false,
+      "properties": {
+        "instrument_key": { "type": "string", "minLength": 1 },
+        "ticker": { "type": "string", "minLength": 1 },
+        "expiration": { "type": "string", "format": "date" }
+      }
+    },
+    "user": {
+      "type": "object",
+      "required": ["name", "telegram", "email", "notify_telegram", "notify_email"],
+      "properties": {
+        "name": { "type": "string" },
+        "telegram": { "type": "string" },
+        "email": { "type": "string" },
+        "notify_telegram": { "type": "boolean" },
+        "notify_email": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO-8601 publish time; added by MQTTPublisher, not by the notification builder."
+    }
+  },
+  "additionalProperties": false
+}

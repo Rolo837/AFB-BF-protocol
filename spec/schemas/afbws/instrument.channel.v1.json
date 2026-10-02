@@ -30,6 +30,11 @@
     { "$ref": "#/$defs/refreshResponse" },
     { "$ref": "#/$defs/inventoryRequest" },
     { "$ref": "#/$defs/inventoryResponse" },
+    { "$ref": "#/$defs/expirationListRequest" },
+    { "$ref": "#/$defs/expirationListResponse" },
+    { "$ref": "#/$defs/expirationPush" },
+    { "$ref": "#/$defs/replaceRequest" },
+    { "$ref": "#/$defs/replaceResponse" },
     { "$ref": "#/$defs/errorResponse" }
   ],
   "$defs": {
@@ -938,6 +943,129 @@
         "item": { "$ref": "../instrument.v1.json" },
         "binding": { "type": "object", "additionalProperties": true, "description": "Broker-native locator, BF-owned shape — see broker.instrument_resolved.json." },
         "broker_instrument": { "type": "object", "additionalProperties": true, "description": "Broker-owned trading params, BF-owned shape (InstrumentInfo.to_broker_instrument_dict() — the same deal-publish-shared shape resolveResponse carries, not the narrower broker.instrument.json allow-list; e.g. it has no `symbol` key, that lives in `binding` instead)." }
+      }
+    },
+    "expirationUsage": {
+      "type": "object",
+      "title": "Where the caller uses an expiring contract (counts of the user's own structures bound to its `instrument_key`).",
+      "description": "Trade plans and deals are deliberately not listed: they carry only a bare `ticker`, are level-sensitive and are never replaced by the contract-roll flow — after expiration they are archived by the server's expiration policy.",
+      "required": ["alarms", "primitives", "sets", "favorites"],
+      "additionalProperties": false,
+      "properties": {
+        "alarms": { "type": "integer", "minimum": 0 },
+        "primitives": { "type": "integer", "minimum": 0, "description": "Free graphic primitives (not owned by a trade plan)." },
+        "sets": { "type": "integer", "minimum": 0, "description": "Memberships in the caller's personal instrument sets." },
+        "favorites": { "type": "integer", "minimum": 0, "description": "Colored favorites." }
+      }
+    },
+    "expirationCandidate": {
+      "type": "object",
+      "title": "A contract the expiring one may be replaced with.",
+      "required": ["instrument_key", "ticker", "expiration"],
+      "additionalProperties": false,
+      "properties": {
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "ticker": { "type": "string", "minLength": 1 },
+        "expiration": { "type": "string", "format": "date", "description": "`YYYY-MM-DD`." },
+        "shortname": { "type": "string" }
+      }
+    },
+    "expirationNotice": {
+      "type": "object",
+      "title": "One expiring futures contract the caller uses, ready for the replace card — computed by the server, the client derives nothing.",
+      "description": "Present while `0 <= days_left <= <the caller's `interface.futures_days_to_expiration`>` (0 disables the notice entirely) and the caller uses the contract (`usage` is not all-zero). `candidates[]` are the other ACTIVE contracts of the same derivative that expire AFTER this one, ordered by expiration then key; the FIRST is the default proposal (the nearest by expiration). Empty when no later contract exists.",
+      "required": ["instrument_key", "ticker", "expiration", "days_left", "usage", "candidates"],
+      "additionalProperties": false,
+      "properties": {
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "ticker": { "type": "string", "minLength": 1 },
+        "shortname": { "type": "string" },
+        "expiration": { "type": "string", "format": "date", "description": "`YYYY-MM-DD`." },
+        "days_left": { "type": "integer", "minimum": 0, "description": "Calendar days from the server's market date to `expiration` (0 on the expiration day)." },
+        "usage": { "$ref": "#/$defs/expirationUsage" },
+        "candidates": { "type": "array", "items": { "$ref": "#/$defs/expirationCandidate" } }
+      }
+    },
+    "expirationListRequest": {
+      "type": "object",
+      "title": "user. Read the caller's pending expiration notices — read-only.",
+      "required": ["channel", "schema", "request_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.expiration.list.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" }
+      }
+    },
+    "expirationListResponse": {
+      "type": "object",
+      "title": "The caller's pending expiration notices, nearest expiration first.",
+      "required": ["channel", "schema", "request_id", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.expiration.list.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/expirationNotice" } }
+      }
+    },
+    "expirationPush": {
+      "type": "object",
+      "title": "Server push (no request_id): the caller's full current list of pending expiration notices — a snapshot that REPLACES the client's copy, never a delta.",
+      "description": "Sent by the daily expiration job to connected users when a new notice stage is reached, so the card appears without a reload. An empty `items[]` clears the card.",
+      "required": ["channel", "schema", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.expiration.push.v1" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/expirationNotice" } }
+      }
+    },
+    "replaceKind": {
+      "enum": ["alarms", "primitives", "sets", "favorites"],
+      "description": "A structure kind the replace moves from the expiring contract to the new one."
+    },
+    "replaceRejection": {
+      "type": "object",
+      "title": "One structure that could not be moved.",
+      "required": ["kind", "id", "code"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "$ref": "#/$defs/replaceKind" },
+        "id": { "type": "string", "minLength": 1, "description": "alarm_id / primitive id / set_id; for `favorites` the old `instrument_key`." },
+        "code": { "$ref": "common.v1.json#/$defs/errorCode" },
+        "message": { "type": "string" }
+      }
+    },
+    "replaceRequest": {
+      "type": "object",
+      "title": "user. Move the caller's own alarms, free primitives, personal-set memberships and favorites from an expiring contract to another contract of the same derivative.",
+      "description": "`to_key` must be an ACTIVE contract of the same derivative as `from_key` (the server validates; the card offers `expirationNotice.candidates[]`, the first being the default). `kinds` limits what is moved; omitted = all four. Prices and levels are NEVER adjusted — alarm conditions and primitive levels are copied as they are. Partial results are normal: what could not be moved is listed in `rejected[]`, the rest is applied. Idempotent: repeating the request moves nothing more.",
+      "required": ["channel", "schema", "request_id", "from_key", "to_key"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.replace.request.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "from_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "to_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "kinds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/replaceKind" } }
+      }
+    },
+    "replaceResponse": {
+      "type": "object",
+      "title": "What was moved, what was not, and the caller's refreshed pending list.",
+      "required": ["channel", "schema", "request_id", "from_key", "to_key", "replaced", "rejected", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "instrument" },
+        "schema": { "const": "afbws.instrument.replace.response.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "from_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "to_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "replaced": { "$ref": "#/$defs/expirationUsage", "description": "How many structures of each kind were moved." },
+        "rejected": { "type": "array", "items": { "$ref": "#/$defs/replaceRejection" } },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/expirationNotice" }, "description": "The caller's pending expiration notices after the move (same as a fresh `expiration.list`)." }
       }
     },
     "errorResponse": {

@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 8b4ab1e11ef6f703e914fc1c6b025efce393bdbf5d3a1752ac9c94e6e33383a5
+# source-hash: 016d7ada930a06d8c96b89ff07cb5cc0877d2283adda3f6f2e25257e43311d30
 
 from __future__ import annotations
 
@@ -214,6 +214,61 @@ class AfbwsInstrumentChannelV1CatalogDerivative(TypedDict):
     name: NotRequired[str | None]
 
 
+class AfbwsInstrumentChannelV1ExpirationCandidate(TypedDict):
+    instrument_key: AfbwsCommonV1InstrumentKey
+    ticker: str
+    expiration: str
+    shortname: NotRequired[str]
+
+
+class AfbwsInstrumentChannelV1ExpirationListRequest(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.expiration.list.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+
+
+class AfbwsInstrumentChannelV1ExpirationListResponse(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.expiration.list.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[AfbwsInstrumentChannelV1ExpirationNotice]
+
+
+class AfbwsInstrumentChannelV1ExpirationNotice(TypedDict):
+    """
+    Present while `0 <= days_left <= <the caller's `interface.futures_days_to_expiration`>` (0 disables the notice entirely) and the caller uses the contract (`usage` is not all-zero). `candidates[]` are the other ACTIVE contracts of the same derivative that expire AFTER this one, ordered by expiration then key; the FIRST is the default proposal (the nearest by expiration). Empty when no later contract exists.
+    """
+
+    instrument_key: AfbwsCommonV1InstrumentKey
+    ticker: str
+    shortname: NotRequired[str]
+    expiration: str
+    days_left: int
+    usage: AfbwsInstrumentChannelV1ExpirationUsage
+    candidates: list[AfbwsInstrumentChannelV1ExpirationCandidate]
+
+
+class AfbwsInstrumentChannelV1ExpirationPush(TypedDict):
+    """
+    Sent by the daily expiration job to connected users when a new notice stage is reached, so the card appears without a reload. An empty `items[]` clears the card.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.expiration.push.v1"]
+    items: list[AfbwsInstrumentChannelV1ExpirationNotice]
+
+
+class AfbwsInstrumentChannelV1ExpirationUsage(TypedDict):
+    """
+    Trade plans and deals are deliberately not listed: they carry only a bare `ticker`, are level-sensitive and are never replaced by the contract-roll flow — after expiration they are archived by the server's expiration policy.
+    """
+
+    alarms: int
+    primitives: int
+    sets: int
+    favorites: int
+
+
 AfbwsInstrumentChannelV1FavoriteColor: TypeAlias = Literal[
     "yellow", "red", "blue", "green", "gray", "orange", "cyan", "purple", "pink", "teal"
 ]
@@ -286,6 +341,42 @@ class AfbwsInstrumentChannelV1RefreshMarketReport(TypedDict):
     malformed_rows: NotRequired[int]
     board_conflicts: NotRequired[list[dict[str, Any]]]
     error: NotRequired[str]
+
+
+AfbwsInstrumentChannelV1ReplaceKind: TypeAlias = Literal[
+    "alarms", "primitives", "sets", "favorites"
+]
+
+
+class AfbwsInstrumentChannelV1ReplaceRejection(TypedDict):
+    kind: AfbwsInstrumentChannelV1ReplaceKind
+    id: str
+    code: AfbwsCommonV1ErrorCode
+    message: NotRequired[str]
+
+
+class AfbwsInstrumentChannelV1ReplaceRequest(TypedDict):
+    """
+    `to_key` must be an ACTIVE contract of the same derivative as `from_key` (the server validates; the card offers `expirationNotice.candidates[]`, the first being the default). `kinds` limits what is moved; omitted = all four. Prices and levels are NEVER adjusted — alarm conditions and primitive levels are copied as they are. Partial results are normal: what could not be moved is listed in `rejected[]`, the rest is applied. Idempotent: repeating the request moves nothing more.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.replace.request.v1"]
+    request_id: AfbwsCommonV1RequestId
+    from_key: AfbwsCommonV1InstrumentKey
+    to_key: AfbwsCommonV1InstrumentKey
+    kinds: NotRequired[list[AfbwsInstrumentChannelV1ReplaceKind]]
+
+
+class AfbwsInstrumentChannelV1ReplaceResponse(TypedDict):
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.replace.response.v1"]
+    request_id: AfbwsCommonV1RequestId
+    from_key: AfbwsCommonV1InstrumentKey
+    to_key: AfbwsCommonV1InstrumentKey
+    replaced: AfbwsInstrumentChannelV1ExpirationUsage
+    rejected: list[AfbwsInstrumentChannelV1ReplaceRejection]
+    items: list[AfbwsInstrumentChannelV1ExpirationNotice]
 
 
 class AfbwsMarketChannelV1DataStatus(TypedDict):
@@ -3052,6 +3143,11 @@ InstrumentChannelV1Message: TypeAlias = (
     | InstrumentRefreshResponse
     | InstrumentInventoryRequest
     | InstrumentInventoryResponse
+    | AfbwsInstrumentChannelV1ExpirationListRequest
+    | AfbwsInstrumentChannelV1ExpirationListResponse
+    | AfbwsInstrumentChannelV1ExpirationPush
+    | AfbwsInstrumentChannelV1ReplaceRequest
+    | AfbwsInstrumentChannelV1ReplaceResponse
     | InstrumentErrorResponse
 )
 
@@ -3553,6 +3649,16 @@ class Meta(TypedDict):
 Model: TypeAlias = Any
 
 
+class NextContract(TypedDict):
+    """
+    The default replacement proposal — the nearest ACTIVE contract of the same derivative expiring after this one. Absent when there is none.
+    """
+
+    instrument_key: str
+    ticker: str
+    expiration: str
+
+
 class NotificationAlarmV1(TypedDict):
     """
     AFB-side MQTT notification payload published to <topic_base>/alarms/<user_id> when a user alarm triggers. Consumed by the AFB informer daemon (Telegram/email). NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time. `display` carries human-readable strings pre-rendered by AFB backend (mirrors frontend alarm cards).
@@ -3605,6 +3711,25 @@ class NotificationDealV1(TypedDict):
     close_reason: NotRequired[str]
     at: NotRequired[str]
     display: Display1
+    user: User
+    timestamp: NotRequired[str]
+
+
+class NotificationExpirationV1Root(TypedDict):
+    """
+    AFB-side MQTT notification payload published to <topic_base>/system/<user_id> when a futures contract the user works with (alarms, free primitives, personal-set memberships, favorites) is about to expire. Consumed by the AFB informer daemon (Telegram/email) exactly like alarm/deal/link/system notifications — informer never reads AFB settings, the recipient and channels come only from `user`. Sent at most once per (user, contract, `stage`). Not sent when the user's `interface.futures_days_to_expiration` is 0. NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time.
+    """
+
+    schema: Literal["afb.notification.expiration.v1"]
+    notification_id: str
+    instrument_key: str
+    ticker: str
+    shortname: NotRequired[str]
+    expiration: str
+    days_left: int
+    stage: Literal["warn", "d1", "d0"]
+    usage: Usage
+    next_contract: NotRequired[NextContract]
     user: User
     timestamp: NotRequired[str]
 
@@ -4124,6 +4249,13 @@ class TradeplanV2TpExitListItem(TypedDict):
 
 
 TradeplanV2TpExitList: TypeAlias = list[TradeplanV2TpExitListItem]
+
+
+class Usage(TypedDict):
+    alarms: int
+    primitives: int
+    sets: int
+    favorites: int
 
 
 class User(TypedDict):

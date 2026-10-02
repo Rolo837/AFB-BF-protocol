@@ -7,6 +7,10 @@
 
 ## Unreleased
 
+- **Предэкспирационный блок (AFB-сторонние схемы, вне `asyncapi.yaml`, канал AFB↔BF не затрагивается — PATCH).**
+  - Канал `instrument` (`afbws/instrument.channel.v1.json`): новые сообщения `afbws.instrument.expiration.list.{request,response}.v1` (очередь уведомлений об экспирации пользователя — `expirationNotice`: контракт, `days_left`, `usage` {alarms, primitives, sets, favorites}, `candidates[]` — ближайшие по экспирации активные контракты того же деривата, первый — предложение по умолчанию), серверный push `afbws.instrument.expiration.push.v1` (без `request_id`, полный снимок списка, заменяет клиентский) и `afbws.instrument.replace.{request,response}.v1` (перенос алармов, свободных примитивов, членства в личных наборах и избранного с экспирирующегося контракта на другой контракт того же деривата; цены/уровни не пересчитываются; частичный результат в `rejected[]`; в ответе — обновлённый список). Планы и сделки в замене не участвуют. TS/Python-типы сгенерированы.
+  - Новая схема `notification.expiration.v1` (`afb.notification.expiration.v1`, MQTT `<topic_base>/system/<user_id>`, как `notification.system.v1`): уведомление о приближающейся экспирации контракта, которым пользуется пользователь (`stage` warn|d1|d0, `usage`, `next_contract?`); не шлётся при пороге 0. `validate_notification` принимает её; примеры `examples/notifications/expiration.*.json`.
+
 ## v2.7.4 — 2026-10-01
 
 - **gp/alarm channel v2 — без дублей, батчи, без `enabled`** (переработка схем, выпущенных в v2.7.3; AFB-сторонние каналы вне `asyncapi.yaml`, канал AFB↔BF не затрагивается — PATCH). Старые id сообщений из v2.7.3 удаляются без периода совместимости (потребители — AFB backend/frontend, обновляются вместе):
