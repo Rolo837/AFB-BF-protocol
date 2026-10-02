@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/config.channel.v1.json",
+  "x-afbws-support-id": "afbws.config.channel.v1",
+  "title": "config channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.config.channel.v1). Replaces the legacy `settings`, `help` and `setup` channels (no fallback). Same convention as afbws.market/afbws.gp: ONE schema id per message (`afbws.config.<op>.v1`, no .request/.response/.push suffixes); the same schema is the request, its response and, where documented, a server push. A message WITHOUT `request_id` is a server push. A failed request is answered with `afbws.config.error.v1`; a refused mutation of settings/defaults carries the authoritative current state in `error.item` (the client must apply it and show `message`) — there is no `rejected` flag. Operations: `settings` (user settings), `defaults` (platform defaults; write is manager only), `help` (rendered markdown section), `roles` (manager only), `token` (manager only: MOEX / GetCourse API tokens, write-only). After `auth_ok` the server pushes `defaults` and `settings` without `request_id`. See AFB/docs/ws/config.md.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/settings" },
+    { "$ref": "#/$defs/defaults" },
+    { "$ref": "#/$defs/help" },
+    { "$ref": "#/$defs/roles" },
+    { "$ref": "#/$defs/token" },
+    { "$ref": "#/$defs/error" }
+  ],
+  "$defs": {
+    "settings": {
+      "type": "object",
+      "title": "afbws.config.settings.v1 — user settings (request / response / server push).",
+      "description": "Request without `settings` = read. Request with `settings` = partial write (blocks `profile`/`interface`/`dataset`/`dashboard` deep-merged, `trade` replaced whole; `profile.notify_system` from a non-manager is ignored). The response (same `request_id`) always carries the full stored `settings`. Push (no `request_id`) carries the full `settings`, sent right after `auth_ok`; `settings` is required there. Refusal: `afbws.config.error.v1` with `item` = current settings.",
+      "required": ["channel", "schema"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "config" },
+        "schema": { "const": "afbws.config.settings.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "settings": { "$ref": "../config.v1.json" }
+      },
+      "allOf": [
+        {
+          "if": { "not": { "required": ["request_id"] } },
+          "then": { "required": ["settings"] }
+        }
+      ]
+    },
+    "defaults": {
+      "type": "object",
+      "title": "afbws.config.defaults.v1 — platform default settings (request / response / server push).",
+      "description": "Request without `defaults` = read (any user). Request with `defaults` = write (manager only, else error `forbidden`); `defaults.dataset` is required on write. The response always carries the full stored `defaults`. Push (no `request_id`) is sent right after `auth_ok`; `defaults` is required there.",
+      "required": ["channel", "schema"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "config" },
+        "schema": { "const": "afbws.config.defaults.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "defaults": { "$ref": "../config.v1.json#/$defs/defaults" }
+      },
+      "allOf": [
+        {
+          "if": { "not": { "required": ["request_id"] } },
+          "then": { "required": ["defaults"] }
+        }
+      ]
+    },
+    "help": {
+      "type": "object",
+      "title": "afbws.config.help.v1 — online help section (request / response).",
+      "description": "Available to every connection. Request carries `section` (basename of a markdown file, `[A-Za-z0-9]+`); the response echoes `section` and adds `content` (HTML rendered from the markdown). Unknown section: error `not_found`; bad name: `validation_error`.",
+      "required": ["channel", "schema", "request_id", "section"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "config" },
+        "schema": { "const": "afbws.config.help.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "section": { "type": "string", "pattern": "^[A-Za-z0-9]+$" },
+        "content": { "type": "string" }
+      }
+    },
+    "roles": {
+      "type": "object",
+      "title": "afbws.config.roles.v1 — roles/capabilities config (request / response), manager only.",
+      "description": "Request without `tiers`/`capabilities` = read; with both = write (saved into roles.yaml, runtime reloaded). The response always carries the full snapshot. Non-manager: error `forbidden`.",
+      "required": ["channel", "schema", "request_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "config" },
+        "schema": { "const": "afbws.config.roles.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "tiers": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/roleTier" }
+        },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "default_tier": { "type": "string" },
+        "groups_yaml": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Response only: contents of groups.yaml."
+        },
+        "getcourse_groups": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true },
+          "description": "Response only: GetCourse groups."
+        },
+        "getcourse_groups_error": {
+          "type": ["string", "null"],
+          "description": "Response only: why GetCourse groups could not be fetched."
+        },
+        "limits_template": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["keys", "defaults"],
+          "properties": {
+            "keys": { "type": "array", "items": { "type": "string" } },
+            "defaults": { "type": "object", "additionalProperties": { "type": "integer" } }
+          },
+          "description": "Response only."
+        }
+      },
+      "dependentRequired": {
+        "tiers": ["capabilities"],
+        "capabilities": ["tiers"]
+      }
+    },
+    "roleTier": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "title": { "type": "string" },
+        "limits": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "members": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "token": {
+      "type": "object",
+      "title": "afbws.config.token.v1 — set an external API token (request / response), manager only.",
+      "description": "Request carries `kind` and `token`; the server validates the token against the service (MOEX / GetCourse), stores it in the plain-text secrets/*.token file and applies it at runtime. The response carries `kind` and `ok: true` and NEVER the token. Failure: error `validation_error` (token rejected by the service) or `internal_error`; non-manager: `forbidden`.",
+      "required": ["channel", "schema", "request_id", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "config" },
+        "schema": { "const": "afbws.config.token.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "kind": { "enum": ["moex", "getcourse"] },
+        "token": { "type": "string", "minLength": 1, "writeOnly": true },
+        "ok": { "const": true }
+      },
+      "oneOf": [
+        { "required": ["token"] },
+        { "required": ["ok"] }
+      ]
+    },
+    "error": {
+      "type": "object",
+      "title": "afbws.config.error.v1 — typed error for a whole request (server -> client).",
+      "description": "`item` is populated on a refused settings/defaults mutation: the authoritative current server state (a `settings` object for afbws.config.settings.v1, a `defaults` object for afbws.config.defaults.v1); the client applies it and shows `message`.",
+      "required": ["channel", "schema", "code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "config" },
+        "schema": { "const": "afbws.config.error.v1" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "code": { "$ref": "common.v1.json#/$defs/errorCode" },
+        "message": { "type": "string", "minLength": 1 },
+        "item": { "type": "object", "additionalProperties": true }
+      }
+    }
+  }
+}

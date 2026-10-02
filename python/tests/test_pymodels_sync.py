@@ -30,14 +30,14 @@ def _models_generated_path() -> Path:
 
 
 def _source_hash() -> str:
-    """Mirrors generate.py's _schemas_source_hash(): draft/ and meta/ excluded
+    """Mirrors generate.py's _schemas_source_hash(): meta/ excluded
     at any depth."""
     schemas_dir = _repo_root() / "spec" / "schemas"
     files = sorted(
         (
             p
             for p in schemas_dir.rglob("*.json")
-            if not set(p.relative_to(schemas_dir).parts[:-1]) & {"draft", "meta"}
+            if not set(p.relative_to(schemas_dir).parts[:-1]) & {"meta"}
         ),
         key=lambda p: p.relative_to(schemas_dir).as_posix(),
     )

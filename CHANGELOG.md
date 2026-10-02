@@ -7,6 +7,10 @@
 
 ## Unreleased
 
+- **Новый канал `config`** (`afbws/config.channel.v1.json`, capability `afbws.config.channel.v1`; AFB-сторонняя схема вне `asyncapi.yaml`, канал AFB↔BF не затрагивается — PATCH). Заменяет legacy-каналы `settings`, `help`, `setup` без периода совместимости. Одна схема на сообщение, push — сообщение без `request_id`: `afbws.config.{settings,defaults,help,roles,token,error}.v1`. `settings`/`defaults`: запрос без тела = чтение, с телом = запись, ответ и push всегда несут полное состояние; отказ мутации — `afbws.config.error.v1` с `item` (авторитетное состояние) вместо флага `rejected`. `roles` и `token` (`kind: moex|getcourse`, токен только в запросе, в ответе `ok: true`) — только manager.
+- **`config.v1.json`** — канон payload настроек: `profile` (бывший `me`), `interface` (с `layout` вместо отдельного `service`), `dataset`, `dashboard`, `trade` (+ `notify.link`, `plan_editor_placement`) и `$defs/defaults`. Из payload убраны `name`, `limits` (идут в `auth_ok`), `favorites`, `indicators`; булевы — только boolean. Типы: `ConfigSettingsV1`, `ConfigProfile`, `ConfigInterface`, `ConfigLayout`, `ConfigDataset`, `ConfigDashboard`, `ConfigTrade`, `ConfigDefaults`, `ConfigChannelV1Message`, `ConfigSettings`, `ConfigDefaultsMessage`, `ConfigHelp`, `ConfigRoles`, `ConfigToken`, `ConfigError`.
+- Каталог `spec/schemas/draft/` (запаркованные схемы настроек) удалён вместе с исключениями `draft` в генераторах и тестах; нужное перенесено в `config.v1.json`.
+
 ## v2.7.5 — 2026-10-02
 
 - **alarm.channel.v2: серверные push `set`/`delete`.** `afbws.alarm.set.v2` и `afbws.alarm.delete.v2` теперь, как `gp`, служат и серверным push-ом: `request_id` стал необязательным; без него `set` несёт `items[]` (минимум один, upsert по id, `rejected` запрещён), `delete` — только `ids[]` (минимум один; `instrument_keys`/`rejected` запрещены). Нужны для чистки алармов экспирированных контрактов и их переноса при замене контракта. TS/Python-типы перегенерированы.

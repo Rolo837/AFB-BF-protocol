@@ -27,7 +27,7 @@ def _models_path() -> Path:
 
 
 def _source_hash() -> str:
-    """Mirrors generate-models.mjs's own walk exactly: a `draft/` or `meta/`
+    """Mirrors generate-models.mjs's own walk exactly: a `meta/`
     directory is skipped at any depth (not just top-level) — `meta/` holds
     meta-schemas like `iss/meta/iss.market.v1.json`, which validate other
     schema documents rather than being a data instance themselves, so
@@ -37,7 +37,7 @@ def _source_hash() -> str:
         (
             p
             for p in schemas_dir.rglob("*.json")
-            if not set(p.relative_to(schemas_dir).parts[:-1]) & {"draft", "meta"}
+            if not set(p.relative_to(schemas_dir).parts[:-1]) & {"meta"}
         ),
         key=lambda p: p.relative_to(schemas_dir).as_posix(),
     )

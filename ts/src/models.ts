@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 00a9eed8114e48acb24ca0753444666626db2794dc1a391d758c14c397fa6fd0
+ * source-hash: c6a1be8e5ab0e9cbdfb1651642f5ee52c2ba212bb2d6300be9b15f2ffafbb2f7
  */
 
 /**
@@ -254,6 +254,59 @@ export type BfsRegistryEntry = BfRegistryEntry & {
   daemon?: {
     [k: string]: unknown;
   };
+};
+/**
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.config.channel.v1). Replaces the legacy `settings`, `help` and `setup` channels (no fallback). Same convention as afbws.market/afbws.gp: ONE schema id per message (`afbws.config.<op>.v1`, no .request/.response/.push suffixes); the same schema is the request, its response and, where documented, a server push. A message WITHOUT `request_id` is a server push. A failed request is answered with `afbws.config.error.v1`; a refused mutation of settings/defaults carries the authoritative current state in `error.item` (the client must apply it and show `message`) — there is no `rejected` flag. Operations: `settings` (user settings), `defaults` (platform defaults; write is manager only), `help` (rendered markdown section), `roles` (manager only), `token` (manager only: MOEX / GetCourse API tokens, write-only). After `auth_ok` the server pushes `defaults` and `settings` without `request_id`. See AFB/docs/ws/config.md.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigChannelV1Message".
+ */
+export type ConfigChannelV1Message =
+  ConfigSettings | ConfigDefaultsMessage | ConfigHelp | ConfigRoles | ConfigToken | ConfigError;
+/**
+ * Request without `settings` = read. Request with `settings` = partial write (blocks `profile`/`interface`/`dataset`/`dashboard` deep-merged, `trade` replaced whole; `profile.notify_system` from a non-manager is ignored). The response (same `request_id`) always carries the full stored `settings`. Push (no `request_id`) carries the full `settings`, sent right after `auth_ok`; `settings` is required there. Refusal: `afbws.config.error.v1` with `item` = current settings.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigSettings".
+ */
+export type ConfigSettings = {
+  [k: string]: unknown;
+} & {
+  channel: 'config';
+  schema: 'afbws.config.settings.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  settings?: ConfigSettingsV1;
+};
+/**
+ * Request without `defaults` = read (any user). Request with `defaults` = write (manager only, else error `forbidden`); `defaults.dataset` is required on write. The response always carries the full stored `defaults`. Push (no `request_id`) is sent right after `auth_ok`; `defaults` is required there.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigDefaultsMessage".
+ */
+export type ConfigDefaultsMessage = {
+  [k: string]: unknown;
+} & {
+  channel: 'config';
+  schema: 'afbws.config.defaults.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  defaults?: ConfigDefaults;
+};
+/**
+ * Request carries `kind` and `token`; the server validates the token against the service (MOEX / GetCourse), stores it in the plain-text secrets/*.token file and applies it at runtime. The response carries `kind` and `ok: true` and NEVER the token. Failure: error `validation_error` (token rejected by the service) or `internal_error`; non-manager: `forbidden`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigToken".
+ */
+export type ConfigToken = {
+  channel: 'config';
+  schema: 'afbws.config.token.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  kind: 'moex' | 'getcourse';
+  token?: string;
+  ok?: true;
+} & ConfigToken1;
+export type ConfigToken1 = {
+  [k: string]: unknown;
 };
 /**
  * One entry of the `connector` channel (list/get/create/update responses). Owner view (capability trade, user_id in allowed_users) gets everything except the manager-only block; manager gets all fields. See BFRegistryEntry.to_owner_dict()/to_manager_dict() (AFB/backend/trade/models.py) and connector_policy.py for execution_policy validation.
@@ -1720,6 +1773,302 @@ export interface BfsRegistryPush {
  */
 export interface AfbwsCommonV1_Root {
   [k: string]: unknown;
+}
+/**
+ * Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard` are deep-merged, `trade` is replaced whole). Not part of the payload any more: `name`, `limits` (they travel in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigSettingsV1".
+ */
+export interface ConfigSettingsV1 {
+  profile?: ConfigProfile;
+  interface?: ConfigInterface;
+  dataset?: ConfigDataset;
+  dashboard?: ConfigDashboard;
+  trade?: ConfigTrade;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigProfile".
+ */
+export interface ConfigProfile {
+  email?: string;
+  telegram?: string;
+  notify_telegram?: boolean;
+  notify_email?: boolean;
+  /**
+   * System stability notifications (afb.notification.system.v1) — manager role only; a write from any other role is ignored by the server.
+   */
+  notify_system?: boolean;
+  /**
+   * Notification sound id, e.g. 'game/coin'.
+   */
+  sound?: string;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigInterface".
+ */
+export interface ConfigInterface {
+  layout?: ConfigLayout;
+  snow_mode?: boolean;
+  confirm_delete?: boolean;
+  smart_alarms?: boolean;
+  preset_timeframes?: {
+    positions?: string;
+    trades?: string;
+    hhi?: string;
+    orders?: string;
+    [k: string]: unknown;
+  };
+  chart_toolbar?: ConfigV1_ChartToolbar;
+  services_filters?: ConfigV1_ServicesFilters;
+  trade_plan_default_capital_rub?: number;
+  /**
+   * Days-to-expiration threshold the frontend uses to pick the front futures contract of a derivative: the member with the minimum expiration not earlier than today + N. Default 2, matching `securities.days_to_expiration` in AFB's `config/afb.yaml`.
+   */
+  futures_days_to_expiration?: number;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigLayout".
+ */
+export interface ConfigLayout {
+  offset_right?: number;
+  offset_top?: number;
+  debug_mode?: boolean;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigV1_ChartToolbar".
+ */
+export interface ConfigV1_ChartToolbar {
+  favorite_timeframes?: string[];
+  /**
+   * Elements are either `dataset-<preset>` keys or indicator ids.
+   */
+  favorite_datasets?: string[];
+  /**
+   * Primitive kind values (gp.v2.json).
+   */
+  favorite_primitives?: string[];
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigV1_ServicesFilters".
+ */
+export interface ConfigV1_ServicesFilters {
+  instruments?: {
+    markets?: string[];
+    [k: string]: unknown;
+  };
+  alarms?: {
+    statuses?: string[];
+    [k: string]: unknown;
+  };
+  plans?: {
+    statuses?: string[];
+    [k: string]: unknown;
+  };
+  [k: string]: unknown;
+}
+/**
+ * Freeform per-series style config (color/style/panel triplets, e.g. positions.longColor, trades.tradesBColor). Keys vary per series and grow as new series are added — deliberately open string/number maps rather than enumerating dozens of purely presentational keys.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigDataset".
+ */
+export interface ConfigDataset {
+  positions?: {
+    [k: string]: string | number;
+  };
+  trades?: {
+    [k: string]: string | number;
+  };
+  hhi?: {
+    [k: string]: string | number;
+  };
+  orders?: {
+    [k: string]: string | number;
+  };
+  [k: string]: unknown;
+}
+/**
+ * `cols` is clamped 8-24 by the frontend normalizer rather than enforced here.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigDashboard".
+ */
+export interface ConfigDashboard {
+  cols?: number;
+  breakpoints?: {
+    lg?: number;
+    xl?: number;
+    [k: string]: unknown;
+  };
+  layouts?: {
+    lg?: ConfigV1_DashboardLayoutItem[];
+    [k: string]: unknown;
+  };
+  widgets?: {
+    [k: string]: {
+      bf_id?: string;
+      order_filter?: string;
+      deal_status_filters?: string[];
+      exchange?: string;
+      market?: string;
+      events_date?: string;
+      [k: string]: unknown;
+    };
+  };
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigV1_DashboardLayoutItem".
+ */
+export interface ConfigV1_DashboardLayoutItem {
+  widget?: string;
+  /**
+   * Accepted wire synonym of `widget`.
+   */
+  i?: string;
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+  [k: string]: unknown;
+}
+/**
+ * `default_capital` is persisted by the server into the user's virtual account, not into the settings file; reads return the live value.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigTrade".
+ */
+export interface ConfigTrade {
+  real_trade?: boolean;
+  auto_execute?: boolean;
+  default_connector?: string;
+  default_capital?: number;
+  /**
+   * Default risk_factor (%) for a newly created trade plan.
+   */
+  default_risk_pct?: number;
+  notify?: ConfigV1_TradeNotify;
+  chart_deal_markers?: boolean;
+  plan_editor_placement?: string;
+  [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigV1_TradeNotify".
+ */
+export interface ConfigV1_TradeNotify {
+  trigger?: boolean;
+  order_placed?: boolean;
+  order_executed?: boolean;
+  position?: boolean;
+  close?: boolean;
+  link?: boolean;
+  [k: string]: unknown;
+}
+/**
+ * Merged under every user's own settings. A write (manager only) requires `dataset`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigDefaults".
+ */
+export interface ConfigDefaults {
+  interface?: ConfigInterface;
+  dataset?: ConfigDataset;
+  dashboard?: ConfigDashboard;
+}
+/**
+ * Available to every connection. Request carries `section` (basename of a markdown file, `[A-Za-z0-9]+`); the response echoes `section` and adds `content` (HTML rendered from the markdown). Unknown section: error `not_found`; bad name: `validation_error`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigHelp".
+ */
+export interface ConfigHelp {
+  channel: 'config';
+  schema: 'afbws.config.help.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  section: string;
+  content?: string;
+}
+/**
+ * Request without `tiers`/`capabilities` = read; with both = write (saved into roles.yaml, runtime reloaded). The response always carries the full snapshot. Non-manager: error `forbidden`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigRoles".
+ */
+export interface ConfigRoles {
+  channel: 'config';
+  schema: 'afbws.config.roles.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  tiers?: {
+    [k: string]: ConfigRoleTier;
+  };
+  capabilities?: {
+    [k: string]: unknown;
+  };
+  default_tier?: string;
+  /**
+   * Response only: contents of groups.yaml.
+   */
+  groups_yaml?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Response only: GetCourse groups.
+   */
+  getcourse_groups?: {
+    [k: string]: unknown;
+  }[];
+  /**
+   * Response only: why GetCourse groups could not be fetched.
+   */
+  getcourse_groups_error?: string | null;
+  /**
+   * Response only.
+   */
+  limits_template?: {
+    keys: string[];
+    defaults: {
+      [k: string]: number;
+    };
+  };
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigRoleTier".
+ */
+export interface ConfigRoleTier {
+  limits?: {
+    [k: string]: number;
+  };
+  members?: string[];
+  [k: string]: unknown;
+}
+/**
+ * `item` is populated on a refused settings/defaults mutation: the authoritative current server state (a `settings` object for afbws.config.settings.v1, a `defaults` object for afbws.config.defaults.v1); the client applies it and shows `message`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigError".
+ */
+export interface ConfigError {
+  channel: 'config';
+  schema: 'afbws.config.error.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  code: AfbwsCommonV1_ErrorCode;
+  message: string;
+  item?: {
+    [k: string]: unknown;
+  };
 }
 /**
  * See ExecutionService.list_connectors_for_user (AFB/backend/trade/service.py).

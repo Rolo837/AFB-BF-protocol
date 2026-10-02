@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 00a9eed8114e48acb24ca0753444666626db2794dc1a391d758c14c397fa6fd0
+# source-hash: c6a1be8e5ab0e9cbdfb1651642f5ee52c2ba212bb2d6300be9b15f2ffafbb2f7
 
 from __future__ import annotations
 
@@ -796,6 +796,10 @@ AlarmChannelV2Message: TypeAlias = (
 )
 
 
+class Alarms(TypedDict):
+    statuses: NotRequired[list[str]]
+
+
 class Backstop(TypedDict):
     """
     Per-deal overrides for the hybrid-mode server-side backstop order; unset fields fall back to the executing BF's own config defaults. Meaningful only when execution_mode is `hybrid`.
@@ -844,6 +848,11 @@ class BfsRegistryPush(TypedDict):
 class Binding(TypedDict):
     account_id: NotRequired[str]
     symbol: NotRequired[str]
+
+
+class Breakpoints(TypedDict):
+    lg: NotRequired[int]
+    xl: NotRequired[int]
 
 
 class BrokerAccountPayload(TypedDict):
@@ -1189,6 +1198,230 @@ ConditionV1ScalarOp: TypeAlias = Literal[
 ConditionV1Timeframe: TypeAlias = Literal[
     "5min", "10min", "15min", "30min", "1h", "2h", "4h", "1d"
 ]
+
+
+class ConfigDashboard(TypedDict):
+    """
+    `cols` is clamped 8-24 by the frontend normalizer rather than enforced here.
+    """
+
+    cols: NotRequired[int]
+    breakpoints: NotRequired[Breakpoints]
+    layouts: NotRequired[Layouts]
+    widgets: NotRequired[dict[str, Widgets]]
+
+
+class ConfigDataset(TypedDict):
+    """
+    Freeform per-series style config (color/style/panel triplets, e.g. positions.longColor, trades.tradesBColor). Keys vary per series and grow as new series are added — deliberately open string/number maps rather than enumerating dozens of purely presentational keys.
+    """
+
+    positions: NotRequired[dict[str, str | float]]
+    trades: NotRequired[dict[str, str | float]]
+    hhi: NotRequired[dict[str, str | float]]
+    orders: NotRequired[dict[str, str | float]]
+
+
+class ConfigDefaults(TypedDict):
+    """
+    Merged under every user's own settings. A write (manager only) requires `dataset`.
+    """
+
+    interface: NotRequired[ConfigInterface]
+    dataset: NotRequired[ConfigDataset]
+    dashboard: NotRequired[ConfigDashboard]
+
+
+class ConfigDefaultsMessage(TypedDict):
+    """
+    Request without `defaults` = read (any user). Request with `defaults` = write (manager only, else error `forbidden`); `defaults.dataset` is required on write. The response always carries the full stored `defaults`. Push (no `request_id`) is sent right after `auth_ok`; `defaults` is required there.
+    """
+
+    channel: Literal["config"]
+    schema: Literal["afbws.config.defaults.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    defaults: NotRequired[ConfigDefaults]
+
+
+class ConfigError(TypedDict):
+    """
+    `item` is populated on a refused settings/defaults mutation: the authoritative current server state (a `settings` object for afbws.config.settings.v1, a `defaults` object for afbws.config.defaults.v1); the client applies it and shows `message`.
+    """
+
+    channel: Literal["config"]
+    schema: Literal["afbws.config.error.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    code: AfbwsCommonV1ErrorCode
+    message: str
+    item: NotRequired[dict[str, Any]]
+
+
+class ConfigHelp(TypedDict):
+    """
+    Available to every connection. Request carries `section` (basename of a markdown file, `[A-Za-z0-9]+`); the response echoes `section` and adds `content` (HTML rendered from the markdown). Unknown section: error `not_found`; bad name: `validation_error`.
+    """
+
+    channel: Literal["config"]
+    schema: Literal["afbws.config.help.v1"]
+    request_id: AfbwsCommonV1RequestId
+    section: str
+    content: NotRequired[str]
+
+
+class ConfigInterface(TypedDict):
+    layout: NotRequired[ConfigLayout]
+    snow_mode: NotRequired[bool]
+    confirm_delete: NotRequired[bool]
+    smart_alarms: NotRequired[bool]
+    preset_timeframes: NotRequired[PresetTimeframes]
+    chart_toolbar: NotRequired[ConfigV1ChartToolbar]
+    services_filters: NotRequired[ConfigV1ServicesFilters]
+    trade_plan_default_capital_rub: NotRequired[float]
+    futures_days_to_expiration: NotRequired[int]
+
+
+class ConfigLayout(TypedDict):
+    offset_right: NotRequired[int]
+    offset_top: NotRequired[int]
+    debug_mode: NotRequired[bool]
+
+
+class ConfigProfile(TypedDict):
+    email: NotRequired[str]
+    telegram: NotRequired[str]
+    notify_telegram: NotRequired[bool]
+    notify_email: NotRequired[bool]
+    notify_system: NotRequired[bool]
+    sound: NotRequired[str]
+
+
+class ConfigRoleTier(TypedDict):
+    limits: NotRequired[dict[str, int]]
+    members: NotRequired[list[str]]
+
+
+class ConfigRoles(TypedDict):
+    """
+    Request without `tiers`/`capabilities` = read; with both = write (saved into roles.yaml, runtime reloaded). The response always carries the full snapshot. Non-manager: error `forbidden`.
+    """
+
+    channel: Literal["config"]
+    schema: Literal["afbws.config.roles.v1"]
+    request_id: AfbwsCommonV1RequestId
+    tiers: NotRequired[dict[str, ConfigRoleTier]]
+    capabilities: NotRequired[dict[str, Any]]
+    default_tier: NotRequired[str]
+    groups_yaml: NotRequired[dict[str, Any]]
+    getcourse_groups: NotRequired[list[dict[str, Any]]]
+    getcourse_groups_error: NotRequired[str | None]
+    limits_template: NotRequired[LimitsTemplate]
+
+
+class ConfigSettings(TypedDict):
+    """
+    Request without `settings` = read. Request with `settings` = partial write (blocks `profile`/`interface`/`dataset`/`dashboard` deep-merged, `trade` replaced whole; `profile.notify_system` from a non-manager is ignored). The response (same `request_id`) always carries the full stored `settings`. Push (no `request_id`) carries the full `settings`, sent right after `auth_ok`; `settings` is required there. Refusal: `afbws.config.error.v1` with `item` = current settings.
+    """
+
+    channel: Literal["config"]
+    schema: Literal["afbws.config.settings.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    settings: NotRequired[ConfigSettingsV1]
+
+
+class ConfigSettingsV1(TypedDict):
+    """
+    Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard` are deep-merged, `trade` is replaced whole). Not part of the payload any more: `name`, `limits` (they travel in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
+    """
+
+    profile: NotRequired[ConfigProfile]
+    interface: NotRequired[ConfigInterface]
+    dataset: NotRequired[ConfigDataset]
+    dashboard: NotRequired[ConfigDashboard]
+    trade: NotRequired[ConfigTrade]
+
+
+class ConfigToken1(TypedDict):
+    """
+    Request carries `kind` and `token`; the server validates the token against the service (MOEX / GetCourse), stores it in the plain-text secrets/*.token file and applies it at runtime. The response carries `kind` and `ok: true` and NEVER the token. Failure: error `validation_error` (token rejected by the service) or `internal_error`; non-manager: `forbidden`.
+    """
+
+    channel: Literal["config"]
+    schema: Literal["afbws.config.token.v1"]
+    request_id: AfbwsCommonV1RequestId
+    kind: Literal["moex", "getcourse"]
+    token: str
+    ok: NotRequired[Literal[True]]
+
+
+class ConfigToken2(TypedDict):
+    """
+    Request carries `kind` and `token`; the server validates the token against the service (MOEX / GetCourse), stores it in the plain-text secrets/*.token file and applies it at runtime. The response carries `kind` and `ok: true` and NEVER the token. Failure: error `validation_error` (token rejected by the service) or `internal_error`; non-manager: `forbidden`.
+    """
+
+    channel: Literal["config"]
+    schema: Literal["afbws.config.token.v1"]
+    request_id: AfbwsCommonV1RequestId
+    kind: Literal["moex", "getcourse"]
+    token: NotRequired[str]
+    ok: Literal[True]
+
+
+ConfigToken: TypeAlias = ConfigToken1 | ConfigToken2
+
+
+ConfigChannelV1Message: TypeAlias = (
+    ConfigSettings
+    | ConfigDefaultsMessage
+    | ConfigHelp
+    | ConfigRoles
+    | ConfigToken
+    | ConfigError
+)
+
+
+class ConfigTrade(TypedDict):
+    """
+    `default_capital` is persisted by the server into the user's virtual account, not into the settings file; reads return the live value.
+    """
+
+    real_trade: NotRequired[bool]
+    auto_execute: NotRequired[bool]
+    default_connector: NotRequired[str]
+    default_capital: NotRequired[float]
+    default_risk_pct: NotRequired[float]
+    notify: NotRequired[ConfigV1TradeNotify]
+    chart_deal_markers: NotRequired[bool]
+    plan_editor_placement: NotRequired[str]
+
+
+class ConfigV1ChartToolbar(TypedDict):
+    favorite_timeframes: NotRequired[list[str]]
+    favorite_datasets: NotRequired[list[str]]
+    favorite_primitives: NotRequired[list[str]]
+
+
+class ConfigV1DashboardLayoutItem(TypedDict):
+    widget: NotRequired[str]
+    i: NotRequired[str]
+    x: NotRequired[int]
+    y: NotRequired[int]
+    w: NotRequired[int]
+    h: NotRequired[int]
+
+
+class ConfigV1ServicesFilters(TypedDict):
+    instruments: NotRequired[Instruments]
+    alarms: NotRequired[Alarms]
+    plans: NotRequired[Plans]
+
+
+class ConfigV1TradeNotify(TypedDict):
+    trigger: NotRequired[bool]
+    order_placed: NotRequired[bool]
+    order_executed: NotRequired[bool]
+    position: NotRequired[bool]
+    close: NotRequired[bool]
+    link: NotRequired[bool]
 
 
 class ConnectorBackstop(TypedDict):
@@ -3175,6 +3408,10 @@ class InstrumentV1(TypedDict):
     source: str
 
 
+class Instruments(TypedDict):
+    markets: NotRequired[list[str]]
+
+
 IssIssColumnsV1Root: TypeAlias = Any
 
 
@@ -3222,6 +3459,10 @@ class IssMarketsStockRoot(TypedDict):
     securities: Securities
 
 
+class Layouts(TypedDict):
+    lg: NotRequired[list[ConfigV1DashboardLayoutItem]]
+
+
 class Left(TypedDict):
     """
     afb.deal.v1 conditions compare against the last traded price, or (entry only — see executor-side validation) fire immediately with no price level of its own. quote/indicator/dataset sources are afb.deal.v2-only.
@@ -3235,6 +3476,15 @@ class Limit(TypedDict):
     key: str
     allowed: int
     requested: int
+
+
+class LimitsTemplate(TypedDict):
+    """
+    Response only.
+    """
+
+    keys: list[str]
+    defaults: dict[str, int]
 
 
 class LinkDeleteRequest(TypedDict):
@@ -3877,6 +4127,10 @@ class PayloadsBrokerOrdersOrder(TypedDict):
     error_message: NotRequired[str | None]
 
 
+class Plans(TypedDict):
+    statuses: NotRequired[list[str]]
+
+
 class Position(TypedDict):
     symbol: NotRequired[str]
     quantity: NotRequired[int]
@@ -3893,6 +4147,13 @@ class PositionOpenedPayload(TypedDict):
         str | float | int | bool | dict[str, Any] | list[Any] | None
     ]
     symbol: NotRequired[str]
+
+
+class PresetTimeframes(TypedDict):
+    positions: NotRequired[str]
+    trades: NotRequired[str]
+    hhi: NotRequired[str]
+    orders: NotRequired[str]
 
 
 class Publish(TypedDict):
@@ -4259,6 +4520,15 @@ class Validation(TypedDict):
     quantity_lots: NotRequired[int]
     entry_price: NotRequired[str]
     required_cash: NotRequired[str]
+
+
+class Widgets(TypedDict):
+    bf_id: NotRequired[str]
+    order_filter: NotRequired[str]
+    deal_status_filters: NotRequired[list[str]]
+    exchange: NotRequired[str]
+    market: NotRequired[str]
+    events_date: NotRequired[str]
 
 
 class Window(TypedDict):
