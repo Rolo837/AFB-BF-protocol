@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 016d7ada930a06d8c96b89ff07cb5cc0877d2283adda3f6f2e25257e43311d30
+# source-hash: 00a9eed8114e48acb24ca0753444666626db2794dc1a391d758c14c397fa6fd0
 
 from __future__ import annotations
 
@@ -710,33 +710,17 @@ class AlarmV2AlarmIndicatorExpr(TypedDict):
     params: NotRequired[dict[str, Any]]
 
 
-class AlarmV2Delete1(TypedDict):
+class AlarmV2Delete(TypedDict):
     """
-    Request: `ids[]` and/or `instrument_keys[]` (at least one; `instrument_keys` = every alarm of those instruments). Response (same `request_id`): `ids[]` actually removed (possibly empty) + `rejected[]`.
+    Request (`request_id` present): `ids[]` and/or `instrument_keys[]` (at least one; `instrument_keys` = every alarm of those instruments). Response (same `request_id`): `ids[]` actually removed (possibly empty) + `rejected[]`. Push (no `request_id`): `ids[]` (at least one) removed by the server on its own (e.g. alarms of an expired contract cleaned by the expiration policy); `instrument_keys`/`rejected` are not allowed.
     """
 
     channel: Literal["alarm"]
     schema: Literal["afbws.alarm.delete.v2"]
-    request_id: AfbwsCommonV1RequestId
-    ids: list[Id]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    ids: NotRequired[list[Id]]
     instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
     rejected: NotRequired[list[AlarmV2Rejection]]
-
-
-class AlarmV2Delete2(TypedDict):
-    """
-    Request: `ids[]` and/or `instrument_keys[]` (at least one; `instrument_keys` = every alarm of those instruments). Response (same `request_id`): `ids[]` actually removed (possibly empty) + `rejected[]`.
-    """
-
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.delete.v2"]
-    request_id: AfbwsCommonV1RequestId
-    ids: NotRequired[list[Id]]
-    instrument_keys: list[AfbwsCommonV1InstrumentKey]
-    rejected: NotRequired[list[AlarmV2Rejection]]
-
-
-AlarmV2Delete: TypeAlias = AlarmV2Delete1 | AlarmV2Delete2
 
 
 class AlarmV2Error(TypedDict):
@@ -774,12 +758,12 @@ class AlarmV2Rejection(TypedDict):
 
 class AlarmV2Set(TypedDict):
     """
-    Request: `items[]` — upsert by `item.id`, batched. Response (same `request_id`): applied `items[]` (authoritative records, possibly empty) + `rejected[]` for items that were not applied.
+    Request (`request_id` present): `items[]` — upsert by `item.id`, batched. Response (same `request_id`): applied `items[]` (authoritative records, possibly empty) + `rejected[]` for items that were not applied. Push (no `request_id`, server-initiated): `items[]` (at least one) are authoritative afb.alarm.v2 records that the server created or changed on its own (e.g. alarms moved to another contract by the expiration replace) — upsert by id on the client, never a snapshot; `rejected` is not allowed. Removal is conveyed by `afbws.alarm.delete.v2` without `request_id`.
     """
 
     channel: Literal["alarm"]
     schema: Literal["afbws.alarm.set.v2"]
-    request_id: AfbwsCommonV1RequestId
+    request_id: NotRequired[AfbwsCommonV1RequestId]
     items: list[AlarmV2]
     rejected: NotRequired[list[AlarmV2Rejection]]
 

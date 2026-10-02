@@ -552,9 +552,12 @@ Top-level `period` — общий таймфрейм вычисления ала
   возвращаются в `rejected[]` (`{id, code, message?, details?}`), а не ошибкой всего
   запроса. Ошибка запроса целиком — `afbws.<канал>.error.v2`.
   - `alarm.channel.v2`: `list` (фильтры `ids[]`/`instrument_keys[]`, ответ `items[]`;
-    отдельного `get` нет), `set` (`items[]`), `delete` (`ids[]` и/или
-    `instrument_keys[]`), `ack` (`events[]` → `results[]`), `triggered` (push),
-    `error`.
+    отдельного `get` нет), `set` (`items[]`; без `request_id` — push: сервер сам
+    создал/изменил аларм, например перенёс на другой контракт при замене
+    экспирирующегося), `delete` (`ids[]` и/или `instrument_keys[]`; без
+    `request_id` — push удаления: только `ids[]`, например чистка алармов
+    экспирированного контракта), `ack` (`events[]` → `results[]`), `triggered`
+    (push), `error`.
   - `gp.channel.v2`: `list`, `set` (`items[]`; без `request_id` — push владения),
     `delete` (`ids[]` и/или `instrument_keys[]` — «удалить все свободные примитивы
     инструмента» одним сообщением; примитивы плана в `rejected[]` с `conflict`;

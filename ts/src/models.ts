@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 016d7ada930a06d8c96b89ff07cb5cc0877d2283adda3f6f2e25257e43311d30
+ * source-hash: 00a9eed8114e48acb24ca0753444666626db2794dc1a391d758c14c397fa6fd0
  */
 
 /**
@@ -176,24 +176,38 @@ export type AlarmV2_AlarmConditionNode =
       op: ConditionV1_ScalarOp;
     };
 /**
- * Request: `ids[]` and/or `instrument_keys[]` (at least one; `instrument_keys` = every alarm of those instruments). Response (same `request_id`): `ids[]` actually removed (possibly empty) + `rejected[]`.
+ * Request (`request_id` present): `items[]` — upsert by `item.id`, batched. Response (same `request_id`): applied `items[]` (authoritative records, possibly empty) + `rejected[]` for items that were not applied. Push (no `request_id`, server-initiated): `items[]` (at least one) are authoritative afb.alarm.v2 records that the server created or changed on its own (e.g. alarms moved to another contract by the expiration replace) — upsert by id on the client, never a snapshot; `rejected` is not allowed. Removal is conveyed by `afbws.alarm.delete.v2` without `request_id`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmV2Set".
+ */
+export type AlarmV2Set = {
+  [k: string]: unknown;
+} & {
+  channel: 'alarm';
+  schema: 'afbws.alarm.set.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  items: AlarmV2[];
+  rejected?: AlarmV2Rejection[];
+};
+/**
+ * Request (`request_id` present): `ids[]` and/or `instrument_keys[]` (at least one; `instrument_keys` = every alarm of those instruments). Response (same `request_id`): `ids[]` actually removed (possibly empty) + `rejected[]`. Push (no `request_id`): `ids[]` (at least one) removed by the server on its own (e.g. alarms of an expired contract cleaned by the expiration policy); `instrument_keys`/`rejected` are not allowed.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AlarmV2Delete".
  */
-export type AlarmV2Delete = AlarmV2Delete1 & {
+export type AlarmV2Delete = {
+  [k: string]: unknown;
+} & {
   channel: 'alarm';
   schema: 'afbws.alarm.delete.v2';
-  request_id: AfbwsCommonV1_RequestId;
+  request_id?: AfbwsCommonV1_RequestId;
   ids?: string[];
   /**
    * @minItems 1
    */
   instrument_keys?: [AfbwsCommonV1_InstrumentKey, ...AfbwsCommonV1_InstrumentKey[]];
   rejected?: AlarmV2Rejection[];
-};
-export type AlarmV2Delete1 = {
-  [k: string]: unknown;
 };
 /**
  * Request: `events[]` (afb.alarm.trigger_ack.v2), at least one. Response (same `request_id`): `results[]` — one per event, `status` ok | not_found. A request carrying `results` is invalid.
@@ -1604,19 +1618,6 @@ export interface AlarmV2_AlarmIndicatorExpr {
   type?: 'wma' | 'kama' | 'psar';
   field?: string;
   params?: {};
-}
-/**
- * Request: `items[]` — upsert by `item.id`, batched. Response (same `request_id`): applied `items[]` (authoritative records, possibly empty) + `rejected[]` for items that were not applied.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV2Set".
- */
-export interface AlarmV2Set {
-  channel: 'alarm';
-  schema: 'afbws.alarm.set.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  items: AlarmV2[];
-  rejected?: AlarmV2Rejection[];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

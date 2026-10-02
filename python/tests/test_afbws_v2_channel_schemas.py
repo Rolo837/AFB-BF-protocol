@@ -220,3 +220,47 @@ def test_gp_v2_root_dispatch(registry):
     root.validate({"channel": "gp", "schema": "afbws.gp.delete.v2", "request_id": "r", "instrument_keys": [_KEY]})
     for old in ("afbws.gp.set.request.v2", "afbws.gp.sync.push.v2", "afbws.gp.indicator.sync.push.v2", "afbws.gp.get.request.v2"):
         _invalid(root, {"channel": "gp", "schema": old, "request_id": "r"})
+
+
+def _alarm_def(registry, name):
+    from jsonschema import Draft202012Validator
+
+    schema_id = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/alarm.channel.v2.json"
+    return Draft202012Validator({"$ref": f"{schema_id}#/$defs/{name}"}, registry=registry)
+
+
+def test_alarm_delete_push_without_request_id(registry):
+    from jsonschema import ValidationError
+    import pytest
+
+    v = _alarm_def(registry, "delete")
+    v.validate({"channel": "alarm", "schema": "afbws.alarm.delete.v2", "ids": ["a1"]})  # push
+    v.validate({"channel": "alarm", "schema": "afbws.alarm.delete.v2", "request_id": "r1", "instrument_keys": ["MISX:RFUD:SRU6"]})
+    for bad in (
+        {"channel": "alarm", "schema": "afbws.alarm.delete.v2"},                                   # пустой push
+        {"channel": "alarm", "schema": "afbws.alarm.delete.v2", "ids": []},                        # пустой ids в push
+        {"channel": "alarm", "schema": "afbws.alarm.delete.v2", "instrument_keys": ["MISX:RFUD:SRU6"]},  # ключи — только в запросе
+        {"channel": "alarm", "schema": "afbws.alarm.delete.v2", "ids": ["a1"], "rejected": []},    # rejected — только в ответе
+        {"channel": "alarm", "schema": "afbws.alarm.delete.v2", "request_id": "r1"},               # запрос без ids/ключей
+    ):
+        with pytest.raises(ValidationError):
+            v.validate(bad)
+
+
+def test_alarm_set_push_without_request_id(registry):
+    from jsonschema import ValidationError
+    import pytest
+
+    v = _alarm_def(registry, "set")
+    from conftest import EXAMPLES
+    import json as _json
+
+    example = sorted((EXAMPLES / "alarms_v2").glob("*.json"))[0]
+    alarm = _json.loads(example.read_text())
+    v.validate({"channel": "alarm", "schema": "afbws.alarm.set.v2", "items": [alarm]})  # push
+    for bad in (
+        {"channel": "alarm", "schema": "afbws.alarm.set.v2", "items": []},                          # пустой push
+        {"channel": "alarm", "schema": "afbws.alarm.set.v2", "items": [alarm], "rejected": []},    # rejected без request_id
+    ):
+        with pytest.raises(ValidationError):
+            v.validate(bad)
