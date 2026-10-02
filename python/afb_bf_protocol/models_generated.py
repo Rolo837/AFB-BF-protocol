@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 53c49051d4a81fd25bef5d5ee4f4bc2a669bc38eabea323b048fcea631228b20
+# source-hash: e90b9536e77c638e4df6015e211d032d63e4176505778fa0db31ba6a8237adc2
 
 from __future__ import annotations
 
@@ -1287,6 +1287,7 @@ class ConfigLayout(TypedDict):
 
 
 class ConfigProfile(TypedDict):
+    name: NotRequired[str]
     email: NotRequired[str]
     telegram: NotRequired[str]
     notify_telegram: NotRequired[bool]
@@ -1330,7 +1331,7 @@ class ConfigSettings(TypedDict):
 
 class ConfigSettingsV1(TypedDict):
     """
-    Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard` are deep-merged, `trade` is replaced whole). Not part of the payload any more: `name`, `limits` (they travel in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
+    Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard` are deep-merged, `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
     """
 
     profile: NotRequired[ConfigProfile]
