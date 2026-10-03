@@ -1,0 +1,13 @@
+{
+  "channel": "catalog",
+  "schema": "afbws.catalog.commit.v1",
+  "request_id": "c-3",
+  "revision": 13,
+  "created": [
+    {
+      "source": "finam",
+      "ref": "BZ@IFEU",
+      "derivative": "IFEU:BZ"
+    }
+  ]
+}

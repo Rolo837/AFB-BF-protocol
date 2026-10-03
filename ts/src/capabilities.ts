@@ -5,6 +5,7 @@
 export const ACCOUNT_CHANNEL_V1 = "afbws.account.channel.v1";
 export const ALARM_CHANNEL_V1 = "afbws.alarm.channel.v1";
 export const ALARM_CHANNEL_V2 = "afbws.alarm.channel.v2";
+export const CATALOG_CHANNEL_V1 = "afbws.catalog.channel.v1";
 export const CONFIG_CHANNEL_V1 = "afbws.config.channel.v1";
 export const DEAL_CHANNEL_V1 = "afbws.deal.channel.v1";
 export const GP_CHANNEL_V1 = "afbws.gp.channel.v1";
@@ -18,6 +19,7 @@ export const ALL_CAPABILITY_IDS: ReadonlySet<string> = new Set([
   ACCOUNT_CHANNEL_V1,
   ALARM_CHANNEL_V1,
   ALARM_CHANNEL_V2,
+  CATALOG_CHANNEL_V1,
   CONFIG_CHANNEL_V1,
   DEAL_CHANNEL_V1,
   GP_CHANNEL_V1,

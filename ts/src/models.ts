@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: a129d59c1066ffdbb38d5fa09e3b8071df0375eb9c056e09bc32f5e2fa2e6531
+ * source-hash: dfffe5cf50ef83d5364b1deda280844235312cf75567ed23261e03b232e33ddd
  */
 
 /**
@@ -254,6 +254,156 @@ export type BfsRegistryEntry = BfRegistryEntry & {
   daemon?: {
     [k: string]: unknown;
   };
+};
+/**
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.catalog.channel.v1). The asset manager's own channel; replaces the manager half of afbws.instrument (`catalog`, `pool`, `inventory`, `commit`, `refresh`, `sources`), which is left untouched. Same convention as afbws.alarm/afbws.gp/afbws.config: ONE schema id per message (`afbws.catalog.<op>.v1`), the same schema is the request, its response and, for `refresh`, a server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.catalog.error.v1`. Every non-manager request -> error `forbidden`. Any list is capped at 100 items. Operations: `snapshot`, `symbols`, `commit`, `refresh`. See AFB/docs/ws/catalog.md.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Root".
+ */
+export type AfbwsCatalogChannelV1_Root =
+  | AfbwsCatalogChannelV1_Snapshot
+  | AfbwsCatalogChannelV1_Symbols
+  | AfbwsCatalogChannelV1_Commit
+  | AfbwsCatalogChannelV1_Refresh
+  | AfbwsCatalogChannelV1_Error;
+/**
+ * Request: only `request_id`. Response (same `request_id`): the state the asset manager edits — ordered collections, global sets, assets with their members, and ONLY the listings / derivatives referenced by assets and global instrument sets (unassigned listings are found through `symbols`). `revision` is the `base_revision` for `commit`. Manager only.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Snapshot".
+ */
+export type AfbwsCatalogChannelV1_Snapshot = {
+  channel: 'catalog';
+  schema: 'afbws.catalog.snapshot.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  revision?: number;
+  collections?: AfbwsCatalogChannelV1_Collection[];
+  sets?: AfbwsCatalogChannelV1_Set[];
+  assets?: AfbwsCatalogChannelV1_SnapshotAsset[];
+  listings?: AfbwsCatalogChannelV1_Listing[];
+  derivatives?: AfbwsCatalogChannelV1_Derivative[];
+  sources?: AfbwsCatalogChannelV1_SourceStatus[];
+} & AfbwsCatalogChannelV1_Snapshot1;
+/**
+ * Same list and order as afbws.instrument.channel.v1#/$defs/favoriteColor (kept in lockstep; no cross-reference on purpose).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_FavoriteColor".
+ */
+export type AfbwsCatalogChannelV1_FavoriteColor =
+  'yellow' | 'red' | 'blue' | 'green' | 'gray' | 'orange' | 'cyan' | 'purple' | 'pink' | 'teal';
+/**
+ * Catalog source a symbol list / a new member comes from.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Source".
+ */
+export type AfbwsCatalogChannelV1_Source = 'moex' | 'finam';
+export type AfbwsCatalogChannelV1_Snapshot1 = {
+  [k: string]: unknown;
+};
+/**
+ * ONE operation for both sources, answered only from the source's own catalog (Finam: the `finam.db` mirror, MOEX: the pool snapshot) — the broker / exchange is never called. Request: `source`, optional `query` (symbol or name, case-insensitive), `kind`, `market`, `include_archived`, `unassigned` (server-side, over the stored state), `limit` (1..100, default 50), `cursor` (from the previous `next_cursor`, bound to the filter and to `fetched_at`; mismatch -> `conflict`). Response: `source`, `total`, `next_cursor` (null at the end), `fetched_at`, `items[]` (<=100).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Symbols".
+ */
+export type AfbwsCatalogChannelV1_Symbols = {
+  channel: 'catalog';
+  schema: 'afbws.catalog.symbols.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  source: AfbwsCatalogChannelV1_Source;
+  query?: string;
+  kind?: 'listing' | 'derivative';
+  market?: 'stock' | 'currency' | 'index' | 'futures' | 'other';
+  include_archived?: boolean;
+  unassigned?: boolean;
+  limit?: number;
+  cursor?: string;
+  total?: number;
+  next_cursor?: string | null;
+  fetched_at?: string | null;
+  /**
+   * @maxItems 100
+   */
+  items?: AfbwsCatalogChannelV1_SymbolRow[];
+} & AfbwsCatalogChannelV1_Symbols1;
+export type AfbwsCatalogChannelV1_Symbols1 = {
+  [k: string]: unknown;
+};
+/**
+ * Request: the delta relative to the last `snapshot` plus `base_revision` for CAS (stale -> error `conflict`, `details.catalog_revision`). Every array is an upsert by id; `assets[].members` and `sets[].asset_ids|instrument_keys` are the WHOLE composition in final order; `collection_order` / `set_order` are the whole final order of ids. New members are `{kind, source, ref}` only: the backend fetches listing data itself (Finam: GetAsset via the detail cache, at most 20 new Finam instruments per commit). If any new member cannot be accepted NOTHING is applied and the error (`unsupported_type`, `no_market_data`, `not_found`, `source_unavailable`) lists the rows in `details.refs[]`. Response: `revision` and `created[]` (what the new members became); the client re-reads `snapshot`. Manager only.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Commit".
+ */
+export type AfbwsCatalogChannelV1_Commit = {
+  channel: 'catalog';
+  schema: 'afbws.catalog.commit.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  base_revision?: number;
+  collections?: AfbwsCatalogChannelV1_Collection[];
+  collection_order?: string[];
+  remove_collections?: string[];
+  sets?: AfbwsCatalogChannelV1_Set[];
+  set_order?: string[];
+  remove_sets?: string[];
+  assets?: AfbwsCatalogChannelV1_Asset[];
+  remove_assets?: string[];
+  archive?: AfbwsCatalogChannelV1_ArchiveItem[];
+  reason?: string;
+  revision?: number;
+  created?: AfbwsCatalogChannelV1_Created[];
+} & AfbwsCatalogChannelV1_Commit1;
+/**
+ * Three forms. Existing listing `{kind:'listing', ref:<instrument_key>}`; existing derivative `{kind:'derivative', ref:<code>}`; NEW member `{kind, source, ref}` where `ref` is the `ref` of a `symbols` row. A new member NEVER carries listing data: the backend fetches everything itself from the source at commit time.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Member".
+ */
+export type AfbwsCatalogChannelV1_Member = AfbwsCatalogChannelV1_MemberExisting | AfbwsCatalogChannelV1_MemberNew;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Created".
+ */
+export type AfbwsCatalogChannelV1_Created = AfbwsCatalogChannelV1_Created1 & {
+  source: AfbwsCatalogChannelV1_Source;
+  ref: string;
+  instrument_key?: AfbwsCommonV1_InstrumentKey;
+  derivative?: string;
+};
+export type AfbwsCatalogChannelV1_Created1 = {
+  [k: string]: unknown;
+};
+export type AfbwsCatalogChannelV1_Commit1 = {
+  [k: string]: unknown;
+};
+/**
+ * Does NOT refresh immediately: puts the source into the daily-cycle queue (the same path for `moex` and `finam`). Request: optional `sources[]` (omitted = every available source). Response (same `request_id`): `queued[]`, `already_queued[]`, `rejected[]`. Push (NO `request_id`, manager connections with the capability): the outcome per source — `source`, `state` (`done`|`failed`), `finished_at`, `received`, `summary`, `error`, `revision`, and `states[]` = fresh source statuses (named `states`, not `sources`, to keep the request field unambiguous).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Refresh".
+ */
+export type AfbwsCatalogChannelV1_Refresh = {
+  channel: 'catalog';
+  schema: 'afbws.catalog.refresh.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  sources?: AfbwsCatalogChannelV1_Source[];
+  queued?: AfbwsCatalogChannelV1_Source[];
+  already_queued?: AfbwsCatalogChannelV1_Source[];
+  rejected?: AfbwsCatalogChannelV1_Rejection[];
+  source?: AfbwsCatalogChannelV1_Source;
+  state?: 'done' | 'failed';
+  finished_at?: string;
+  received?: number | null;
+  summary?: string | null;
+  error?: string | null;
+  revision?: number | null;
+  states?: AfbwsCatalogChannelV1_SourceStatus[];
+} & AfbwsCatalogChannelV1_Refresh1;
+export type AfbwsCatalogChannelV1_Refresh1 = {
+  [k: string]: unknown;
 };
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.config.channel.v1). Replaces the legacy `settings`, `help` and `setup` channels (no fallback). Same convention as afbws.market/afbws.gp: ONE schema id per message (`afbws.config.<op>.v1`, no .request/.response/.push suffixes); the same schema is the request, its response and, where documented, a server push. A message WITHOUT `request_id` is a server push. A failed request is answered with `afbws.config.error.v1`; a refused mutation of settings/defaults carries the authoritative current state in `error.item` (the client must apply it and show `message`) — there is no `rejected` flag. Operations: `settings` (user settings), `defaults` (platform defaults; write is manager only), `help` (rendered markdown section), `roles` (manager only), `token` (manager only: MOEX / GetCourse API tokens, write-only). After `auth_ok` the server pushes `defaults` and `settings` without `request_id`. See AFB/docs/ws/config.md.
@@ -1764,6 +1914,208 @@ export interface BfsRegistryPush {
   data: {
     bfs: BfsRegistryEntry[];
   };
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Collection".
+ */
+export interface AfbwsCatalogChannelV1_Collection {
+  id: string;
+  name: string;
+  parent_id?: string | null;
+  /**
+   * Omitted: unchanged. null: clears the icon.
+   */
+  icon_id?: string | null;
+  /**
+   * Omitted: unchanged. null: clears the color.
+   */
+  icon_color?: AfbwsCatalogChannelV1_FavoriteColor | null;
+}
+/**
+ * `type` is decided on create (default `asset`); on update it must equal the stored one. A set of type `asset` carries `asset_ids[]`, of type `instrument` carries `instrument_keys[]`; the list, when present, is the WHOLE composition in its final order.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Set".
+ */
+export interface AfbwsCatalogChannelV1_Set {
+  id: string;
+  name: string;
+  type?: 'asset' | 'instrument';
+  visibility_tier?: 'manager' | 'user' | 'guest';
+  /**
+   * Omitted: unchanged. null: clears the icon.
+   */
+  icon_id?: string | null;
+  /**
+   * Omitted: unchanged. null: clears the color.
+   */
+  icon_color?: AfbwsCatalogChannelV1_FavoriteColor | null;
+  asset_ids?: string[];
+  instrument_keys?: AfbwsCommonV1_InstrumentKey[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_SnapshotAsset".
+ */
+export interface AfbwsCatalogChannelV1_SnapshotAsset {
+  id: string;
+  name: string;
+  collection_id: string | null;
+  members: AfbwsCatalogChannelV1_MemberExisting[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_MemberExisting".
+ */
+export interface AfbwsCatalogChannelV1_MemberExisting {
+  kind: 'listing' | 'derivative';
+  ref: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Listing".
+ */
+export interface AfbwsCatalogChannelV1_Listing {
+  instrument_key: AfbwsCommonV1_InstrumentKey;
+  mic: string;
+  board?: string | null;
+  market: string;
+  ticker: string;
+  name: string;
+  shortname?: string | null;
+  currency?: string | null;
+  decimals?: number | null;
+  lot_size?: number | null;
+  price_step?: number | null;
+  step_price?: number | null;
+  expiration?: string | null;
+  isin?: string | null;
+  derivative?: string | null;
+  source: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Derivative".
+ */
+export interface AfbwsCatalogChannelV1_Derivative {
+  code: string;
+  kind: string;
+  name: string;
+  underlying_key?: AfbwsCommonV1_InstrumentKey | null;
+  source: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_SourceStatus".
+ */
+export interface AfbwsCatalogChannelV1_SourceStatus {
+  source: AfbwsCatalogChannelV1_Source;
+  available: boolean;
+  state: string;
+  /**
+   * A refresh of this source is already queued for the daily cycle.
+   */
+  pending: boolean;
+  last_refresh_at?: string | null;
+  last_error?: string | null;
+  symbols?: number | null;
+  listings?: number | null;
+  unlinked?: number | null;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_SymbolRow".
+ */
+export interface AfbwsCatalogChannelV1_SymbolRow {
+  ref: string;
+  kind: 'listing' | 'derivative';
+  ticker: string;
+  name: string;
+  market: 'stock' | 'currency' | 'index' | 'futures' | 'other';
+  mic?: string | null;
+  archived: boolean;
+  in_catalog?: AfbwsCommonV1_InstrumentKey | null;
+  addable: boolean;
+  reason?: 'unsupported_type' | null;
+}
+/**
+ * `members`, when present, is the WHOLE composition in its final order (no add/remove form). Omit to leave it untouched; `[]` empties the asset. In a snapshot `members` and `collection_id` are always present.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Asset".
+ */
+export interface AfbwsCatalogChannelV1_Asset {
+  id: string;
+  name: string;
+  collection_id?: string | null;
+  members?: AfbwsCatalogChannelV1_Member[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_MemberNew".
+ */
+export interface AfbwsCatalogChannelV1_MemberNew {
+  kind: 'listing' | 'derivative';
+  source: AfbwsCatalogChannelV1_Source;
+  ref: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_ArchiveItem".
+ */
+export interface AfbwsCatalogChannelV1_ArchiveItem {
+  instrument_key: AfbwsCommonV1_InstrumentKey;
+  reason?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Rejection".
+ */
+export interface AfbwsCatalogChannelV1_Rejection {
+  source: AfbwsCatalogChannelV1_Source;
+  code: 'source_unavailable' | 'forbidden';
+  message?: string;
+}
+/**
+ * `details`: `catalog_revision` for `conflict`; `refs[]` (`{source, ref, code, message}`) naming the rejected new members of a commit; `source` for `source_unavailable`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Error".
+ */
+export interface AfbwsCatalogChannelV1_Error {
+  channel: 'catalog';
+  schema: 'afbws.catalog.error.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  code:
+    | 'forbidden'
+    | 'invalid_schema'
+    | 'invalid_channel'
+    | 'unsupported_action'
+    | 'validation_error'
+    | 'not_found'
+    | 'conflict'
+    | 'internal_error'
+    | 'unsupported_type'
+    | 'no_market_data'
+    | 'source_unavailable';
+  message: string;
+  details?: {
+    [k: string]: unknown;
+  };
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_RefreshResult".
+ */
+export interface AfbwsCatalogChannelV1_RefreshResult {
+  source: AfbwsCatalogChannelV1_Source;
+  state: 'done' | 'failed';
+  finished_at: string;
+  received?: number | null;
+  summary?: string | null;
+  error?: string | null;
+  revision?: number | null;
 }
 /**
  * Shared building blocks for the schema-first afbws channels introduced alongside `deal`/`connector`/`bfs`/`account` (see afbws/README convention in CLAUDE.md): a request/response correlation id and a typed error vocabulary. Unlike the legacy afbws channels (discriminated by a `type` const), schema-first channels are routed by `channel` then by a mandatory top-level `schema` id — no `type` field.

@@ -409,6 +409,7 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/schemas/afbws/{alarm,gp}.channel.v2.json` | Каналы alarm/gp v2 (capability `afbws.alarm.channel.v2`, `afbws.gp.channel.v2`) |
 | `spec/schemas/config.v1.json` | Настройки пользователя AFB (`settings`: `profile`/`interface`/`dataset`/`dashboard`/`trade`) и платформенные дефолты (`$defs/defaults`), AFB↔фронтенд |
 | `spec/schemas/afbws/config.channel.v1.json` | Канал `config` (capability `afbws.config.channel.v1`): `settings`/`defaults`/`help`/`roles`/`token`, один schema id на сообщение, `afbws.config.error.v1` с `item` вместо флага `rejected`; заменяет legacy-каналы `settings`/`help`/`setup` |
+| `spec/schemas/afbws/catalog.channel.v1.json` | Канал `catalog` (capability `afbws.catalog.channel.v1`), только менеджер: `snapshot`/`symbols`/`commit`/`refresh`, один schema id на сообщение, списки ≤100, пуш итога обновления `refresh` без `request_id`; заменяет менеджерскую половину `afbws.instrument` (`catalog`/`pool`/`inventory`/`commit`/`refresh`) |
 | `spec/schemas/payloads/` | JSON Schema каждого payload |
 | `examples/` | Подписанные примеры конвертов |
 | `examples/tradeplans/` | Примеры шаблонов ТП (не конверты, не подписываются) |

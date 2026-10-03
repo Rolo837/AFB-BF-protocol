@@ -1,0 +1,24 @@
+{
+  "channel": "catalog",
+  "schema": "afbws.catalog.refresh.v1",
+  "source": "finam",
+  "state": "done",
+  "finished_at": "2026-10-03T17:25:00+03:00",
+  "received": 283194,
+  "summary": "добавлено 12, архивировано 3",
+  "error": null,
+  "revision": 13,
+  "states": [
+    {
+      "source": "finam",
+      "title": "Finam",
+      "available": true,
+      "state": "ready",
+      "pending": false,
+      "last_refresh_at": "2026-10-03T17:18:00+03:00",
+      "symbols": 283194,
+      "listings": 1,
+      "unlinked": 0
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: a129d59c1066ffdbb38d5fa09e3b8071df0375eb9c056e09bc32f5e2fa2e6531
+# source-hash: dfffe5cf50ef83d5364b1deda280844235312cf75567ed23261e03b232e33ddd
 
 from __future__ import annotations
 
@@ -155,6 +155,409 @@ AccountChannelV1Message: TypeAlias = (
     | AccountErrorResponse
     | AccountSnapshotPush
     | AccountOrdersPush
+)
+
+
+class AfbwsCatalogChannelV1ArchiveItem(TypedDict):
+    instrument_key: AfbwsCommonV1InstrumentKey
+    reason: NotRequired[str]
+
+
+class AfbwsCatalogChannelV1Asset(TypedDict):
+    """
+    `members`, when present, is the WHOLE composition in its final order (no add/remove form). Omit to leave it untouched; `[]` empties the asset. In a snapshot `members` and `collection_id` are always present.
+    """
+
+    id: str
+    name: str
+    collection_id: NotRequired[str | None]
+    members: NotRequired[list[AfbwsCatalogChannelV1Member]]
+
+
+class AfbwsCatalogChannelV1Collection(TypedDict):
+    id: str
+    name: str
+    parent_id: NotRequired[str | None]
+    icon_id: NotRequired[str | None]
+    icon_color: NotRequired[AfbwsCatalogChannelV1FavoriteColor | None]
+
+
+class AfbwsCatalogChannelV1Commit1(TypedDict):
+    """
+    Request: the delta relative to the last `snapshot` plus `base_revision` for CAS (stale -> error `conflict`, `details.catalog_revision`). Every array is an upsert by id; `assets[].members` and `sets[].asset_ids|instrument_keys` are the WHOLE composition in final order; `collection_order` / `set_order` are the whole final order of ids. New members are `{kind, source, ref}` only: the backend fetches listing data itself (Finam: GetAsset via the detail cache, at most 20 new Finam instruments per commit). If any new member cannot be accepted NOTHING is applied and the error (`unsupported_type`, `no_market_data`, `not_found`, `source_unavailable`) lists the rows in `details.refs[]`. Response: `revision` and `created[]` (what the new members became); the client re-reads `snapshot`. Manager only.
+    """
+
+    channel: Literal["catalog"]
+    schema: Literal["afbws.catalog.commit.v1"]
+    request_id: AfbwsCommonV1RequestId
+    base_revision: int
+    collections: NotRequired[list[AfbwsCatalogChannelV1Collection]]
+    collection_order: NotRequired[list[str]]
+    remove_collections: NotRequired[list[str]]
+    sets: NotRequired[list[AfbwsCatalogChannelV1Set]]
+    set_order: NotRequired[list[str]]
+    remove_sets: NotRequired[list[str]]
+    assets: NotRequired[list[AfbwsCatalogChannelV1Asset]]
+    remove_assets: NotRequired[list[str]]
+    archive: NotRequired[list[AfbwsCatalogChannelV1ArchiveItem]]
+    reason: NotRequired[str]
+    revision: NotRequired[int]
+    created: NotRequired[list[AfbwsCatalogChannelV1Created]]
+
+
+class AfbwsCatalogChannelV1Commit2(TypedDict):
+    """
+    Request: the delta relative to the last `snapshot` plus `base_revision` for CAS (stale -> error `conflict`, `details.catalog_revision`). Every array is an upsert by id; `assets[].members` and `sets[].asset_ids|instrument_keys` are the WHOLE composition in final order; `collection_order` / `set_order` are the whole final order of ids. New members are `{kind, source, ref}` only: the backend fetches listing data itself (Finam: GetAsset via the detail cache, at most 20 new Finam instruments per commit). If any new member cannot be accepted NOTHING is applied and the error (`unsupported_type`, `no_market_data`, `not_found`, `source_unavailable`) lists the rows in `details.refs[]`. Response: `revision` and `created[]` (what the new members became); the client re-reads `snapshot`. Manager only.
+    """
+
+    channel: Literal["catalog"]
+    schema: Literal["afbws.catalog.commit.v1"]
+    request_id: AfbwsCommonV1RequestId
+    base_revision: NotRequired[int]
+    collections: NotRequired[list[AfbwsCatalogChannelV1Collection]]
+    collection_order: NotRequired[list[str]]
+    remove_collections: NotRequired[list[str]]
+    sets: NotRequired[list[AfbwsCatalogChannelV1Set]]
+    set_order: NotRequired[list[str]]
+    remove_sets: NotRequired[list[str]]
+    assets: NotRequired[list[AfbwsCatalogChannelV1Asset]]
+    remove_assets: NotRequired[list[str]]
+    archive: NotRequired[list[AfbwsCatalogChannelV1ArchiveItem]]
+    reason: NotRequired[str]
+    revision: int
+    created: list[AfbwsCatalogChannelV1Created]
+
+
+AfbwsCatalogChannelV1Commit: TypeAlias = (
+    AfbwsCatalogChannelV1Commit1 | AfbwsCatalogChannelV1Commit2
+)
+
+
+class AfbwsCatalogChannelV1Created1(TypedDict):
+    source: AfbwsCatalogChannelV1Source
+    ref: str
+    instrument_key: AfbwsCommonV1InstrumentKey
+    derivative: NotRequired[str]
+
+
+class AfbwsCatalogChannelV1Created2(TypedDict):
+    source: AfbwsCatalogChannelV1Source
+    ref: str
+    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    derivative: str
+
+
+AfbwsCatalogChannelV1Created: TypeAlias = (
+    AfbwsCatalogChannelV1Created1 | AfbwsCatalogChannelV1Created2
+)
+
+
+class AfbwsCatalogChannelV1Derivative(TypedDict):
+    code: str
+    kind: str
+    name: str
+    underlying_key: NotRequired[AfbwsCommonV1InstrumentKey | None]
+    source: str
+
+
+class AfbwsCatalogChannelV1Error(TypedDict):
+    """
+    `details`: `catalog_revision` for `conflict`; `refs[]` (`{source, ref, code, message}`) naming the rejected new members of a commit; `source` for `source_unavailable`.
+    """
+
+    channel: Literal["catalog"]
+    schema: Literal["afbws.catalog.error.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    code: Literal[
+        "forbidden",
+        "invalid_schema",
+        "invalid_channel",
+        "unsupported_action",
+        "validation_error",
+        "not_found",
+        "conflict",
+        "internal_error",
+        "unsupported_type",
+        "no_market_data",
+        "source_unavailable",
+    ]
+    message: str
+    details: NotRequired[dict[str, Any]]
+
+
+AfbwsCatalogChannelV1FavoriteColor: TypeAlias = Literal[
+    "yellow", "red", "blue", "green", "gray", "orange", "cyan", "purple", "pink", "teal"
+]
+
+
+class AfbwsCatalogChannelV1Listing(TypedDict):
+    instrument_key: AfbwsCommonV1InstrumentKey
+    mic: str
+    board: NotRequired[str | None]
+    market: str
+    ticker: str
+    name: str
+    shortname: NotRequired[str | None]
+    currency: NotRequired[str | None]
+    decimals: NotRequired[int | None]
+    lot_size: NotRequired[int | None]
+    price_step: NotRequired[float | None]
+    step_price: NotRequired[float | None]
+    expiration: NotRequired[str | None]
+    isin: NotRequired[str | None]
+    derivative: NotRequired[str | None]
+    source: str
+
+
+class AfbwsCatalogChannelV1MemberExisting(TypedDict):
+    kind: Literal["listing", "derivative"]
+    ref: str
+
+
+class AfbwsCatalogChannelV1MemberNew(TypedDict):
+    kind: Literal["listing", "derivative"]
+    source: AfbwsCatalogChannelV1Source
+    ref: str
+
+
+AfbwsCatalogChannelV1Member: TypeAlias = (
+    AfbwsCatalogChannelV1MemberExisting | AfbwsCatalogChannelV1MemberNew
+)
+
+
+class AfbwsCatalogChannelV1Refresh1(TypedDict):
+    """
+    Does NOT refresh immediately: puts the source into the daily-cycle queue (the same path for `moex` and `finam`). Request: optional `sources[]` (omitted = every available source). Response (same `request_id`): `queued[]`, `already_queued[]`, `rejected[]`. Push (NO `request_id`, manager connections with the capability): the outcome per source — `source`, `state` (`done`|`failed`), `finished_at`, `received`, `summary`, `error`, `revision`, and `states[]` = fresh source statuses (named `states`, not `sources`, to keep the request field unambiguous).
+    """
+
+    channel: Literal["catalog"]
+    schema: Literal["afbws.catalog.refresh.v1"]
+    request_id: AfbwsCommonV1RequestId
+    sources: NotRequired[list[AfbwsCatalogChannelV1Source]]
+    queued: NotRequired[list[AfbwsCatalogChannelV1Source]]
+    already_queued: NotRequired[list[AfbwsCatalogChannelV1Source]]
+    rejected: NotRequired[list[AfbwsCatalogChannelV1Rejection]]
+    source: NotRequired[AfbwsCatalogChannelV1Source]
+    state: NotRequired[Literal["done", "failed"]]
+    finished_at: NotRequired[str]
+    received: NotRequired[int | None]
+    summary: NotRequired[str | None]
+    error: NotRequired[str | None]
+    revision: NotRequired[int | None]
+    states: NotRequired[list[AfbwsCatalogChannelV1SourceStatus]]
+
+
+class AfbwsCatalogChannelV1Refresh2(TypedDict):
+    """
+    Does NOT refresh immediately: puts the source into the daily-cycle queue (the same path for `moex` and `finam`). Request: optional `sources[]` (omitted = every available source). Response (same `request_id`): `queued[]`, `already_queued[]`, `rejected[]`. Push (NO `request_id`, manager connections with the capability): the outcome per source — `source`, `state` (`done`|`failed`), `finished_at`, `received`, `summary`, `error`, `revision`, and `states[]` = fresh source statuses (named `states`, not `sources`, to keep the request field unambiguous).
+    """
+
+    channel: Literal["catalog"]
+    schema: Literal["afbws.catalog.refresh.v1"]
+    request_id: AfbwsCommonV1RequestId
+    sources: NotRequired[list[AfbwsCatalogChannelV1Source]]
+    queued: list[AfbwsCatalogChannelV1Source]
+    already_queued: list[AfbwsCatalogChannelV1Source]
+    rejected: list[AfbwsCatalogChannelV1Rejection]
+    source: NotRequired[AfbwsCatalogChannelV1Source]
+    state: NotRequired[Literal["done", "failed"]]
+    finished_at: NotRequired[str]
+    received: NotRequired[int | None]
+    summary: NotRequired[str | None]
+    error: NotRequired[str | None]
+    revision: NotRequired[int | None]
+    states: NotRequired[list[AfbwsCatalogChannelV1SourceStatus]]
+
+
+class AfbwsCatalogChannelV1Refresh3(TypedDict):
+    """
+    Does NOT refresh immediately: puts the source into the daily-cycle queue (the same path for `moex` and `finam`). Request: optional `sources[]` (omitted = every available source). Response (same `request_id`): `queued[]`, `already_queued[]`, `rejected[]`. Push (NO `request_id`, manager connections with the capability): the outcome per source — `source`, `state` (`done`|`failed`), `finished_at`, `received`, `summary`, `error`, `revision`, and `states[]` = fresh source statuses (named `states`, not `sources`, to keep the request field unambiguous).
+    """
+
+    channel: Literal["catalog"]
+    schema: Literal["afbws.catalog.refresh.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    sources: NotRequired[list[AfbwsCatalogChannelV1Source]]
+    queued: NotRequired[list[AfbwsCatalogChannelV1Source]]
+    already_queued: NotRequired[list[AfbwsCatalogChannelV1Source]]
+    rejected: NotRequired[list[AfbwsCatalogChannelV1Rejection]]
+    source: AfbwsCatalogChannelV1Source
+    state: Literal["done", "failed"]
+    finished_at: str
+    received: NotRequired[int | None]
+    summary: NotRequired[str | None]
+    error: NotRequired[str | None]
+    revision: NotRequired[int | None]
+    states: NotRequired[list[AfbwsCatalogChannelV1SourceStatus]]
+
+
+AfbwsCatalogChannelV1Refresh: TypeAlias = (
+    AfbwsCatalogChannelV1Refresh1
+    | AfbwsCatalogChannelV1Refresh2
+    | AfbwsCatalogChannelV1Refresh3
+)
+
+
+class AfbwsCatalogChannelV1RefreshResult(TypedDict):
+    source: AfbwsCatalogChannelV1Source
+    state: Literal["done", "failed"]
+    finished_at: str
+    received: NotRequired[int | None]
+    summary: NotRequired[str | None]
+    error: NotRequired[str | None]
+    revision: NotRequired[int | None]
+
+
+class AfbwsCatalogChannelV1Rejection(TypedDict):
+    source: AfbwsCatalogChannelV1Source
+    code: Literal["source_unavailable", "forbidden"]
+    message: NotRequired[str]
+
+
+class AfbwsCatalogChannelV1Set(TypedDict):
+    """
+    `type` is decided on create (default `asset`); on update it must equal the stored one. A set of type `asset` carries `asset_ids[]`, of type `instrument` carries `instrument_keys[]`; the list, when present, is the WHOLE composition in its final order.
+    """
+
+    id: str
+    name: str
+    type: NotRequired[Literal["asset", "instrument"]]
+    visibility_tier: NotRequired[Literal["manager", "user", "guest"]]
+    icon_id: NotRequired[str | None]
+    icon_color: NotRequired[AfbwsCatalogChannelV1FavoriteColor | None]
+    asset_ids: NotRequired[list[str]]
+    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
+
+
+class AfbwsCatalogChannelV1Snapshot1(TypedDict):
+    """
+    Request: only `request_id`. Response (same `request_id`): the state the asset manager edits — ordered collections, global sets, assets with their members, and ONLY the listings / derivatives referenced by assets and global instrument sets (unassigned listings are found through `symbols`). `revision` is the `base_revision` for `commit`. Manager only.
+    """
+
+    channel: Literal["catalog"]
+    schema: Literal["afbws.catalog.snapshot.v1"]
+    request_id: AfbwsCommonV1RequestId
+    revision: NotRequired[int]
+    collections: NotRequired[list[AfbwsCatalogChannelV1Collection]]
+    sets: NotRequired[list[AfbwsCatalogChannelV1Set]]
+    assets: NotRequired[list[AfbwsCatalogChannelV1SnapshotAsset]]
+    listings: NotRequired[list[AfbwsCatalogChannelV1Listing]]
+    derivatives: NotRequired[list[AfbwsCatalogChannelV1Derivative]]
+    sources: NotRequired[list[AfbwsCatalogChannelV1SourceStatus]]
+
+
+class AfbwsCatalogChannelV1Snapshot2(TypedDict):
+    """
+    Request: only `request_id`. Response (same `request_id`): the state the asset manager edits — ordered collections, global sets, assets with their members, and ONLY the listings / derivatives referenced by assets and global instrument sets (unassigned listings are found through `symbols`). `revision` is the `base_revision` for `commit`. Manager only.
+    """
+
+    channel: Literal["catalog"]
+    schema: Literal["afbws.catalog.snapshot.v1"]
+    request_id: AfbwsCommonV1RequestId
+    revision: int
+    collections: list[AfbwsCatalogChannelV1Collection]
+    sets: list[AfbwsCatalogChannelV1Set]
+    assets: list[AfbwsCatalogChannelV1SnapshotAsset]
+    listings: list[AfbwsCatalogChannelV1Listing]
+    derivatives: list[AfbwsCatalogChannelV1Derivative]
+    sources: list[AfbwsCatalogChannelV1SourceStatus]
+
+
+AfbwsCatalogChannelV1Snapshot: TypeAlias = (
+    AfbwsCatalogChannelV1Snapshot1 | AfbwsCatalogChannelV1Snapshot2
+)
+
+
+class AfbwsCatalogChannelV1SnapshotAsset(TypedDict):
+    id: str
+    name: str
+    collection_id: str | None
+    members: list[AfbwsCatalogChannelV1MemberExisting]
+
+
+AfbwsCatalogChannelV1Source: TypeAlias = Literal["moex", "finam"]
+
+
+class AfbwsCatalogChannelV1SourceStatus(TypedDict):
+    source: AfbwsCatalogChannelV1Source
+    available: bool
+    state: str
+    pending: bool
+    last_refresh_at: NotRequired[str | None]
+    last_error: NotRequired[str | None]
+    symbols: NotRequired[int | None]
+    listings: NotRequired[int | None]
+    unlinked: NotRequired[int | None]
+
+
+class AfbwsCatalogChannelV1SymbolRow(TypedDict):
+    ref: str
+    kind: Literal["listing", "derivative"]
+    ticker: str
+    name: str
+    market: Literal["stock", "currency", "index", "futures", "other"]
+    mic: NotRequired[str | None]
+    archived: bool
+    in_catalog: NotRequired[AfbwsCommonV1InstrumentKey | None]
+    addable: bool
+    reason: NotRequired[Literal["unsupported_type"] | None]
+
+
+class AfbwsCatalogChannelV1Symbols1(TypedDict):
+    """
+    ONE operation for both sources, answered only from the source's own catalog (Finam: the `finam.db` mirror, MOEX: the pool snapshot) — the broker / exchange is never called. Request: `source`, optional `query` (symbol or name, case-insensitive), `kind`, `market`, `include_archived`, `unassigned` (server-side, over the stored state), `limit` (1..100, default 50), `cursor` (from the previous `next_cursor`, bound to the filter and to `fetched_at`; mismatch -> `conflict`). Response: `source`, `total`, `next_cursor` (null at the end), `fetched_at`, `items[]` (<=100).
+    """
+
+    channel: Literal["catalog"]
+    schema: Literal["afbws.catalog.symbols.v1"]
+    request_id: AfbwsCommonV1RequestId
+    source: AfbwsCatalogChannelV1Source
+    query: NotRequired[str]
+    kind: NotRequired[Literal["listing", "derivative"]]
+    market: NotRequired[Literal["stock", "currency", "index", "futures", "other"]]
+    include_archived: NotRequired[bool]
+    unassigned: NotRequired[bool]
+    limit: NotRequired[int]
+    cursor: NotRequired[str]
+    total: NotRequired[int]
+    next_cursor: NotRequired[str | None]
+    fetched_at: NotRequired[str | None]
+    items: NotRequired[list[AfbwsCatalogChannelV1SymbolRow]]
+
+
+class AfbwsCatalogChannelV1Symbols2(TypedDict):
+    """
+    ONE operation for both sources, answered only from the source's own catalog (Finam: the `finam.db` mirror, MOEX: the pool snapshot) — the broker / exchange is never called. Request: `source`, optional `query` (symbol or name, case-insensitive), `kind`, `market`, `include_archived`, `unassigned` (server-side, over the stored state), `limit` (1..100, default 50), `cursor` (from the previous `next_cursor`, bound to the filter and to `fetched_at`; mismatch -> `conflict`). Response: `source`, `total`, `next_cursor` (null at the end), `fetched_at`, `items[]` (<=100).
+    """
+
+    channel: Literal["catalog"]
+    schema: Literal["afbws.catalog.symbols.v1"]
+    request_id: AfbwsCommonV1RequestId
+    source: AfbwsCatalogChannelV1Source
+    query: NotRequired[str]
+    kind: NotRequired[Literal["listing", "derivative"]]
+    market: NotRequired[Literal["stock", "currency", "index", "futures", "other"]]
+    include_archived: NotRequired[bool]
+    unassigned: NotRequired[bool]
+    limit: NotRequired[int]
+    cursor: NotRequired[str]
+    total: int
+    next_cursor: str | None
+    fetched_at: str | None
+    items: list[AfbwsCatalogChannelV1SymbolRow]
+
+
+AfbwsCatalogChannelV1Symbols: TypeAlias = (
+    AfbwsCatalogChannelV1Symbols1 | AfbwsCatalogChannelV1Symbols2
+)
+
+
+AfbwsCatalogChannelV1Root: TypeAlias = (
+    AfbwsCatalogChannelV1Snapshot
+    | AfbwsCatalogChannelV1Symbols
+    | AfbwsCatalogChannelV1Commit
+    | AfbwsCatalogChannelV1Refresh
+    | AfbwsCatalogChannelV1Error
 )
 
 

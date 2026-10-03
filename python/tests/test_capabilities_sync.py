@@ -10,6 +10,7 @@ from afb_bf_protocol import (
     ALARM_CHANNEL_V1,
     ALARM_CHANNEL_V2,
     ALL_CAPABILITY_IDS,
+    CATALOG_CHANNEL_V1,
     CONFIG_CHANNEL_V1,
     DEAL_CHANNEL_V1,
     GP_CHANNEL_V1,
@@ -45,6 +46,7 @@ def test_capability_ids_match_schema_declarations():
         ACCOUNT_CHANNEL_V1: "ACCOUNT_CHANNEL_V1",
         MARKET_CHANNEL_V1: "MARKET_CHANNEL_V1",
         CONFIG_CHANNEL_V1: "CONFIG_CHANNEL_V1",
+        CATALOG_CHANNEL_V1: "CATALOG_CHANNEL_V1",
     }
     assert ALL_CAPABILITY_IDS == {
         ALARM_CHANNEL_V1,
@@ -57,6 +59,7 @@ def test_capability_ids_match_schema_declarations():
         INSTRUMENT_CHANNEL_V1,
         ACCOUNT_CHANNEL_V1,
         MARKET_CHANNEL_V1,
+        CATALOG_CHANNEL_V1,
         CONFIG_CHANNEL_V1,
     }
 
