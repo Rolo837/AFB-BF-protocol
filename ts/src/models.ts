@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: dfffe5cf50ef83d5364b1deda280844235312cf75567ed23261e03b232e33ddd
+ * source-hash: 053acc194a8f75b6d78529d8eed734f336ee4e45c0a2f8099e415adb0938955d
  */
 
 /**
@@ -1987,8 +1987,14 @@ export interface AfbwsCatalogChannelV1_Listing {
   currency?: string | null;
   decimals?: number | null;
   lot_size?: number | null;
-  price_step?: number | null;
-  step_price?: number | null;
+  /**
+   * Decimal string, never a float.
+   */
+  price_step?: string | null;
+  /**
+   * Decimal string, never a float.
+   */
+  step_price?: string | null;
   expiration?: string | null;
   isin?: string | null;
   derivative?: string | null;
@@ -2037,7 +2043,7 @@ export interface AfbwsCatalogChannelV1_SymbolRow {
   archived: boolean;
   in_catalog?: AfbwsCommonV1_InstrumentKey | null;
   addable: boolean;
-  reason?: 'unsupported_type' | null;
+  reason?: 'unsupported_type' | 'archived' | null;
 }
 /**
  * `members`, when present, is the WHOLE composition in its final order (no add/remove form). Omit to leave it untouched; `[]` empties the asset. In a snapshot `members` and `collection_id` are always present.

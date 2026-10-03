@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: dfffe5cf50ef83d5364b1deda280844235312cf75567ed23261e03b232e33ddd
+# source-hash: 053acc194a8f75b6d78529d8eed734f336ee4e45c0a2f8099e415adb0938955d
 
 from __future__ import annotations
 
@@ -301,8 +301,8 @@ class AfbwsCatalogChannelV1Listing(TypedDict):
     currency: NotRequired[str | None]
     decimals: NotRequired[int | None]
     lot_size: NotRequired[int | None]
-    price_step: NotRequired[float | None]
-    step_price: NotRequired[float | None]
+    price_step: NotRequired[str | None]
+    step_price: NotRequired[str | None]
     expiration: NotRequired[str | None]
     isin: NotRequired[str | None]
     derivative: NotRequired[str | None]
@@ -500,7 +500,7 @@ class AfbwsCatalogChannelV1SymbolRow(TypedDict):
     archived: bool
     in_catalog: NotRequired[AfbwsCommonV1InstrumentKey | None]
     addable: bool
-    reason: NotRequired[Literal["unsupported_type"] | None]
+    reason: NotRequired[Literal["unsupported_type", "archived"] | None]
 
 
 class AfbwsCatalogChannelV1Symbols1(TypedDict):

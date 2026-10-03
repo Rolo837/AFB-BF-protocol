@@ -34,7 +34,7 @@ def _bad(v, doc):
 
 _LISTING = {
     "instrument_key": "MISX:TQBR:SBER", "mic": "MISX", "board": "TQBR", "market": "stock", "ticker": "SBER",
-    "name": "Сбербанк", "source": "moex", "lot_size": 10, "price_step": 0.01, "decimals": 2, "currency": "RUB",
+    "name": "Сбербанк", "source": "moex", "lot_size": 10, "price_step": "0.01", "decimals": 2, "currency": "RUB",
 }
 _SOURCE = {"source": "finam", "title": "Finam", "available": True, "state": "ready", "pending": False,
            "last_refresh_at": "2026-10-03T17:18:00+03:00", "symbols": 283194, "listings": 12, "unlinked": 0}

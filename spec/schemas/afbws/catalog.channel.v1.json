@@ -336,15 +336,17 @@
         },
         "price_step": {
           "type": [
-            "number",
+            "string",
             "null"
-          ]
+          ],
+          "description": "Decimal string, never a float."
         },
         "step_price": {
           "type": [
-            "number",
+            "string",
             "null"
-          ]
+          ],
+          "description": "Decimal string, never a float."
         },
         "expiration": {
           "type": [
@@ -531,6 +533,7 @@
         "reason": {
           "enum": [
             "unsupported_type",
+            "archived",
             null
           ]
         }
