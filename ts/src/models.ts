@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 204b040efa77062e6ceb3033c6517e9e72917bd88c303456fa596d7f14c49bef
+ * source-hash: a129d59c1066ffdbb38d5fa09e3b8071df0375eb9c056e09bc32f5e2fa2e6531
  */
 
 /**
@@ -292,7 +292,7 @@ export type ConfigDefaultsMessage = {
   defaults?: ConfigDefaults;
 };
 /**
- * Request carries `kind` and `token`; the server validates the token against the service (MOEX / GetCourse), stores it in the plain-text secrets/*.token file and applies it at runtime. The response carries `kind` and `ok: true` and NEVER the token. Failure: error `validation_error` (token rejected by the service) or `internal_error`; non-manager: `forbidden`.
+ * Request carries `kind` and `token`; the server validates the token against the service (MOEX / GetCourse / Finam; a Finam token must be read-only, a trading token is rejected with `validation_error` and never stored), stores it in the plain-text secrets/*.token file and applies it at runtime. The response carries `kind` and `ok: true` and NEVER the token. Failure: error `validation_error` (token rejected by the service) or `internal_error`; non-manager: `forbidden`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "ConfigToken".
@@ -301,7 +301,7 @@ export type ConfigToken = {
   channel: 'config';
   schema: 'afbws.config.token.v1';
   request_id: AfbwsCommonV1_RequestId;
-  kind: 'moex' | 'getcourse';
+  kind: 'moex' | 'getcourse' | 'finam';
   token?: string;
   ok?: true;
 } & ConfigToken1;

@@ -117,8 +117,10 @@ def test_token_request_and_response_never_carries_token(registry):
     v = _validator("token", registry)
     v.validate(_msg("token", request_id="r1", kind="moex", token="abc"))
     v.validate(_msg("token", request_id="r1", kind="getcourse", ok=True))
+    v.validate(_msg("token", request_id="r1", kind="finam", token="abc"))
+    v.validate(_msg("token", request_id="r1", kind="finam", ok=True))
     for bad in (
-        _msg("token", request_id="r1", kind="finam", token="abc"),
+        _msg("token", request_id="r1", kind="binance", token="abc"),  # unknown kind
         _msg("token", request_id="r1", kind="moex"),
         _msg("token", request_id="r1", kind="moex", token="abc", ok=True),
         _msg("token", request_id="r1", kind="moex", ok=False),

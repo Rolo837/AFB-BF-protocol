@@ -127,14 +127,14 @@
     "token": {
       "type": "object",
       "title": "afbws.config.token.v1 — set an external API token (request / response), manager only.",
-      "description": "Request carries `kind` and `token`; the server validates the token against the service (MOEX / GetCourse), stores it in the plain-text secrets/*.token file and applies it at runtime. The response carries `kind` and `ok: true` and NEVER the token. Failure: error `validation_error` (token rejected by the service) or `internal_error`; non-manager: `forbidden`.",
+      "description": "Request carries `kind` and `token`; the server validates the token against the service (MOEX / GetCourse / Finam; a Finam token must be read-only, a trading token is rejected with `validation_error` and never stored), stores it in the plain-text secrets/*.token file and applies it at runtime. The response carries `kind` and `ok: true` and NEVER the token. Failure: error `validation_error` (token rejected by the service) or `internal_error`; non-manager: `forbidden`.",
       "required": ["channel", "schema", "request_id", "kind"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "config" },
         "schema": { "const": "afbws.config.token.v1" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
-        "kind": { "enum": ["moex", "getcourse"] },
+        "kind": { "enum": ["moex", "getcourse", "finam"] },
         "token": { "type": "string", "minLength": 1, "writeOnly": true },
         "ok": { "const": true }
       },
