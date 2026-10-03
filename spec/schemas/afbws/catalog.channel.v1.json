@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/catalog.channel.v1.json",
   "x-afbws-support-id": "afbws.catalog.channel.v1",
   "title": "catalog channel — schema-first, MANAGER ONLY (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.catalog.channel.v1). The asset manager's own channel; replaces the manager half of afbws.instrument (`catalog`, `pool`, `inventory`, `commit`, `refresh`, `sources`), which is left untouched. Same convention as afbws.alarm/afbws.gp/afbws.config: ONE schema id per message (`afbws.catalog.<op>.v1`), the same schema is the request, its response and, for `refresh`, a server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.catalog.error.v1`. Every non-manager request -> error `forbidden`. Any list is capped at 100 items. Operations: `snapshot`, `symbols`, `commit`, `refresh`. See AFB/docs/ws/catalog.md.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.catalog.channel.v1). The asset manager's own channel; replaces the manager half of afbws.instrument (`catalog`, `pool`, `inventory`, `commit`, `refresh`, `sources`), which is left untouched. Same convention as afbws.alarm/afbws.gp/afbws.config: ONE schema id per message (`afbws.catalog.<op>.v1`), the same schema is the request, its response and, for `refresh`, a server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.catalog.error.v1`. Every non-manager request -> error `forbidden`. Any list is capped at 100 items. Operations: `snapshot`, `symbols`, `support`, `commit`, `refresh`. See AFB/docs/ws/catalog.md.",
   "type": "object",
   "oneOf": [
     {
@@ -11,6 +11,9 @@
     },
     {
       "$ref": "#/$defs/symbols"
+    },
+    {
+      "$ref": "#/$defs/support"
     },
     {
       "$ref": "#/$defs/commit"
@@ -753,7 +756,7 @@
     "symbols": {
       "type": "object",
       "title": "afbws.catalog.symbols.v1 — a source's instrument list (request / response)",
-      "description": "ONE operation for both sources, answered only from the source's own catalog (Finam: the `finam.db` mirror, MOEX: the pool snapshot) — the broker / exchange is never called. Request: `source`, optional `query` (symbol or name, case-insensitive), `kind`, `market`, `include_archived`, `unassigned` (server-side, over the stored state), `limit` (1..100, default 50), `cursor` (from the previous `next_cursor`, bound to the filter and to `fetched_at`; mismatch -> `conflict`). Response: `source`, `total`, `next_cursor` (null at the end), `fetched_at`, `items[]` (<=100).",
+      "description": "ONE operation for both sources, answered only from the source's own catalog (Finam: the `finam.db` mirror, MOEX: the pool snapshot) — the broker / exchange is never called. Request: `source`, optional `query` (symbol or name, case-insensitive), `mic`, `kind`, `market`, `include_archived`, `unassigned` (server-side, over the stored state), `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered list. Response: `source`, `total` (rows in the whole filtered list), `offset`, `fetched_at`, `items[]` (<=100).",
       "required": [
         "channel",
         "schema",
@@ -804,21 +807,9 @@
           "minimum": 1,
           "maximum": 100
         },
-        "cursor": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 512
-        },
         "total": {
           "type": "integer",
           "minimum": 0
-        },
-        "next_cursor": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "maxLength": 512
         },
         "fetched_at": {
           "type": [
@@ -832,6 +823,17 @@
           "items": {
             "$ref": "#/$defs/symbolRow"
           }
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Index of the first requested row in the filtered list (0-based). The client asks for the window that contains the page it shows; there is no cursor."
+        },
+        "mic": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "description": "Only rows of this exchange (MIC). Case-sensitive."
         }
       },
       "oneOf": [
@@ -850,11 +852,6 @@
               },
               {
                 "required": [
-                  "next_cursor"
-                ]
-              },
-              {
-                "required": [
                   "fetched_at"
                 ]
               }
@@ -865,7 +862,7 @@
           "required": [
             "items",
             "total",
-            "next_cursor",
+            "offset",
             "fetched_at"
           ]
         }
@@ -1226,6 +1223,68 @@
           "additionalProperties": true
         }
       }
+    },
+    "support": {
+      "type": "object",
+      "title": "afbws.catalog.support.v1 — what each source offers: exchanges (MIC) and their categories (request / response).",
+      "description": "Request: only `request_id`. Response: `sources` — for each source a dictionary MIC -> categories (`market` values of `symbols`) built from the source's own catalog (Finam: the mirror's active symbols; MOEX: the pool). MOEX is a single exchange (`MISX`). A source that is unavailable is absent. Manager only.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "catalog"
+        },
+        "schema": {
+          "const": "afbws.catalog.support.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "sources": {
+          "type": "object",
+          "propertyNames": {
+            "enum": [
+              "moex",
+              "finam"
+            ]
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "stock",
+                  "currency",
+                  "index",
+                  "futures",
+                  "other"
+                ]
+              },
+              "uniqueItems": true
+            }
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "maxProperties": 3,
+          "not": {
+            "required": [
+              "sources"
+            ]
+          }
+        },
+        {
+          "required": [
+            "sources"
+          ]
+        }
+      ]
     }
   }
 }

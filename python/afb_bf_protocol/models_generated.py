@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: e9110f98622906c9ce1d89109db3ca7b2336d60cc73c57b60d405dbb14050863
+# source-hash: 6b45e599fdea60f92e744827921d0f9652a131370c7d0789faaae37ec54e1d06
 
 from __future__ import annotations
 
@@ -495,6 +495,41 @@ class AfbwsCatalogChannelV1SourceStatus(TypedDict):
     unlinked: NotRequired[int | None]
 
 
+class AfbwsCatalogChannelV1Support1(TypedDict):
+    """
+    Request: only `request_id`. Response: `sources` — for each source a dictionary MIC -> categories (`market` values of `symbols`) built from the source's own catalog (Finam: the mirror's active symbols; MOEX: the pool). MOEX is a single exchange (`MISX`). A source that is unavailable is absent. Manager only.
+    """
+
+    channel: Literal["catalog"]
+    schema: Literal["afbws.catalog.support.v1"]
+    request_id: AfbwsCommonV1RequestId
+    sources: NotRequired[
+        dict[
+            Literal["moex", "finam"],
+            dict[str, list[Literal["stock", "currency", "index", "futures", "other"]]],
+        ]
+    ]
+
+
+class AfbwsCatalogChannelV1Support2(TypedDict):
+    """
+    Request: only `request_id`. Response: `sources` — for each source a dictionary MIC -> categories (`market` values of `symbols`) built from the source's own catalog (Finam: the mirror's active symbols; MOEX: the pool). MOEX is a single exchange (`MISX`). A source that is unavailable is absent. Manager only.
+    """
+
+    channel: Literal["catalog"]
+    schema: Literal["afbws.catalog.support.v1"]
+    request_id: AfbwsCommonV1RequestId
+    sources: dict[
+        Literal["moex", "finam"],
+        dict[str, list[Literal["stock", "currency", "index", "futures", "other"]]],
+    ]
+
+
+AfbwsCatalogChannelV1Support: TypeAlias = (
+    AfbwsCatalogChannelV1Support1 | AfbwsCatalogChannelV1Support2
+)
+
+
 class AfbwsCatalogChannelV1SymbolRow(TypedDict):
     ref: str
     kind: Literal["listing", "derivative"]
@@ -510,7 +545,7 @@ class AfbwsCatalogChannelV1SymbolRow(TypedDict):
 
 class AfbwsCatalogChannelV1Symbols1(TypedDict):
     """
-    ONE operation for both sources, answered only from the source's own catalog (Finam: the `finam.db` mirror, MOEX: the pool snapshot) — the broker / exchange is never called. Request: `source`, optional `query` (symbol or name, case-insensitive), `kind`, `market`, `include_archived`, `unassigned` (server-side, over the stored state), `limit` (1..100, default 50), `cursor` (from the previous `next_cursor`, bound to the filter and to `fetched_at`; mismatch -> `conflict`). Response: `source`, `total`, `next_cursor` (null at the end), `fetched_at`, `items[]` (<=100).
+    ONE operation for both sources, answered only from the source's own catalog (Finam: the `finam.db` mirror, MOEX: the pool snapshot) — the broker / exchange is never called. Request: `source`, optional `query` (symbol or name, case-insensitive), `mic`, `kind`, `market`, `include_archived`, `unassigned` (server-side, over the stored state), `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered list. Response: `source`, `total` (rows in the whole filtered list), `offset`, `fetched_at`, `items[]` (<=100).
     """
 
     channel: Literal["catalog"]
@@ -523,16 +558,16 @@ class AfbwsCatalogChannelV1Symbols1(TypedDict):
     include_archived: NotRequired[bool]
     unassigned: NotRequired[bool]
     limit: NotRequired[int]
-    cursor: NotRequired[str]
     total: NotRequired[int]
-    next_cursor: NotRequired[str | None]
     fetched_at: NotRequired[str | None]
     items: NotRequired[list[AfbwsCatalogChannelV1SymbolRow]]
+    offset: NotRequired[int]
+    mic: NotRequired[str]
 
 
 class AfbwsCatalogChannelV1Symbols2(TypedDict):
     """
-    ONE operation for both sources, answered only from the source's own catalog (Finam: the `finam.db` mirror, MOEX: the pool snapshot) — the broker / exchange is never called. Request: `source`, optional `query` (symbol or name, case-insensitive), `kind`, `market`, `include_archived`, `unassigned` (server-side, over the stored state), `limit` (1..100, default 50), `cursor` (from the previous `next_cursor`, bound to the filter and to `fetched_at`; mismatch -> `conflict`). Response: `source`, `total`, `next_cursor` (null at the end), `fetched_at`, `items[]` (<=100).
+    ONE operation for both sources, answered only from the source's own catalog (Finam: the `finam.db` mirror, MOEX: the pool snapshot) — the broker / exchange is never called. Request: `source`, optional `query` (symbol or name, case-insensitive), `mic`, `kind`, `market`, `include_archived`, `unassigned` (server-side, over the stored state), `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered list. Response: `source`, `total` (rows in the whole filtered list), `offset`, `fetched_at`, `items[]` (<=100).
     """
 
     channel: Literal["catalog"]
@@ -545,11 +580,11 @@ class AfbwsCatalogChannelV1Symbols2(TypedDict):
     include_archived: NotRequired[bool]
     unassigned: NotRequired[bool]
     limit: NotRequired[int]
-    cursor: NotRequired[str]
     total: int
-    next_cursor: str | None
     fetched_at: str | None
     items: list[AfbwsCatalogChannelV1SymbolRow]
+    offset: int
+    mic: NotRequired[str]
 
 
 AfbwsCatalogChannelV1Symbols: TypeAlias = (
@@ -560,6 +595,7 @@ AfbwsCatalogChannelV1Symbols: TypeAlias = (
 AfbwsCatalogChannelV1Root: TypeAlias = (
     AfbwsCatalogChannelV1Snapshot
     | AfbwsCatalogChannelV1Symbols
+    | AfbwsCatalogChannelV1Support
     | AfbwsCatalogChannelV1Commit
     | AfbwsCatalogChannelV1Refresh
     | AfbwsCatalogChannelV1Error

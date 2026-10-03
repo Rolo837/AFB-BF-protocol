@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: e9110f98622906c9ce1d89109db3ca7b2336d60cc73c57b60d405dbb14050863
+ * source-hash: 6b45e599fdea60f92e744827921d0f9652a131370c7d0789faaae37ec54e1d06
  */
 
 /**
@@ -256,7 +256,7 @@ export type BfsRegistryEntry = BfRegistryEntry & {
   };
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.catalog.channel.v1). The asset manager's own channel; replaces the manager half of afbws.instrument (`catalog`, `pool`, `inventory`, `commit`, `refresh`, `sources`), which is left untouched. Same convention as afbws.alarm/afbws.gp/afbws.config: ONE schema id per message (`afbws.catalog.<op>.v1`), the same schema is the request, its response and, for `refresh`, a server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.catalog.error.v1`. Every non-manager request -> error `forbidden`. Any list is capped at 100 items. Operations: `snapshot`, `symbols`, `commit`, `refresh`. See AFB/docs/ws/catalog.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.catalog.channel.v1). The asset manager's own channel; replaces the manager half of afbws.instrument (`catalog`, `pool`, `inventory`, `commit`, `refresh`, `sources`), which is left untouched. Same convention as afbws.alarm/afbws.gp/afbws.config: ONE schema id per message (`afbws.catalog.<op>.v1`), the same schema is the request, its response and, for `refresh`, a server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.catalog.error.v1`. Every non-manager request -> error `forbidden`. Any list is capped at 100 items. Operations: `snapshot`, `symbols`, `support`, `commit`, `refresh`. See AFB/docs/ws/catalog.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsCatalogChannelV1_Root".
@@ -264,6 +264,7 @@ export type BfsRegistryEntry = BfRegistryEntry & {
 export type AfbwsCatalogChannelV1_Root =
   | AfbwsCatalogChannelV1_Snapshot
   | AfbwsCatalogChannelV1_Symbols
+  | AfbwsCatalogChannelV1_Support
   | AfbwsCatalogChannelV1_Commit
   | AfbwsCatalogChannelV1_Refresh
   | AfbwsCatalogChannelV1_Error;
@@ -304,7 +305,7 @@ export type AfbwsCatalogChannelV1_Snapshot1 = {
   [k: string]: unknown;
 };
 /**
- * ONE operation for both sources, answered only from the source's own catalog (Finam: the `finam.db` mirror, MOEX: the pool snapshot) — the broker / exchange is never called. Request: `source`, optional `query` (symbol or name, case-insensitive), `kind`, `market`, `include_archived`, `unassigned` (server-side, over the stored state), `limit` (1..100, default 50), `cursor` (from the previous `next_cursor`, bound to the filter and to `fetched_at`; mismatch -> `conflict`). Response: `source`, `total`, `next_cursor` (null at the end), `fetched_at`, `items[]` (<=100).
+ * ONE operation for both sources, answered only from the source's own catalog (Finam: the `finam.db` mirror, MOEX: the pool snapshot) — the broker / exchange is never called. Request: `source`, optional `query` (symbol or name, case-insensitive), `mic`, `kind`, `market`, `include_archived`, `unassigned` (server-side, over the stored state), `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered list. Response: `source`, `total` (rows in the whole filtered list), `offset`, `fetched_at`, `items[]` (<=100).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsCatalogChannelV1_Symbols".
@@ -320,16 +321,41 @@ export type AfbwsCatalogChannelV1_Symbols = {
   include_archived?: boolean;
   unassigned?: boolean;
   limit?: number;
-  cursor?: string;
   total?: number;
-  next_cursor?: string | null;
   fetched_at?: string | null;
   /**
    * @maxItems 100
    */
   items?: AfbwsCatalogChannelV1_SymbolRow[];
+  /**
+   * Index of the first requested row in the filtered list (0-based). The client asks for the window that contains the page it shows; there is no cursor.
+   */
+  offset?: number;
+  /**
+   * Only rows of this exchange (MIC). Case-sensitive.
+   */
+  mic?: string;
 } & AfbwsCatalogChannelV1_Symbols1;
 export type AfbwsCatalogChannelV1_Symbols1 = {
+  [k: string]: unknown;
+};
+/**
+ * Request: only `request_id`. Response: `sources` — for each source a dictionary MIC -> categories (`market` values of `symbols`) built from the source's own catalog (Finam: the mirror's active symbols; MOEX: the pool). MOEX is a single exchange (`MISX`). A source that is unavailable is absent. Manager only.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCatalogChannelV1_Support".
+ */
+export type AfbwsCatalogChannelV1_Support = {
+  channel: 'catalog';
+  schema: 'afbws.catalog.support.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  sources?: {
+    [k: string]: {
+      [k: string]: ('stock' | 'currency' | 'index' | 'futures' | 'other')[];
+    };
+  };
+} & AfbwsCatalogChannelV1_Support1;
+export type AfbwsCatalogChannelV1_Support1 = {
   [k: string]: unknown;
 };
 /**

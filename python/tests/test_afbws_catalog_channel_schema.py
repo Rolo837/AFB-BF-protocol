@@ -72,15 +72,15 @@ def test_symbols_request_and_response(registry):
     v = _validator("symbols", registry)
     v.validate(_msg("symbols", request_id="r1", source="finam"))
     v.validate(_msg("symbols", request_id="r1", source="finam", query="CL", kind="listing", market="futures",
-                    include_archived=False, unassigned=True, limit=100, cursor="abc"))
-    v.validate(_msg("symbols", request_id="r1", source="finam", total=1, next_cursor=None,
+                    include_archived=False, unassigned=True, limit=100, offset=300, mic="XNYM"))
+    v.validate(_msg("symbols", request_id="r1", source="finam", total=1, offset=0,
                     fetched_at="2026-10-03T17:18:00+03:00", items=[_ROW]))
-    v.validate(_msg("symbols", request_id="r1", source="moex", total=1, next_cursor="n", fetched_at=None,
+    v.validate(_msg("symbols", request_id="r1", source="moex", total=1, offset=100, fetched_at=None,
                     items=[{**_ROW, "addable": False, "reason": "unsupported_type"}]))
 
 
 @pytest.mark.parametrize("patch", [
-    {"limit": 101}, {"limit": 0}, {"source": "bf"}, {"kind": "series"}, {"market": "bond"}, {"cursor": ""},
+    {"limit": 101}, {"limit": 0}, {"source": "bf"}, {"kind": "series"}, {"market": "bond"}, {"offset": -1}, {"mic": ""}, {"cursor": "abc"},
 ])
 def test_symbols_request_rejects(registry, patch):
     _bad(_validator("symbols", registry), _msg("symbols", request_id="r1", **{"source": "finam", **patch}))
@@ -88,10 +88,25 @@ def test_symbols_request_rejects(registry, patch):
 
 def test_symbols_response_capped_at_100(registry):
     v = _validator("symbols", registry)
-    base = dict(request_id="r1", source="finam", total=101, next_cursor="n", fetched_at=None)
+    base = dict(request_id="r1", source="finam", total=101, offset=0, fetched_at=None)
     v.validate(_msg("symbols", items=[_ROW] * 100, **base))
     _bad(v, _msg("symbols", items=[_ROW] * 101, **base))
-    _bad(v, _msg("symbols", request_id="r1", source="finam", items=[_ROW]))  # no total/cursor/fetched_at
+    _bad(v, _msg("symbols", request_id="r1", source="finam", items=[_ROW]))  # no total/offset/fetched_at
+
+
+def test_support_request_and_response(registry):
+    v = _validator("support", registry)
+    v.validate(_msg("support", request_id="r1"))
+    v.validate(_msg("support", request_id="r1", sources={
+        "moex": {"MISX": ["stock", "currency", "index", "futures"]},
+        "finam": {"MISX": ["stock", "index"], "XNYM": ["futures"], "XNGS": ["stock"]},
+    }))
+    v.validate(_msg("support", request_id="r1", sources={}))
+    _bad(v, _msg("support", request_id="r1", sources={"bf": {}}))
+    _bad(v, _msg("support", request_id="r1", sources={"finam": {"XNYM": ["bonds"]}}))
+    _bad(v, _msg("support", request_id="r1", sources={"finam": {"XNYM": ["futures", "futures"]}}))
+    _bad(v, _msg("support", request_id="r1", limit=5))
+    _bad(v, _msg("support"))
 
 
 def test_commit_request_and_response(registry):
@@ -183,6 +198,7 @@ def test_root_dispatches_every_message(registry):
     root = _root(registry)
     root.validate(_msg("snapshot", request_id="r1"))
     root.validate(_msg("symbols", request_id="r1", source="moex"))
+    root.validate(_msg("support", request_id="r1"))
     root.validate(_msg("commit", request_id="r1", base_revision=1))
     root.validate(_msg("refresh", request_id="r1"))
     root.validate(_msg("error", code="forbidden", message="x"))
