@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 053acc194a8f75b6d78529d8eed734f336ee4e45c0a2f8099e415adb0938955d
+ * source-hash: e9110f98622906c9ce1d89109db3ca7b2336d60cc73c57b60d405dbb14050863
  */
 
 /**
@@ -1916,6 +1916,8 @@ export interface BfsRegistryPush {
   };
 }
 /**
+ * `asset_ids`, when present, is the WHOLE ordered composition of the collection (the assets filed into it); an asset lives in at most one collection, so naming it here moves it. In a snapshot `asset_ids` is always present. Omit in a commit to leave the composition untouched.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsCatalogChannelV1_Collection".
  */
@@ -1931,6 +1933,7 @@ export interface AfbwsCatalogChannelV1_Collection {
    * Omitted: unchanged. null: clears the color.
    */
   icon_color?: AfbwsCatalogChannelV1_FavoriteColor | null;
+  asset_ids?: string[];
 }
 /**
  * `type` is decided on create (default `asset`); on update it must equal the stored one. A set of type `asset` carries `asset_ids[]`, of type `instrument` carries `instrument_keys[]`; the list, when present, is the WHOLE composition in its final order.

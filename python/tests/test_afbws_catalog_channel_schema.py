@@ -99,7 +99,7 @@ def test_commit_request_and_response(registry):
     v.validate(_msg("commit", request_id="r1", base_revision=7))
     v.validate(_msg(
         "commit", request_id="r1", base_revision=7, reason="import",
-        collections=[{"id": "c1", "name": "Нефть", "parent_id": None}], collection_order=["c1"],
+        collections=[{"id": "c1", "name": "Нефть", "parent_id": None, "asset_ids": ["a1"]}], collection_order=["c1"],
         sets=[{"id": "s1", "name": "Топ", "type": "instrument", "instrument_keys": ["MISX:TQBR:SBER"]}], set_order=["s1"],
         assets=[{"id": "a1", "name": "Нефть", "collection_id": "c1", "members": [
             {"kind": "listing", "ref": "MISX:TQBR:SBER"},

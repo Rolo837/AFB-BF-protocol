@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 053acc194a8f75b6d78529d8eed734f336ee4e45c0a2f8099e415adb0938955d
+# source-hash: e9110f98622906c9ce1d89109db3ca7b2336d60cc73c57b60d405dbb14050863
 
 from __future__ import annotations
 
@@ -175,11 +175,16 @@ class AfbwsCatalogChannelV1Asset(TypedDict):
 
 
 class AfbwsCatalogChannelV1Collection(TypedDict):
+    """
+    `asset_ids`, when present, is the WHOLE ordered composition of the collection (the assets filed into it); an asset lives in at most one collection, so naming it here moves it. In a snapshot `asset_ids` is always present. Omit in a commit to leave the composition untouched.
+    """
+
     id: str
     name: str
     parent_id: NotRequired[str | None]
     icon_id: NotRequired[str | None]
     icon_color: NotRequired[AfbwsCatalogChannelV1FavoriteColor | None]
+    asset_ids: NotRequired[list[str]]
 
 
 class AfbwsCatalogChannelV1Commit1(TypedDict):
