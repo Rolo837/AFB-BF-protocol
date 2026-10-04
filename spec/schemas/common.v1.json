@@ -25,6 +25,7 @@
         "exchange": {"type": "string"},
         "board": {"type": "string"},
         "ticker": {"type": "string"},
+        "instrument_key": {"$ref": "afbws/common.v1.json#/$defs/instrumentKey", "description": "Full catalog key of the instrument. Optional: absent on deals published before the key existed; when present on both sides of an amend it alone decides whether the instrument changed."},
         "market": {"enum": ["stock", "futures", "currency"]},
         "price_step": {"$ref": "#/$defs/decimalString"},
         "step_price": {"$ref": "#/$defs/decimalString"}

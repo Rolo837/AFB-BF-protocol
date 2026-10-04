@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 6b45e599fdea60f92e744827921d0f9652a131370c7d0789faaae37ec54e1d06
+ * source-hash: 8788f0ef1aa0ccfe9251d884efeb1ad150ffc9ac1c85071e6675379b22ec81d2
  */
 
 /**
@@ -1337,6 +1337,70 @@ export type TradeplanV1_EntryCondition = TradeplanV1_MarketOrPriceCondition | Tr
  */
 export type TradeplanV1_Condition = TradeplanV1_PriceCondition | TradeplanV1_PrimitiveCondition;
 /**
+ * AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradePlanV2".
+ */
+export type TradePlanV2 = TradePlanV21 & {
+  id: string;
+  ticker?: string;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key?: string;
+  status?: 'draft' | 'published' | 'completed' | 'archived';
+  /**
+   * AFB frontend hint only — which of the two editor modes owns this plan. Never crosses the AFB<->BF channel and is dropped at compile time (not copied into the deal). Absence means "advanced": a plan written by a frontend older than this field, or by any non-UI producer, opens in the advanced editor. `simple` additionally asserts the plan is expressible in the simple editor (single leg per role, price/market conditions with above/below, no timeframe/percent/logic) — a `simple` plan that violates this is opened in the advanced editor anyway (see AFB frontend/src/utils/planEditorMode.ts).
+   */
+  editor?: 'simple' | 'advanced';
+  direction: 'long' | 'short';
+  schema: 'afb.tradeplan.v2';
+  activated_at?: string;
+  closed_at?: string;
+  archived_at?: string;
+  /**
+   * Only for outgoing messages: the plan's ticker is not found in the securities catalog. Not persisted — overlaid in plans_for_ws_response on read. Not a lifecycle state.
+   */
+  instrument_missing?: boolean;
+  /**
+   * @minItems 1
+   */
+  entries: [
+    {
+      leg_id?: TradeplanV2_LegId;
+      percent?: DecimalString;
+      logic?: DealV2_LegJoin;
+      condition: TradeplanV2_TpConditionNode;
+    },
+    ...{
+      leg_id?: TradeplanV2_LegId;
+      percent?: DecimalString;
+      logic?: DealV2_LegJoin;
+      condition: TradeplanV2_TpConditionNode;
+    }[]
+  ];
+  stop_loss?: TradeplanV2_TpExitList;
+  take_profit?: TradeplanV2_TpExitList;
+  sizing: DealSizing;
+  /**
+   * Параметры публикации плана (используется ТОЛЬКО при публикации, не хранит связь с сделкой). bf_id — коннектор по умолчанию для UI; истина при публикации — bf_id из afbws.deal.publish.request.v1. account_id пусто/отсутствует — дефолтный (торговый) счёт коннектора, резолвится на лету (ExecutionService.resolve_plan_account).
+   */
+  publish?: {
+    bf_id?: string;
+    account_id?: string;
+  };
+  /**
+   * AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect.
+   */
+  delivery_at?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+export type TradePlanV21 = {
+  [k: string]: unknown;
+};
+/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2_TpExitList".
  */
@@ -2521,6 +2585,10 @@ export interface DealDetail {
   bf_id: BfId;
   tradeplan_id: string;
   ticker: string;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key?: string;
   market?: 'stock' | 'futures' | 'currency';
   direction: 'long' | 'short';
   sizing?: DealSizing;
@@ -2651,6 +2719,10 @@ export interface DealInstrument {
   exchange: string;
   board: string;
   ticker: string;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key?: string;
   market?: 'stock' | 'futures' | 'currency';
   price_step?: DecimalString;
   step_price?: DecimalString;
@@ -2780,6 +2852,10 @@ export interface DealSummary {
   bf_id: BfId;
   tradeplan_id: string;
   ticker: string;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key?: string;
   market?: 'stock' | 'futures' | 'currency';
   direction: 'long' | 'short';
   sizing?: DealSizing;
@@ -5038,63 +5114,6 @@ export interface TradeplanV1_PriceCondition {
   price_value: number;
 }
 /**
- * AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradePlanV2".
- */
-export interface TradePlanV2 {
-  id: string;
-  ticker: string;
-  status?: 'draft' | 'published' | 'completed' | 'archived';
-  /**
-   * AFB frontend hint only — which of the two editor modes owns this plan. Never crosses the AFB<->BF channel and is dropped at compile time (not copied into the deal). Absence means "advanced": a plan written by a frontend older than this field, or by any non-UI producer, opens in the advanced editor. `simple` additionally asserts the plan is expressible in the simple editor (single leg per role, price/market conditions with above/below, no timeframe/percent/logic) — a `simple` plan that violates this is opened in the advanced editor anyway (see AFB frontend/src/utils/planEditorMode.ts).
-   */
-  editor?: 'simple' | 'advanced';
-  direction: 'long' | 'short';
-  schema: 'afb.tradeplan.v2';
-  activated_at?: string;
-  closed_at?: string;
-  archived_at?: string;
-  /**
-   * Only for outgoing messages: the plan's ticker is not found in the securities catalog. Not persisted — overlaid in plans_for_ws_response on read. Not a lifecycle state.
-   */
-  instrument_missing?: boolean;
-  /**
-   * @minItems 1
-   */
-  entries: [
-    {
-      leg_id?: TradeplanV2_LegId;
-      percent?: DecimalString;
-      logic?: DealV2_LegJoin;
-      condition: TradeplanV2_TpConditionNode;
-    },
-    ...{
-      leg_id?: TradeplanV2_LegId;
-      percent?: DecimalString;
-      logic?: DealV2_LegJoin;
-      condition: TradeplanV2_TpConditionNode;
-    }[]
-  ];
-  stop_loss?: TradeplanV2_TpExitList;
-  take_profit?: TradeplanV2_TpExitList;
-  sizing: DealSizing;
-  /**
-   * Параметры публикации плана (используется ТОЛЬКО при публикации, не хранит связь с сделкой). bf_id — коннектор по умолчанию для UI; истина при публикации — bf_id из afbws.deal.publish.request.v1. account_id пусто/отсутствует — дефолтный (торговый) счёт коннектора, резолвится на лету (ExecutionService.resolve_plan_account).
-   */
-  publish?: {
-    bf_id?: string;
-    account_id?: string;
-  };
-  /**
-   * AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect.
-   */
-  delivery_at?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2_TpConditionNode".
  */
@@ -5127,6 +5146,12 @@ export interface TradeplanListRequest {
   schema: 'afbws.tradeplan.list.request.v1';
   request_id: AfbwsCommonV1_RequestId;
   ticker?: string;
+  /**
+   * Only plans of these instruments (catalog keys). Combines with `ticker` as AND when both are given.
+   *
+   * @minItems 1
+   */
+  instrument_keys?: [AfbwsCommonV1_InstrumentKey, ...AfbwsCommonV1_InstrumentKey[]];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -6361,6 +6386,10 @@ export interface DealInstrument1 {
   exchange: string;
   board: string;
   ticker: string;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key?: string;
   market?: 'stock' | 'futures' | 'currency';
   price_step?: DecimalString;
   step_price?: DecimalString;

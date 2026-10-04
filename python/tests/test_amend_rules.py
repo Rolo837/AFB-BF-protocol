@@ -153,6 +153,38 @@ def test_instrument_immutable_once_active():
         assert is_amend_allowed(d, new, _ctx("active", phase)) is False
 
 
+# --- instrument identity by catalog key --------------------------------------
+
+def _with_key(deal, key):
+    return _mutate(deal, ["target", "instrument", "instrument_key"], key)
+
+
+def test_equal_keys_mean_an_unchanged_instrument_even_if_the_venue_tuple_differs():
+    old = _with_key(_deal_v1(), "MISX:TQBR:SBER")
+    new = _mutate(_with_key(_deal_v1(), "MISX:TQBR:SBER"), ["target", "instrument", "exchange"], "MISX")
+    for phase in ("awaiting_entry", "holding"):
+        assert is_amend_allowed(old, new, _ctx("active", phase)) is True
+
+
+def test_different_keys_mean_a_changed_instrument_even_if_the_tuple_is_identical():
+    old = _with_key(_deal_v1(), "XNYM:futures:CL")
+    new = _with_key(_deal_v1(), "RUSX:futures:CL")
+    assert is_amend_allowed(old, new, _ctx("published", "idle")) is True
+    for phase in ("awaiting_entry", "entry_working", "holding", "exit_working"):
+        assert is_amend_allowed(old, new, _ctx("active", phase)) is False
+
+
+def test_a_key_on_one_side_only_falls_back_to_the_venue_tuple():
+    """A stored deal without the key and its freshly compiled twin with it are the same instrument."""
+    old = _deal_v1()
+    new = _with_key(_deal_v1(), "MISX:TQBR:SBER")
+    for phase in ("awaiting_entry", "holding"):
+        assert is_amend_allowed(old, new, _ctx("active", phase)) is True
+        assert is_amend_allowed(new, old, _ctx("active", phase)) is True
+    changed = _mutate(new, ["target", "instrument", "ticker"], "GAZP")
+    assert is_amend_allowed(old, changed, _ctx("active", "holding")) is False
+
+
 # --- sizing: editable only before entry -------------------------------------
 
 def test_sizing_free_before_entry():

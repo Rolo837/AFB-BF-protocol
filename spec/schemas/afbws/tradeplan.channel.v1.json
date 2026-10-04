@@ -78,7 +78,14 @@
         "channel": { "const": "tradeplan" },
         "schema": { "const": "afbws.tradeplan.list.request.v1" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
-        "ticker": { "type": "string", "minLength": 1 }
+        "ticker": { "type": "string", "minLength": 1 },
+        "instrument_keys": {
+          "type": "array",
+          "items": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Only plans of these instruments (catalog keys). Combines with `ticker` as AND when both are given."
+        }
       }
     },
     "listResponse": {
