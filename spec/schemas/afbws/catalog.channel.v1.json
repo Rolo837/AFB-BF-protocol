@@ -1,0 +1,1290 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/catalog.channel.v1.json",
+  "x-afbws-support-id": "afbws.catalog.channel.v1",
+  "title": "catalog channel — schema-first, MANAGER ONLY (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.catalog.channel.v1). The asset manager's own channel; replaces the manager half of afbws.instrument (`catalog`, `pool`, `inventory`, `commit`, `refresh`, `sources`), which is left untouched. Same convention as afbws.alarm/afbws.gp/afbws.config: ONE schema id per message (`afbws.catalog.<op>.v1`), the same schema is the request, its response and, for `refresh`, a server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.catalog.error.v1`. Every non-manager request -> error `forbidden`. Any list is capped at 100 items. Operations: `snapshot`, `symbols`, `support`, `commit`, `refresh`. See AFB/docs/ws/catalog.md.",
+  "type": "object",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/snapshot"
+    },
+    {
+      "$ref": "#/$defs/symbols"
+    },
+    {
+      "$ref": "#/$defs/support"
+    },
+    {
+      "$ref": "#/$defs/commit"
+    },
+    {
+      "$ref": "#/$defs/refresh"
+    },
+    {
+      "$ref": "#/$defs/error"
+    }
+  ],
+  "$defs": {
+    "favoriteColor": {
+      "enum": [
+        "yellow",
+        "red",
+        "blue",
+        "green",
+        "gray",
+        "orange",
+        "cyan",
+        "purple",
+        "pink",
+        "teal"
+      ],
+      "description": "Same list and order as afbws.instrument.channel.v1#/$defs/favoriteColor (kept in lockstep; no cross-reference on purpose)."
+    },
+    "source": {
+      "enum": [
+        "moex",
+        "finam"
+      ],
+      "description": "Catalog source a symbol list / a new member comes from."
+    },
+    "member": {
+      "title": "Asset member",
+      "description": "Three forms. Existing listing `{kind:'listing', ref:<instrument_key>}`; existing derivative `{kind:'derivative', ref:<code>}`; NEW member `{kind, source, ref}` where `ref` is the `ref` of a `symbols` row. A new member NEVER carries listing data: the backend fetches everything itself from the source at commit time.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/memberExisting"
+        },
+        {
+          "$ref": "#/$defs/memberNew"
+        }
+      ]
+    },
+    "memberExisting": {
+      "type": "object",
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "listing",
+            "derivative"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "memberNew": {
+      "type": "object",
+      "required": [
+        "kind",
+        "source",
+        "ref"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "listing",
+            "derivative"
+          ]
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "collection": {
+      "type": "object",
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "icon_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128,
+          "description": "Omitted: unchanged. null: clears the icon."
+        },
+        "icon_color": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/favoriteColor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Omitted: unchanged. null: clears the color."
+        },
+        "asset_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "description": "`asset_ids`, when present, is the WHOLE ordered composition of the collection (the assets filed into it); an asset lives in at most one collection, so naming it here moves it. In a snapshot `asset_ids` is always present. Omit in a commit to leave the composition untouched."
+    },
+    "set": {
+      "type": "object",
+      "title": "Global set (manager-owned)",
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "`type` is decided on create (default `asset`); on update it must equal the stored one. A set of type `asset` carries `asset_ids[]`, of type `instrument` carries `instrument_keys[]`; the list, when present, is the WHOLE composition in its final order.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "enum": [
+            "asset",
+            "instrument"
+          ]
+        },
+        "visibility_tier": {
+          "enum": [
+            "manager",
+            "user",
+            "guest"
+          ]
+        },
+        "icon_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128,
+          "description": "Omitted: unchanged. null: clears the icon."
+        },
+        "icon_color": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/favoriteColor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Omitted: unchanged. null: clears the color."
+        },
+        "asset_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "instrument_keys": {
+          "type": "array",
+          "items": {
+            "$ref": "common.v1.json#/$defs/instrumentKey"
+          }
+        }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "title": "Asset (group of instruments)",
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "`members`, when present, is the WHOLE composition in its final order (no add/remove form). Omit to leave it untouched; `[]` empties the asset. In a snapshot `members` and `collection_id` are always present.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "collection_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/member"
+          }
+        }
+      }
+    },
+    "snapshotAsset": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "collection_id",
+        "members"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "collection_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/memberExisting"
+          }
+        }
+      }
+    },
+    "listing": {
+      "type": "object",
+      "title": "Catalog listing used by assets / global instrument sets",
+      "additionalProperties": false,
+      "required": [
+        "instrument_key",
+        "mic",
+        "market",
+        "ticker",
+        "name",
+        "source"
+      ],
+      "properties": {
+        "instrument_key": {
+          "$ref": "common.v1.json#/$defs/instrumentKey"
+        },
+        "mic": {
+          "type": "string"
+        },
+        "board": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "market": {
+          "type": "string"
+        },
+        "ticker": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "shortname": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "currency": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "decimals": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lot_size": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "price_step": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Decimal string, never a float."
+        },
+        "step_price": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Decimal string, never a float."
+        },
+        "expiration": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "isin": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "derivative": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": "string"
+        }
+      }
+    },
+    "derivative": {
+      "type": "object",
+      "required": [
+        "code",
+        "kind",
+        "name",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "underlying_key": {
+          "anyOf": [
+            {
+              "$ref": "common.v1.json#/$defs/instrumentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "type": "string"
+        }
+      }
+    },
+    "sourceStatus": {
+      "type": "object",
+      "required": [
+        "source",
+        "title",
+        "available",
+        "state",
+        "pending"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "title": {
+          "type": "string"
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        },
+        "pending": {
+          "type": "boolean",
+          "description": "A refresh of this source is already queued for the daily cycle."
+        },
+        "last_refresh_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "last_error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "symbols": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "listings": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "unlinked": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "symbolRow": {
+      "type": "object",
+      "title": "One row of a source's list",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "kind",
+        "ticker",
+        "name",
+        "market",
+        "archived",
+        "addable"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "kind": {
+          "enum": [
+            "listing",
+            "derivative"
+          ]
+        },
+        "ticker": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "market": {
+          "enum": [
+            "stock",
+            "currency",
+            "index",
+            "futures",
+            "other"
+          ]
+        },
+        "mic": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "in_catalog": {
+          "anyOf": [
+            {
+              "$ref": "common.v1.json#/$defs/instrumentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "addable": {
+          "type": "boolean"
+        },
+        "reason": {
+          "enum": [
+            "unsupported_type",
+            "archived",
+            null
+          ]
+        }
+      }
+    },
+    "created": {
+      "type": "object",
+      "required": [
+        "source",
+        "ref"
+      ],
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "instrument_key"
+          ]
+        },
+        {
+          "required": [
+            "derivative"
+          ]
+        }
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "instrument_key": {
+          "$ref": "common.v1.json#/$defs/instrumentKey"
+        },
+        "derivative": {
+          "type": "string"
+        }
+      }
+    },
+    "archiveItem": {
+      "type": "object",
+      "required": [
+        "instrument_key"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "instrument_key": {
+          "$ref": "common.v1.json#/$defs/instrumentKey"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "rejection": {
+      "type": "object",
+      "required": [
+        "source",
+        "code"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "code": {
+          "enum": [
+            "source_unavailable",
+            "forbidden"
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "refreshResult": {
+      "type": "object",
+      "required": [
+        "source",
+        "state",
+        "finished_at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "state": {
+          "enum": [
+            "done",
+            "failed"
+          ]
+        },
+        "finished_at": {
+          "type": "string"
+        },
+        "received": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "title": "afbws.catalog.snapshot.v1 — editable catalog state (request / response)",
+      "description": "Request: only `request_id`. Response (same `request_id`): the state the asset manager edits — ordered collections, global sets, assets with their members, and ONLY the listings / derivatives referenced by assets and global instrument sets (unassigned listings are found through `symbols`). `revision` is the `base_revision` for `commit`. Manager only.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "catalog"
+        },
+        "schema": {
+          "const": "afbws.catalog.snapshot.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "collections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/collection"
+          }
+        },
+        "sets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/set"
+          }
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/snapshotAsset"
+          }
+        },
+        "listings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/listing"
+          }
+        },
+        "derivatives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/derivative"
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sourceStatus"
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "maxProperties": 3,
+          "not": {
+            "required": [
+              "revision"
+            ]
+          }
+        },
+        {
+          "required": [
+            "revision",
+            "collections",
+            "sets",
+            "assets",
+            "listings",
+            "derivatives",
+            "sources"
+          ]
+        }
+      ]
+    },
+    "symbols": {
+      "type": "object",
+      "title": "afbws.catalog.symbols.v1 — a source's instrument list (request / response)",
+      "description": "ONE operation for both sources, answered only from the source's own catalog (Finam: the `finam.db` mirror, MOEX: the pool snapshot) — the broker / exchange is never called. Request: `source`, optional `query` (symbol or name, case-insensitive), `mic`, `kind`, `market`, `include_archived`, `unassigned` (server-side, over the stored state), `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered list. Response: `source`, `total` (rows in the whole filtered list), `offset`, `fetched_at`, `items[]` (<=100).",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "catalog"
+        },
+        "schema": {
+          "const": "afbws.catalog.symbols.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "query": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "kind": {
+          "enum": [
+            "listing",
+            "derivative"
+          ]
+        },
+        "market": {
+          "enum": [
+            "stock",
+            "currency",
+            "index",
+            "futures",
+            "other"
+          ]
+        },
+        "include_archived": {
+          "type": "boolean"
+        },
+        "unassigned": {
+          "type": "boolean"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fetched_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/symbolRow"
+          }
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Index of the first requested row in the filtered list (0-based). The client asks for the window that contains the page it shows; there is no cursor."
+        },
+        "mic": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "description": "Only rows of this exchange (MIC). Case-sensitive."
+        }
+      },
+      "oneOf": [
+        {
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "items"
+                ]
+              },
+              {
+                "required": [
+                  "total"
+                ]
+              },
+              {
+                "required": [
+                  "fetched_at"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "items",
+            "total",
+            "offset",
+            "fetched_at"
+          ]
+        }
+      ]
+    },
+    "commit": {
+      "type": "object",
+      "title": "afbws.catalog.commit.v1 — apply catalog edits (request / response)",
+      "description": "Request: the delta relative to the last `snapshot` plus `base_revision` for CAS (stale -> error `conflict`, `details.catalog_revision`). Every array is an upsert by id; `assets[].members` and `sets[].asset_ids|instrument_keys` are the WHOLE composition in final order; `collection_order` / `set_order` are the whole final order of ids. New members are `{kind, source, ref}` only: the backend fetches listing data itself (Finam: GetAsset via the detail cache, at most 20 new Finam instruments per commit). If any new member cannot be accepted NOTHING is applied and the error (`unsupported_type`, `no_market_data`, `not_found`, `source_unavailable`) lists the rows in `details.refs[]`. Response: `revision` and `created[]` (what the new members became); the client re-reads `snapshot`. Manager only.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "catalog"
+        },
+        "schema": {
+          "const": "afbws.catalog.commit.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "base_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "collections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/collection"
+          }
+        },
+        "collection_order": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "remove_collections": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "sets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/set"
+          }
+        },
+        "set_order": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "remove_sets": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/asset"
+          }
+        },
+        "remove_assets": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "archive": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/archiveItem"
+          }
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "created": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/created"
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "base_revision"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "revision"
+                ]
+              },
+              {
+                "required": [
+                  "created"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "revision",
+            "created"
+          ],
+          "not": {
+            "required": [
+              "base_revision"
+            ]
+          }
+        }
+      ]
+    },
+    "refresh": {
+      "type": "object",
+      "title": "afbws.catalog.refresh.v1 — queue a source refresh (request / response / server push)",
+      "description": "Does NOT refresh immediately: puts the source into the daily-cycle queue (the same path for `moex` and `finam`). Request: optional `sources[]` (omitted = every available source). Response (same `request_id`): `queued[]`, `already_queued[]`, `rejected[]`. Push (NO `request_id`, manager connections with the capability): the outcome per source — `source`, `state` (`done`|`failed`), `finished_at`, `received`, `summary`, `error`, `revision`, and `states[]` = fresh source statuses (named `states`, not `sources`, to keep the request field unambiguous).",
+      "required": [
+        "channel",
+        "schema"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "catalog"
+        },
+        "schema": {
+          "const": "afbws.catalog.refresh.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          },
+          "uniqueItems": true
+        },
+        "queued": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          }
+        },
+        "already_queued": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          }
+        },
+        "rejected": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rejection"
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "state": {
+          "enum": [
+            "done",
+            "failed"
+          ]
+        },
+        "finished_at": {
+          "type": "string"
+        },
+        "received": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "states": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sourceStatus"
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "request_id"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "queued"
+                ]
+              },
+              {
+                "required": [
+                  "source"
+                ]
+              },
+              {
+                "required": [
+                  "state"
+                ]
+              },
+              {
+                "required": [
+                  "finished_at"
+                ]
+              },
+              {
+                "required": [
+                  "states"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "request_id",
+            "queued",
+            "already_queued",
+            "rejected"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "source"
+                ]
+              },
+              {
+                "required": [
+                  "state"
+                ]
+              },
+              {
+                "required": [
+                  "sources"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "source",
+            "state",
+            "finished_at"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "request_id"
+                ]
+              },
+              {
+                "required": [
+                  "sources"
+                ]
+              },
+              {
+                "required": [
+                  "queued"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "error": {
+      "type": "object",
+      "title": "afbws.catalog.error.v1 — typed error for a whole request (server -> client).",
+      "description": "`details`: `catalog_revision` for `conflict`; `refs[]` (`{source, ref, code, message}`) naming the rejected new members of a commit; `source` for `source_unavailable`.",
+      "required": [
+        "channel",
+        "schema",
+        "code",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "catalog"
+        },
+        "schema": {
+          "const": "afbws.catalog.error.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "code": {
+          "enum": [
+            "forbidden",
+            "invalid_schema",
+            "invalid_channel",
+            "unsupported_action",
+            "validation_error",
+            "not_found",
+            "conflict",
+            "internal_error",
+            "unsupported_type",
+            "no_market_data",
+            "source_unavailable"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "support": {
+      "type": "object",
+      "title": "afbws.catalog.support.v1 — what each source offers: exchanges (MIC) and their categories (request / response).",
+      "description": "Request: only `request_id`. Response: `sources` — for each source a dictionary MIC -> categories (`market` values of `symbols`) built from the source's own catalog (Finam: the mirror's active symbols; MOEX: the pool). MOEX is a single exchange (`MISX`). A source that is unavailable is absent. Manager only.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "catalog"
+        },
+        "schema": {
+          "const": "afbws.catalog.support.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "sources": {
+          "type": "object",
+          "propertyNames": {
+            "enum": [
+              "moex",
+              "finam"
+            ]
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "stock",
+                  "currency",
+                  "index",
+                  "futures",
+                  "other"
+                ]
+              },
+              "uniqueItems": true
+            }
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "maxProperties": 3,
+          "not": {
+            "required": [
+              "sources"
+            ]
+          }
+        },
+        {
+          "required": [
+            "sources"
+          ]
+        }
+      ]
+    }
+  }
+}

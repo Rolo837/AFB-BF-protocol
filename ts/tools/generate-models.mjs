@@ -80,6 +80,8 @@ function namedRootSchemas() {
     "afbws/gp.channel.v2.json": "GpChannelV2Message",
     "afbws/instrument.channel.v1.json": "InstrumentChannelV1Message",
     "afbws/market.channel.v1.json": "MarketChannelV1Message",
+    "config.v1.json": "ConfigSettingsV1",
+    "afbws/config.channel.v1.json": "ConfigChannelV1Message",
   };
   for (const file of readdirSync(payloadsDir).sort()) {
     if (!file.endsWith(".json")) continue;
@@ -286,6 +288,24 @@ const NAMED_DEF_SCHEMAS = {
     refreshReport: "InstrumentRefreshReport",
     refreshResponse: "InstrumentRefreshResponse",
   },
+  "config.v1.json": {
+    profile: "ConfigProfile",
+    layout: "ConfigLayout",
+    interface: "ConfigInterface",
+    dataset: "ConfigDataset",
+    dashboard: "ConfigDashboard",
+    trade: "ConfigTrade",
+    defaults: "ConfigDefaults",
+  },
+  "afbws/config.channel.v1.json": {
+    settings: "ConfigSettings",
+    defaults: "ConfigDefaultsMessage",
+    help: "ConfigHelp",
+    roles: "ConfigRoles",
+    roleTier: "ConfigRoleTier",
+    token: "ConfigToken",
+    error: "ConfigError",
+  },
   "afbws/market.channel.v1.json": {
     table: "MarketTable",
     period: "MarketPeriod",
@@ -346,8 +366,7 @@ function loadSchemas() {
   const walk = (dir) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const full = join(dir, entry.name);
-      // Parked drafts (spec/schemas/draft/) stay out of models.ts. So do
-      // meta-schemas (spec/schemas/**/meta/) — a meta-schema validates OTHER
+      // Meta-schemas (spec/schemas/**/meta/) — a meta-schema validates OTHER
       // schema documents (e.g. iss/meta/iss.market.v1.json validates
       // iss/markets/*.json's own shape), it is never itself a data instance,
       // and datamodel-codegen/json-schema-to-typescript hoist its
@@ -355,7 +374,7 @@ function loadSchemas() {
       // that the functional TypedDict form of Python's generated module
       // cannot resolve (NameError at import time) — see iss_registry.py.
       if (entry.isDirectory()) {
-        if (entry.name === "draft" || entry.name === "meta") continue;
+        if (entry.name === "meta") continue;
         walk(full);
       } else if (entry.name.endsWith(".json")) {
         const rel = relative(schemasDir, full).split("\\").join("/");
@@ -486,7 +505,7 @@ function sourceHash() {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
-        if (entry.name === "draft" || entry.name === "meta") continue;
+        if (entry.name === "meta") continue;
         walk(full);
       } else if (entry.name.endsWith(".json")) files.push(full);
     }

@@ -114,6 +114,25 @@ def test_list_request_ticker_optional(registry):
     _validator("listRequest", registry).validate(msg)  # does not raise
 
 
+def test_list_request_filters_by_instrument_keys(registry):
+    from jsonschema import ValidationError
+
+    base = {"channel": "tradeplan", "schema": "afbws.tradeplan.list.request.v1", "request_id": "req-1"}
+    v = _validator("listRequest", registry)
+    v.validate({**base, "instrument_keys": ["MISX:TQBR:SBER", "XNYM:futures:CL"]})
+    v.validate({**base, "ticker": "SBER", "instrument_keys": ["MISX:TQBR:SBER"]})
+    for bad in ([], ["MISX:TQBR:SBER", "MISX:TQBR:SBER"], [""], "MISX:TQBR:SBER"):
+        with pytest.raises(ValidationError):
+            v.validate({**base, "instrument_keys": bad})
+
+
+def test_list_response_carries_a_v2_plan_with_only_an_instrument_key(registry):
+    item = {k: v for k, v in _V2_ITEM.items() if k != "ticker"}
+    item["instrument_key"] = "MISX:TQBR:SBER"
+    msg = {"channel": "tradeplan", "schema": "afbws.tradeplan.list.response.v1", "request_id": "req-1", "items": [item]}
+    _validator("listResponse", registry).validate(msg)  # does not raise
+
+
 def test_list_response_mixed_v1_v2_valid(registry):
     msg = {
         "channel": "tradeplan",

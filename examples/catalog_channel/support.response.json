@@ -1,0 +1,28 @@
+{
+  "channel": "catalog",
+  "schema": "afbws.catalog.support.v1",
+  "request_id": "c-5",
+  "sources": {
+    "moex": {
+      "MISX": [
+        "stock",
+        "currency",
+        "index",
+        "futures"
+      ]
+    },
+    "finam": {
+      "MISX": [
+        "stock",
+        "currency",
+        "index"
+      ],
+      "XNYM": [
+        "futures"
+      ],
+      "XNGS": [
+        "stock"
+      ]
+    }
+  }
+}

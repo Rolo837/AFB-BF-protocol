@@ -1,0 +1,17 @@
+{
+  "channel": "catalog",
+  "schema": "afbws.catalog.error.v1",
+  "request_id": "c-3",
+  "code": "unsupported_type",
+  "message": "Срочный контракт не поддерживается",
+  "details": {
+    "refs": [
+      {
+        "source": "finam",
+        "ref": "BRNX26@IFEU",
+        "code": "unsupported_type",
+        "message": "срочный контракт"
+      }
+    ]
+  }
+}

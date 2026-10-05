@@ -72,8 +72,11 @@ from .capabilities import (
     GP_CHANNEL_V2,
     DEAL_CHANNEL_V1,
     INSTRUMENT_CHANNEL_V1,
+    INSTRUMENT_CHANNEL_V2,
     ACCOUNT_CHANNEL_V1,
     MARKET_CHANNEL_V1,
+    CATALOG_CHANNEL_V1,
+    CONFIG_CHANNEL_V1,
     ALL_CAPABILITY_IDS,
 )
 from .deal_state import (
@@ -163,8 +166,11 @@ __all__ = [
     "GP_CHANNEL_V2",
     "DEAL_CHANNEL_V1",
     "INSTRUMENT_CHANNEL_V1",
+    "INSTRUMENT_CHANNEL_V2",
     "ACCOUNT_CHANNEL_V1",
     "MARKET_CHANNEL_V1",
+    "CATALOG_CHANNEL_V1",
+    "CONFIG_CHANNEL_V1",
     "ALL_CAPABILITY_IDS",
     "DealState",
     "DealStatus",

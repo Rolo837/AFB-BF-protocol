@@ -1,0 +1,24 @@
+{
+  "channel": "catalog",
+  "schema": "afbws.catalog.commit.v1",
+  "request_id": "c-3",
+  "base_revision": 12,
+  "assets": [
+    {
+      "id": "a-oil",
+      "name": "Нефть",
+      "collection_id": "oil",
+      "members": [
+        {
+          "kind": "derivative",
+          "ref": "XNYM:CL"
+        },
+        {
+          "kind": "listing",
+          "source": "finam",
+          "ref": "BZ@IFEU"
+        }
+      ]
+    }
+  ]
+}

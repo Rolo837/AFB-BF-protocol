@@ -1,0 +1,64 @@
+{
+  "channel": "catalog",
+  "schema": "afbws.catalog.snapshot.v1",
+  "request_id": "c-1",
+  "revision": 12,
+  "collections": [
+    {
+      "id": "oil",
+      "name": "Нефть",
+      "parent_id": null,
+      "icon_id": null,
+      "icon_color": "orange"
+    }
+  ],
+  "sets": [],
+  "assets": [
+    {
+      "id": "a-oil",
+      "name": "Нефть",
+      "collection_id": "oil",
+      "members": [
+        {
+          "kind": "derivative",
+          "ref": "XNYM:CL"
+        }
+      ]
+    }
+  ],
+  "listings": [
+    {
+      "instrument_key": "XNYM:futures:CL",
+      "mic": "XNYM",
+      "board": null,
+      "market": "futures",
+      "ticker": "CL",
+      "name": "Crude Oil",
+      "source": "finam",
+      "currency": "USD",
+      "derivative": "XNYM:CL"
+    }
+  ],
+  "derivatives": [
+    {
+      "code": "XNYM:CL",
+      "kind": "perpetual",
+      "name": "Crude Oil",
+      "underlying_key": "XNYM:futures:CL",
+      "source": "finam"
+    }
+  ],
+  "sources": [
+    {
+      "source": "finam",
+      "title": "Finam",
+      "available": true,
+      "state": "ready",
+      "pending": false,
+      "last_refresh_at": "2026-10-03T17:18:00+03:00",
+      "symbols": 283194,
+      "listings": 1,
+      "unlinked": 0
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "channel": "instrument",
+  "schema": "afbws.instrument.detail.v2",
+  "request_id": "i-7",
+  "instrument_key": "XNYM:futures:CL",
+  "items": [
+    {
+      "bf_id": "finam-1",
+      "account_id": "A100",
+      "status": "ok",
+      "scope": "connector",
+      "broker_instrument": {
+        "tradable": true,
+        "longable": true,
+        "shortable": true,
+        "long_initial_margin": 12000.5,
+        "short_initial_margin": 13000.0
+      }
+    },
+    {
+      "bf_id": "finam-1",
+      "account_id": "A200",
+      "status": "error",
+      "error": {
+        "code": "bf_offline",
+        "message": "BF не подключён"
+      }
+    },
+    {
+      "bf_id": "virtual",
+      "account_id": "virtual",
+      "status": "unavailable",
+      "error": {
+        "code": "unavailable",
+        "message": "Виртуальный счёт не поддерживает инструмент Finam"
+      }
+    }
+  ]
+}

@@ -472,6 +472,30 @@ def test_ack_request_and_response_valid(registry):
     _validator("ackResponse", registry).validate(resp)  # does not raise
 
 
+# --- instrument_key on summary / detail / the shared instrument block -----------
+
+def test_summary_and_detail_carry_an_optional_instrument_key(registry):
+    from jsonschema import ValidationError
+
+    for name, base in (("dealSummary", _SUMMARY), ("dealDetail", _DETAIL)):
+        _validator(name, registry).validate(base)  # absent: still valid
+        _validator(name, registry).validate({**base, "instrument_key": "XNYM:futures:CL"})
+        with pytest.raises(ValidationError):
+            _validator(name, registry).validate({**base, "instrument_key": ""})
+
+
+def test_deal_target_instrument_accepts_the_catalog_key(registry):
+    from jsonschema import Draft202012Validator, ValidationError
+
+    common = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/common.v1.json"
+    v = Draft202012Validator({"$ref": f"{common}#/$defs/instrument"}, registry=registry)
+    base = {"exchange": "XNYM", "board": "", "ticker": "CL", "market": "futures"}
+    v.validate(base)
+    v.validate({**base, "instrument_key": "XNYM:futures:CL"})
+    with pytest.raises(ValidationError):
+        v.validate({**base, "instrument_key": ""})
+
+
 # --- dealSummary/dealDetail: realized_pnl, sizing/execution_policy/market ---
 
 def test_summary_and_detail_optional_realized_pnl(registry):

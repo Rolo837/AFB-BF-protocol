@@ -1,0 +1,10 @@
+{
+  "channel": "catalog",
+  "schema": "afbws.catalog.error.v1",
+  "request_id": "c-3",
+  "code": "conflict",
+  "message": "Каталог изменён",
+  "details": {
+    "catalog_revision": 14
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "channel": "catalog",
+  "schema": "afbws.catalog.symbols.v1",
+  "request_id": "c-2",
+  "source": "finam",
+  "total": 1,
+  "offset": 0,
+  "fetched_at": "2026-10-03T17:18:00+03:00",
+  "items": [
+    {
+      "ref": "CL@XNYM",
+      "kind": "listing",
+      "ticker": "CL",
+      "name": "Crude Oil",
+      "market": "futures",
+      "mic": "XNYM",
+      "archived": false,
+      "in_catalog": null,
+      "addable": true
+    }
+  ]
+}

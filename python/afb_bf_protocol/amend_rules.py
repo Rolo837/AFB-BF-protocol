@@ -148,6 +148,22 @@ def _instrument_identity(deal: dict[str, Any]) -> tuple[str, str, str, str]:
     )
 
 
+def _instrument_key(deal: dict[str, Any]) -> str:
+    target = deal.get("target") if isinstance(deal.get("target"), dict) else {}
+    instr = target.get("instrument") if isinstance(target.get("instrument"), dict) else {}
+    return str(instr.get("instrument_key") or "")
+
+
+def _instrument_changed(old_deal: dict[str, Any], new_deal: dict[str, Any]) -> bool:
+    """The catalog key, when BOTH sides carry it, is the identity of the instrument. If either side lacks
+    it (a deal published before the key existed), fall back to the venue tuple — so a stored deal and its
+    freshly compiled twin do not look like an "instrument changed"."""
+    old_key, new_key = _instrument_key(old_deal), _instrument_key(new_deal)
+    if old_key and new_key:
+        return old_key != new_key
+    return _instrument_identity(old_deal) != _instrument_identity(new_deal)
+
+
 def _sides(deal: dict[str, Any]) -> tuple[str, ...]:
     # Both afb.deal.v1 and afb.deal.v2 require the root `direction`
     # (long/short) as of protocol v2.0.0 — entry.side (legacy buy/sell) is no
@@ -371,8 +387,11 @@ def evaluate_amend(
     """
     verdicts: list[FieldVerdict] = []
     for name in AMEND_FIELDS:
-        extract = _EXTRACTORS[name]
-        changed = extract(old_deal) != extract(new_deal)
+        if name == "instrument":
+            changed = _instrument_changed(old_deal, new_deal)
+        else:
+            extract = _EXTRACTORS[name]
+            changed = extract(old_deal) != extract(new_deal)
         if not changed:
             verdicts.append(FieldVerdict(name, changed=False, allowed=True))
             continue

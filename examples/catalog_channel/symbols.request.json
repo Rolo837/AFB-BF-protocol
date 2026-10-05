@@ -1,0 +1,11 @@
+{
+  "channel": "catalog",
+  "schema": "afbws.catalog.symbols.v1",
+  "request_id": "c-2",
+  "source": "finam",
+  "query": "CL",
+  "market": "futures",
+  "limit": 50,
+  "mic": "XNYM",
+  "offset": 0
+}

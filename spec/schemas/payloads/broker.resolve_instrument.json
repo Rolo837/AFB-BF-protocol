@@ -5,13 +5,24 @@
   "description": "Deal-instrument pre-flight (AFB's afbws.instrument.channel.v1 `resolve`/`detail`, and the tradeplan publish path) — `deal` is a compiled ExecutionDeal (afb.deal.v1 or afb.deal.v2), the same shape deal.publish carries, sent here purely for its target/instrument fields; BF does not persist it from this command.",
   "type": "object",
   "additionalProperties": true,
-  "required": ["deal"],
+  "required": [
+    "deal"
+  ],
   "properties": {
     "deal": {
       "oneOf": [
-        { "$ref": "../deal.v1.json" },
-        { "$ref": "../deal.v2.json" }
+        {
+          "$ref": "../deal.v1.json"
+        },
+        {
+          "$ref": "../deal.v2.json"
+        }
       ]
+    },
+    "account_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional broker account whose trading parameters (initial margin, tradable/longable/shortable, price_type) are wanted — they depend on the account's tariff. Sent by AFB's afbws.instrument.channel.v2 `detail`. A connector that does not support account granularity ignores it and answers with connector-level values."
     }
   }
 }

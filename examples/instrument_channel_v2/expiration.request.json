@@ -1,0 +1,5 @@
+{
+  "channel": "instrument",
+  "schema": "afbws.instrument.expiration.v2",
+  "request_id": "i-5"
+}

@@ -313,7 +313,7 @@ def _schemas_source_hash(root: Path) -> str:
     """sha256 over spec/schemas/**/*.json — same algorithm as
     ts/tools/generate-models.mjs's sourceHash(), so models.ts and
     models_generated.py carry an identical banner hash when in sync. A
-    `draft/` or `meta/` directory is excluded at any depth, mirroring that
+    `meta/` directory is excluded at any depth, mirroring that
     function's own walk (`meta/` holds meta-schemas — e.g.
     iss/meta/iss.market.v1.json — which validate other schema documents
     rather than being a data instance, so they are never modeled)."""
@@ -322,7 +322,7 @@ def _schemas_source_hash(root: Path) -> str:
         (
             p
             for p in schemas_dir.rglob("*.json")
-            if not set(p.relative_to(schemas_dir).parts[:-1]) & {"draft", "meta"}
+            if not set(p.relative_to(schemas_dir).parts[:-1]) & {"meta"}
         ),
         key=lambda p: p.relative_to(schemas_dir).as_posix(),
     )
@@ -542,9 +542,6 @@ def sync_packaged_schemas(root: Path | None = None) -> tuple[Path, int]:
     count = 0
     for path in src.rglob("*.json"):
         rel = path.relative_to(src)
-        # Parked drafts stay in spec/ only — not part of the package surface.
-        if rel.parts and rel.parts[0] == "draft":
-            continue
         target = dst / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(path.read_text())

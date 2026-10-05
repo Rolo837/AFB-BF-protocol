@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/config.v1.json",
+  "title": "afb.config.v1 — per-user settings payload (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard` are deep-merged, `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "profile": { "$ref": "#/$defs/profile" },
+    "interface": { "$ref": "#/$defs/interface" },
+    "dataset": { "$ref": "#/$defs/dataset" },
+    "dashboard": { "$ref": "#/$defs/dashboard" },
+    "trade": { "$ref": "#/$defs/trade" }
+  },
+  "$defs": {
+    "profile": {
+      "type": "object",
+      "title": "settings.profile — contacts and notification prefs (formerly `me`).",
+      "additionalProperties": true,
+      "properties": {
+        "name": { "type": "string", "description": "Read-only display name (server-side source: user registry). Present in responses/pushes when set; a client write is ignored." },
+        "email": { "type": "string" },
+        "telegram": { "type": "string" },
+        "notify_telegram": { "type": "boolean" },
+        "notify_email": { "type": "boolean" },
+        "notify_system": {
+          "type": "boolean",
+          "description": "System stability notifications (afb.notification.system.v1) — manager role only; a write from any other role is ignored by the server."
+        },
+        "sound": { "type": "string", "description": "Notification sound id, e.g. 'game/coin'." }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "title": "settings.interface.layout — page offsets and debug flag (formerly top-level `service`).",
+      "additionalProperties": true,
+      "properties": {
+        "offset_right": { "type": "integer" },
+        "offset_top": { "type": "integer" },
+        "debug_mode": { "type": "boolean" }
+      }
+    },
+    "chartToolbar": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "favorite_timeframes": { "type": "array", "items": { "type": "string" } },
+        "favorite_datasets": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Elements are either `dataset-<preset>` keys or indicator ids."
+        },
+        "favorite_primitives": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Primitive kind values (gp.v2.json)."
+        }
+      }
+    },
+    "servicesFilters": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "instruments": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": { "markets": { "type": "array", "items": { "type": "string" } } }
+        },
+        "alarms": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": { "statuses": { "type": "array", "items": { "type": "string" } } }
+        },
+        "plans": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": { "statuses": { "type": "array", "items": { "type": "string" } } }
+        }
+      }
+    },
+    "interface": {
+      "type": "object",
+      "title": "settings.interface — UI prefs.",
+      "additionalProperties": true,
+      "properties": {
+        "layout": { "$ref": "#/$defs/layout" },
+        "snow_mode": { "type": "boolean" },
+        "confirm_delete": { "type": "boolean" },
+        "smart_alarms": { "type": "boolean" },
+        "preset_timeframes": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "positions": { "type": "string" },
+            "trades": { "type": "string" },
+            "hhi": { "type": "string" },
+            "orders": { "type": "string" }
+          }
+        },
+        "chart_toolbar": { "$ref": "#/$defs/chartToolbar" },
+        "services_filters": { "$ref": "#/$defs/servicesFilters" },
+        "trade_plan_default_capital_rub": { "type": "number" },
+        "futures_days_to_expiration": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Days-to-expiration threshold the frontend uses to pick the front futures contract of a derivative: the member with the minimum expiration not earlier than today + N. Default 2, matching `securities.days_to_expiration` in AFB's `config/afb.yaml`."
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "title": "settings.dataset — chart series styling.",
+      "description": "Freeform per-series style config (color/style/panel triplets, e.g. positions.longColor, trades.tradesBColor). Keys vary per series and grow as new series are added — deliberately open string/number maps rather than enumerating dozens of purely presentational keys.",
+      "additionalProperties": true,
+      "properties": {
+        "positions": { "type": "object", "additionalProperties": { "type": ["string", "number"] } },
+        "trades": { "type": "object", "additionalProperties": { "type": ["string", "number"] } },
+        "hhi": { "type": "object", "additionalProperties": { "type": ["string", "number"] } },
+        "orders": { "type": "object", "additionalProperties": { "type": ["string", "number"] } }
+      }
+    },
+    "dashboardLayoutItem": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "widget": { "type": "string" },
+        "i": { "type": "string", "description": "Accepted wire synonym of `widget`." },
+        "x": { "type": "integer" },
+        "y": { "type": "integer" },
+        "w": { "type": "integer" },
+        "h": { "type": "integer" }
+      }
+    },
+    "dashboard": {
+      "type": "object",
+      "title": "settings.dashboard — widget grid.",
+      "description": "`cols` is clamped 8-24 by the frontend normalizer rather than enforced here.",
+      "additionalProperties": true,
+      "properties": {
+        "cols": { "type": "integer" },
+        "breakpoints": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": { "lg": { "type": "integer" }, "xl": { "type": "integer" } }
+        },
+        "layouts": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": { "lg": { "type": "array", "items": { "$ref": "#/$defs/dashboardLayoutItem" } } }
+        },
+        "widgets": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "bf_id": { "type": "string" },
+              "order_filter": { "type": "string" },
+              "deal_status_filters": { "type": "array", "items": { "type": "string" } },
+              "exchange": { "type": "string" },
+              "market": { "type": "string" },
+              "events_date": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "tradeNotify": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "trigger": { "type": "boolean" },
+        "order_placed": { "type": "boolean" },
+        "order_executed": { "type": "boolean" },
+        "position": { "type": "boolean" },
+        "close": { "type": "boolean" },
+        "link": { "type": "boolean" }
+      }
+    },
+    "trade": {
+      "type": "object",
+      "title": "settings.trade — user trading prefs (replaced whole on write).",
+      "description": "`default_capital` is persisted by the server into the user's virtual account, not into the settings file; reads return the live value.",
+      "additionalProperties": true,
+      "properties": {
+        "auto_execute": { "type": "boolean" },
+        "default_connector": { "type": "string" },
+        "default_capital": { "type": "number" },
+        "default_risk_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Default risk_factor (%) for a newly created trade plan."
+        },
+        "notify": { "$ref": "#/$defs/tradeNotify" },
+        "chart_deal_markers": { "type": "boolean" },
+        "plan_editor_placement": { "type": "string" }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "title": "Platform default settings (shared by all users).",
+      "description": "Merged under every user's own settings. A write (manager only) requires `dataset`.",
+      "additionalProperties": false,
+      "properties": {
+        "interface": { "$ref": "#/$defs/interface" },
+        "dataset": { "$ref": "#/$defs/dataset" },
+        "dashboard": { "$ref": "#/$defs/dashboard" }
+      }
+    }
+  }
+}

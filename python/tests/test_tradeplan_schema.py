@@ -123,6 +123,47 @@ def test_v2_condition_accepts_duration_on_price_level(registry):
     _validator(TRADEPLAN_V2_ID, registry).validate(plan)
 
 
+def _v2_plan(**over):
+    plan = {
+        "schema": "afb.tradeplan.v2",
+        "id": "tp1",
+        "direction": "long",
+        "entries": [{"condition": {"left": {"source": "price", "field": "last"}, "right": {"const": "100"}}}],
+        "sizing": {"mode": "lots", "value": "1"},
+    }
+    plan.update(over)
+    return plan
+
+
+def test_v2_accepts_instrument_key_with_or_without_ticker(registry):
+    v = _validator(TRADEPLAN_V2_ID, registry)
+    v.validate(_v2_plan(ticker="SBER"))  # stored before the key existed
+    v.validate(_v2_plan(instrument_key="MISX:TQBR:SBER"))
+    v.validate(_v2_plan(ticker="CL", instrument_key="XNYM:futures:CL"))
+
+
+def test_v2_needs_a_ticker_or_an_instrument_key(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator(TRADEPLAN_V2_ID, registry).validate(_v2_plan())
+
+
+def test_v2_instrument_key_must_not_be_empty(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator(TRADEPLAN_V2_ID, registry).validate(_v2_plan(instrument_key=""))
+
+
+def test_v1_is_untouched_by_the_key(registry):
+    """Only v2 learned `instrument_key`; v1 still requires its ticker."""
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator(TRADEPLAN_V1_ID, registry).validate({"id": "x", "instrument_key": "MISX:TQBR:SBER"})
+
+
 def test_v2_requires_non_empty_entries(registry):
     from jsonschema import ValidationError
 

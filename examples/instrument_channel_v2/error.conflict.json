@@ -1,0 +1,10 @@
+{
+  "channel": "instrument",
+  "schema": "afbws.instrument.error.v2",
+  "request_id": "i-2",
+  "code": "conflict",
+  "message": "Устаревшая ревизия",
+  "details": {
+    "user_revision": 5
+  }
+}
