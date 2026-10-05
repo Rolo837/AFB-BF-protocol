@@ -8,6 +8,8 @@
 
 ## Unreleased
 
+## v2.8.0 — 2026-10-05
+
 **`afbws.config.token.v1`: вид токена `finam`.** `kind` получает значение `finam` (read-only токен Finam Trade API для источника каталога AFB). Сервер проверяет кандидата до записи на диск: токен должен проходить аутентификацию и быть read-only (`TokenDetails.readonly`), торговый токен отклоняется `validation_error` и не сохраняется. Схема сообщения не менялась, только enum `kind`. PATCH (afbws).
 
 - **Новый канал `instrument` v2** (`afbws/instrument.channel.v2.json`, capability `afbws.instrument.channel.v2`; AFB-сторонняя схема вне `asyncapi.yaml`): один schema id на сообщение (`afbws.instrument.<op>.v2`, тот же id — запрос, ответ и пуш; пуш без `request_id`), тикеров как адреса нет — инструмент только по `instrument_key`. Операции: `catalog` (рабочий снимок: коллекции, наборы с `visibility`, активы, листинги, деривативы), `sets` (единая команда создания/изменения/порядка/удаления наборов для всех авторизованных; `visibility` `personal` или глобальная `guest|user|manager` — глобальные только менеджеру, CAS по `user_revision`/`catalog_revision`), `favorites`, `paint`, `expiration` (запрос/ответ/пуш), `replace`, `detail` (параметры инструмента по `instrument_key` сразу по всем счетам пользователя, `scope: account|connector`), `error`. Остальные операции v1 (`get`, `pool`, `inventory`, `sources`, `refresh`, `resolve`, `commit`, `user`) не переносятся. Схема `instrument.channel.v1.json` помечена `deprecated`. `payloads/broker.resolve_instrument.json` получил необязательный `account_id`.
