@@ -1,0 +1,18 @@
+{
+  "channel": "instrument",
+  "schema": "afbws.instrument.paint.v2",
+  "request_id": "i-4",
+  "mark": [
+    {
+      "kind": "instrument",
+      "key": "XNYM:futures:CL",
+      "color": "red"
+    }
+  ],
+  "unmark": [
+    {
+      "kind": "asset",
+      "key": "a1"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "channel": "instrument",
+  "schema": "afbws.instrument.sets.v2",
+  "request_id": "i-2",
+  "user_revision": 3,
+  "sets": [
+    {
+      "id": "p1",
+      "name": "Мои",
+      "type": "instrument",
+      "visibility": "personal",
+      "instrument_keys": [
+        "MISX:TQBR:SBER",
+        "XNYM:futures:CL"
+      ]
+    }
+  ],
+  "remove_sets": [
+    "p9"
+  ]
+}

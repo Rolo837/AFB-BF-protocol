@@ -1,0 +1,25 @@
+{
+  "channel": "instrument",
+  "schema": "afbws.instrument.expiration.v2",
+  "items": [
+    {
+      "instrument_key": "MISX:RFUD:SiZ6",
+      "ticker": "SiZ6",
+      "expiration": "2026-12-15",
+      "days_left": 5,
+      "usage": {
+        "alarms": 1,
+        "primitives": 0,
+        "sets": 1,
+        "favorites": 0
+      },
+      "candidates": [
+        {
+          "instrument_key": "MISX:RFUD:SiH7",
+          "ticker": "SiH7",
+          "expiration": "2027-03-16"
+        }
+      ]
+    }
+  ]
+}

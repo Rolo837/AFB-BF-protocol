@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 8788f0ef1aa0ccfe9251d884efeb1ad150ffc9ac1c85071e6675379b22ec81d2
+ * source-hash: a3892d072aa78082e4494cebe59c06fe84871135110b9c83b6addfebdf8716f9
  */
 
 /**
@@ -817,7 +817,7 @@ export type GpV2Style = {
   styles?: GpV2PrimitiveStyles;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaced legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` — all removed from the AFB dispatcher in the legacy-protocol cleanup; there is no legacy fallback any more, a connection that has not negotiated this capability gets a typed `invalid_channel` error instead. `catalog` is the one read snapshot of the curated catalog for any authenticated caller. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `sets` are named Sets — of assets or of instruments, by `set_type` (not the category tree); `asset_sets` is the deprecated legacy view of the asset-type sets. `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. `user` is the caller's personal-sets operation and is served. `favorites`/`paint` are the caller's colored favorites: `favorites` is read-only (the current list, in display order), `paint` is the write — an additive, CAS-free delta (`mark`/`unmark`/`order`) over instruments and assets, kept separate from `user` so a favorite click never spuriously conflicts with an open personal-sets edit. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see assetSetView) instead of the single-parent group tree, plus an independent derivatives axis (catalogDerivative) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — "Brent oil" is the BR-* and BRM-* series together — and it, not the ticker, is what a set of type `asset` contains (`sets[].asset_ids`; a set of type `instrument` holds single listings, `sets[].instrument_keys`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves — an asset set carries its ordered `asset_ids`, an asset its ordered `members`. Order is carried by array position everywhere on the wire: no entity has an order field, and a write restates a full order through the dedicated `set_order`/`collection_order`/`order` sections of `commit`. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.
+ * DEPRECATED — superseded by afbws.instrument.channel.v2 (instrument.channel.v2.json); still served to clients that did not negotiate v2, to be removed after the release window. Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaced legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` — all removed from the AFB dispatcher in the legacy-protocol cleanup; there is no legacy fallback any more, a connection that has not negotiated this capability gets a typed `invalid_channel` error instead. `catalog` is the one read snapshot of the curated catalog for any authenticated caller. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `sets` are named Sets — of assets or of instruments, by `set_type` (not the category tree); `asset_sets` is the deprecated legacy view of the asset-type sets. `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. `user` is the caller's personal-sets operation and is served. `favorites`/`paint` are the caller's colored favorites: `favorites` is read-only (the current list, in display order), `paint` is the write — an additive, CAS-free delta (`mark`/`unmark`/`order`) over instruments and assets, kept separate from `user` so a favorite click never spuriously conflicts with an open personal-sets edit. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see assetSetView) instead of the single-parent group tree, plus an independent derivatives axis (catalogDerivative) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — "Brent oil" is the BR-* and BRM-* series together — and it, not the ticker, is what a set of type `asset` contains (`sets[].asset_ids`; a set of type `instrument` holds single listings, `sets[].instrument_keys`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves — an asset set carries its ordered `asset_ids`, an asset its ordered `members`. Order is carried by array position everywhere on the wire: no entity has an order field, and a write restates a full order through the dedicated `set_order`/`collection_order`/`order` sections of `commit`. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentChannelV1Message".
@@ -1122,6 +1122,215 @@ export type InstrumentInventoryListingEntry = {
  * via the `definition` "AfbwsInstrumentChannelV1_ReplaceKind".
  */
 export type AfbwsInstrumentChannelV1_ReplaceKind = 'alarms' | 'primitives' | 'sets' | 'favorites';
+/**
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v2). Replaces afbws.instrument.channel.v1 (deprecated, still served to clients that did not negotiate v2) with only the operations the project uses and that afbws.catalog.channel.v1 does not already cover. Same convention as afbws.catalog/afbws.alarm.v2/afbws.gp.v2: ONE schema id per message (`afbws.instrument.<op>.v2`), the same schema is the request, its response and, for `expiration`, the server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.instrument.error.v2`. Operations: `catalog`, `sets`, `favorites`, `paint`, `expiration`, `replace`, `detail`. Instruments are addressed ONLY by `instrument_key`; `ticker` appears solely as a display attribute of a listing / notice. All operations are open to any authenticated caller; manager rights (global sets) are checked by the backend per `visibility`. See AFB/docs/ws/instrument.md.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Root".
+ */
+export type AfbwsInstrumentChannelV2_Root =
+  | AfbwsInstrumentChannelV2_Catalog
+  | AfbwsInstrumentChannelV2_Sets
+  | AfbwsInstrumentChannelV2_Favorites
+  | AfbwsInstrumentChannelV2_Paint
+  | AfbwsInstrumentChannelV2_Expiration
+  | AfbwsInstrumentChannelV2_Replace
+  | AfbwsInstrumentChannelV2_Detail
+  | AfbwsInstrumentChannelV2_Error;
+/**
+ * Request: only `request_id`. Response (same `request_id`): what the caller may see — ordered `collections`, `sets` (global sets published for the caller's tier plus the caller's own `personal` ones, in display order), `assets` with members, the active `listings` the caller may see and the `derivatives` axis. Completeness is applied by the backend from the caller's role (a manager also sees unassigned assets). `revision` is the global catalog revision (`catalog_revision` of `sets`), `user_revision` the revision of the caller's personal sets aggregate. Any authenticated caller.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Catalog".
+ */
+export type AfbwsInstrumentChannelV2_Catalog = {
+  channel: 'instrument';
+  schema: 'afbws.instrument.catalog.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  revision?: number;
+  user_revision?: number;
+  collections?: AfbwsInstrumentChannelV2_Collection[];
+  sets?: AfbwsInstrumentChannelV2_Set[];
+  assets?: AfbwsInstrumentChannelV2_Asset[];
+  listings?: AfbwsInstrumentChannelV2_Listing[];
+  derivatives?: AfbwsInstrumentChannelV2_Derivative[];
+} & AfbwsInstrumentChannelV2_Catalog1;
+/**
+ * Same list and order as afbws.instrument.channel.v1#/$defs/favoriteColor and afbws.catalog.channel.v1 (kept in lockstep; no cross-reference on purpose).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_FavoriteColor".
+ */
+export type AfbwsInstrumentChannelV2_FavoriteColor =
+  'yellow' | 'red' | 'blue' | 'green' | 'gray' | 'orange' | 'cyan' | 'purple' | 'pink' | 'teal';
+/**
+ * A named set of assets (`asset_ids[]`) or of instruments (`instrument_keys[]`), by `type`; exactly the list of its own type is present, always the WHOLE composition in display order. `type` is decided on create and cannot change afterwards.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Set".
+ */
+export type AfbwsInstrumentChannelV2_Set = {
+  [k: string]: unknown;
+} & {
+  id: string;
+  name: string;
+  type: 'asset' | 'instrument';
+  visibility: AfbwsInstrumentChannelV2_Visibility;
+  /**
+   * Opaque icon key. Omitted in a request: unchanged; null: clears.
+   */
+  icon_id?: string | null;
+  /**
+   * Omitted in a request: unchanged; null: clears.
+   */
+  icon_color?: AfbwsInstrumentChannelV2_FavoriteColor | null;
+  asset_ids?: string[];
+  instrument_keys?: AfbwsCommonV1_InstrumentKey[];
+};
+/**
+ * Who sees a set. `personal` — only its owner (any authenticated caller may create these, within the tier limit `max_sets`). `guest`/`user`/`manager` — a GLOBAL set published for callers whose tier is at least that one; creating, changing or deleting a global set is manager-only (backend gate, `forbidden` otherwise).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Visibility".
+ */
+export type AfbwsInstrumentChannelV2_Visibility = 'personal' | 'guest' | 'user' | 'manager';
+export type AfbwsInstrumentChannelV2_Catalog1 = {
+  [k: string]: unknown;
+};
+/**
+ * ONE command for all authenticated callers; the only difference between a user and a manager is the `visibility` of the set, checked by the backend. Request: `sets[]` — upsert by `id`, each with its WHOLE composition in final order (omit the list to leave a set's composition untouched); the order of `sets[]` is the display order of the sets (personal ones and global ones are ordered separately); `remove_sets[]` — ids to delete. `visibility` `personal` (default for a new set) is open to everybody within the tier limit `max_sets`; `guest|user|manager` (global set) is manager-only (`forbidden`, `details.set_ids`). A set keeps its scope: switching between `personal` and a global visibility is `validation_error`. CAS: `user_revision` guards the personal sets, `catalog_revision` the global ones; each is required when the request touches that area (stale -> `conflict` with the current revisions in `details`). The request is atomic: if anything is rejected nothing is applied. Response (same `request_id`): both revisions and `sets[]` — the caller's visible sets after the change, in display order (same form as `catalog.sets`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Sets".
+ */
+export type AfbwsInstrumentChannelV2_Sets = {
+  channel: 'instrument';
+  schema: 'afbws.instrument.sets.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  user_revision?: number;
+  catalog_revision?: number;
+  sets?: AfbwsInstrumentChannelV2_SetEdit[];
+  remove_sets?: string[];
+  /**
+   * Present (true) only in the response.
+   */
+  applied?: true;
+} & AfbwsInstrumentChannelV2_Sets1;
+/**
+ * A set inside `sets` (request / response). Request: `type` (default `asset` on create; on update must equal the stored one) and `visibility` (default `personal` on create; unchanged on update) are optional; the composition list of the set's own type, when present, is the WHOLE composition in final order. Response: every field of `set` is present.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_SetEdit".
+ */
+export type AfbwsInstrumentChannelV2_SetEdit = {
+  [k: string]: unknown;
+} & {
+  id: string;
+  name: string;
+  type?: 'asset' | 'instrument';
+  visibility?: AfbwsInstrumentChannelV2_Visibility;
+  /**
+   * Opaque icon key. Omitted in a request: unchanged; null: clears.
+   */
+  icon_id?: string | null;
+  /**
+   * Omitted in a request: unchanged; null: clears.
+   */
+  icon_color?: AfbwsInstrumentChannelV2_FavoriteColor | null;
+  asset_ids?: string[];
+  instrument_keys?: AfbwsCommonV1_InstrumentKey[];
+};
+export type AfbwsInstrumentChannelV2_Sets1 = {
+  [k: string]: unknown;
+};
+/**
+ * Request: only `request_id`. Response: `items[]` nearest expiration first. The SAME schema is the server push: a message WITHOUT `request_id` carries the caller's full current list, which REPLACES the client's copy (an empty list clears the card).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Expiration".
+ */
+export type AfbwsInstrumentChannelV2_Expiration = {
+  channel: 'instrument';
+  schema: 'afbws.instrument.expiration.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  items?: AfbwsInstrumentChannelV2_ExpirationNotice[];
+} & AfbwsInstrumentChannelV2_Expiration1;
+export type AfbwsInstrumentChannelV2_Expiration1 = {
+  [k: string]: unknown;
+};
+/**
+ * Request: `from_key`, `to_key` (an ACTIVE contract of the same derivative) and optional `kinds` (default all four). Prices and levels are never adjusted. Partial results are normal: what could not be moved is in `rejected[]`. Idempotent. Response: the same keys plus `replaced` (counts), `rejected[]` and the refreshed `items[]` (as a fresh `expiration`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Replace".
+ */
+export type AfbwsInstrumentChannelV2_Replace = {
+  channel: 'instrument';
+  schema: 'afbws.instrument.replace.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  from_key: AfbwsCommonV1_InstrumentKey;
+  to_key: AfbwsCommonV1_InstrumentKey;
+  /**
+   * @minItems 1
+   */
+  kinds?: [AfbwsInstrumentChannelV2_ReplaceKind, ...AfbwsInstrumentChannelV2_ReplaceKind[]];
+  replaced?: AfbwsInstrumentChannelV2_ExpirationUsage;
+  rejected?: AfbwsInstrumentChannelV2_ReplaceRejection[];
+  items?: AfbwsInstrumentChannelV2_ExpirationNotice[];
+} & AfbwsInstrumentChannelV2_Replace1;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_ReplaceKind".
+ */
+export type AfbwsInstrumentChannelV2_ReplaceKind = 'alarms' | 'primitives' | 'sets' | 'favorites';
+export type AfbwsInstrumentChannelV2_Replace1 = {
+  [k: string]: unknown;
+};
+/**
+ * Request: `instrument_key` and optionally `accounts[]` to narrow the answer; by default ALL accounts of the caller, the virtual one included. The tradeplan editor asks once when it opens (and when the instrument changes) and picks the selected account from `items[]`. Response (same `request_id`): `items[]` — one entry per account; a failure of one account is that entry's `status`/`error`, the others are unaffected. A whole-request error (`not_found` for an unknown key, `forbidden`, `unavailable` when there are no accounts) is `afbws.instrument.error.v2`. Any authenticated caller.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Detail".
+ */
+export type AfbwsInstrumentChannelV2_Detail = {
+  channel: 'instrument';
+  schema: 'afbws.instrument.detail.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  instrument_key: AfbwsCommonV1_InstrumentKey;
+  /**
+   * @minItems 1
+   */
+  accounts?: [AfbwsInstrumentChannelV2_AccountRef, ...AfbwsInstrumentChannelV2_AccountRef[]];
+  items?: AfbwsInstrumentChannelV2_AccountDetail[];
+} & AfbwsInstrumentChannelV2_Detail1;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_AccountDetail".
+ */
+export type AfbwsInstrumentChannelV2_AccountDetail = {
+  [k: string]: unknown;
+} & {
+  bf_id: string;
+  account_id: string;
+  status: 'ok' | 'unavailable' | 'error';
+  /**
+   * `account` — the values are those of this very account; `connector` — the connector (BF) answered without account granularity, the values are connector-level.
+   */
+  scope?: 'account' | 'connector';
+  /**
+   * Trading parameters (tradable, longable, shortable, initial margins, price_type …) — BF-owned shape for real accounts, computed by AFB for the virtual one. Present when status is `ok`.
+   */
+  broker_instrument?: {
+    [k: string]: unknown;
+  };
+  error?: {
+    code: 'not_found' | 'bf_offline' | 'unsupported_action' | 'internal_error' | 'unavailable';
+    message: string;
+  };
+};
+export type AfbwsInstrumentChannelV2_Detail1 = {
+  [k: string]: unknown;
+};
 /**
  * Manager view of a BF connector config record — reuses link.user.v1.json#/$defs/sharedFields (via $ref, not redeclared, so the two views can't drift apart) plus ACL/key management fields. Never carries `connected`/`daemon`/session runtime — see link.status.v1.json.
  *
@@ -4563,6 +4772,223 @@ export interface InstrumentErrorDetails {
   };
 }
 /**
+ * A node of the category tree; its position in `collections[]` is the display order. `asset_ids` is the ordered composition (assets filed into it).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Collection".
+ */
+export interface AfbwsInstrumentChannelV2_Collection {
+  id: string;
+  name: string;
+  parent_id?: string | null;
+  /**
+   * Opaque icon key. Omitted in a request: unchanged; null: clears.
+   */
+  icon_id?: string | null;
+  /**
+   * Omitted in a request: unchanged; null: clears.
+   */
+  icon_color?: AfbwsInstrumentChannelV2_FavoriteColor | null;
+  asset_ids: string[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Asset".
+ */
+export interface AfbwsInstrumentChannelV2_Asset {
+  id: string;
+  name: string;
+  collection_id: string | null;
+  members: AfbwsInstrumentChannelV2_Member[];
+}
+/**
+ * One ordered member of an asset: `listing` (ref = instrument_key) or `derivative` (ref = derivative code `MIC:CODE`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Member".
+ */
+export interface AfbwsInstrumentChannelV2_Member {
+  kind: 'listing' | 'derivative';
+  ref: string;
+}
+/**
+ * An active catalog listing. `instrument_key` is the identity; `ticker` is a display attribute only (for non-MISX it is `MIC:TICKER`) and is never an address in this channel.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Listing".
+ */
+export interface AfbwsInstrumentChannelV2_Listing {
+  instrument_key: AfbwsCommonV1_InstrumentKey;
+  mic: string;
+  board?: string | null;
+  market: string;
+  ticker: string;
+  name: string;
+  shortname?: string | null;
+  currency?: string | null;
+  decimals?: number | null;
+  lot_size?: number | null;
+  /**
+   * Decimal string, never a float.
+   */
+  price_step?: string | null;
+  /**
+   * Decimal string, never a float.
+   */
+  step_price?: string | null;
+  expiration?: string | null;
+  isin?: string | null;
+  derivative?: string | null;
+  source: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Derivative".
+ */
+export interface AfbwsInstrumentChannelV2_Derivative {
+  code: string;
+  kind: 'perpetual' | 'series' | 'options';
+  name: string;
+  underlying_key?: AfbwsCommonV1_InstrumentKey | null;
+  source: string;
+}
+/**
+ * Request: only `request_id`. Response: `favorites` in display order (array position is the order).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Favorites".
+ */
+export interface AfbwsInstrumentChannelV2_Favorites {
+  channel: 'instrument';
+  schema: 'afbws.instrument.favorites.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  favorites?: AfbwsInstrumentChannelV2_FavoriteEntry[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_FavoriteEntry".
+ */
+export interface AfbwsInstrumentChannelV2_FavoriteEntry {
+  kind: 'instrument' | 'asset';
+  key: string;
+  color: AfbwsInstrumentChannelV2_FavoriteColor;
+}
+/**
+ * No CAS: `mark` (paint or repaint), `unmark` (idempotent removal) and `order` (REPLACES the whole display order) are idempotent. Request: any of `mark`/`unmark`/`order`. Response: `marked`/`unmarked`/`order` — only the sections that were present in the request; `unmarked` lists only refs that really were favorites. A response is recognised by `marked`/`unmarked`; an `order`-only request and its echo have the same shape.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Paint".
+ */
+export interface AfbwsInstrumentChannelV2_Paint {
+  channel: 'instrument';
+  schema: 'afbws.instrument.paint.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  mark?: AfbwsInstrumentChannelV2_FavoriteEntry[];
+  unmark?: AfbwsInstrumentChannelV2_FavoriteRef[];
+  order?: AfbwsInstrumentChannelV2_FavoriteRef[];
+  marked?: AfbwsInstrumentChannelV2_FavoriteEntry[];
+  unmarked?: AfbwsInstrumentChannelV2_FavoriteRef[];
+}
+/**
+ * `key` is an `instrument_key` for kind `instrument` and an `asset_id` for kind `asset`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_FavoriteRef".
+ */
+export interface AfbwsInstrumentChannelV2_FavoriteRef {
+  kind: 'instrument' | 'asset';
+  key: string;
+}
+/**
+ * One expiring contract the caller uses, ready for the replace card (computed by the server). `ticker` is display only.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_ExpirationNotice".
+ */
+export interface AfbwsInstrumentChannelV2_ExpirationNotice {
+  instrument_key: AfbwsCommonV1_InstrumentKey;
+  ticker: string;
+  shortname?: string;
+  expiration: string;
+  days_left: number;
+  usage: AfbwsInstrumentChannelV2_ExpirationUsage;
+  candidates: AfbwsInstrumentChannelV2_ExpirationCandidate[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_ExpirationUsage".
+ */
+export interface AfbwsInstrumentChannelV2_ExpirationUsage {
+  alarms: number;
+  primitives: number;
+  sets: number;
+  favorites: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_ExpirationCandidate".
+ */
+export interface AfbwsInstrumentChannelV2_ExpirationCandidate {
+  instrument_key: AfbwsCommonV1_InstrumentKey;
+  ticker: string;
+  expiration: string;
+  shortname?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_ReplaceRejection".
+ */
+export interface AfbwsInstrumentChannelV2_ReplaceRejection {
+  kind: AfbwsInstrumentChannelV2_ReplaceKind;
+  id: string;
+  code: 'not_found' | 'validation_error' | 'conflict' | 'forbidden' | 'internal_error';
+  message?: string;
+}
+/**
+ * A broker account (or the virtual one) of the caller. `account_id` is what the trading parameters depend on; `bf_id` accompanies it while an account id is unique only within a connector.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_AccountRef".
+ */
+export interface AfbwsInstrumentChannelV2_AccountRef {
+  bf_id: string;
+  account_id: string;
+}
+/**
+ * `details`: `catalog_revision` / `user_revision` for `conflict`; `set_ids` / `asset_ids` / `instrument_keys` naming the rows at fault for `forbidden` / `validation_error`; `limit` for a tier-limit overflow.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Error".
+ */
+export interface AfbwsInstrumentChannelV2_Error {
+  channel: 'instrument';
+  schema: 'afbws.instrument.error.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  code:
+    | 'forbidden'
+    | 'invalid_schema'
+    | 'invalid_channel'
+    | 'unsupported_action'
+    | 'validation_error'
+    | 'not_found'
+    | 'conflict'
+    | 'bf_offline'
+    | 'internal_error';
+  message: string;
+  details?: {
+    catalog_revision?: number;
+    user_revision?: number;
+    set_ids?: string[];
+    asset_ids?: string[];
+    instrument_keys?: string[];
+    limit?: {
+      key: string;
+      allowed: number;
+      requested: number;
+    };
+  };
+}
+/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "LinkSharedFields".
  */
@@ -6154,6 +6580,10 @@ export interface BrokerPositionLedgerPayload {
  */
 export interface BrokerResolveInstrumentPayload {
   deal: DealV1 | DealV2;
+  /**
+   * Optional broker account whose trading parameters (initial margin, tradable/longable/shortable, price_type) are wanted — they depend on the account's tariff. Sent by AFB's afbws.instrument.channel.v2 `detail`. A connector that does not support account granularity ignores it and answers with connector-level values.
+   */
+  account_id?: string;
   [k: string]: unknown;
 }
 /**

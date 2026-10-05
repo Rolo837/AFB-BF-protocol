@@ -1,0 +1,15 @@
+{
+  "channel": "instrument",
+  "schema": "afbws.instrument.replace.v2",
+  "request_id": "i-6",
+  "from_key": "MISX:RFUD:SiZ6",
+  "to_key": "MISX:RFUD:SiH7",
+  "replaced": {
+    "alarms": 1,
+    "primitives": 0,
+    "sets": 0,
+    "favorites": 1
+  },
+  "rejected": [],
+  "items": []
+}

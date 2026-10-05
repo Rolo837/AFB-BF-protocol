@@ -410,6 +410,7 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/schemas/config.v1.json` | Настройки пользователя AFB (`settings`: `profile`/`interface`/`dataset`/`dashboard`/`trade`) и платформенные дефолты (`$defs/defaults`), AFB↔фронтенд |
 | `spec/schemas/afbws/config.channel.v1.json` | Канал `config` (capability `afbws.config.channel.v1`): `settings`/`defaults`/`help`/`roles`/`token`, один schema id на сообщение, `afbws.config.error.v1` с `item` вместо флага `rejected`; заменяет legacy-каналы `settings`/`help`/`setup` |
 | `spec/schemas/afbws/catalog.channel.v1.json` | Канал `catalog` (capability `afbws.catalog.channel.v1`), только менеджер: `snapshot`/`symbols`/`support`/`commit`/`refresh`, один schema id на сообщение, списки ≤100, пуш итога обновления `refresh` без `request_id`; заменяет менеджерскую половину `afbws.instrument` (`catalog`/`pool`/`inventory`/`commit`/`refresh`) |
+| `spec/schemas/afbws/instrument.channel.v2.json` | Канал `instrument` v2 (capability `afbws.instrument.channel.v2`), любой авторизованный: `catalog`/`sets`/`favorites`/`paint`/`expiration`/`replace`/`detail`, один schema id на сообщение, пуш без `request_id`, инструмент только по `instrument_key`; `sets` — единая команда наборов (личные и глобальные по `visibility`), `detail` — параметры по всем счетам; заменяет `instrument.channel.v1` (deprecated) |
 | `spec/schemas/payloads/` | JSON Schema каждого payload |
 | `examples/` | Подписанные примеры конвертов |
 | `examples/tradeplans/` | Примеры шаблонов ТП (не конверты, не подписываются) |

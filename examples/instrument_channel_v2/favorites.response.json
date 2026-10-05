@@ -1,0 +1,12 @@
+{
+  "channel": "instrument",
+  "schema": "afbws.instrument.favorites.v2",
+  "request_id": "i-3",
+  "favorites": [
+    {
+      "kind": "instrument",
+      "key": "XNYM:futures:CL",
+      "color": "yellow"
+    }
+  ]
+}

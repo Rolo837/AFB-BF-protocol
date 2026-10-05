@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 8788f0ef1aa0ccfe9251d884efeb1ad150ffc9ac1c85071e6675379b22ec81d2
+# source-hash: a3892d072aa78082e4494cebe59c06fe84871135110b9c83b6addfebdf8716f9
 
 from __future__ import annotations
 
@@ -823,6 +823,424 @@ class AfbwsInstrumentChannelV1ReplaceResponse(TypedDict):
     items: list[AfbwsInstrumentChannelV1ExpirationNotice]
 
 
+class AfbwsInstrumentChannelV2AccountDetail(TypedDict):
+    bf_id: str
+    account_id: str
+    status: Literal["ok", "unavailable", "error"]
+    scope: NotRequired[Literal["account", "connector"]]
+    broker_instrument: NotRequired[dict[str, Any]]
+    error: NotRequired[Error]
+
+
+class AfbwsInstrumentChannelV2AccountRef(TypedDict):
+    """
+    A broker account (or the virtual one) of the caller. `account_id` is what the trading parameters depend on; `bf_id` accompanies it while an account id is unique only within a connector.
+    """
+
+    bf_id: str
+    account_id: str
+
+
+class AfbwsInstrumentChannelV2Asset(TypedDict):
+    id: str
+    name: str
+    collection_id: str | None
+    members: list[AfbwsInstrumentChannelV2Member]
+
+
+class AfbwsInstrumentChannelV2Catalog1(TypedDict):
+    """
+    Request: only `request_id`. Response (same `request_id`): what the caller may see — ordered `collections`, `sets` (global sets published for the caller's tier plus the caller's own `personal` ones, in display order), `assets` with members, the active `listings` the caller may see and the `derivatives` axis. Completeness is applied by the backend from the caller's role (a manager also sees unassigned assets). `revision` is the global catalog revision (`catalog_revision` of `sets`), `user_revision` the revision of the caller's personal sets aggregate. Any authenticated caller.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.catalog.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    revision: NotRequired[int]
+    user_revision: NotRequired[int]
+    collections: NotRequired[list[AfbwsInstrumentChannelV2Collection]]
+    sets: NotRequired[list[AfbwsInstrumentChannelV2Set]]
+    assets: NotRequired[list[AfbwsInstrumentChannelV2Asset]]
+    listings: NotRequired[list[AfbwsInstrumentChannelV2Listing]]
+    derivatives: NotRequired[list[AfbwsInstrumentChannelV2Derivative]]
+
+
+class AfbwsInstrumentChannelV2Catalog2(TypedDict):
+    """
+    Request: only `request_id`. Response (same `request_id`): what the caller may see — ordered `collections`, `sets` (global sets published for the caller's tier plus the caller's own `personal` ones, in display order), `assets` with members, the active `listings` the caller may see and the `derivatives` axis. Completeness is applied by the backend from the caller's role (a manager also sees unassigned assets). `revision` is the global catalog revision (`catalog_revision` of `sets`), `user_revision` the revision of the caller's personal sets aggregate. Any authenticated caller.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.catalog.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    revision: int
+    user_revision: int
+    collections: list[AfbwsInstrumentChannelV2Collection]
+    sets: list[AfbwsInstrumentChannelV2Set]
+    assets: list[AfbwsInstrumentChannelV2Asset]
+    listings: list[AfbwsInstrumentChannelV2Listing]
+    derivatives: list[AfbwsInstrumentChannelV2Derivative]
+
+
+AfbwsInstrumentChannelV2Catalog: TypeAlias = (
+    AfbwsInstrumentChannelV2Catalog1 | AfbwsInstrumentChannelV2Catalog2
+)
+
+
+class AfbwsInstrumentChannelV2Collection(TypedDict):
+    """
+    A node of the category tree; its position in `collections[]` is the display order. `asset_ids` is the ordered composition (assets filed into it).
+    """
+
+    id: str
+    name: str
+    parent_id: NotRequired[str | None]
+    icon_id: NotRequired[str | None]
+    icon_color: NotRequired[AfbwsInstrumentChannelV2FavoriteColor | None]
+    asset_ids: list[str]
+
+
+class AfbwsInstrumentChannelV2Derivative(TypedDict):
+    code: str
+    kind: Literal["perpetual", "series", "options"]
+    name: str
+    underlying_key: NotRequired[AfbwsCommonV1InstrumentKey | None]
+    source: str
+
+
+class AfbwsInstrumentChannelV2Detail1(TypedDict):
+    """
+    Request: `instrument_key` and optionally `accounts[]` to narrow the answer; by default ALL accounts of the caller, the virtual one included. The tradeplan editor asks once when it opens (and when the instrument changes) and picks the selected account from `items[]`. Response (same `request_id`): `items[]` — one entry per account; a failure of one account is that entry's `status`/`error`, the others are unaffected. A whole-request error (`not_found` for an unknown key, `forbidden`, `unavailable` when there are no accounts) is `afbws.instrument.error.v2`. Any authenticated caller.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.detail.v2"]
+    request_id: AfbwsCommonV1RequestId
+    instrument_key: AfbwsCommonV1InstrumentKey
+    accounts: NotRequired[list[AfbwsInstrumentChannelV2AccountRef]]
+    items: NotRequired[list[AfbwsInstrumentChannelV2AccountDetail]]
+
+
+class AfbwsInstrumentChannelV2Detail2(TypedDict):
+    """
+    Request: `instrument_key` and optionally `accounts[]` to narrow the answer; by default ALL accounts of the caller, the virtual one included. The tradeplan editor asks once when it opens (and when the instrument changes) and picks the selected account from `items[]`. Response (same `request_id`): `items[]` — one entry per account; a failure of one account is that entry's `status`/`error`, the others are unaffected. A whole-request error (`not_found` for an unknown key, `forbidden`, `unavailable` when there are no accounts) is `afbws.instrument.error.v2`. Any authenticated caller.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.detail.v2"]
+    request_id: AfbwsCommonV1RequestId
+    instrument_key: AfbwsCommonV1InstrumentKey
+    accounts: NotRequired[list[AfbwsInstrumentChannelV2AccountRef]]
+    items: list[AfbwsInstrumentChannelV2AccountDetail]
+
+
+AfbwsInstrumentChannelV2Detail: TypeAlias = (
+    AfbwsInstrumentChannelV2Detail1 | AfbwsInstrumentChannelV2Detail2
+)
+
+
+class AfbwsInstrumentChannelV2Error(TypedDict):
+    """
+    `details`: `catalog_revision` / `user_revision` for `conflict`; `set_ids` / `asset_ids` / `instrument_keys` naming the rows at fault for `forbidden` / `validation_error`; `limit` for a tier-limit overflow.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.error.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    code: Literal[
+        "forbidden",
+        "invalid_schema",
+        "invalid_channel",
+        "unsupported_action",
+        "validation_error",
+        "not_found",
+        "conflict",
+        "bf_offline",
+        "internal_error",
+    ]
+    message: str
+    details: NotRequired[Details]
+
+
+class AfbwsInstrumentChannelV2Expiration1(TypedDict):
+    """
+    Request: only `request_id`. Response: `items[]` nearest expiration first. The SAME schema is the server push: a message WITHOUT `request_id` carries the caller's full current list, which REPLACES the client's copy (an empty list clears the card).
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.expiration.v2"]
+    request_id: AfbwsCommonV1RequestId
+    items: NotRequired[list[AfbwsInstrumentChannelV2ExpirationNotice]]
+
+
+class AfbwsInstrumentChannelV2Expiration2(TypedDict):
+    """
+    Request: only `request_id`. Response: `items[]` nearest expiration first. The SAME schema is the server push: a message WITHOUT `request_id` carries the caller's full current list, which REPLACES the client's copy (an empty list clears the card).
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.expiration.v2"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[AfbwsInstrumentChannelV2ExpirationNotice]
+
+
+class AfbwsInstrumentChannelV2Expiration3(TypedDict):
+    """
+    Request: only `request_id`. Response: `items[]` nearest expiration first. The SAME schema is the server push: a message WITHOUT `request_id` carries the caller's full current list, which REPLACES the client's copy (an empty list clears the card).
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.expiration.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    items: list[AfbwsInstrumentChannelV2ExpirationNotice]
+
+
+AfbwsInstrumentChannelV2Expiration: TypeAlias = (
+    AfbwsInstrumentChannelV2Expiration1
+    | AfbwsInstrumentChannelV2Expiration2
+    | AfbwsInstrumentChannelV2Expiration3
+)
+
+
+class AfbwsInstrumentChannelV2ExpirationCandidate(TypedDict):
+    instrument_key: AfbwsCommonV1InstrumentKey
+    ticker: str
+    expiration: str
+    shortname: NotRequired[str]
+
+
+class AfbwsInstrumentChannelV2ExpirationNotice(TypedDict):
+    """
+    One expiring contract the caller uses, ready for the replace card (computed by the server). `ticker` is display only.
+    """
+
+    instrument_key: AfbwsCommonV1InstrumentKey
+    ticker: str
+    shortname: NotRequired[str]
+    expiration: str
+    days_left: int
+    usage: AfbwsInstrumentChannelV2ExpirationUsage
+    candidates: list[AfbwsInstrumentChannelV2ExpirationCandidate]
+
+
+class AfbwsInstrumentChannelV2ExpirationUsage(TypedDict):
+    alarms: int
+    primitives: int
+    sets: int
+    favorites: int
+
+
+AfbwsInstrumentChannelV2FavoriteColor: TypeAlias = Literal[
+    "yellow", "red", "blue", "green", "gray", "orange", "cyan", "purple", "pink", "teal"
+]
+
+
+class AfbwsInstrumentChannelV2FavoriteEntry(TypedDict):
+    kind: Literal["instrument", "asset"]
+    key: str
+    color: AfbwsInstrumentChannelV2FavoriteColor
+
+
+class AfbwsInstrumentChannelV2FavoriteRef(TypedDict):
+    """
+    `key` is an `instrument_key` for kind `instrument` and an `asset_id` for kind `asset`.
+    """
+
+    kind: Literal["instrument", "asset"]
+    key: str
+
+
+class AfbwsInstrumentChannelV2Favorites(TypedDict):
+    """
+    Request: only `request_id`. Response: `favorites` in display order (array position is the order).
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.favorites.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    favorites: NotRequired[list[AfbwsInstrumentChannelV2FavoriteEntry]]
+
+
+class AfbwsInstrumentChannelV2Listing(TypedDict):
+    """
+    An active catalog listing. `instrument_key` is the identity; `ticker` is a display attribute only (for non-MISX it is `MIC:TICKER`) and is never an address in this channel.
+    """
+
+    instrument_key: AfbwsCommonV1InstrumentKey
+    mic: str
+    board: NotRequired[str | None]
+    market: str
+    ticker: str
+    name: str
+    shortname: NotRequired[str | None]
+    currency: NotRequired[str | None]
+    decimals: NotRequired[int | None]
+    lot_size: NotRequired[int | None]
+    price_step: NotRequired[str | None]
+    step_price: NotRequired[str | None]
+    expiration: NotRequired[str | None]
+    isin: NotRequired[str | None]
+    derivative: NotRequired[str | None]
+    source: str
+
+
+class AfbwsInstrumentChannelV2Member(TypedDict):
+    """
+    One ordered member of an asset: `listing` (ref = instrument_key) or `derivative` (ref = derivative code `MIC:CODE`).
+    """
+
+    kind: Literal["listing", "derivative"]
+    ref: str
+
+
+class AfbwsInstrumentChannelV2Paint(TypedDict):
+    """
+    No CAS: `mark` (paint or repaint), `unmark` (idempotent removal) and `order` (REPLACES the whole display order) are idempotent. Request: any of `mark`/`unmark`/`order`. Response: `marked`/`unmarked`/`order` — only the sections that were present in the request; `unmarked` lists only refs that really were favorites. A response is recognised by `marked`/`unmarked`; an `order`-only request and its echo have the same shape.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.paint.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    mark: NotRequired[list[AfbwsInstrumentChannelV2FavoriteEntry]]
+    unmark: NotRequired[list[AfbwsInstrumentChannelV2FavoriteRef]]
+    order: NotRequired[list[AfbwsInstrumentChannelV2FavoriteRef]]
+    marked: NotRequired[list[AfbwsInstrumentChannelV2FavoriteEntry]]
+    unmarked: NotRequired[list[AfbwsInstrumentChannelV2FavoriteRef]]
+
+
+class AfbwsInstrumentChannelV2Replace1(TypedDict):
+    """
+    Request: `from_key`, `to_key` (an ACTIVE contract of the same derivative) and optional `kinds` (default all four). Prices and levels are never adjusted. Partial results are normal: what could not be moved is in `rejected[]`. Idempotent. Response: the same keys plus `replaced` (counts), `rejected[]` and the refreshed `items[]` (as a fresh `expiration`).
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.replace.v2"]
+    request_id: AfbwsCommonV1RequestId
+    from_key: AfbwsCommonV1InstrumentKey
+    to_key: AfbwsCommonV1InstrumentKey
+    kinds: NotRequired[list[AfbwsInstrumentChannelV2ReplaceKind]]
+    replaced: NotRequired[AfbwsInstrumentChannelV2ExpirationUsage]
+    rejected: NotRequired[list[AfbwsInstrumentChannelV2ReplaceRejection]]
+    items: NotRequired[list[AfbwsInstrumentChannelV2ExpirationNotice]]
+
+
+class AfbwsInstrumentChannelV2Replace2(TypedDict):
+    """
+    Request: `from_key`, `to_key` (an ACTIVE contract of the same derivative) and optional `kinds` (default all four). Prices and levels are never adjusted. Partial results are normal: what could not be moved is in `rejected[]`. Idempotent. Response: the same keys plus `replaced` (counts), `rejected[]` and the refreshed `items[]` (as a fresh `expiration`).
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.replace.v2"]
+    request_id: AfbwsCommonV1RequestId
+    from_key: AfbwsCommonV1InstrumentKey
+    to_key: AfbwsCommonV1InstrumentKey
+    kinds: NotRequired[list[AfbwsInstrumentChannelV2ReplaceKind]]
+    replaced: AfbwsInstrumentChannelV2ExpirationUsage
+    rejected: list[AfbwsInstrumentChannelV2ReplaceRejection]
+    items: list[AfbwsInstrumentChannelV2ExpirationNotice]
+
+
+AfbwsInstrumentChannelV2Replace: TypeAlias = (
+    AfbwsInstrumentChannelV2Replace1 | AfbwsInstrumentChannelV2Replace2
+)
+
+
+AfbwsInstrumentChannelV2ReplaceKind: TypeAlias = Literal[
+    "alarms", "primitives", "sets", "favorites"
+]
+
+
+class AfbwsInstrumentChannelV2ReplaceRejection(TypedDict):
+    kind: AfbwsInstrumentChannelV2ReplaceKind
+    id: str
+    code: Literal[
+        "not_found", "validation_error", "conflict", "forbidden", "internal_error"
+    ]
+    message: NotRequired[str]
+
+
+class AfbwsInstrumentChannelV2Set(TypedDict):
+    """
+    A named set of assets (`asset_ids[]`) or of instruments (`instrument_keys[]`), by `type`; exactly the list of its own type is present, always the WHOLE composition in display order. `type` is decided on create and cannot change afterwards.
+    """
+
+    id: str
+    name: str
+    type: Literal["asset", "instrument"]
+    visibility: AfbwsInstrumentChannelV2Visibility
+    icon_id: NotRequired[str | None]
+    icon_color: NotRequired[AfbwsInstrumentChannelV2FavoriteColor | None]
+    asset_ids: NotRequired[list[str]]
+    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
+
+
+class AfbwsInstrumentChannelV2SetEdit(TypedDict):
+    """
+    A set inside `sets` (request / response). Request: `type` (default `asset` on create; on update must equal the stored one) and `visibility` (default `personal` on create; unchanged on update) are optional; the composition list of the set's own type, when present, is the WHOLE composition in final order. Response: every field of `set` is present.
+    """
+
+    id: str
+    name: str
+    type: NotRequired[Literal["asset", "instrument"]]
+    visibility: NotRequired[AfbwsInstrumentChannelV2Visibility]
+    icon_id: NotRequired[str | None]
+    icon_color: NotRequired[AfbwsInstrumentChannelV2FavoriteColor | None]
+    asset_ids: NotRequired[list[str]]
+    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
+
+
+class AfbwsInstrumentChannelV2Sets1(TypedDict):
+    """
+    ONE command for all authenticated callers; the only difference between a user and a manager is the `visibility` of the set, checked by the backend. Request: `sets[]` — upsert by `id`, each with its WHOLE composition in final order (omit the list to leave a set's composition untouched); the order of `sets[]` is the display order of the sets (personal ones and global ones are ordered separately); `remove_sets[]` — ids to delete. `visibility` `personal` (default for a new set) is open to everybody within the tier limit `max_sets`; `guest|user|manager` (global set) is manager-only (`forbidden`, `details.set_ids`). A set keeps its scope: switching between `personal` and a global visibility is `validation_error`. CAS: `user_revision` guards the personal sets, `catalog_revision` the global ones; each is required when the request touches that area (stale -> `conflict` with the current revisions in `details`). The request is atomic: if anything is rejected nothing is applied. Response (same `request_id`): both revisions and `sets[]` — the caller's visible sets after the change, in display order (same form as `catalog.sets`).
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.sets.v2"]
+    request_id: AfbwsCommonV1RequestId
+    user_revision: NotRequired[int]
+    catalog_revision: NotRequired[int]
+    sets: NotRequired[list[AfbwsInstrumentChannelV2SetEdit]]
+    remove_sets: NotRequired[list[str]]
+    applied: NotRequired[Literal[True]]
+
+
+class AfbwsInstrumentChannelV2Sets2(TypedDict):
+    """
+    ONE command for all authenticated callers; the only difference between a user and a manager is the `visibility` of the set, checked by the backend. Request: `sets[]` — upsert by `id`, each with its WHOLE composition in final order (omit the list to leave a set's composition untouched); the order of `sets[]` is the display order of the sets (personal ones and global ones are ordered separately); `remove_sets[]` — ids to delete. `visibility` `personal` (default for a new set) is open to everybody within the tier limit `max_sets`; `guest|user|manager` (global set) is manager-only (`forbidden`, `details.set_ids`). A set keeps its scope: switching between `personal` and a global visibility is `validation_error`. CAS: `user_revision` guards the personal sets, `catalog_revision` the global ones; each is required when the request touches that area (stale -> `conflict` with the current revisions in `details`). The request is atomic: if anything is rejected nothing is applied. Response (same `request_id`): both revisions and `sets[]` — the caller's visible sets after the change, in display order (same form as `catalog.sets`).
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.sets.v2"]
+    request_id: AfbwsCommonV1RequestId
+    user_revision: int
+    catalog_revision: int
+    sets: list[AfbwsInstrumentChannelV2SetEdit]
+    remove_sets: NotRequired[list[str]]
+    applied: Literal[True]
+
+
+AfbwsInstrumentChannelV2Sets: TypeAlias = (
+    AfbwsInstrumentChannelV2Sets1 | AfbwsInstrumentChannelV2Sets2
+)
+
+
+AfbwsInstrumentChannelV2Root: TypeAlias = (
+    AfbwsInstrumentChannelV2Catalog
+    | AfbwsInstrumentChannelV2Sets
+    | AfbwsInstrumentChannelV2Favorites
+    | AfbwsInstrumentChannelV2Paint
+    | AfbwsInstrumentChannelV2Expiration
+    | AfbwsInstrumentChannelV2Replace
+    | AfbwsInstrumentChannelV2Detail
+    | AfbwsInstrumentChannelV2Error
+)
+
+
+AfbwsInstrumentChannelV2Visibility: TypeAlias = Literal[
+    "personal", "guest", "user", "manager"
+]
+
+
 class AfbwsMarketChannelV1DataStatus(TypedDict):
     """
     Present on a `series` message only when it is NOT a normal fresh fetch: either the `moex` source's circuit breaker was open when this was built (data served from `market_cache` only — no network at all; a `candles` table may be missing entirely since candles have no persistent cache, see AFB `backend/market/tables.py::build_series_tables_cache_only`) or AFB's freshness detector found this instrument's calendar section/kind lagging behind a live market (`backend/sources/freshness.py`) while the underlying fetch itself still nominally succeeded. Absent on `data_status` means a normal, fresh answer.
@@ -1456,6 +1874,7 @@ class BrokerResolveInstrumentPayload(TypedDict):
     """
 
     deal: DealV1 | DealV2
+    account_id: NotRequired[str]
 
 
 class BrokerSizing(TypedDict):
@@ -2743,6 +3162,15 @@ class Deals(TypedDict):
 DecimalString: TypeAlias = str
 
 
+class Details(TypedDict):
+    catalog_revision: NotRequired[int]
+    user_revision: NotRequired[int]
+    set_ids: NotRequired[list[str]]
+    asset_ids: NotRequired[list[str]]
+    instrument_keys: NotRequired[list[str]]
+    limit: NotRequired[Limit]
+
+
 class Display(TypedDict):
     instrument_label: str
     condition_op: str
@@ -2825,6 +3253,13 @@ class EnvelopeSignature(TypedDict):
     alg: Literal["Ed25519"]
     key_id: str
     value: str
+
+
+class Error(TypedDict):
+    code: Literal[
+        "not_found", "bf_offline", "unsupported_action", "internal_error", "unavailable"
+    ]
+    message: str
 
 
 class Features(TypedDict):

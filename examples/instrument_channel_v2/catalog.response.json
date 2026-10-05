@@ -1,0 +1,66 @@
+{
+  "channel": "instrument",
+  "schema": "afbws.instrument.catalog.v2",
+  "request_id": "i-1",
+  "revision": 7,
+  "user_revision": 3,
+  "collections": [
+    {
+      "id": "c1",
+      "name": "Нефть",
+      "parent_id": null,
+      "asset_ids": [
+        "a1"
+      ]
+    }
+  ],
+  "sets": [
+    {
+      "id": "s1",
+      "name": "Топ",
+      "type": "asset",
+      "visibility": "user",
+      "asset_ids": [
+        "a1"
+      ]
+    },
+    {
+      "id": "p1",
+      "name": "Мои",
+      "type": "instrument",
+      "visibility": "personal",
+      "instrument_keys": [
+        "MISX:TQBR:SBER"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "id": "a1",
+      "name": "Сбер",
+      "collection_id": "c1",
+      "members": [
+        {
+          "kind": "listing",
+          "ref": "MISX:TQBR:SBER"
+        }
+      ]
+    }
+  ],
+  "listings": [
+    {
+      "instrument_key": "MISX:TQBR:SBER",
+      "mic": "MISX",
+      "board": "TQBR",
+      "market": "stock",
+      "ticker": "SBER",
+      "name": "Сбербанк",
+      "source": "moex",
+      "lot_size": 10,
+      "price_step": "0.01",
+      "decimals": 2,
+      "currency": "RUB"
+    }
+  ],
+  "derivatives": []
+}
