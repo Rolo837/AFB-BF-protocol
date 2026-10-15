@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: a3892d072aa78082e4494cebe59c06fe84871135110b9c83b6addfebdf8716f9
+# source-hash: c38f80b3d690bfc28588d33e9b36d2a48787476e5ef7ab39010578d19cbf2f6f
 
 from __future__ import annotations
 
@@ -131,6 +131,7 @@ class AccountSnapshot(TypedDict):
     status: Literal["ok", "stale", "error"]
     equity: str | None
     cash: list[PayloadsBrokerAccountsCashBalance]
+    equity_by_currency: NotRequired[list[PayloadsBrokerAccountsCashBalance]]
     positions: list[PayloadsBrokerAccountsPosition]
     as_of: NotRequired[str]
 
