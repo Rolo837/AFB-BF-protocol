@@ -3,6 +3,7 @@
 // Edit the schema's x-afbws-support-id, then run `afb-bf-protocol-generate`.
 
 export const ACCOUNT_CHANNEL_V1 = "afbws.account.channel.v1";
+export const ACCOUNT_CHANNEL_V2 = "afbws.account.channel.v2";
 export const ALARM_CHANNEL_V1 = "afbws.alarm.channel.v1";
 export const ALARM_CHANNEL_V2 = "afbws.alarm.channel.v2";
 export const CATALOG_CHANNEL_V1 = "afbws.catalog.channel.v1";
@@ -18,6 +19,7 @@ export const TRADEPLAN_CHANNEL_V1 = "afbws.tradeplan.channel.v1";
 
 export const ALL_CAPABILITY_IDS: ReadonlySet<string> = new Set([
   ACCOUNT_CHANNEL_V1,
+  ACCOUNT_CHANNEL_V2,
   ALARM_CHANNEL_V1,
   ALARM_CHANNEL_V2,
   CATALOG_CHANNEL_V1,
