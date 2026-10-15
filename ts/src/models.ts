@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: c38f80b3d690bfc28588d33e9b36d2a48787476e5ef7ab39010578d19cbf2f6f
+ * source-hash: 810e0c577788c44586f61c4eb38714c5b0250e171e13e59b7e64ed19c508609d
  */
 
 /**
