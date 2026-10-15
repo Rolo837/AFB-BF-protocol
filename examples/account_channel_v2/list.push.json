@@ -1,0 +1,28 @@
+{
+  "channel": "account",
+  "schema": "afbws.account.list.v2",
+  "bf_id": "virtual",
+  "default_account_id": "virtual:id_u1",
+  "items": [
+    {
+      "bf_id": "virtual",
+      "account_id": "virtual:id_u1",
+      "tradable": true,
+      "readonly": false,
+      "status": "ok",
+      "equity": "1233999.93",
+      "cash": [
+        {
+          "currency": "RUB",
+          "value": "1233999.93"
+        },
+        {
+          "currency": "USD",
+          "value": "1000"
+        }
+      ],
+      "positions": [],
+      "as_of": "2026-10-15T09:30:00+00:00"
+    }
+  ]
+}

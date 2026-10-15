@@ -1,0 +1,487 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/account.channel.v2.json",
+  "x-afbws-support-id": "afbws.account.channel.v2",
+  "title": "account channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, error; v1 `get` is replaced by `list` with `bf_id` + `account_id`. A client negotiates v1 or v2 (v2 preferred if both are offered); the backend answers in the negotiated version only. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes (same fields as v1, no references to account.channel.v1.json), reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a broker account (one bf_id may have more than one), not the connector itself.",
+  "type": "object",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/list"
+    },
+    {
+      "$ref": "#/$defs/orders"
+    },
+    {
+      "$ref": "#/$defs/events"
+    },
+    {
+      "$ref": "#/$defs/error"
+    }
+  ],
+  "$defs": {
+    "bfId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "accountId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cashBalance": {
+      "$ref": "../payloads/broker.accounts.json#/$defs/cashBalance"
+    },
+    "position": {
+      "$ref": "../payloads/broker.accounts.json#/$defs/position"
+    },
+    "accountSnapshot": {
+      "type": "object",
+      "title": "One broker account's public projection — see backend/trade/public_views.py::account_snapshot(). Never carries broker_account_id (see payloads/broker.accounts.json — the same field the wire type deliberately dropped).",
+      "required": [
+        "bf_id",
+        "account_id",
+        "tradable",
+        "readonly",
+        "status",
+        "equity",
+        "cash",
+        "positions"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "bf_id": {
+          "$ref": "#/$defs/bfId"
+        },
+        "account_id": {
+          "$ref": "#/$defs/accountId"
+        },
+        "tradable": {
+          "type": "boolean",
+          "description": "True only for this bf_id's default (trading) account."
+        },
+        "readonly": {
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "stale",
+            "error"
+          ]
+        },
+        "equity": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cash": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cashBalance"
+          }
+        },
+        "positions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/position"
+          }
+        },
+        "as_of": {
+          "type": "string"
+        }
+      }
+    },
+    "order": {
+      "type": "object",
+      "title": "Allow-list projection over payloads/broker.orders.json#/$defs/order plus AFB/frontend-synthesized display fields (client_order_id, cancel_source) that BF never sends — see accountStore.ts::normalizeOrder. `symbol` is not part of the BF wire shape either; it stays optional and is resolved by the frontend from the owning deal when present.",
+      "required": [
+        "order_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "order_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deal_id": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "side": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "integer"
+        },
+        "filled_quantity": {
+          "type": "integer"
+        },
+        "leg_index": {
+          "type": "integer"
+        },
+        "limit_price": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "average_price": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "client_order_id": {
+          "type": "string"
+        },
+        "cancel_source": {
+          "enum": [
+            "system",
+            "broker"
+          ]
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "error_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "error_message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "eventRecord": {
+      "type": "object",
+      "title": "Journal of incoming BF events (JSONL direction=in) for one bf_id/day — unchanged from the legacy account/get_events response. See ExecutionService.get_account_events_for_user and event_translator.envelope_to_event_record.",
+      "required": [
+        "logged_at",
+        "bf_id",
+        "category",
+        "event"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "logged_at": {
+          "type": "string"
+        },
+        "bf_id": {
+          "$ref": "#/$defs/bfId"
+        },
+        "deal_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "category": {
+          "enum": [
+            "deal",
+            "order",
+            "position",
+            "condition"
+          ]
+        },
+        "event": {
+          "type": "string"
+        },
+        "data": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    },
+    "list": {
+      "type": "object",
+      "title": "afbws.account.list.v2 — read accounts (request / response / server push).",
+      "description": "Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`; replaces v1 `get`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `default_account_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual account is pushed the same way). A request carrying `items`/`default_account_id` or a response/push carrying request-only fields is invalid.",
+      "required": [
+        "channel",
+        "schema"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "account"
+        },
+        "schema": {
+          "const": "afbws.account.list.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "bf_id": {
+          "$ref": "#/$defs/bfId"
+        },
+        "account_id": {
+          "$ref": "#/$defs/accountId"
+        },
+        "force": {
+          "type": "boolean",
+          "description": "Request only: bypass the cached accounts snapshot and re-fetch from BF."
+        },
+        "default_account_id": {
+          "$ref": "#/$defs/accountId"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/accountSnapshot"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "not": {
+              "required": [
+                "request_id"
+              ]
+            }
+          },
+          "then": {
+            "required": [
+              "bf_id",
+              "default_account_id",
+              "items"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "account_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "force"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "request_id",
+              "items"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "bf_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "account_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "force"
+                  ]
+                },
+                {
+                  "required": [
+                    "default_account_id"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "request_id"
+            ],
+            "not": {
+              "required": [
+                "items"
+              ]
+            }
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "default_account_id"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "orders": {
+      "type": "object",
+      "title": "afbws.account.orders.v2 — orders of one account (request / response / server push).",
+      "description": "Request (`request_id`, no `items`): `bf_id` required; `account_id` omitted = the connector's default (trading) account (the only account order history is available for, see payloads/broker.orders.json). Response (same `request_id`, with `items`): `bf_id`, `account_id`, `items[]`. Push (no `request_id`, server-initiated): `bf_id`, `account_id`, `items[]` for the default (trading) account.",
+      "required": [
+        "channel",
+        "schema",
+        "bf_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "account"
+        },
+        "schema": {
+          "const": "afbws.account.orders.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "bf_id": {
+          "$ref": "#/$defs/bfId"
+        },
+        "account_id": {
+          "$ref": "#/$defs/accountId"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/order"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "items"
+            ]
+          },
+          "then": {
+            "required": [
+              "account_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "required": [
+                "request_id"
+              ]
+            }
+          },
+          "then": {
+            "required": [
+              "account_id",
+              "items"
+            ]
+          }
+        }
+      ]
+    },
+    "events": {
+      "type": "object",
+      "title": "afbws.account.events.v2 — journal of incoming BF events for one bf_id/day (request / response).",
+      "description": "Request (`request_id`, no `items`): `bf_id` required, `date` (YYYY-MM-DD market date) omitted = today (market_today()). Response (same `request_id`, with `items`): `bf_id`, `date`, `items[]`. There is NO server push for events: `request_id` is always required.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "bf_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "account"
+        },
+        "schema": {
+          "const": "afbws.account.events.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "bf_id": {
+          "$ref": "#/$defs/bfId"
+        },
+        "date": {
+          "type": "string",
+          "description": "YYYY-MM-DD market date; omitted in a request means today (market_today())."
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/eventRecord"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "items"
+            ]
+          },
+          "then": {
+            "required": [
+              "date"
+            ]
+          }
+        }
+      ]
+    },
+    "error": {
+      "type": "object",
+      "title": "afbws.account.error.v2 — typed error for a whole request (server -> client).",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "code",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "account"
+        },
+        "schema": {
+          "const": "afbws.account.error.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "code": {
+          "$ref": "common.v1.json#/$defs/errorCode"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "details": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

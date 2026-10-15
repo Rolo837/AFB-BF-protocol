@@ -104,6 +104,15 @@ def test_account_snapshot_rejects_broker_account_id(registry):
         _validator("accountSnapshot", registry).validate(bad)
 
 
+def test_account_channel_examples_validate(registry):
+    examples = Path(__file__).resolve().parents[2] / "examples" / "account_channel"
+    files = sorted(examples.glob("*.json"))
+    assert files, "examples/account_channel is empty"
+    for path in files:
+        msg = json.loads(path.read_text(encoding="utf-8"))
+        _validator("getResponse", registry).validate(msg)
+
+
 # --- orders ------------------------------------------------------------
 
 def test_orders_request_response_valid(registry):

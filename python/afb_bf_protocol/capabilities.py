@@ -12,6 +12,7 @@ from __future__ import annotations
 
 __all__ = [
     "ACCOUNT_CHANNEL_V1",
+    "ACCOUNT_CHANNEL_V2",
     "ALARM_CHANNEL_V1",
     "ALARM_CHANNEL_V2",
     "CATALOG_CHANNEL_V1",
@@ -28,6 +29,7 @@ __all__ = [
 ]
 
 ACCOUNT_CHANNEL_V1 = "afbws.account.channel.v1"
+ACCOUNT_CHANNEL_V2 = "afbws.account.channel.v2"
 ALARM_CHANNEL_V1 = "afbws.alarm.channel.v1"
 ALARM_CHANNEL_V2 = "afbws.alarm.channel.v2"
 CATALOG_CHANNEL_V1 = "afbws.catalog.channel.v1"
@@ -43,6 +45,7 @@ TRADEPLAN_CHANNEL_V1 = "afbws.tradeplan.channel.v1"
 
 ALL_CAPABILITY_IDS: frozenset[str] = frozenset({
     ACCOUNT_CHANNEL_V1,
+    ACCOUNT_CHANNEL_V2,
     ALARM_CHANNEL_V1,
     ALARM_CHANNEL_V2,
     CATALOG_CHANNEL_V1,

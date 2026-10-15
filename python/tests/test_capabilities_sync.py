@@ -7,6 +7,7 @@ from pathlib import Path
 
 from afb_bf_protocol import (
     ACCOUNT_CHANNEL_V1,
+    ACCOUNT_CHANNEL_V2,
     ALARM_CHANNEL_V1,
     ALARM_CHANNEL_V2,
     ALL_CAPABILITY_IDS,
@@ -46,6 +47,7 @@ def test_capability_ids_match_schema_declarations():
         INSTRUMENT_CHANNEL_V1: "INSTRUMENT_CHANNEL_V1",
         INSTRUMENT_CHANNEL_V2: "INSTRUMENT_CHANNEL_V2",
         ACCOUNT_CHANNEL_V1: "ACCOUNT_CHANNEL_V1",
+        ACCOUNT_CHANNEL_V2: "ACCOUNT_CHANNEL_V2",
         MARKET_CHANNEL_V1: "MARKET_CHANNEL_V1",
         CONFIG_CHANNEL_V1: "CONFIG_CHANNEL_V1",
         CATALOG_CHANNEL_V1: "CATALOG_CHANNEL_V1",
@@ -61,6 +63,7 @@ def test_capability_ids_match_schema_declarations():
         INSTRUMENT_CHANNEL_V1,
         INSTRUMENT_CHANNEL_V2,
         ACCOUNT_CHANNEL_V1,
+    ACCOUNT_CHANNEL_V2,
         MARKET_CHANNEL_V1,
         CATALOG_CHANNEL_V1,
         CONFIG_CHANNEL_V1,

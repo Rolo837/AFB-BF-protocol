@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: a3892d072aa78082e4494cebe59c06fe84871135110b9c83b6addfebdf8716f9
+# source-hash: d0bf9b00829cb4833f762e9677f8c4430599bbb782abc5ba9fe49e19104dcaca
 
 from __future__ import annotations
 
@@ -156,6 +156,107 @@ AccountChannelV1Message: TypeAlias = (
     | AccountSnapshotPush
     | AccountOrdersPush
 )
+
+
+AccountV2AccountId: TypeAlias = str
+
+
+AccountV2BfId: TypeAlias = str
+
+
+class AccountV2Error(TypedDict):
+    channel: Literal["account"]
+    schema: Literal["afbws.account.error.v2"]
+    request_id: AfbwsCommonV1RequestId
+    code: AfbwsCommonV1ErrorCode
+    message: str
+    details: NotRequired[dict[str, Any]]
+
+
+class AccountV2EventRecord(TypedDict):
+    logged_at: str
+    bf_id: AccountV2BfId
+    deal_id: NotRequired[str | None]
+    category: Literal["deal", "order", "position", "condition"]
+    event: str
+    data: NotRequired[dict[str, Any] | None]
+
+
+class AccountV2Events(TypedDict):
+    """
+    Request (`request_id`, no `items`): `bf_id` required, `date` (YYYY-MM-DD market date) omitted = today (market_today()). Response (same `request_id`, with `items`): `bf_id`, `date`, `items[]`. There is NO server push for events: `request_id` is always required.
+    """
+
+    channel: Literal["account"]
+    schema: Literal["afbws.account.events.v2"]
+    request_id: AfbwsCommonV1RequestId
+    bf_id: AccountV2BfId
+    date: NotRequired[str]
+    items: NotRequired[list[AccountV2EventRecord]]
+
+
+class AccountV2List(TypedDict):
+    """
+    Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`; replaces v1 `get`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `default_account_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual account is pushed the same way). A request carrying `items`/`default_account_id` or a response/push carrying request-only fields is invalid.
+    """
+
+    channel: Literal["account"]
+    schema: Literal["afbws.account.list.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    bf_id: NotRequired[AccountV2BfId]
+    account_id: NotRequired[AccountV2AccountId]
+    force: NotRequired[bool]
+    default_account_id: NotRequired[AccountV2AccountId]
+    items: NotRequired[list[AccountV2Snapshot]]
+
+
+class AccountV2Order(TypedDict):
+    order_id: str
+    deal_id: NotRequired[str]
+    symbol: NotRequired[str]
+    side: NotRequired[str]
+    role: NotRequired[str]
+    status: NotRequired[str]
+    quantity: NotRequired[int]
+    filled_quantity: NotRequired[int]
+    leg_index: NotRequired[int]
+    limit_price: NotRequired[str | None]
+    average_price: NotRequired[str | None]
+    client_order_id: NotRequired[str]
+    cancel_source: NotRequired[Literal["system", "broker"]]
+    updated_at: NotRequired[str]
+    error_code: NotRequired[str | None]
+    error_message: NotRequired[str | None]
+
+
+class AccountV2Orders(TypedDict):
+    """
+    Request (`request_id`, no `items`): `bf_id` required; `account_id` omitted = the connector's default (trading) account (the only account order history is available for, see payloads/broker.orders.json). Response (same `request_id`, with `items`): `bf_id`, `account_id`, `items[]`. Push (no `request_id`, server-initiated): `bf_id`, `account_id`, `items[]` for the default (trading) account.
+    """
+
+    channel: Literal["account"]
+    schema: Literal["afbws.account.orders.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    bf_id: AccountV2BfId
+    account_id: NotRequired[AccountV2AccountId]
+    items: NotRequired[list[AccountV2Order]]
+
+
+AccountChannelV2Message: TypeAlias = (
+    AccountV2List | AccountV2Orders | AccountV2Events | AccountV2Error
+)
+
+
+class AccountV2Snapshot(TypedDict):
+    bf_id: AccountV2BfId
+    account_id: AccountV2AccountId
+    tradable: bool
+    readonly: bool
+    status: Literal["ok", "stale", "error"]
+    equity: str | None
+    cash: list[PayloadsBrokerAccountsCashBalance]
+    positions: list[PayloadsBrokerAccountsPosition]
+    as_of: NotRequired[str]
 
 
 class AfbwsCatalogChannelV1ArchiveItem(TypedDict):

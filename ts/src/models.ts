@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: a3892d072aa78082e4494cebe59c06fe84871135110b9c83b6addfebdf8716f9
+ * source-hash: d0bf9b00829cb4833f762e9677f8c4430599bbb782abc5ba9fe49e19104dcaca
  */
 
 /**
@@ -55,6 +55,79 @@ export type AfbwsCommonV1_ErrorCode =
   | 'unsupported_action'
   | 'superseded'
   | 'busy';
+/**
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, error; v1 `get` is replaced by `list` with `bf_id` + `account_id`. A client negotiates v1 or v2 (v2 preferred if both are offered); the backend answers in the negotiated version only. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes (same fields as v1, no references to account.channel.v1.json), reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a broker account (one bf_id may have more than one), not the connector itself.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountChannelV2Message".
+ */
+export type AccountChannelV2Message = AccountV2List | AccountV2Orders | AccountV2Events | AccountV2Error;
+/**
+ * Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`; replaces v1 `get`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `default_account_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual account is pushed the same way). A request carrying `items`/`default_account_id` or a response/push carrying request-only fields is invalid.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountV2List".
+ */
+export type AccountV2List = {
+  [k: string]: unknown;
+} & {
+  channel: 'account';
+  schema: 'afbws.account.list.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  bf_id?: AccountV2BfId;
+  account_id?: AccountV2AccountId;
+  /**
+   * Request only: bypass the cached accounts snapshot and re-fetch from BF.
+   */
+  force?: boolean;
+  default_account_id?: AccountV2AccountId;
+  items?: AccountV2Snapshot[];
+};
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountV2BfId".
+ */
+export type AccountV2BfId = string;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountV2AccountId".
+ */
+export type AccountV2AccountId = string;
+/**
+ * Request (`request_id`, no `items`): `bf_id` required; `account_id` omitted = the connector's default (trading) account (the only account order history is available for, see payloads/broker.orders.json). Response (same `request_id`, with `items`): `bf_id`, `account_id`, `items[]`. Push (no `request_id`, server-initiated): `bf_id`, `account_id`, `items[]` for the default (trading) account.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountV2Orders".
+ */
+export type AccountV2Orders = {
+  [k: string]: unknown;
+} & {
+  channel: 'account';
+  schema: 'afbws.account.orders.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  bf_id: AccountV2BfId;
+  account_id?: AccountV2AccountId;
+  items?: AccountV2Order[];
+};
+/**
+ * Request (`request_id`, no `items`): `bf_id` required, `date` (YYYY-MM-DD market date) omitted = today (market_today()). Response (same `request_id`, with `items`): `bf_id`, `date`, `items[]`. There is NO server push for events: `request_id` is always required.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountV2Events".
+ */
+export type AccountV2Events = {
+  [k: string]: unknown;
+} & {
+  channel: 'account';
+  schema: 'afbws.account.events.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  bf_id: AccountV2BfId;
+  /**
+   * YYYY-MM-DD market date; omitted in a request means today (market_today()).
+   */
+  date?: string;
+  items?: AccountV2EventRecord[];
+};
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.alarm.channel.v1). Replaces bulk settings/get_alarms+set_alarms and mail/alarms+mail/ack for clients that negotiated this capability; legacy stays available as fallback for clients that did not. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
@@ -1851,6 +1924,70 @@ export interface AccountOrdersPush {
   bf_id: AccountBfId;
   account_id: AccountAccountId;
   items: AccountOrder[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountV2Snapshot".
+ */
+export interface AccountV2Snapshot {
+  bf_id: AccountV2BfId;
+  account_id: AccountV2AccountId;
+  /**
+   * True only for this bf_id's default (trading) account.
+   */
+  tradable: boolean;
+  readonly: boolean;
+  status: 'ok' | 'stale' | 'error';
+  equity: string | null;
+  cash: PayloadsBrokerAccounts_CashBalance[];
+  positions: PayloadsBrokerAccounts_Position[];
+  as_of?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountV2Order".
+ */
+export interface AccountV2Order {
+  order_id: string;
+  deal_id?: string;
+  symbol?: string;
+  side?: string;
+  role?: string;
+  status?: string;
+  quantity?: number;
+  filled_quantity?: number;
+  leg_index?: number;
+  limit_price?: string | null;
+  average_price?: string | null;
+  client_order_id?: string;
+  cancel_source?: 'system' | 'broker';
+  updated_at?: string;
+  error_code?: string | null;
+  error_message?: string | null;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountV2EventRecord".
+ */
+export interface AccountV2EventRecord {
+  logged_at: string;
+  bf_id: AccountV2BfId;
+  deal_id?: string | null;
+  category: 'deal' | 'order' | 'position' | 'condition';
+  event: string;
+  data?: {} | null;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccountV2Error".
+ */
+export interface AccountV2Error {
+  channel: 'account';
+  schema: 'afbws.account.error.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  code: AfbwsCommonV1_ErrorCode;
+  message: string;
+  details?: {};
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
