@@ -104,19 +104,6 @@ def test_account_snapshot_rejects_broker_account_id(registry):
         _validator("accountSnapshot", registry).validate(bad)
 
 
-def test_account_snapshot_equity_by_currency_optional(registry):
-    """Виртуальный счёт: необязательный equity_by_currency — те же {currency, value}, что и cash."""
-    from jsonschema import ValidationError
-
-    v = _validator("accountSnapshot", registry)
-    v.validate(_SNAPSHOT)  # поле необязательное
-    v.validate({**_SNAPSHOT, "equity_by_currency": [{"currency": "RUB", "value": "1"}, {"currency": "USD", "value": "2.5"}]})
-    with pytest.raises(ValidationError):
-        v.validate({**_SNAPSHOT, "equity_by_currency": [{"currency": "USD"}]})
-    with pytest.raises(ValidationError):
-        v.validate({**_SNAPSHOT, "equity_by_currency": {"USD": "2.5"}})
-
-
 def test_account_channel_examples_validate(registry):
     examples = Path(__file__).resolve().parents[2] / "examples" / "account_channel"
     files = sorted(examples.glob("*.json"))

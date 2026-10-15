@@ -38,11 +38,6 @@
         "status": { "enum": ["ok", "stale", "error"] },
         "equity": { "type": ["string", "null"] },
         "cash": { "type": "array", "items": { "$ref": "#/$defs/cashBalance" } },
-        "equity_by_currency": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/cashBalance" },
-          "description": "Virtual account only (multi-currency): equity per currency = cash in that currency + unrealized P&L of deals in it (currency-pair deals excluded — already accounted by the balance conversions). Optional; real broker accounts never carry it and the scalar `equity` stays the source for them. `equity` of a virtual account is the RUB part of this list."
-        },
         "positions": { "type": "array", "items": { "$ref": "#/$defs/position" } },
         "as_of": { "type": "string" }
       }

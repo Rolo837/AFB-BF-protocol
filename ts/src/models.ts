@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 810e0c577788c44586f61c4eb38714c5b0250e171e13e59b7e64ed19c508609d
+ * source-hash: 3df4e31248f9c6abb5eb75e13af91550310db53f39f19fd59b890bcaf96f0f63
  */
 
 /**
@@ -1690,10 +1690,6 @@ export interface AccountSnapshot {
   status: 'ok' | 'stale' | 'error';
   equity: string | null;
   cash: PayloadsBrokerAccounts_CashBalance[];
-  /**
-   * Virtual account only (multi-currency): equity per currency = cash in that currency + unrealized P&L of deals in it (currency-pair deals excluded — already accounted by the balance conversions). Optional; real broker accounts never carry it and the scalar `equity` stays the source for them. `equity` of a virtual account is the RUB part of this list.
-   */
-  equity_by_currency?: PayloadsBrokerAccounts_CashBalance[];
   positions: PayloadsBrokerAccounts_Position[];
   as_of?: string;
 }
