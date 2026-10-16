@@ -29,12 +29,14 @@ _SETTINGS = {
     "interface": {
         "layout": {"offset_right": 10, "offset_top": 0, "debug_mode": False},
         "snow_mode": False,
+        "settings_storage": "local",
         "futures_days_to_expiration": 2,
         "chart_toolbar": {"favorite_timeframes": ["1min"]},
     },
     "dataset": {"positions": {"longColor": "#00ff00", "longPanel": 1}},
     "dashboard": {"cols": 12, "layouts": {"lg": [{"widget": "deals", "x": 0, "y": 0, "w": 4, "h": 3}]}},
-    "trade": {"default_risk_pct": 0.5, "notify": {"link": True}, "plan_editor_placement": "modal"},
+    "trade": {"default_risk_pct": 0.5, "notify": {"link": True}, "chart_deal_markers": True},
+    "form": {"alarms": {"confirm_delete": False}, "plans": {"risk_top": True, "editor_left": True}},
 }
 
 
@@ -46,6 +48,19 @@ def test_settings_write_and_response(registry):
     v = _validator("settings", registry)
     v.validate(_msg("settings", request_id="r1", settings={"interface": {"snow_mode": True}}))
     v.validate(_msg("settings", request_id="r1", settings=_SETTINGS))
+
+
+def test_settings_form_block_is_strict(registry):
+    v = _validator("settings", registry)
+    v.validate(_msg("settings", request_id="r1", settings={"form": {"primitives": {"confirm_delete": True}}}))
+    for bad in (
+        {"form": {"unknown": {}}},
+        {"form": {"plans": {"risk_top": "yes"}}},
+        {"form": {"plans": {"no_such": True}}},
+        {"interface": {"settings_storage": "cloud"}},
+    ):
+        with pytest.raises(Exception):
+            v.validate(_msg("settings", request_id="r1", settings=bad))
 
 
 def test_settings_push_requires_settings(registry):
