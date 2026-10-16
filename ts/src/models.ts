@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 6b77b0ed17699644db44523bba959603ee2e68858cf30c928bb324ee6a08b4f8
+ * source-hash: a0e13d0d404e76dfa56c298ad8523ed863d4d775cc9625ad150dd30d86f4055c
  */
 
 /**
@@ -2811,7 +2811,7 @@ export interface ConfigV1_Form {
      */
     hide_on_share?: boolean;
     /**
-     * Show the 'Risk and volume' section first in the plan modal (default false).
+     * Show the 'Risk and volume' section first in the plan modal (default true).
      */
     risk_top?: boolean;
   };
