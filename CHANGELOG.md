@@ -8,6 +8,8 @@
 
 ## Unreleased
 
+## v2.8.2 — 2026-10-16
+
 - **`config.v1.json`: блок `form` и `interface.settings_storage`** (настройки сервисов в шапке панелей). Корневой блок `form` (`alarms.confirm_delete`, `primitives.confirm_delete`, `plans.{auto_execute,editor_left,hide_on_share,risk_top}`, все boolean, `additionalProperties: false`, deep-merge при записи) и `interface.settings_storage` (`server|local`, где хранить `form.*`: в пользовательском файле или в localStorage браузера). Убраны `interface.confirm_delete`, `trade.auto_execute`, `trade.plan_editor_placement` (значения не мигрируются; `interface`/`trade` остаются `additionalProperties: true`, старый ключ от старого клиента не даёт `validation_error`).
 
 ## v2.8.1 — 2026-10-16
