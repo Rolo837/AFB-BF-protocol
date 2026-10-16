@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/account.channel.v1.json",
   "x-afbws-support-id": "afbws.account.channel.v1",
   "title": "account channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v1). Replaces legacy `channel=account, type=get_account|get_orders|get_events` for clients that negotiated this capability; legacy stays available as fallback — same channel name (`account`) for both, discriminated by presence of `schema` vs `type`, never both in the same session. The legacy `get_catalog`/`get_instrument`/`resolve_instrument` commands are NOT part of this migration — they are already superseded by the `instrument` channel (see instrument.channel.v1.json) for negotiated clients. `item`/`items` are explicit allow-list projections built by backend/trade/public_views.py, never a verbatim proxy of a BF broker.* payload — see $defs/accountSnapshot and $defs/order, which independently declare their own strict shape (reusing only the field-level $defs of payloads/broker.accounts.json/broker.orders.json, not their whole root) so this channel never inherits the wire schemas' additionalProperties:true. `account` here means a broker account (one bf_id/connector may have more than one — see broker.get_accounts/broker.accounts on the AFB<->BF wire), not the connector itself. See AFB/docs/ENTITY_WS_PROTOCOL.md and plans/account-channel-migration (account.md).",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v1). Replaces legacy `channel=account, type=get_account|get_orders|get_events` (legacy AFB<->frontend ws commands, unrelated to the removed BF wire command broker.get_account) for clients that negotiated this capability; legacy stays available as fallback — same channel name (`account`) for both, discriminated by presence of `schema` vs `type`, never both in the same session. The legacy `get_catalog`/`get_instrument`/`resolve_instrument` commands are NOT part of this migration — they are already superseded by the `instrument` channel (see instrument.channel.v1.json) for negotiated clients. `item`/`items` are explicit allow-list projections built by backend/trade/public_views.py, never a verbatim proxy of a BF broker.* payload — see $defs/accountSnapshot and $defs/order, which independently declare their own strict shape (reusing only the field-level $defs of payloads/broker.accounts.json/broker.orders.json, not their whole root) so this channel never inherits the wire schemas' additionalProperties:true. `account` here means a broker account (one bf_id/connector may have more than one — see broker.get_accounts/broker.accounts on the AFB<->BF wire), not the connector itself. See AFB/docs/ENTITY_WS_PROTOCOL.md and plans/account-channel-migration (account.md).",
   "type": "object",
   "oneOf": [
     { "$ref": "#/$defs/listRequest" },
@@ -23,7 +23,20 @@
     "accountId": { "type": "string", "minLength": 1 },
 
     "cashBalance": { "$ref": "../payloads/broker.accounts.json#/$defs/cashBalance" },
-    "position": { "$ref": "../payloads/broker.accounts.json#/$defs/position" },
+    "position": {
+      "type": "object",
+      "title": "Public position projection built by AFB (backend/trade/public_views.py). Own definition, independent of payloads/broker.accounts.json#/$defs/position: BF positions carry only broker_ref {broker, symbol}; AFB restores the optional `instrument` block itself (from its catalog / finam.db).",
+      "additionalProperties": false,
+      "required": ["quantity", "average_price"],
+      "properties": {
+        "quantity": { "type": "integer" },
+        "average_price": { "type": "string" },
+        "current_price": { "type": ["string", "null"] },
+        "unrealized_pnl": { "type": ["string", "null"] },
+        "instrument": { "type": "object", "description": "Instrument block restored by AFB; optional." },
+        "broker_ref": { "type": "object" }
+      }
+    },
 
     "accountSnapshot": {
       "type": "object",

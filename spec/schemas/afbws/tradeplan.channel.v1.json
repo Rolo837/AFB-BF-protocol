@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/tradeplan.channel.v1.json",
   "x-afbws-support-id": "afbws.tradeplan.channel.v1",
   "title": "tradeplan channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v1). Replaces bulk settings/get_plans+set_plans and mail/plans for clients that negotiated this capability; legacy stays available as fallback. `entity` carries both afb.tradeplan.v1 and afb.tradeplan.v2 — v1's `schema` is optional in its own canon file (legacy compatibility), so `entityV1` here wraps it with an explicit required-schema layer; v2 already requires `schema`. See AFB/docs/ENTITY_WS_PROTOCOL.md.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v1). Replaces bulk settings/get_plans+set_plans and mail/plans for clients that negotiated this capability; legacy stays available as fallback. `entity` carries afb.tradeplan.v2 (afb.tradeplan.v1 was removed). See AFB/docs/ENTITY_WS_PROTOCOL.md.",
   "type": "object",
   "oneOf": [
     { "$ref": "#/$defs/getRequest" },
@@ -20,16 +20,9 @@
     { "$ref": "#/$defs/syncPush" }
   ],
   "$defs": {
-    "entityV1": {
-      "allOf": [
-        { "$ref": "../tradeplan.v1.json" },
-        { "required": ["schema"] }
-      ]
-    },
     "entity": {
-      "description": "afb.tradeplan.v1 (schema required, see entityV1) or afb.tradeplan.v2 (schema already required in its own canon file — referenced directly, no wrapping $def needed).",
-      "oneOf": [
-        { "$ref": "#/$defs/entityV1" },
+      "description": "afb.tradeplan.v2 (schema already required in its own canon file).",
+      "allOf": [
         { "$ref": "../tradeplan.v2.json" }
       ]
     },

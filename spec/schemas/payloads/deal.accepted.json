@@ -20,6 +20,10 @@
     "broker_instrument": {
       "type": "object",
       "properties": {
+        "price_type": {
+          "enum": ["UNKNOWN", "POSITIVE", "NON_NEGATIVE", "ANY"],
+          "description": "Which order/trigger prices the instrument allows (Finam AssetParams.price_type): POSITIVE = strictly > 0; NON_NEGATIVE = >= 0; ANY = negative prices allowed (e.g. some futures); UNKNOWN = the broker did not say. Optional — absent means UNKNOWN."
+        },
         "asset_type": {
           "type": "string"
         },

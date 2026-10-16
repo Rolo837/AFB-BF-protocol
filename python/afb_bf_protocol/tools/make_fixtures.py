@@ -6,7 +6,7 @@ correct sender/recipient for its taxonomy direction, signs it with the committed
 **test** keypair, and writes ``examples/<stem>.json``.
 
 A source file name may carry a ``__variant`` suffix (e.g.
-``deal.publish__v2.json``) when a message type needs more than one example —
+``deal.publish__v2_any_entry.json``) when a message type needs more than one example —
 the part before ``__`` is looked up in ``MESSAGE_REGISTRY`` and used to
 validate against ``spec/schemas/payloads/<type>.json``, while the full stem
 becomes the output file name so variants don't collide.

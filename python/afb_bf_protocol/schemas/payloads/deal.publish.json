@@ -5,11 +5,6 @@
   "type": "object",
   "required": ["deal"],
   "properties": {
-    "deal": {
-      "oneOf": [
-        {"$ref": "../deal.v1.json"},
-        {"$ref": "../deal.v2.json"}
-      ]
-    }
+    "deal": {"$ref": "../deal.v2.json"}
   }
 }

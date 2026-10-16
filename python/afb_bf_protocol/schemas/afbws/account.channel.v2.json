@@ -32,7 +32,18 @@
       "$ref": "../payloads/broker.accounts.json#/$defs/cashBalance"
     },
     "position": {
-      "$ref": "../payloads/broker.accounts.json#/$defs/position"
+      "type": "object",
+      "title": "Public position projection built by AFB (backend/trade/public_views.py). Own definition, independent of payloads/broker.accounts.json#/$defs/position: BF positions carry only broker_ref {broker, symbol}; AFB restores the optional `instrument` block itself (from its catalog / finam.db).",
+      "additionalProperties": false,
+      "required": ["quantity", "average_price"],
+      "properties": {
+        "quantity": { "type": "integer" },
+        "average_price": { "type": "string" },
+        "current_price": { "type": ["string", "null"] },
+        "unrealized_pnl": { "type": ["string", "null"] },
+        "instrument": { "type": "object", "description": "Instrument block restored by AFB; optional." },
+        "broker_ref": { "type": "object" }
+      }
     },
     "accountSnapshot": {
       "type": "object",

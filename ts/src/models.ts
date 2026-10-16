@@ -1,11 +1,11 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: a0e13d0d404e76dfa56c298ad8523ed863d4d775cc9625ad150dd30d86f4055c
+ * source-hash: 0c0a2bd0037c339a625fa00748e24557ee6659d74f4716e23b4c5ca185989152
  */
 
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v1). Replaces legacy `channel=account, type=get_account|get_orders|get_events` for clients that negotiated this capability; legacy stays available as fallback — same channel name (`account`) for both, discriminated by presence of `schema` vs `type`, never both in the same session. The legacy `get_catalog`/`get_instrument`/`resolve_instrument` commands are NOT part of this migration — they are already superseded by the `instrument` channel (see instrument.channel.v1.json) for negotiated clients. `item`/`items` are explicit allow-list projections built by backend/trade/public_views.py, never a verbatim proxy of a BF broker.* payload — see $defs/accountSnapshot and $defs/order, which independently declare their own strict shape (reusing only the field-level $defs of payloads/broker.accounts.json/broker.orders.json, not their whole root) so this channel never inherits the wire schemas' additionalProperties:true. `account` here means a broker account (one bf_id/connector may have more than one — see broker.get_accounts/broker.accounts on the AFB<->BF wire), not the connector itself. See AFB/docs/ENTITY_WS_PROTOCOL.md and plans/account-channel-migration (account.md).
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v1). Replaces legacy `channel=account, type=get_account|get_orders|get_events` (legacy AFB<->frontend ws commands, unrelated to the removed BF wire command broker.get_account) for clients that negotiated this capability; legacy stays available as fallback — same channel name (`account`) for both, discriminated by presence of `schema` vs `type`, never both in the same session. The legacy `get_catalog`/`get_instrument`/`resolve_instrument` commands are NOT part of this migration — they are already superseded by the `instrument` channel (see instrument.channel.v1.json) for negotiated clients. `item`/`items` are explicit allow-list projections built by backend/trade/public_views.py, never a verbatim proxy of a BF broker.* payload — see $defs/accountSnapshot and $defs/order, which independently declare their own strict shape (reusing only the field-level $defs of payloads/broker.accounts.json/broker.orders.json, not their whole root) so this channel never inherits the wire schemas' additionalProperties:true. `account` here means a broker account (one bf_id/connector may have more than one — see broker.get_accounts/broker.accounts on the AFB<->BF wire), not the connector itself. See AFB/docs/ENTITY_WS_PROTOCOL.md and plans/account-channel-migration (account.md).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountChannelV1Message".
@@ -624,13 +624,6 @@ export type DealId = string;
  */
 export type BfId = string;
 /**
- * Explicit allow-list projector output over afb.deal.v1/v2 (../deal.v1.json, ../deal.v2.json), built by backend/trade/public_views.py — never a serialization of the persisted DealState file. Deliberately NOT an allOf+$ref extension of the whole wire root: those wire schemas declare `owner`/`archive_reason` in their own `properties` with no `additionalProperties: false`, so those fields would count as already-'evaluated' and survive an outer `unevaluatedProperties: false` — the only way to actually drop them is to define this object's own shape directly and reuse the wire schemas' field-level $defs (target, sizing, conditions, execution policy) rather than their root. `source` is strict and requires `tradeplan_id` — the single public link back to the owning tradeplan; `source.kind`/`draft_id`, compile snapshots and raw phase-B overrides never appear here. The one internal field that IS projected — per-leg, not on `source` — is `leg_id` (v2 legs only), the plan-leg identity the frontend needs to tell which deal leg still tracks which plan leg.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealPublicV1".
- */
-export type DealPublicV1 = DealPublicDealV1 | DealPublicDealV2;
-/**
  * Stable identity of this leg across edits — the key overrides/carry-over (tradeplan/deal separation Фаза B2) use to match a plan leg to its compiled deal leg, never array position. Assigned once when a leg is created and never reused/reassigned; a plan predating this field falls back to a deterministic `legacy:{role}:{index}` synthetic id at compile time (see AFB backend/tradeplans/models.py) until migrated.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -927,7 +920,7 @@ export type InstrumentChannelV1Message =
   | AfbwsInstrumentChannelV1_ReplaceResponse
   | InstrumentErrorResponse;
 /**
- * AFB-side canonical instrument — like afb.gp.v1/afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. One broker-agnostic shape for every market class (stock/futures/currency/index); class-specific fields are gated by `market` via the `allOf`/`if` blocks below (forbidden, not just absent, for classes they don't apply to), but the wire type stays a single schema. `ticker` is the canonical identity: bare SECID for MOEX (e.g. "SBER"), `EXCHANGE:TICKER` for everything else (e.g. "XNAS:AAPL") — `exchange`/`board`/`market` are still carried as explicit fields so nothing but one shared parser (AFB backend/instruments/identity.py, frontend utils/instrumentId.ts) ever splits the string. `group`/`asset` place the instrument in the curated catalog tree (config/instruments.yaml) that AFB users actually see — `group: null` means not yet distributed into a group, the flat-list replacement for the old `lost` bucket. `source` says who refreshes this record's trading params ("moex" for the daily ISS refresh, a broker id like "finam" for instruments obtained from that broker's catalog) — it is NOT a broker binding: which connector can actually trade this instrument, and under what broker-native symbol, is resolved at publish time (see deal.v1.json's target.instrument + BF's own catalog), never persisted here.
+ * AFB-side canonical instrument — like afb.gp.v1/afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. One broker-agnostic shape for every market class (stock/futures/currency/index); class-specific fields are gated by `market` via the `allOf`/`if` blocks below (forbidden, not just absent, for classes they don't apply to), but the wire type stays a single schema. `ticker` is the canonical identity: bare SECID for MOEX (e.g. "SBER"), `EXCHANGE:TICKER` for everything else (e.g. "XNAS:AAPL") — `exchange`/`board`/`market` are still carried as explicit fields so nothing but one shared parser (AFB backend/instruments/identity.py, frontend utils/instrumentId.ts) ever splits the string. `group`/`asset` place the instrument in the curated catalog tree (config/instruments.yaml) that AFB users actually see — `group: null` means not yet distributed into a group, the flat-list replacement for the old `lost` bucket. `source` says who refreshes this record's trading params ("moex" for the daily ISS refresh, a broker id like "finam" for instruments obtained from that broker's catalog) — it is NOT a broker binding: which connector can actually trade this instrument, and under what broker-native symbol, is resolved at publish time (see deal.v2.json's target.instrument.broker_symbol), never persisted here.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "InstrumentV1".
@@ -1574,7 +1567,7 @@ export type MarketSnapshotTable = MarketTable & {
   kind?: 'quote' | 'oi' | 'oi_daily';
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v1). Replaces bulk settings/get_plans+set_plans and mail/plans for clients that negotiated this capability; legacy stays available as fallback. `entity` carries both afb.tradeplan.v1 and afb.tradeplan.v2 — v1's `schema` is optional in its own canon file (legacy compatibility), so `entityV1` here wraps it with an explicit required-schema layer; v2 already requires `schema`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v1). Replaces bulk settings/get_plans+set_plans and mail/plans for clients that negotiated this capability; legacy stays available as fallback. `entity` carries afb.tradeplan.v2 (afb.tradeplan.v1 was removed). See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanChannelV1Message".
@@ -1593,31 +1586,12 @@ export type TradeplanChannelV1Message =
   | TradeplanErrorResponse
   | TradeplanSyncPush;
 /**
- * afb.tradeplan.v1 (schema required, see entityV1) or afb.tradeplan.v2 (schema already required in its own canon file — referenced directly, no wrapping $def needed).
+ * afb.tradeplan.v2 (schema already required in its own canon file).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanEntity".
  */
-export type TradeplanEntity = TradeplanEntityV1 | TradePlanV2;
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanEntityV1".
- */
-export type TradeplanEntityV1 = TradePlanV1 & {
-  [k: string]: unknown;
-};
-/**
- * price_value: null with condition_type price means market entry.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV1_EntryCondition".
- */
-export type TradeplanV1_EntryCondition = TradeplanV1_MarketOrPriceCondition | TradeplanV1_PrimitiveCondition;
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV1_Condition".
- */
-export type TradeplanV1_Condition = TradeplanV1_PriceCondition | TradeplanV1_PrimitiveCondition;
+export type TradeplanEntity = TradePlanV2;
 /**
  * AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
  *
@@ -1702,27 +1676,6 @@ export type DealV2_ExitList = {
   condition: DealV2_ConditionNode;
   source?: DealV2_LegSource;
 }[];
-/**
- * Response to broker.get_catalog. Describes the shape BF's InstrumentRegistry/CatalogStore actually emits today (belphegor/brokers/catalog_store.py CatalogMeta.to_dict() for the meta form, get_catalog_slice() for the slice form) — deliberately permissive (additionalProperties: true throughout, required kept to the minimum AFB reads) since BrokerPort.get_catalog_meta()/get_catalog_slice() impose nothing on a broker plugin's exact dict shape. This is a PATCH-level description of existing wire behavior, not a new constraint on it.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "BrokerCatalogPayload".
- */
-export type BrokerCatalogPayload = PayloadsBrokerCatalog_Meta | PayloadsBrokerCatalog_Slice;
-/**
- * Empty payload requests the meta form (exchanges/markets pairs) of the broker.catalog reply; {exchange,market} together request the slice form (instrument rows) for that market. AFB never sends exchange without market or vice versa (backend/trade/ws_handlers.py::handle_account).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "BrokerGetCatalogPayload".
- */
-export type BrokerGetCatalogPayload =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      exchange: string;
-      market: string;
-    };
 
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1763,7 +1716,7 @@ export interface AccountSnapshot {
   status: 'ok' | 'stale' | 'error';
   equity: string | null;
   cash: PayloadsBrokerAccounts_CashBalance[];
-  positions: PayloadsBrokerAccounts_Position[];
+  positions: AfbwsAccountChannelV1_Position[];
   as_of?: string;
 }
 /**
@@ -1776,13 +1729,16 @@ export interface PayloadsBrokerAccounts_CashBalance {
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "PayloadsBrokerAccounts_Position".
+ * via the `definition` "AfbwsAccountChannelV1_Position".
  */
-export interface PayloadsBrokerAccounts_Position {
+export interface AfbwsAccountChannelV1_Position {
   quantity: number;
   average_price: string;
   current_price?: string | null;
   unrealized_pnl?: string | null;
+  /**
+   * Instrument block restored by AFB; optional.
+   */
   instrument?: {};
   broker_ref?: {};
 }
@@ -1940,8 +1896,23 @@ export interface AccountV2Snapshot {
   status: 'ok' | 'stale' | 'error';
   equity: string | null;
   cash: PayloadsBrokerAccounts_CashBalance[];
-  positions: PayloadsBrokerAccounts_Position[];
+  positions: AfbwsAccountChannelV2_Position[];
   as_of?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsAccountChannelV2_Position".
+ */
+export interface AfbwsAccountChannelV2_Position {
+  quantity: number;
+  average_price: string;
+  current_price?: string | null;
+  unrealized_pnl?: string | null;
+  /**
+   * Instrument block restored by AFB; optional.
+   */
+  instrument?: {};
+  broker_ref?: {};
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -3062,102 +3033,9 @@ export interface AfbwsDealChannelV1_DealOpenPosition {
   as_of: string;
 }
 /**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealPublicDealV1".
+ * Explicit allow-list projector output over afb.deal.v2 (../deal.v2.json), built by backend/trade/public_views.py — never a serialization of the persisted DealState file. Deliberately NOT an allOf+$ref extension of the whole wire root: those wire schemas declare `owner`/`archive_reason` in their own `properties` with no `additionalProperties: false`, so those fields would count as already-'evaluated' and survive an outer `unevaluatedProperties: false` — the only way to actually drop them is to define this object's own shape directly and reuse the wire schemas' field-level $defs (target, sizing, conditions, execution policy) rather than their root. `source` is strict and requires `tradeplan_id` — the single public link back to the owning tradeplan; `source.kind`/`draft_id`, compile snapshots and raw phase-B overrides never appear here. The one internal field that IS projected — per-leg, not on `source` — is `leg_id` (v2 legs only), the plan-leg identity the frontend needs to tell which deal leg still tracks which plan leg.
  */
-export interface DealPublicDealV1 {
-  schema: 'afb.deal.v1';
-  deal_id: string;
-  revision: number;
-  target: DealTarget;
-  direction: 'long' | 'short';
-  entry: DealV1_Entry;
-  sizing: DealSizing;
-  risk?: {
-    take_profit?: DealV1_ExitBlock;
-    stop_loss?: DealV1_ExitBlock;
-  };
-  execution_policy?: DealExecutionPolicy;
-  source: DealPublicSource;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealTarget".
- */
-export interface DealTarget {
-  bf_id: string;
-  broker: string;
-  instrument: DealInstrument;
-  /**
-   * broker-native locator added by BF after publish
-   */
-  binding?: {};
-  /**
-   * Broker account this deal is published against. Optional on the wire — absent means BF's own trading account (brokers/port.py::account_id). AFB compiles it from the owning tradeplan's publish.account_id (see tradeplan.v1.json#/properties/publish), resolving empty/absent to the connector's default account before publish (ExecutionService.resolve_plan_account). BF validates it against its own account (plan_engine/plan_validation.py: wrong_account_id) when present.
-   */
-  account_id?: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealInstrument".
- */
-export interface DealInstrument {
-  exchange: string;
-  board: string;
-  ticker: string;
-  /**
-   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
-   */
-  instrument_key?: string;
-  market?: 'stock' | 'futures' | 'currency';
-  price_step?: DecimalString;
-  step_price?: DecimalString;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1_Entry".
- */
-export interface DealV1_Entry {
-  condition: DealV1_ConditionNode;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1_ConditionNode".
- */
-export interface DealV1_ConditionNode {
-  node_type: 'event';
-  id?: string;
-  op: 'above' | 'below' | 'crosses_above' | 'crosses_below' | 'crossing';
-  /**
-   * afb.deal.v1 conditions compare against the last traded price, or (entry only — see executor-side validation) fire immediately with no price level of its own. quote/indicator/dataset sources are afb.deal.v2-only.
-   */
-  left: {
-    source: 'price' | 'immediate';
-    field?: 'last';
-  };
-  right: {
-    const: DecimalString;
-  };
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1_ExitBlock".
- */
-export interface DealV1_ExitBlock {
-  condition?: DealV1_ConditionNode;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealPublicSource".
- */
-export interface DealPublicSource {
-  tradeplan_id: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealPublicDealV2".
- */
-export interface DealPublicDealV2 {
+export interface DealPublicV1 {
   schema: 'afb.deal.v2';
   deal_id: string;
   revision: number;
@@ -3189,6 +3067,43 @@ export interface DealPublicDealV2 {
   source: DealPublicSource;
 }
 /**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealTarget".
+ */
+export interface DealTarget {
+  bf_id: string;
+  broker: string;
+  instrument: DealInstrument;
+  /**
+   * broker-native locator added by BF after publish
+   */
+  binding?: {};
+  /**
+   * Broker account this deal is published against. Optional on the wire — absent means BF's own trading account (brokers/port.py::account_id). AFB compiles it from the owning tradeplan's publish.account_id (see tradeplan.v2.json publish), resolving empty/absent to the connector's default account before publish (ExecutionService.resolve_plan_account). BF validates it against its own account (plan_engine/plan_validation.py: wrong_account_id) when present.
+   */
+  account_id?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealInstrument".
+ */
+export interface DealInstrument {
+  exchange: string;
+  board: string;
+  ticker: string;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key?: string;
+  /**
+   * Opaque broker locator of the instrument, e.g. `TICKER@MIC`. AFB takes it from its listing_link (finam.db); BF resolves the instrument ONLY by it (no BF-side catalog). Not part of the instrument identity: amend identity is decided by instrument_key (or exchange/board/ticker), see amend_rules. Absent => BF rejects with instrument_unresolvable unless the deal binding already carries a symbol.
+   */
+  broker_symbol?: string;
+  market?: 'stock' | 'futures' | 'currency';
+  price_step?: DecimalString;
+  step_price?: DecimalString;
+}
+/**
  * AFB resolves alarm indicators by `id`, BF by `type`+`params`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -3206,6 +3121,13 @@ export interface ConditionV1_IndicatorExpr {
  */
 export interface ConditionV1_ImmediateExpr {
   source: 'immediate';
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealPublicSource".
+ */
+export interface DealPublicSource {
+  tradeplan_id: string;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -3542,6 +3464,78 @@ export interface DealAckResultItem {
   schema: 'afbws.deal.ack_result.v1';
   notification_id: string;
   status: 'ok' | 'not_found';
+}
+/**
+ * Explicit allow-list projector output over afb.deal.v2 (../deal.v2.json), built by backend/trade/public_views.py — never a serialization of the persisted DealState file. Deliberately NOT an allOf+$ref extension of the whole wire root: those wire schemas declare `owner`/`archive_reason` in their own `properties` with no `additionalProperties: false`, so those fields would count as already-'evaluated' and survive an outer `unevaluatedProperties: false` — the only way to actually drop them is to define this object's own shape directly and reuse the wire schemas' field-level $defs (target, sizing, conditions, execution policy) rather than their root. `source` is strict and requires `tradeplan_id` — the single public link back to the owning tradeplan; `source.kind`/`draft_id`, compile snapshots and raw phase-B overrides never appear here. The one internal field that IS projected — per-leg, not on `source` — is `leg_id` (v2 legs only), the plan-leg identity the frontend needs to tell which deal leg still tracks which plan leg.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealPublicV1".
+ */
+export interface DealPublicDealV2 {
+  schema: 'afb.deal.v2';
+  deal_id: string;
+  revision: number;
+  target: DealTarget;
+  direction: 'long' | 'short';
+  /**
+   * @minItems 1
+   */
+  entry: [
+    {
+      leg_id?: TradeplanV2_LegId;
+      percent?: DecimalString;
+      logic?: DealV2_LegJoin;
+      condition: DealV2_ConditionNode;
+      source?: DealV2_LegSource;
+    },
+    ...{
+      leg_id?: TradeplanV2_LegId;
+      percent?: DecimalString;
+      logic?: DealV2_LegJoin;
+      condition: DealV2_ConditionNode;
+      source?: DealV2_LegSource;
+    }[]
+  ];
+  stop_loss?: DealPublicExitList;
+  take_profit?: DealPublicExitList;
+  sizing: DealSizing;
+  execution_policy?: DealExecutionPolicy;
+  source: DealPublicSource;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealPublicDealV2".
+ */
+export interface DealPublicDealV21 {
+  schema: 'afb.deal.v2';
+  deal_id: string;
+  revision: number;
+  target: DealTarget;
+  direction: 'long' | 'short';
+  /**
+   * @minItems 1
+   */
+  entry: [
+    {
+      leg_id?: TradeplanV2_LegId;
+      percent?: DecimalString;
+      logic?: DealV2_LegJoin;
+      condition: DealV2_ConditionNode;
+      source?: DealV2_LegSource;
+    },
+    ...{
+      leg_id?: TradeplanV2_LegId;
+      percent?: DecimalString;
+      logic?: DealV2_LegJoin;
+      condition: DealV2_ConditionNode;
+      source?: DealV2_LegSource;
+    }[]
+  ];
+  stop_loss?: DealPublicExitList;
+  take_profit?: DealPublicExitList;
+  sizing: DealSizing;
+  execution_policy?: DealExecutionPolicy;
+  source: DealPublicSource;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -5654,69 +5648,6 @@ export interface TradeplanGetResponse {
   item: TradeplanEntity;
 }
 /**
- * AFB-side single-entry / single-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v1. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `schema` is optional: its absence means afb.tradeplan.v1 (compatibility with frontends older than the tradeplan schema itself).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradePlanV1".
- */
-export interface TradePlanV1 {
-  id: string;
-  ticker: string;
-  status?: 'draft' | 'published' | 'completed' | 'archived';
-  direction?: 'long' | 'short';
-  schema?: 'afb.tradeplan.v1';
-  activated_at?: string;
-  closed_at?: string;
-  archived_at?: string;
-  /**
-   * Only for outgoing messages: the plan's ticker is not found in the securities catalog. Not persisted — overlaid in plans_for_ws_response on read. Not a lifecycle state.
-   */
-  instrument_missing?: boolean;
-  entry_condition: TradeplanV1_EntryCondition;
-  quantity_value?: number | null;
-  quantity_mode?: 'lots' | 'margin' | 'balance_pct' | 'risk_currency' | 'risk_factor';
-  take_profit?: TradeplanV1_Condition | null;
-  stop_loss?: TradeplanV1_Condition | null;
-  /**
-   * Параметры публикации плана (используется ТОЛЬКО при публикации, не хранит связь с сделкой). bf_id — коннектор по умолчанию для UI; истина при публикации — bf_id из afbws.deal.publish.request.v1. account_id пусто/отсутствует — дефолтный (торговый) счёт коннектора, резолвится на лету (ExecutionService.resolve_plan_account).
-   */
-  publish?: {
-    bf_id?: string;
-    account_id?: string;
-  };
-  /**
-   * AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect.
-   */
-  delivery_at?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV1_MarketOrPriceCondition".
- */
-export interface TradeplanV1_MarketOrPriceCondition {
-  condition_type?: 'price';
-  price_value?: number | null;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV1_PrimitiveCondition".
- */
-export interface TradeplanV1_PrimitiveCondition {
-  condition_type: 'primitive';
-  primitive_id: string;
-  price_value?: number | null;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV1_PriceCondition".
- */
-export interface TradeplanV1_PriceCondition {
-  condition_type?: 'price';
-  price_value: number;
-}
-/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2_TpConditionNode".
  */
@@ -5868,7 +5799,7 @@ export interface TradeplanSyncPush {
   items: TradeplanEntity[];
 }
 /**
- * Building blocks reused across deal.v1.json/deal.v2.json/tradeplan.v1.json/tradeplan.v2.json/condition.v1.json/instrument.v1.json and payloads/dataset.*.json. Extracted from deal.v1.json (2026-08-11, tradeplan/deal separation Фаза B1) once it became clear deal.v1.json was serving as the de-facto shared library for the whole protocol, not just the afb.deal.v1 wire shape — deal.v1.json now keeps only what's genuinely v1-specific (conditionNode/entry/exitBlock). On the wire this is invisible: the resolved schema is byte-identical to before the move.
+ * Building blocks reused across deal.v2.json/tradeplan.v2.json/condition.v1.json/instrument.v1.json and payloads/dataset.*.json. Extracted from the former deal.v1.json (2026-08-11); deal.v1/tradeplan.v1 have since been removed.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "CommonV1_Root".
@@ -5899,32 +5830,7 @@ export interface DealSource {
   draft_id?: string;
 }
 /**
- * Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. The deal-level `direction` (long/short, same vocabulary as afb.deal.v2) is the single source of truth for position bias. Shared $defs (decimalString/instrument/target/sizing/executionPolicy/source) live in common.v1.json — this file keeps only what's v1-specific (conditionNode/entry/exitBlock); see common.v1.json's description for why.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1".
- */
-export interface DealV1 {
-  schema: 'afb.deal.v1';
-  deal_id: string;
-  revision: number;
-  owner?: {
-    user_id?: string;
-  };
-  target: DealTarget;
-  direction: 'long' | 'short';
-  entry: DealV1_Entry;
-  sizing: DealSizing;
-  risk?: {
-    take_profit?: DealV1_ExitBlock;
-    stop_loss?: DealV1_ExitBlock;
-  };
-  execution_policy?: DealExecutionPolicy;
-  archive_reason?: string;
-  source?: DealSource;
-}
-/**
- * Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string) and an optional `logic` (`#/$defs/legJoin`) joining it to the PRECEDING element in the same list — see `legJoin` for the full grammar (groups/buckets, `and`/`or` precedence, `percent` placement). Sum of percents per bucket resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from deal.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_* /crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.
+ * Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string) and an optional `logic` (`#/$defs/legJoin`) joining it to the PRECEDING element in the same list — see `legJoin` for the full grammar (groups/buckets, `and`/`or` precedence, `percent` placement). Sum of percents per bucket resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from common.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_* /crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2".
@@ -6442,58 +6348,7 @@ export interface NotificationSystemV1_Root {
   timestamp?: string;
 }
 /**
- * DEPRECATED: superseded by broker.accounts (see payloads/broker.accounts.json) — kept for wire compatibility with AFB builds that have not negotiated multi_account. Response to broker.get_account, describing only BF's single trading account. Matches belphegor/reporting/broker_snapshots.py::account_snapshot_payload() exactly, including the account_id/broker_account_id split that broker.accounts deliberately drops (see broker.accounts.json). Correlated via correlation_id.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "BrokerAccountPayload".
- */
-export interface BrokerAccountPayload {
-  /**
-   * BF's own trading account id (self._account_id) — NOT necessarily what the broker calls it, see broker_account_id.
-   */
-  account_id: string;
-  /**
-   * The account id as returned by the broker's GetAccount response (snapshot.account_id).
-   */
-  broker_account_id?: string;
-  equity?: string | null;
-  cash: PayloadsBrokerAccount_CashBalance[];
-  positions: PayloadsBrokerAccount_Position[];
-  [k: string]: unknown;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "PayloadsBrokerAccount_CashBalance".
- */
-export interface PayloadsBrokerAccount_CashBalance {
-  currency: string;
-  value: string;
-  [k: string]: unknown;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "PayloadsBrokerAccount_Position".
- */
-export interface PayloadsBrokerAccount_Position {
-  /**
-   * Signed lots (see position_reconcile.signed_broker_qty) — zero-quantity rows are never emitted.
-   */
-  quantity: number;
-  average_price: string;
-  current_price?: string | null;
-  unrealized_pnl?: string | null;
-  /**
-   * Venue-resolved identity (exchange/board/ticker/market) — present when the symbol is known to BF's catalog.
-   */
-  instrument?: {};
-  /**
-   * Broker-native {broker,symbol} — present when instrument is unresolved, or always when afb.include_broker_ref is set.
-   */
-  broker_ref?: {};
-  [k: string]: unknown;
-}
-/**
- * Response to broker.get_accounts and unsolicited push after every reconcile pass (see belphegor/reporting/account_directory.py::AccountDirectory, engine.py::_publish_broker_snapshots) — full list of accounts visible to BF's broker token. Only sent to AFB sessions that advertised session.hello_ack.features.multi_account; a BF instance that has negotiated multi_account with this AFB never sends the deprecated broker.account instead (see broker.account.json). Unlike broker.account, `accounts[].account_id` is the ONLY account identifier — no broker_account_id split, by design (the account_id/broker_account_id duplication in broker.account was judged confusing and deliberately not carried forward). Only `default_account_id` (BF's own trading account, self._account_id) is tradable in this phase — see brokers/port.py::account_id docstring; the rest are read-only until a later multi-account execution phase.
+ * Response to broker.get_accounts and unsolicited push after every reconcile pass (see belphegor/reporting/account_directory.py::AccountDirectory, engine.py::_publish_broker_snapshots) — full list of accounts visible to BF's broker token. `accounts[].account_id` is the ONLY account identifier — no broker_account_id split, by design. Positions carry only `broker_ref {broker, symbol}`: BF has no instrument catalog, AFB maps the symbol to its own instrument (instrument_key) itself. Only `default_account_id` (BF's own trading account, self._account_id) is tradable in this phase — see brokers/port.py::account_id docstring; the rest are read-only until a later multi-account execution phase.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "BrokerAccountsPayload".
@@ -6504,7 +6359,7 @@ export interface BrokerAccountsPayload {
    */
   default_account_id: string;
   /**
-   * ISO timestamp this snapshot was assembled at. Unlike broker.account, this is always populated (no revision counter — BF does not track one).
+   * ISO timestamp this snapshot was assembled at.
    */
   as_of: string;
   accounts: PayloadsBrokerAccounts_Account[];
@@ -6533,46 +6388,26 @@ export interface PayloadsBrokerAccounts_Account {
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "PayloadsBrokerCatalog_Meta".
+ * via the `definition` "PayloadsBrokerAccounts_Position".
  */
-export interface PayloadsBrokerCatalog_Meta {
-  session_date?: string | null;
-  revision?: number;
-  broker: string;
-  exchanges: string[];
-  markets: {
-    exchange?: string;
-    market?: string;
-    [k: string]: unknown;
-  }[];
-  [k: string]: unknown;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "PayloadsBrokerCatalog_Slice".
- */
-export interface PayloadsBrokerCatalog_Slice {
-  session_date?: string | null;
-  revision?: number;
-  broker: string;
-  exchange: string;
-  market: string;
-  instruments: {
+export interface PayloadsBrokerAccounts_Position {
+  quantity: number;
+  average_price: string;
+  current_price?: string | null;
+  unrealized_pnl?: string | null;
+  broker_ref: {
     /**
-     * Opaque broker-native locator (e.g. Finam's TICKER@MIC). Not the AFB `ticker`.
+     * BF connector/broker id (e.g. finam).
      */
-    broker_symbol: string;
-    exchange?: string;
-    board?: string;
-    ticker?: string;
-    name?: string;
-    market?: string;
-    [k: string]: unknown;
-  }[];
-  [k: string]: unknown;
+    broker: string;
+    /**
+     * Broker-side instrument locator (e.g. TICKER@MIC); the same value deals carry as target.instrument.broker_symbol.
+     */
+    symbol: string;
+  };
 }
 /**
- * NACK for any broker.* command (get_account/get_orders/get_catalog/get_instrument/resolve_instrument). Correlated to the request via correlation_id.
+ * NACK for any broker.* command (get_accounts/get_orders/resolve_instrument). Correlated to the request via correlation_id.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "BrokerErrorPayload".
@@ -6583,11 +6418,11 @@ export interface BrokerErrorPayload {
    */
   at?: string;
   /**
-   * Machine-readable error code (e.g. broker_disconnected).
+   * Machine-readable error code (e.g. broker_disconnected). For broker.resolve_instrument also the instrument-resolution codes: instrument_unresolvable, instrument_mismatch, instrument_delisted, unsupported (same meaning as in deal.rejected.code).
    */
   code: string;
   /**
-   * The broker.* command that failed (e.g. broker.get_account).
+   * The broker.* command that failed (e.g. broker.get_accounts).
    */
   command_type: string;
   /**
@@ -6597,16 +6432,7 @@ export interface BrokerErrorPayload {
   [k: string]: unknown;
 }
 /**
- * DEPRECATED: superseded by broker.get_accounts (see payloads/broker.get_accounts.json) — kept for wire compatibility with AFB builds that have not negotiated multi_account (see daemon.capabilities.json#/properties/features/properties/multi_account, session.hello_ack.json#/properties/features/properties/multi_account). AFB always sends an empty payload; no fields are read by BF (belphegor/plan_engine/engine.py::_get_account).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "BrokerGetAccountPayload".
- */
-export interface BrokerGetAccountPayload {
-  [k: string]: unknown;
-}
-/**
- * Request the full list of accounts visible to BF's broker token (not just its own trading account) — see belphegor/reporting/account_directory.py::AccountDirectory. Only sent by AFB after the BF instance advertised daemon.capabilities.features.multi_account (see daemon.capabilities.json). AFB always sends an empty payload today; account_ids is reserved for a future partial-refresh use and is not currently read by BF.
+ * Request the full list of accounts visible to BF's broker token (not just its own trading account) — see belphegor/reporting/account_directory.py::AccountDirectory. AFB always sends an empty payload today; account_ids is reserved for a future partial-refresh use and is not currently read by BF.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "BrokerGetAccountsPayload".
@@ -6619,52 +6445,12 @@ export interface BrokerGetAccountsPayload {
   [k: string]: unknown;
 }
 /**
- * DEPRECATED: superseded by broker.resolve_instrument (see payloads/broker.resolve_instrument.json), which AFB's afbws.instrument.channel.v1 canal uses exclusively for detail lookups. Kept for wire compatibility; belphegor/plan_engine/engine.py::_get_symbol_info still serves it.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "BrokerGetInstrumentPayload".
- */
-export interface BrokerGetInstrumentPayload {
-  symbol: string;
-  [k: string]: unknown;
-}
-/**
  * AFB always sends an empty payload; no filters exist today.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "BrokerGetOrdersPayload".
  */
 export interface BrokerGetOrdersPayload {
-  [k: string]: unknown;
-}
-/**
- * Response to broker.get_instrument — the enriched instrument (belphegor/domain/instruments.py InstrumentInfo), unlike broker.catalog's brief CatalogEntry rows. Broker-agnostic explicit allow-list, not an asdict()-based dump: broker-native/Finam-specific fields (asset_type, min_step_raw, long_risk_rate, short_risk_rate, future_details, bond_details) never reach this wire — AFB doesn't read them and admitting them would make this canon description implicitly Finam-shaped (belphegor/reporting/broker_snapshots.py::instrument_resolved_payload builds this explicitly, not via InstrumentInfo.to_broker_instrument_dict(), which a different wire field — deal.accepted's broker_instrument — still uses unchanged). `symbol`/`currency` are the canon names on this wire — they map from InstrumentInfo's own internal `symbol`/`quote_currency` attributes, which are unchanged BF-side. additionalProperties stays true so a future broker plugin can add fields without breaking AFB's validation; required kept to `symbol`. This is a PATCH-level description of existing wire behavior, not a new constraint on it.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "BrokerInstrumentPayload".
- */
-export interface BrokerInstrumentPayload {
-  /**
-   * Opaque broker-native locator (e.g. Finam's TICKER@MIC).
-   */
-  symbol: string;
-  exchange?: string;
-  board?: string;
-  ticker?: string;
-  mic?: string;
-  name?: string;
-  market?: string;
-  decimals?: number;
-  price_step?: string;
-  lot_size?: number;
-  currency?: string;
-  expiration_date?: string | null;
-  tradable?: boolean;
-  longable?: boolean;
-  shortable?: boolean;
-  long_initial_margin?: string | null;
-  short_initial_margin?: string | null;
-  updated_at?: string | null;
   [k: string]: unknown;
 }
 /**
@@ -6681,9 +6467,13 @@ export interface BrokerInstrumentResolvedPayload {
     [k: string]: unknown;
   };
   /**
-   * Same trading-params shape as broker.instrument.json (minus symbol/account_id/exchange/board/ticker) — see InstrumentInfo.to_broker_instrument_dict().
+   * BF trading params of the resolved instrument (initial margin, tradable/longable/shortable, lot size, price_step, price_type, ...) — see InstrumentInfo.to_broker_instrument_dict(). With `account_id` in the request the values are the account's own.
    */
   broker_instrument: {
+    /**
+     * Which order/trigger prices the instrument allows (Finam AssetParams.price_type): POSITIVE = strictly > 0; NON_NEGATIVE = >= 0; ANY = negative prices allowed (e.g. some futures); UNKNOWN = the broker did not say. Optional — absent means UNKNOWN.
+     */
+    price_type?: 'UNKNOWN' | 'POSITIVE' | 'NON_NEGATIVE' | 'ANY';
     [k: string]: unknown;
   };
   [k: string]: unknown;
@@ -6750,15 +6540,15 @@ export interface BrokerPositionLedgerPayload {
   [k: string]: unknown;
 }
 /**
- * Deal-instrument pre-flight (AFB's afbws.instrument.channel.v1 `resolve`/`detail`, and the tradeplan publish path) — `deal` is a compiled ExecutionDeal (afb.deal.v1 or afb.deal.v2), the same shape deal.publish carries, sent here purely for its target/instrument fields; BF does not persist it from this command.
+ * Deal-instrument pre-flight (AFB's afbws.instrument.channel.v1 `resolve`/`detail`, and the tradeplan publish path) — `deal` is a compiled ExecutionDeal (afb.deal.v2), the same shape deal.publish carries, sent here purely for its target/instrument fields; BF does not persist it from this command.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "BrokerResolveInstrumentPayload".
  */
 export interface BrokerResolveInstrumentPayload {
-  deal: DealV1 | DealV2;
+  deal: DealV2;
   /**
-   * Optional broker account whose trading parameters (initial margin, tradable/longable/shortable, price_type) are wanted — they depend on the account's tariff. Sent by AFB's afbws.instrument.channel.v2 `detail`. A connector that does not support account granularity ignores it and answers with connector-level values.
+   * Optional broker account whose trading parameters (initial margin, tradable/longable/shortable, price_type) are wanted — they depend on the account's tariff. Sent by AFB's afbws.instrument.channel.v2 `detail`. BF answers with the values of THAT account (broker_instrument in broker.instrument_resolved); absent means BF's own trading account (default_account_id). The instrument is located solely by deal.target.instrument.broker_symbol (or binding.symbol).
    */
   account_id?: string;
   [k: string]: unknown;
@@ -6884,7 +6674,7 @@ export interface DaemonCapabilitiesPayload {
   condition_ops?: string[];
   condition_nodes?: string[];
   /**
-   * BF's single trading account (brokers/port.py::account_id) — the account this BF instance executes orders on. When features.multi_account is true, the full account list/snapshots are fetched separately via broker.get_accounts, not from this field.
+   * BF's single trading account (brokers/port.py::account_id) — the account this BF instance executes orders on. The full account list/snapshots are fetched separately via broker.get_accounts (always supported), not from this field.
    */
   account_id?: string;
   account_aliases?: string[];
@@ -6905,15 +6695,10 @@ export interface DaemonCapabilitiesPayload {
      */
     server_sltp?: boolean;
     /**
-     * Deal execution modes this BF instance supports (see deal.v1.json#/$defs/executionPolicy/properties/execution_mode). AFB/UI use this to offer only modes the BF can actually run.
+     * Deal execution modes this BF instance supports (see deal.v2.json#/$defs/executionPolicy/properties/execution_mode). AFB/UI use this to offer only modes the BF can actually run.
      */
     execution_modes?: ('client' | 'hybrid' | 'server')[];
     reports_api?: boolean;
-    catalog?: boolean;
-    /**
-     * This BF build implements broker.get_accounts/broker.accounts (see payloads/broker.accounts.json) — read-only visibility into every account the broker token can see, not just the trading account named by account_id above. Execution still happens only on account_id in this phase. AFB gates sending broker.get_accounts on this flag being true; absent/false means fall back to the deprecated broker.get_account/broker.account pair.
-     */
-    multi_account?: boolean;
     /**
      * This BF build accepts calendar.update (see payloads/calendar.update.json) — a replace-all MOEX trading calendar snapshot (holidays/weekend sessions, per-board session windows) it uses to gate execution and background broker polling on real trading-session boundaries instead of its own static off-hours config. AFB gates sending calendar.update on this flag being true; absent/false means the BF is never sent a calendar snapshot and keeps gating on its own local config.
      */
@@ -6997,6 +6782,10 @@ export interface DealInstrument1 {
    * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
    */
   instrument_key?: string;
+  /**
+   * Opaque broker locator of the instrument, e.g. `TICKER@MIC`. AFB takes it from its listing_link (finam.db); BF resolves the instrument ONLY by it (no BF-side catalog). Not part of the instrument identity: amend identity is decided by instrument_key (or exchange/board/ticker), see amend_rules. Absent => BF rejects with instrument_unresolvable unless the deal binding already carries a symbol.
+   */
+  broker_symbol?: string;
   market?: 'stock' | 'futures' | 'currency';
   price_step?: DecimalString;
   step_price?: DecimalString;
@@ -7016,6 +6805,10 @@ export interface DealAcceptedPayload {
     [k: string]: unknown;
   };
   broker_instrument?: {
+    /**
+     * Which order/trigger prices the instrument allows (Finam AssetParams.price_type): POSITIVE = strictly > 0; NON_NEGATIVE = >= 0; ANY = negative prices allowed (e.g. some futures); UNKNOWN = the broker did not say. Optional — absent means UNKNOWN.
+     */
+    price_type?: 'UNKNOWN' | 'POSITIVE' | 'NON_NEGATIVE' | 'ANY';
     asset_type?: string;
     bond_details?: string | number | boolean | {} | unknown[] | null;
     decimals?: number;
@@ -7079,7 +6872,7 @@ export interface DealAcceptedPayload {
 export interface DealAmendPayload {
   deal_id: string;
   base_revision: number;
-  deal: DealV1 | DealV2;
+  deal: DealV2;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -7132,7 +6925,7 @@ export interface DealPositionsSyncedPayload {
  * via the `definition` "DealPublishPayload".
  */
 export interface DealPublishPayload {
-  deal: DealV1 | DealV2;
+  deal: DealV2;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -7143,6 +6936,9 @@ export interface DealRejectedPayload {
    * ISO-8601 BF event-occurrence time (same value as the BF journal entry `at`).
    */
   at?: string;
+  /**
+   * Machine-readable rejection code. Instrument-resolution codes: `instrument_unresolvable` (no broker symbol in the binding or target.instrument.broker_symbol, or the broker does not know it), `instrument_mismatch` (the broker asset behind broker_symbol disagrees with the deal's exchange/board/ticker), `instrument_delisted` (the instrument was delisted/archived at the broker), `unsupported` (the BF/connector cannot execute this deal, e.g. an unsupported mode/market).
+   */
   code: string;
   command_type: string;
   deal_id?: string | number | boolean | {} | unknown[] | null;
@@ -7380,13 +7176,9 @@ export interface SessionHelloAckPayload {
    */
   margin_trading_bf?: boolean;
   /**
-   * AFB-side capability flags for this session — read by BF's afb_client (see afb_client/ws_client.py, alongside dry_run/margin_trading above) to decide what it may send this AFB.
+   * AFB-side capability flags for this session — read by BF's afb_client (see afb_client/ws_client.py, alongside dry_run/margin_trading above). No flags are currently defined: multi-account (broker.get_accounts/broker.accounts) is the only account path and is always supported by both sides (formerly features.multi_account).
    */
   features?: {
-    /**
-     * This AFB build understands broker.accounts (see payloads/broker.accounts.json) and negotiated_support for it. When true, BF sends broker.accounts (in response to broker.get_accounts, and unsolicited after every reconcile pass) and stops sending the deprecated broker.account to this session. Absent/false means BF must keep sending broker.account only.
-     */
-    multi_account?: boolean;
     [k: string]: unknown;
   };
   [k: string]: unknown;

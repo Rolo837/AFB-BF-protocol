@@ -7,11 +7,11 @@
     },
     "code": {
       "type": "string",
-      "description": "Machine-readable error code (e.g. broker_disconnected)."
+      "description": "Machine-readable error code (e.g. broker_disconnected). For broker.resolve_instrument also the instrument-resolution codes: instrument_unresolvable, instrument_mismatch, instrument_delisted, unsupported (same meaning as in deal.rejected.code)."
     },
     "command_type": {
       "type": "string",
-      "description": "The broker.* command that failed (e.g. broker.get_account)."
+      "description": "The broker.* command that failed (e.g. broker.get_accounts)."
     },
     "message": {
       "type": "string",
@@ -26,5 +26,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.error.json",
   "title": "payload: broker.error",
-  "description": "NACK for any broker.* command (get_account/get_orders/get_catalog/get_instrument/resolve_instrument). Correlated to the request via correlation_id."
+  "description": "NACK for any broker.* command (get_accounts/get_orders/resolve_instrument). Correlated to the request via correlation_id."
 }

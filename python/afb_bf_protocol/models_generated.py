@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: a0e13d0d404e76dfa56c298ad8523ed863d4d775cc9625ad150dd30d86f4055c
+# source-hash: 0c0a2bd0037c339a625fa00748e24557ee6659d74f4716e23b4c5ca185989152
 
 from __future__ import annotations
 
@@ -131,7 +131,7 @@ class AccountSnapshot(TypedDict):
     status: Literal["ok", "stale", "error"]
     equity: str | None
     cash: list[PayloadsBrokerAccountsCashBalance]
-    positions: list[PayloadsBrokerAccountsPosition]
+    positions: list[AfbwsAccountChannelV1Position]
     as_of: NotRequired[str]
 
 
@@ -255,8 +255,26 @@ class AccountV2Snapshot(TypedDict):
     status: Literal["ok", "stale", "error"]
     equity: str | None
     cash: list[PayloadsBrokerAccountsCashBalance]
-    positions: list[PayloadsBrokerAccountsPosition]
+    positions: list[AfbwsAccountChannelV2Position]
     as_of: NotRequired[str]
+
+
+class AfbwsAccountChannelV1Position(TypedDict):
+    quantity: int
+    average_price: str
+    current_price: NotRequired[str | None]
+    unrealized_pnl: NotRequired[str | None]
+    instrument: NotRequired[dict[str, Any]]
+    broker_ref: NotRequired[dict[str, Any]]
+
+
+class AfbwsAccountChannelV2Position(TypedDict):
+    quantity: int
+    average_price: str
+    current_price: NotRequired[str | None]
+    unrealized_pnl: NotRequired[str | None]
+    instrument: NotRequired[dict[str, Any]]
+    broker_ref: NotRequired[dict[str, Any]]
 
 
 class AfbwsCatalogChannelV1ArchiveItem(TypedDict):
@@ -1822,21 +1840,9 @@ class Breakpoints(TypedDict):
     xl: NotRequired[int]
 
 
-class BrokerAccountPayload(TypedDict):
-    """
-    DEPRECATED: superseded by broker.accounts (see payloads/broker.accounts.json) — kept for wire compatibility with AFB builds that have not negotiated multi_account. Response to broker.get_account, describing only BF's single trading account. Matches belphegor/reporting/broker_snapshots.py::account_snapshot_payload() exactly, including the account_id/broker_account_id split that broker.accounts deliberately drops (see broker.accounts.json). Correlated via correlation_id.
-    """
-
-    account_id: str
-    broker_account_id: NotRequired[str]
-    equity: NotRequired[str | None]
-    cash: list[PayloadsBrokerAccountCashBalance]
-    positions: list[PayloadsBrokerAccountPosition]
-
-
 class BrokerAccountsPayload(TypedDict):
     """
-    Response to broker.get_accounts and unsolicited push after every reconcile pass (see belphegor/reporting/account_directory.py::AccountDirectory, engine.py::_publish_broker_snapshots) — full list of accounts visible to BF's broker token. Only sent to AFB sessions that advertised session.hello_ack.features.multi_account; a BF instance that has negotiated multi_account with this AFB never sends the deprecated broker.account instead (see broker.account.json). Unlike broker.account, `accounts[].account_id` is the ONLY account identifier — no broker_account_id split, by design (the account_id/broker_account_id duplication in broker.account was judged confusing and deliberately not carried forward). Only `default_account_id` (BF's own trading account, self._account_id) is tradable in this phase — see brokers/port.py::account_id docstring; the rest are read-only until a later multi-account execution phase.
+    Response to broker.get_accounts and unsolicited push after every reconcile pass (see belphegor/reporting/account_directory.py::AccountDirectory, engine.py::_publish_broker_snapshots) — full list of accounts visible to BF's broker token. `accounts[].account_id` is the ONLY account identifier — no broker_account_id split, by design. Positions carry only `broker_ref {broker, symbol}`: BF has no instrument catalog, AFB maps the symbol to its own instrument (instrument_key) itself. Only `default_account_id` (BF's own trading account, self._account_id) is tradable in this phase — see brokers/port.py::account_id docstring; the rest are read-only until a later multi-account execution phase.
     """
 
     default_account_id: str
@@ -1846,7 +1852,7 @@ class BrokerAccountsPayload(TypedDict):
 
 class BrokerErrorPayload(TypedDict):
     """
-    NACK for any broker.* command (get_account/get_orders/get_catalog/get_instrument/resolve_instrument). Correlated to the request via correlation_id.
+    NACK for any broker.* command (get_accounts/get_orders/resolve_instrument). Correlated to the request via correlation_id.
     """
 
     at: NotRequired[str]
@@ -1855,38 +1861,12 @@ class BrokerErrorPayload(TypedDict):
     message: NotRequired[str]
 
 
-class BrokerGetAccountPayload(TypedDict):
-    """
-    DEPRECATED: superseded by broker.get_accounts (see payloads/broker.get_accounts.json) — kept for wire compatibility with AFB builds that have not negotiated multi_account (see daemon.capabilities.json#/properties/features/properties/multi_account, session.hello_ack.json#/properties/features/properties/multi_account). AFB always sends an empty payload; no fields are read by BF (belphegor/plan_engine/engine.py::_get_account).
-    """
-
-
 class BrokerGetAccountsPayload(TypedDict):
     """
-    Request the full list of accounts visible to BF's broker token (not just its own trading account) — see belphegor/reporting/account_directory.py::AccountDirectory. Only sent by AFB after the BF instance advertised daemon.capabilities.features.multi_account (see daemon.capabilities.json). AFB always sends an empty payload today; account_ids is reserved for a future partial-refresh use and is not currently read by BF.
+    Request the full list of accounts visible to BF's broker token (not just its own trading account) — see belphegor/reporting/account_directory.py::AccountDirectory. AFB always sends an empty payload today; account_ids is reserved for a future partial-refresh use and is not currently read by BF.
     """
 
     account_ids: NotRequired[list[str]]
-
-
-class BrokerGetCatalogPayload1(TypedDict):
-    """
-    Empty payload requests the meta form (exchanges/markets pairs) of the broker.catalog reply; {exchange,market} together request the slice form (instrument rows) for that market. AFB never sends exchange without market or vice versa (backend/trade/ws_handlers.py::handle_account).
-    """
-
-    exchange: str
-    market: str
-
-
-BrokerGetCatalogPayload: TypeAlias = dict[str, Any] | BrokerGetCatalogPayload1
-
-
-class BrokerGetInstrumentPayload(TypedDict):
-    """
-    DEPRECATED: superseded by broker.resolve_instrument (see payloads/broker.resolve_instrument.json), which AFB's afbws.instrument.channel.v1 canal uses exclusively for detail lookups. Kept for wire compatibility; belphegor/plan_engine/engine.py::_get_symbol_info still serves it.
-    """
-
-    symbol: str
 
 
 class BrokerGetOrdersPayload(TypedDict):
@@ -1896,6 +1876,15 @@ class BrokerGetOrdersPayload(TypedDict):
 
 
 class BrokerInstrument(TypedDict):
+    """
+    BF trading params of the resolved instrument (initial margin, tradable/longable/shortable, lot size, price_step, price_type, ...) — see InstrumentInfo.to_broker_instrument_dict(). With `account_id` in the request the values are the account's own.
+    """
+
+    price_type: NotRequired[Literal["UNKNOWN", "POSITIVE", "NON_NEGATIVE", "ANY"]]
+
+
+class BrokerInstrument1(TypedDict):
+    price_type: NotRequired[Literal["UNKNOWN", "POSITIVE", "NON_NEGATIVE", "ANY"]]
     asset_type: NotRequired[str]
     bond_details: NotRequired[
         str | float | int | bool | dict[str, Any] | list[Any] | None
@@ -1924,38 +1913,13 @@ class BrokerInstrument(TypedDict):
     updated_at: NotRequired[str]
 
 
-class BrokerInstrumentPayload(TypedDict):
-    """
-    Response to broker.get_instrument — the enriched instrument (belphegor/domain/instruments.py InstrumentInfo), unlike broker.catalog's brief CatalogEntry rows. Broker-agnostic explicit allow-list, not an asdict()-based dump: broker-native/Finam-specific fields (asset_type, min_step_raw, long_risk_rate, short_risk_rate, future_details, bond_details) never reach this wire — AFB doesn't read them and admitting them would make this canon description implicitly Finam-shaped (belphegor/reporting/broker_snapshots.py::instrument_resolved_payload builds this explicitly, not via InstrumentInfo.to_broker_instrument_dict(), which a different wire field — deal.accepted's broker_instrument — still uses unchanged). `symbol`/`currency` are the canon names on this wire — they map from InstrumentInfo's own internal `symbol`/`quote_currency` attributes, which are unchanged BF-side. additionalProperties stays true so a future broker plugin can add fields without breaking AFB's validation; required kept to `symbol`. This is a PATCH-level description of existing wire behavior, not a new constraint on it.
-    """
-
-    symbol: str
-    exchange: NotRequired[str]
-    board: NotRequired[str]
-    ticker: NotRequired[str]
-    mic: NotRequired[str]
-    name: NotRequired[str]
-    market: NotRequired[str]
-    decimals: NotRequired[int]
-    price_step: NotRequired[str]
-    lot_size: NotRequired[int]
-    currency: NotRequired[str]
-    expiration_date: NotRequired[str | None]
-    tradable: NotRequired[bool]
-    longable: NotRequired[bool]
-    shortable: NotRequired[bool]
-    long_initial_margin: NotRequired[str | None]
-    short_initial_margin: NotRequired[str | None]
-    updated_at: NotRequired[str | None]
-
-
 class BrokerInstrumentResolvedPayload(TypedDict):
     """
     Response to broker.resolve_instrument (deal-instrument pre-flight resolution). Deliberately permissive (additionalProperties: true throughout) — both objects are BF-owned shapes; this is a PATCH-level description of existing wire behavior, not a new constraint on it.
     """
 
     binding: dict[str, Any]
-    broker_instrument: dict[str, Any]
+    broker_instrument: BrokerInstrument
 
 
 class BrokerOrdersPayload(TypedDict):
@@ -1969,16 +1933,21 @@ class BrokerOrdersPayload(TypedDict):
 
 class BrokerPositionLedgerPayload(TypedDict):
     account_id: str
-    entries: list[Entry]
+    entries: list[Entry2]
     residual_by_symbol: dict[str, int]
+
+
+class BrokerRef(TypedDict):
+    broker: str
+    symbol: str
 
 
 class BrokerResolveInstrumentPayload(TypedDict):
     """
-    Deal-instrument pre-flight (AFB's afbws.instrument.channel.v1 `resolve`/`detail`, and the tradeplan publish path) — `deal` is a compiled ExecutionDeal (afb.deal.v1 or afb.deal.v2), the same shape deal.publish carries, sent here purely for its target/instrument fields; BF does not persist it from this command.
+    Deal-instrument pre-flight (AFB's afbws.instrument.channel.v1 `resolve`/`detail`, and the tradeplan publish path) — `deal` is a compiled ExecutionDeal (afb.deal.v2), the same shape deal.publish carries, sent here purely for its target/instrument fields; BF does not persist it from this command.
     """
 
-    deal: DealV1 | DealV2
+    deal: DealV2
     account_id: NotRequired[str]
 
 
@@ -2519,7 +2488,7 @@ class Day(TypedDict):
 class DealAcceptedPayload(TypedDict):
     at: NotRequired[str]
     binding: NotRequired[Binding]
-    broker_instrument: NotRequired[BrokerInstrument]
+    broker_instrument: NotRequired[BrokerInstrument1]
     broker_sizing: NotRequired[BrokerSizing]
     command_type: str
     deal_id: str
@@ -2565,7 +2534,7 @@ class DealAmendPayload(TypedDict):
 
     deal_id: str
     base_revision: int
-    deal: DealV1 | DealV2
+    deal: DealV2
 
 
 class DealAmendRequest(TypedDict):
@@ -2680,6 +2649,7 @@ class DealInstrument(TypedDict):
     board: str
     ticker: str
     instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    broker_symbol: NotRequired[str]
     market: NotRequired[Literal["stock", "futures", "currency"]]
     price_step: NotRequired[DecimalString]
     step_price: NotRequired[DecimalString]
@@ -2755,19 +2725,6 @@ class DealPositionsSyncedPayload(TypedDict):
     deal_id: str
 
 
-class DealPublicDealV1(TypedDict):
-    schema: Literal["afb.deal.v1"]
-    deal_id: str
-    revision: int
-    target: DealTarget
-    direction: Literal["long", "short"]
-    entry: DealV1Entry
-    sizing: DealSizing
-    risk: NotRequired[Risk]
-    execution_policy: NotRequired[DealExecutionPolicy]
-    source: DealPublicSource
-
-
 class DealPublicDealV2(TypedDict):
     schema: Literal["afb.deal.v2"]
     deal_id: str
@@ -2797,11 +2754,11 @@ class DealPublicSource(TypedDict):
     tradeplan_id: str
 
 
-DealPublicV1: TypeAlias = DealPublicDealV1 | DealPublicDealV2
+DealPublicV1: TypeAlias = DealPublicDealV2
 
 
 class DealPublishPayload(TypedDict):
-    deal: DealV1 | DealV2
+    deal: DealV2
 
 
 class DealPublishRequest(TypedDict):
@@ -3061,44 +3018,9 @@ DealChannelV1Message: TypeAlias = (
 )
 
 
-class DealV1(TypedDict):
-    """
-    Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. The deal-level `direction` (long/short, same vocabulary as afb.deal.v2) is the single source of truth for position bias. Shared $defs (decimalString/instrument/target/sizing/executionPolicy/source) live in common.v1.json — this file keeps only what's v1-specific (conditionNode/entry/exitBlock); see common.v1.json's description for why.
-    """
-
-    schema: Literal["afb.deal.v1"]
-    deal_id: str
-    revision: int
-    owner: NotRequired[Owner]
-    target: DealTarget
-    direction: Literal["long", "short"]
-    entry: DealV1Entry
-    sizing: DealSizing
-    risk: NotRequired[Risk]
-    execution_policy: NotRequired[DealExecutionPolicy]
-    archive_reason: NotRequired[str]
-    source: NotRequired[DealSource]
-
-
-class DealV1ConditionNode(TypedDict):
-    node_type: Literal["event"]
-    id: NotRequired[str]
-    op: Literal["above", "below", "crosses_above", "crosses_below", "crossing"]
-    left: Left
-    right: Right
-
-
-class DealV1Entry(TypedDict):
-    condition: DealV1ConditionNode
-
-
-class DealV1ExitBlock(TypedDict):
-    condition: NotRequired[DealV1ConditionNode]
-
-
 class DealV2(TypedDict):
     """
-    Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string) and an optional `logic` (`#/$defs/legJoin`) joining it to the PRECEDING element in the same list — see `legJoin` for the full grammar (groups/buckets, `and`/`or` precedence, `percent` placement). Sum of percents per bucket resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from deal.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_*/crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.
+    Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string) and an optional `logic` (`#/$defs/legJoin`) joining it to the PRECEDING element in the same list — see `legJoin` for the full grammar (groups/buckets, `and`/`or` precedence, `percent` placement). Sum of percents per bucket resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from common.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_*/crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.
     """
 
     schema: Literal["afb.deal.v2"]
@@ -3303,6 +3225,13 @@ class Display2(TypedDict):
 
 
 class Entry(TypedDict):
+    leg_id: NotRequired[TradeplanV2LegId]
+    percent: NotRequired[DecimalString]
+    logic: NotRequired[DealV2LegJoin]
+    condition: TradeplanV2TpConditionNode
+
+
+class Entry2(TypedDict):
     entry_id: str
     account_id: NotRequired[str]
     symbol: str
@@ -3319,13 +3248,6 @@ class Entry(TypedDict):
     note: NotRequired[str]
     created_at: NotRequired[str]
     updated_at: NotRequired[str]
-
-
-class Entry1(TypedDict):
-    leg_id: NotRequired[TradeplanV2LegId]
-    percent: NotRequired[DecimalString]
-    logic: NotRequired[DealV2LegJoin]
-    condition: TradeplanV2TpConditionNode
 
 
 class EntryItem(TypedDict):
@@ -3381,17 +3303,7 @@ class Features(TypedDict):
     server_sltp: NotRequired[bool]
     execution_modes: NotRequired[list[Literal["client", "hybrid", "server"]]]
     reports_api: NotRequired[bool]
-    catalog: NotRequired[bool]
-    multi_account: NotRequired[bool]
     market_calendar: NotRequired[bool]
-
-
-class Features1(TypedDict):
-    """
-    AFB-side capability flags for this session — read by BF's afb_client (see afb_client/ws_client.py, alongside dry_run/margin_trading above) to decide what it may send this AFB.
-    """
-
-    multi_account: NotRequired[bool]
 
 
 class Fill(TypedDict):
@@ -3762,15 +3674,6 @@ Id: TypeAlias = str
 class Instrument(TypedDict):
     shortname: NotRequired[str]
     secname: NotRequired[str]
-
-
-class Instrument2(TypedDict):
-    broker_symbol: str
-    exchange: NotRequired[str]
-    board: NotRequired[str]
-    ticker: NotRequired[str]
-    name: NotRequired[str]
-    market: NotRequired[str]
 
 
 class InstrumentAcceptSuggestion(TypedDict):
@@ -4377,7 +4280,7 @@ class InstrumentUserState(TypedDict):
 
 class InstrumentV1(TypedDict):
     """
-    AFB-side canonical instrument — like afb.gp.v1/afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. One broker-agnostic shape for every market class (stock/futures/currency/index); class-specific fields are gated by `market` via the `allOf`/`if` blocks below (forbidden, not just absent, for classes they don't apply to), but the wire type stays a single schema. `ticker` is the canonical identity: bare SECID for MOEX (e.g. "SBER"), `EXCHANGE:TICKER` for everything else (e.g. "XNAS:AAPL") — `exchange`/`board`/`market` are still carried as explicit fields so nothing but one shared parser (AFB backend/instruments/identity.py, frontend utils/instrumentId.ts) ever splits the string. `group`/`asset` place the instrument in the curated catalog tree (config/instruments.yaml) that AFB users actually see — `group: null` means not yet distributed into a group, the flat-list replacement for the old `lost` bucket. `source` says who refreshes this record's trading params ("moex" for the daily ISS refresh, a broker id like "finam" for instruments obtained from that broker's catalog) — it is NOT a broker binding: which connector can actually trade this instrument, and under what broker-native symbol, is resolved at publish time (see deal.v1.json's target.instrument + BF's own catalog), never persisted here.
+    AFB-side canonical instrument — like afb.gp.v1/afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. One broker-agnostic shape for every market class (stock/futures/currency/index); class-specific fields are gated by `market` via the `allOf`/`if` blocks below (forbidden, not just absent, for classes they don't apply to), but the wire type stays a single schema. `ticker` is the canonical identity: bare SECID for MOEX (e.g. "SBER"), `EXCHANGE:TICKER` for everything else (e.g. "XNAS:AAPL") — `exchange`/`board`/`market` are still carried as explicit fields so nothing but one shared parser (AFB backend/instruments/identity.py, frontend utils/instrumentId.ts) ever splits the string. `group`/`asset` place the instrument in the curated catalog tree (config/instruments.yaml) that AFB users actually see — `group: null` means not yet distributed into a group, the flat-list replacement for the old `lost` bucket. `source` says who refreshes this record's trading params ("moex" for the daily ISS refresh, a broker id like "finam" for instruments obtained from that broker's catalog) — it is NOT a broker binding: which connector can actually trade this instrument, and under what broker-native symbol, is resolved at publish time (see deal.v2.json's target.instrument.broker_symbol), never persisted here.
     """
 
     schema: Literal["afb.instrument.v1"]
@@ -4457,15 +4360,6 @@ class IssMarketsStockRoot(TypedDict):
 
 class Layouts(TypedDict):
     lg: NotRequired[list[ConfigV1DashboardLayoutItem]]
-
-
-class Left(TypedDict):
-    """
-    afb.deal.v1 conditions compare against the last traded price, or (entry only — see executor-side validation) fire immediately with no price level of its own. quote/indicator/dataset sources are afb.deal.v2-only.
-    """
-
-    source: Literal["price", "immediate"]
-    field: NotRequired[Literal["last"]]
 
 
 class Limit(TypedDict):
@@ -4714,11 +4608,6 @@ class LinkUserV1(BfRegistryEntry, LinkSharedFields):
 
 
 LinkEntity: TypeAlias = LinkUserV1 | LinkAdminV1
-
-
-class Market(TypedDict):
-    exchange: NotRequired[str]
-    market: NotRequired[str]
 
 
 class MarketData(TypedDict):
@@ -5045,24 +4934,6 @@ class OrderFilledPayload(TypedDict):
     status: str
 
 
-class Owner(TypedDict):
-    user_id: NotRequired[str]
-
-
-class PayloadsBrokerAccountCashBalance(TypedDict):
-    currency: str
-    value: str
-
-
-class PayloadsBrokerAccountPosition(TypedDict):
-    quantity: int
-    average_price: str
-    current_price: NotRequired[str | None]
-    unrealized_pnl: NotRequired[str | None]
-    instrument: NotRequired[dict[str, Any]]
-    broker_ref: NotRequired[dict[str, Any]]
-
-
 class PayloadsBrokerAccountsAccount(TypedDict):
     account_id: str
     tradable: bool
@@ -5083,28 +4954,7 @@ class PayloadsBrokerAccountsPosition(TypedDict):
     average_price: str
     current_price: NotRequired[str | None]
     unrealized_pnl: NotRequired[str | None]
-    instrument: NotRequired[dict[str, Any]]
-    broker_ref: NotRequired[dict[str, Any]]
-
-
-class PayloadsBrokerCatalogMeta(TypedDict):
-    session_date: NotRequired[str | None]
-    revision: NotRequired[int]
-    broker: str
-    exchanges: list[str]
-    markets: list[Market]
-
-
-class PayloadsBrokerCatalogSlice(TypedDict):
-    session_date: NotRequired[str | None]
-    revision: NotRequired[int]
-    broker: str
-    exchange: str
-    market: str
-    instruments: list[Instrument2]
-
-
-BrokerCatalogPayload: TypeAlias = PayloadsBrokerCatalogMeta | PayloadsBrokerCatalogSlice
+    broker_ref: BrokerRef
 
 
 class PayloadsBrokerOrdersOrder(TypedDict):
@@ -5172,15 +5022,6 @@ class Publish(TypedDict):
     account_id: NotRequired[str]
 
 
-class Right(TypedDict):
-    const: DecimalString
-
-
-class Risk(TypedDict):
-    take_profit: NotRequired[DealV1ExitBlock]
-    stop_loss: NotRequired[DealV1ExitBlock]
-
-
 class Section(TypedDict):
     exchange: str
     section: Literal["stock", "futures", "currency"]
@@ -5233,7 +5074,7 @@ class SessionHelloAckPayload(TypedDict):
     margin_trading: NotRequired[bool]
     margin_trading_afb: NotRequired[bool]
     margin_trading_bf: NotRequired[bool]
-    features: NotRequired[Features1]
+    features: NotRequired[dict[str, Any]]
 
 
 class SessionHelloPayload(TypedDict):
@@ -5269,33 +5110,6 @@ class Subscription(TypedDict):
     instrument: DealInstrument
 
 
-class TradePlanV1(TypedDict):
-    """
-    AFB-side single-entry / single-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v1. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `schema` is optional: its absence means afb.tradeplan.v1 (compatibility with frontends older than the tradeplan schema itself).
-    """
-
-    id: str
-    ticker: str
-    status: NotRequired[Literal["draft", "published", "completed", "archived"]]
-    direction: NotRequired[Literal["long", "short"]]
-    schema: NotRequired[Literal["afb.tradeplan.v1"]]
-    activated_at: NotRequired[str]
-    closed_at: NotRequired[str]
-    archived_at: NotRequired[str]
-    instrument_missing: NotRequired[bool]
-    entry_condition: TradeplanV1EntryCondition
-    quantity_value: NotRequired[float | None]
-    quantity_mode: NotRequired[
-        Literal["lots", "margin", "balance_pct", "risk_currency", "risk_factor"]
-    ]
-    take_profit: NotRequired[TradeplanV1Condition | None]
-    stop_loss: NotRequired[TradeplanV1Condition | None]
-    publish: NotRequired[Publish]
-    delivery_at: NotRequired[str]
-    created_at: NotRequired[str]
-    updated_at: NotRequired[str]
-
-
 class TradePlanV21(TypedDict):
     """
     AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
@@ -5312,7 +5126,7 @@ class TradePlanV21(TypedDict):
     closed_at: NotRequired[str]
     archived_at: NotRequired[str]
     instrument_missing: NotRequired[bool]
-    entries: list[Entry1]
+    entries: list[Entry]
     stop_loss: NotRequired[TradeplanV2TpExitList]
     take_profit: NotRequired[TradeplanV2TpExitList]
     sizing: DealSizing
@@ -5338,7 +5152,7 @@ class TradePlanV22(TypedDict):
     closed_at: NotRequired[str]
     archived_at: NotRequired[str]
     instrument_missing: NotRequired[bool]
-    entries: list[Entry1]
+    entries: list[Entry]
     stop_loss: NotRequired[TradeplanV2TpExitList]
     take_profit: NotRequired[TradeplanV2TpExitList]
     sizing: DealSizing
@@ -5375,11 +5189,82 @@ class TradeplanDeleteResponse(TypedDict):
     id: str
 
 
-class TradeplanEntityV1(TradePlanV1):
-    pass
+class TradeplanEntity1(TypedDict):
+    """
+    AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
+    """
+
+    id: str
+    ticker: str
+    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    status: NotRequired[Literal["draft", "published", "completed", "archived"]]
+    editor: NotRequired[Literal["simple", "advanced"]]
+    direction: Literal["long", "short"]
+    schema: Literal["afb.tradeplan.v2"]
+    activated_at: NotRequired[str]
+    closed_at: NotRequired[str]
+    archived_at: NotRequired[str]
+    instrument_missing: NotRequired[bool]
+    entries: list[Entry]
+    stop_loss: NotRequired[TradeplanV2TpExitList]
+    take_profit: NotRequired[TradeplanV2TpExitList]
+    sizing: DealSizing
+    publish: NotRequired[Publish]
+    delivery_at: NotRequired[str]
+    created_at: NotRequired[str]
+    updated_at: NotRequired[str]
 
 
-TradeplanEntity: TypeAlias = TradeplanEntityV1 | TradePlanV2
+class TradeplanEntity2(TypedDict):
+    """
+    AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
+    """
+
+    id: str
+    ticker: NotRequired[str]
+    instrument_key: AfbwsCommonV1InstrumentKey
+    status: NotRequired[Literal["draft", "published", "completed", "archived"]]
+    editor: NotRequired[Literal["simple", "advanced"]]
+    direction: Literal["long", "short"]
+    schema: Literal["afb.tradeplan.v2"]
+    activated_at: NotRequired[str]
+    closed_at: NotRequired[str]
+    archived_at: NotRequired[str]
+    instrument_missing: NotRequired[bool]
+    entries: list[Entry]
+    stop_loss: NotRequired[TradeplanV2TpExitList]
+    take_profit: NotRequired[TradeplanV2TpExitList]
+    sizing: DealSizing
+    publish: NotRequired[Publish]
+    delivery_at: NotRequired[str]
+    created_at: NotRequired[str]
+    updated_at: NotRequired[str]
+
+
+class TradeplanEntity3(TypedDict):
+    """
+    afb.tradeplan.v2 (schema already required in its own canon file).
+    """
+
+
+class TradeplanEntity4(TradeplanEntity1, TradeplanEntity3):
+    """
+    afb.tradeplan.v2 (schema already required in its own canon file).
+    """
+
+
+class TradeplanEntity5(TradeplanEntity2, TradeplanEntity3):
+    """
+    afb.tradeplan.v2 (schema already required in its own canon file).
+    """
+
+
+TradeplanEntity: TypeAlias = TradeplanEntity4 | TradeplanEntity5
+
+
+"""
+afb.tradeplan.v2 (schema already required in its own canon file).
+"""
 
 
 class TradeplanErrorResponse(TypedDict):
@@ -5459,32 +5344,6 @@ TradeplanChannelV1Message: TypeAlias = (
     | AfbwsTradeplanChannelV1ArchiveResponse
     | TradeplanErrorResponse
     | TradeplanSyncPush
-)
-
-
-class TradeplanV1MarketOrPriceCondition(TypedDict):
-    condition_type: NotRequired[Literal["price"]]
-    price_value: NotRequired[float | None]
-
-
-class TradeplanV1PriceCondition(TypedDict):
-    condition_type: NotRequired[Literal["price"]]
-    price_value: float
-
-
-class TradeplanV1PrimitiveCondition(TypedDict):
-    condition_type: Literal["primitive"]
-    primitive_id: str
-    price_value: NotRequired[float | None]
-
-
-TradeplanV1Condition: TypeAlias = (
-    TradeplanV1PriceCondition | TradeplanV1PrimitiveCondition
-)
-
-
-TradeplanV1EntryCondition: TypeAlias = (
-    TradeplanV1MarketOrPriceCondition | TradeplanV1PrimitiveCondition
 )
 
 

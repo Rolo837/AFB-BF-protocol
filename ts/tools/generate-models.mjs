@@ -46,10 +46,8 @@ function pascalCase(stem) {
 function namedRootSchemas() {
   const entries = {
     "envelope.json": "Envelope",
-    "deal.v1.json": "DealV1",
     "deal.v2.json": "DealV2",
     "deal_state.v2.json": "DealStateV2",
-    "tradeplan.v1.json": "TradePlanV1",
     "tradeplan.v2.json": "TradePlanV2",
     "alarm.v1.json": "AlarmV1",
     "alarm.v2.json": "AlarmV2",
@@ -178,7 +176,6 @@ const NAMED_DEF_SCHEMAS = {
     ack: "AlarmV2Ack",
   },
   "afbws/tradeplan.channel.v1.json": {
-    entityV1: "TradeplanEntityV1",
     entity: "TradeplanEntity",
     amendResultItem: "TradeplanAmendResultItem",
     getRequest: "TradeplanGetRequest",
@@ -334,7 +331,6 @@ const NAMED_DEF_SCHEMAS = {
   },
   "afbws/deal.public.v1.json": {
     source: "DealPublicSource",
-    v1: "DealPublicDealV1",
     v2: "DealPublicDealV2",
     exitList: "DealPublicExitList",
   },

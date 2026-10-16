@@ -1,5 +1,5 @@
-"""payloads/broker.account.json, broker.accounts.json, broker.orders.json,
-broker.get_accounts.json, broker.get_catalog.json, broker.resolve_instrument.json
+"""payloads/broker.accounts.json, broker.orders.json,
+broker.get_accounts.json, broker.resolve_instrument.json
 — see the account-channel migration plan, P0.1/P0.6. Fixtures below mirror
 belphegor/reporting/broker_snapshots.py::account_snapshot_payload()/
 stored_orders_payload() exactly."""
@@ -7,11 +7,9 @@ from __future__ import annotations
 
 import pytest
 
-ACCOUNT_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.account.json"
 ACCOUNTS_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.accounts.json"
 ORDERS_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.orders.json"
 GET_ACCOUNTS_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.get_accounts.json"
-GET_CATALOG_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.get_catalog.json"
 RESOLVE_INSTRUMENT_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.resolve_instrument.json"
 
 
@@ -21,25 +19,7 @@ def _validator(schema_id, registry):
     return Draft202012Validator({"$ref": schema_id}, registry=registry)
 
 
-# --- broker.account (deprecated, legacy single-account form) --------------
-
-def test_account_shape_valid(registry):
-    msg = {
-        "account_id": "bf-account", "broker_account_id": "1899011",
-        "equity": "152340.11", "cash": [{"currency": "RUB", "value": "12000"}],
-        "positions": [{"quantity": 10, "average_price": "280.5", "current_price": "281.0", "unrealized_pnl": "5.0"}],
-    }
-    _validator(ACCOUNT_ID, registry).validate(msg)  # does not raise
-
-
-def test_account_requires_positions_and_cash(registry):
-    from jsonschema import ValidationError
-
-    with pytest.raises(ValidationError):
-        _validator(ACCOUNT_ID, registry).validate({"account_id": "bf-account"})
-
-
-# --- broker.accounts (new multi-account form) ------------------------------
+# --- broker.accounts ------------------------------
 
 def test_accounts_shape_valid(registry):
     msg = {
@@ -49,7 +29,7 @@ def test_accounts_shape_valid(registry):
             {
                 "account_id": "1899011", "tradable": True, "readonly": False, "status": "ok",
                 "equity": "152340.11", "cash": [{"currency": "RUB", "value": "12000"}],
-                "positions": [{"quantity": 10, "average_price": "280.5"}],
+                "positions": [{"quantity": 10, "average_price": "280.5", "broker_ref": {"broker": "finam", "symbol": "SBER@MISX"}}],
             },
             {
                 "account_id": "1899012", "tradable": False, "readonly": True, "status": "stale",
@@ -61,9 +41,7 @@ def test_accounts_shape_valid(registry):
 
 
 def test_accounts_rejects_broker_account_id():
-    """The one deliberate divergence from broker.account — see decision 2 of
-    the account-channel migration plan: no account_id/broker_account_id
-    duplication in the new type."""
+    """No account_id/broker_account_id duplication: account_id is the only id."""
     import json
     from pathlib import Path
 
@@ -145,33 +123,68 @@ def test_get_accounts_with_account_ids_valid(registry):
     _validator(GET_ACCOUNTS_ID, registry).validate({"account_ids": ["1899011", "1899012"]})  # does not raise
 
 
-# --- broker.get_catalog (meta xor slice) --------------------------------
+# --- broker.accounts positions: broker_ref only, no instrument -----------
 
-def test_get_catalog_empty_is_meta_form(registry):
-    _validator(GET_CATALOG_ID, registry).validate({})  # does not raise
+def _accounts_with_position(position):
+    return {
+        "default_account_id": "1899011", "as_of": "2026-08-01T06:33:00Z",
+        "accounts": [{
+            "account_id": "1899011", "tradable": True, "readonly": False, "status": "ok",
+            "equity": None, "cash": [], "positions": [position],
+        }],
+    }
 
 
-def test_get_catalog_exchange_and_market_together_is_slice_form(registry):
-    _validator(GET_CATALOG_ID, registry).validate({"exchange": "MOEX", "market": "stock"})  # does not raise
-
-
-def test_get_catalog_exchange_without_market_rejected(registry):
+def test_position_requires_broker_ref(registry):
     from jsonschema import ValidationError
 
     with pytest.raises(ValidationError):
-        _validator(GET_CATALOG_ID, registry).validate({"exchange": "MOEX"})
+        _validator(ACCOUNTS_ID, registry).validate(
+            _accounts_with_position({"quantity": 1, "average_price": "1"})
+        )
 
 
-def test_get_catalog_market_without_exchange_rejected(registry):
+def test_position_broker_ref_requires_broker_and_symbol(registry):
+    from jsonschema import ValidationError
+
+    for ref in ({"broker": "finam"}, {"symbol": "SBER@MISX"}, {"broker": "finam", "symbol": ""}):
+        with pytest.raises(ValidationError):
+            _validator(ACCOUNTS_ID, registry).validate(
+                _accounts_with_position({"quantity": 1, "average_price": "1", "broker_ref": ref})
+            )
+
+
+def test_position_rejects_instrument_block(registry):
+    """BF has no catalog any more: positions carry broker_ref only; AFB restores the instrument."""
     from jsonschema import ValidationError
 
     with pytest.raises(ValidationError):
-        _validator(GET_CATALOG_ID, registry).validate({"market": "stock"})
+        _validator(ACCOUNTS_ID, registry).validate(_accounts_with_position({
+            "quantity": 1, "average_price": "1",
+            "broker_ref": {"broker": "finam", "symbol": "SBER@MISX"},
+            "instrument": {"exchange": "MOEX", "board": "TQBR", "ticker": "SBER"},
+        }))
 
 
-# --- broker.resolve_instrument (deal v1/v2 union) -----------------------
+# --- broker.resolve_instrument (deal.v2) --------------------------------
 
-def test_resolve_instrument_accepts_v1_deal(registry):
+def test_resolve_instrument_accepts_v2_deal_with_broker_symbol_and_account_id(registry):
+    deal = {
+        "schema": "afb.deal.v2", "deal_id": "deal-1", "revision": 1,
+        "target": {
+            "bf_id": "bf-main", "broker": "finam",
+            "instrument": {"exchange": "MOEX", "board": "TQBR", "ticker": "SBER", "broker_symbol": "SBER@MISX"},
+        },
+        "direction": "long",
+        "entry": [{"condition": {"node_type": "event", "op": "above", "left": {"source": "price"}, "right": {"const": "100"}}}],
+        "sizing": {"mode": "lots", "value": "1"},
+    }
+    _validator(RESOLVE_INSTRUMENT_ID, registry).validate({"deal": deal, "account_id": "1899011"})  # does not raise
+
+
+def test_resolve_instrument_rejects_v1_deal(registry):
+    from jsonschema import ValidationError
+
     deal = {
         "schema": "afb.deal.v1", "deal_id": "deal-1", "revision": 1,
         "target": {"bf_id": "bf-main", "broker": "finam", "instrument": {"exchange": "MOEX", "board": "TQBR", "ticker": "SBER"}},
@@ -179,7 +192,8 @@ def test_resolve_instrument_accepts_v1_deal(registry):
         "entry": {"condition": {"node_type": "event", "op": "above", "left": {"source": "price", "field": "last"}, "right": {"const": "100"}}},
         "sizing": {"mode": "lots", "value": "1"},
     }
-    _validator(RESOLVE_INSTRUMENT_ID, registry).validate({"deal": deal})  # does not raise
+    with pytest.raises(ValidationError):
+        _validator(RESOLVE_INSTRUMENT_ID, registry).validate({"deal": deal})
 
 
 def test_resolve_instrument_requires_deal(registry):

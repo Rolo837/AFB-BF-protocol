@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.accounts.json",
   "title": "payload: broker.accounts",
-  "description": "Response to broker.get_accounts and unsolicited push after every reconcile pass (see belphegor/reporting/account_directory.py::AccountDirectory, engine.py::_publish_broker_snapshots) — full list of accounts visible to BF's broker token. Only sent to AFB sessions that advertised session.hello_ack.features.multi_account; a BF instance that has negotiated multi_account with this AFB never sends the deprecated broker.account instead (see broker.account.json). Unlike broker.account, `accounts[].account_id` is the ONLY account identifier — no broker_account_id split, by design (the account_id/broker_account_id duplication in broker.account was judged confusing and deliberately not carried forward). Only `default_account_id` (BF's own trading account, self._account_id) is tradable in this phase — see brokers/port.py::account_id docstring; the rest are read-only until a later multi-account execution phase.",
+  "description": "Response to broker.get_accounts and unsolicited push after every reconcile pass (see belphegor/reporting/account_directory.py::AccountDirectory, engine.py::_publish_broker_snapshots) — full list of accounts visible to BF's broker token. `accounts[].account_id` is the ONLY account identifier — no broker_account_id split, by design. Positions carry only `broker_ref {broker, symbol}`: BF has no instrument catalog, AFB maps the symbol to its own instrument (instrument_key) itself. Only `default_account_id` (BF's own trading account, self._account_id) is tradable in this phase — see brokers/port.py::account_id docstring; the rest are read-only until a later multi-account execution phase.",
   "type": "object",
   "additionalProperties": false,
   "required": ["default_account_id", "as_of", "accounts"],
@@ -14,7 +14,7 @@
     },
     "as_of": {
       "type": "string",
-      "description": "ISO timestamp this snapshot was assembled at. Unlike broker.account, this is always populated (no revision counter — BF does not track one)."
+      "description": "ISO timestamp this snapshot was assembled at."
     },
     "accounts": {
       "type": "array",
@@ -54,14 +54,21 @@
     "position": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["quantity", "average_price"],
+      "required": ["quantity", "average_price", "broker_ref"],
       "properties": {
         "quantity": { "type": "integer" },
         "average_price": { "type": "string" },
         "current_price": { "type": ["string", "null"] },
         "unrealized_pnl": { "type": ["string", "null"] },
-        "instrument": { "type": "object" },
-        "broker_ref": { "type": "object" }
+        "broker_ref": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["broker", "symbol"],
+          "properties": {
+            "broker": { "type": "string", "minLength": 1, "description": "BF connector/broker id (e.g. finam)." },
+            "symbol": { "type": "string", "minLength": 1, "description": "Broker-side instrument locator (e.g. TICKER@MIC); the same value deals carry as target.instrument.broker_symbol." }
+          }
+        }
       }
     }
   }

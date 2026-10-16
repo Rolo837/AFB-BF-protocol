@@ -14,11 +14,8 @@ Every message is a signed envelope (see `spec/schemas/envelope.json`).
 | `session.resync_response` | system |  | `spec/schemas/payloads/session.resync_response.json` | `examples/session.resync_response.json` |
 | `daemon.capabilities_query` | system |  | `spec/schemas/payloads/daemon.capabilities_query.json` | `examples/daemon.capabilities_query.json` |
 | `daemon.restart` | system |  | — | — |
-| `broker.get_account` | user |  | `spec/schemas/payloads/broker.get_account.json` | — |
 | `broker.get_accounts` | user |  | `spec/schemas/payloads/broker.get_accounts.json` | `examples/broker.get_accounts.json` |
 | `broker.get_orders` | user |  | `spec/schemas/payloads/broker.get_orders.json` | — |
-| `broker.get_catalog` | user |  | `spec/schemas/payloads/broker.get_catalog.json` | — |
-| `broker.get_instrument` | user |  | `spec/schemas/payloads/broker.get_instrument.json` | — |
 | `broker.resolve_instrument` | user |  | `spec/schemas/payloads/broker.resolve_instrument.json` | — |
 | `deal.publish` | user |  | `spec/schemas/payloads/deal.publish.json` | `examples/deal.publish.json` |
 | `deal.operation` | user |  | `spec/schemas/payloads/deal.operation.json` | `examples/deal.operation.json` |
@@ -39,11 +36,8 @@ Every message is a signed envelope (see `spec/schemas/envelope.json`).
 | `daemon.status` | system | yes | `spec/schemas/payloads/daemon.status.json` | `examples/daemon.status.json` |
 | `daemon.capabilities` | system |  | `spec/schemas/payloads/daemon.capabilities.json` | `examples/daemon.capabilities.json` |
 | `daemon.error` | system | yes | — | — |
-| `broker.account` | user |  | `spec/schemas/payloads/broker.account.json` | — |
 | `broker.accounts` | user |  | `spec/schemas/payloads/broker.accounts.json` | `examples/broker.accounts.json` |
 | `broker.orders` | user |  | `spec/schemas/payloads/broker.orders.json` | — |
-| `broker.catalog` | user |  | `spec/schemas/payloads/broker.catalog.json` | — |
-| `broker.instrument` | user |  | `spec/schemas/payloads/broker.instrument.json` | — |
 | `broker.instrument_resolved` | user |  | `spec/schemas/payloads/broker.instrument_resolved.json` | — |
 | `broker.position_ledger` | trading | yes | `spec/schemas/payloads/broker.position_ledger.json` | — |
 | `broker.error` | user |  | `spec/schemas/payloads/broker.error.json` | `examples/broker.error.json` |

@@ -33,9 +33,9 @@ __all__ = [
     "validate_notification",
 ]
 
-_DEAL_SCHEMAS = {"afb.deal.v1", "afb.deal.v2"}
-_TRADEPLAN_SCHEMAS = {"afb.tradeplan.v1", "afb.tradeplan.v2"}
-_DEFAULT_TRADEPLAN_SCHEMA = "afb.tradeplan.v1"
+_DEAL_SCHEMAS = {"afb.deal.v2"}
+_TRADEPLAN_SCHEMAS = {"afb.tradeplan.v2"}
+_DEFAULT_TRADEPLAN_SCHEMA = "afb.tradeplan.v2"
 _ALARM_SCHEMAS = {"afb.alarm.v1", "afb.alarm.v2"}
 _GP_SCHEMAS = {"afb.gp.v1", "afb.gp.v2"}
 _NOTIFICATION_SCHEMAS = {
@@ -110,7 +110,7 @@ def _validate(obj: dict[str, Any], *, schema_filename: str, what: str) -> None:
 
 
 def validate_deal(obj: dict[str, Any]) -> str:
-    """Validate a deal payload against afb.deal.v1 or afb.deal.v2 (dispatched on
+    """Validate a deal payload against afb.deal.v2 (checked on
     ``obj["schema"]``). Returns the resolved schema id."""
     if not isinstance(obj, dict):
         raise PayloadValidationError("invalid_schema", "deal must be an object")
@@ -122,7 +122,7 @@ def validate_deal(obj: dict[str, Any]) -> str:
 
 
 def resolve_tradeplan_schema(obj: dict[str, Any]) -> str:
-    """The trade-plan schema id ``obj`` declares, defaulting to afb.tradeplan.v1
+    """The trade-plan schema id ``obj`` declares, defaulting to afb.tradeplan.v2
     when the ``schema`` field is absent (compatibility with frontends older
     than the tradeplan schema itself)."""
     if not isinstance(obj, dict):
@@ -136,8 +136,8 @@ def resolve_tradeplan_schema(obj: dict[str, Any]) -> str:
 
 
 def validate_tradeplan(obj: dict[str, Any]) -> str:
-    """Validate a trade-plan template against afb.tradeplan.v1 or
-    afb.tradeplan.v2 (dispatched on ``obj.get("schema")``, missing ⇒ v1).
+    """Validate a trade-plan template against afb.tradeplan.v2
+    (``obj.get("schema")``, missing ⇒ v2).
     Returns the resolved schema id."""
     schema = resolve_tradeplan_schema(obj)
     _validate(obj, schema_filename=_schema_filename(schema), what="tradeplan")

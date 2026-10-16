@@ -14,10 +14,8 @@ spec/
   asyncapi.yaml          # КАНОН: AsyncAPI 3.1, все типы сообщений
   schemas/
     envelope.json        # схема конверта (контракт подписи/хэша)
-    deal.v1.json         # сделка afb.deal.v1
     deal.v2.json         # сделка afb.deal.v2 (мульти-вход/выход)
     deal_state.v2.json   # общая on-disk схема состояния сделки
-    tradeplan.v1.json    # шаблон торгового плана v1 (AFB-сторонний, не wire)
     tradeplan.v2.json    # шаблон торгового плана v2 (AFB-сторонний, не wire)
     payloads/*.json      # схема payload каждого типа сообщения
 examples/                # подписанные примеры конвертов (fixtures) + тестовые ключи
@@ -83,8 +81,7 @@ wire = env.to_dict()                       # -> send over WebSocket
 > Глубокая бизнес-валидация сделки (дерево условий, режимы сайзинга, percent v2)
 > остаётся в BF — она не дублируется в AFB и зависит от доменных модулей BF.
 > Структурную валидацию payload обеспечивают JSON-схемы в `spec/` (и, на
-> рантайме, `payload_validation`). Шаблоны торговых планов (`afb.tradeplan.v1/
-> v2`) описаны в `docs/PROTOCOL.md` §10 — это AFB-сторонние сущности, не
+> рантайме, `payload_validation`). Шаблоны торговых планов (`afb.tradeplan.v2`) описаны в `docs/PROTOCOL.md` §10 — это AFB-сторонние сущности, не
 > сообщения протокола.
 
 ## Разработка

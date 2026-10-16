@@ -15,13 +15,13 @@ _TARGET = {
     "broker": "finam",
     "instrument": {"exchange": "MOEX", "board": "TQBR", "ticker": "SBER"},
 }
-_PUBLIC_DEAL_V1 = {
-    "schema": "afb.deal.v1",
+_PUBLIC_DEAL_V2 = {
+    "schema": "afb.deal.v2",
     "deal_id": "deal-1",
     "revision": 1,
     "target": _TARGET,
     "direction": "long",
-    "entry": {"condition": {"node_type": "event", "op": "above", "left": {"source": "price", "field": "last"}, "right": {"const": "100"}}},
+    "entry": [{"condition": {"node_type": "event", "op": "above", "left": {"source": "price"}, "right": {"const": "100"}}}],
     "sizing": {"mode": "lots", "value": "1"},
     "source": {"tradeplan_id": "tp-1"},
 }
@@ -39,7 +39,7 @@ _SUMMARY = {
 }
 _DETAIL = {
     **_SUMMARY,
-    "deal": _PUBLIC_DEAL_V1,
+    "deal": _PUBLIC_DEAL_V2,
     "editable_fields": ["sizing"],
 }
 
@@ -125,7 +125,7 @@ def test_list_response_item_is_summary_not_detail_shaped(registry):
     """A dealSummary must not need (nor tolerate) the editor payload fields."""
     from jsonschema import ValidationError
 
-    bad_item = {**_SUMMARY, "deal": _PUBLIC_DEAL_V1}
+    bad_item = {**_SUMMARY, "deal": _PUBLIC_DEAL_V2}
     msg = {"channel": "deal", "schema": "afbws.deal.list.response.v1", "request_id": "req-1", "items": [bad_item]}
     with pytest.raises(ValidationError):
         _validator("listResponse", registry).validate(msg)

@@ -24,7 +24,7 @@ def test_example_validates(path: Path, registry):
     envelope_schema = json.loads((SPEC_SCHEMAS / "envelope.json").read_text())
     Draft202012Validator(envelope_schema, registry=registry).validate(env)
 
-    # A stem may carry a "__variant" suffix (e.g. deal.publish__v2) when a
+    # A stem may carry a "__variant" suffix (e.g. deal.publish__v2_any_entry) when a
     # message type needs more than one example; the payload schema is keyed by
     # the message type only (the part before "__").
     msg_type = path.stem.split("__", 1)[0]
@@ -34,13 +34,12 @@ def test_example_validates(path: Path, registry):
     Draft202012Validator(payload_schema, registry=registry).validate(env["payload"])
 
 
-def test_legacy_entry_side_and_order_rejected_since_v2_0_0(registry):
-    """v2.0.0 removed `entry.side` (legacy buy/sell — superseded by the
-    deal-level `direction`) and `entry.order` (deprecated since 1.11.0, BF
-    always ignored it) from afb.deal.v1. `direction` is now required."""
+def test_legacy_v1_shape_rejected(registry):
+    """afb.deal.v1 was removed: a v1-shaped body (single-object `entry`, no
+    list legs, schema const mismatch) is not a valid afb.deal.v2."""
     from jsonschema import Draft202012Validator, ValidationError
 
-    deal_schema = json.loads((SPEC_SCHEMAS / "deal.v1.json").read_text())
+    deal_schema = json.loads((SPEC_SCHEMAS / "deal.v2.json").read_text())
     deal = {
         "schema": "afb.deal.v1",
         "deal_id": "deal-legacy:bf1",
@@ -50,21 +49,15 @@ def test_legacy_entry_side_and_order_rejected_since_v2_0_0(registry):
             "broker": "finam-arena",
             "instrument": {"exchange": "MOEX", "board": "TQBR", "ticker": "SBER"},
         },
+        "direction": "long",
         "entry": {
-            "side": "buy",
             "condition": {
                 "node_type": "event", "id": "e1", "op": "above",
                 "left": {"source": "price", "field": "last"},
                 "right": {"const": "100.5"},
             },
-            "order": {"type": "market", "limit_offset_steps": 1, "time_in_force": "day"},
         },
         "sizing": {"mode": "lots", "value": "1"},
     }
     with pytest.raises(ValidationError):
         Draft202012Validator(deal_schema, registry=registry).validate(deal)
-
-    deal["direction"] = "long"
-    del deal["entry"]["side"]
-    del deal["entry"]["order"]
-    Draft202012Validator(deal_schema, registry=registry).validate(deal)  # does not raise
