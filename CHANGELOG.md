@@ -8,6 +8,8 @@
 
 ## Unreleased
 
+- **`config.v1.json`: блок `form` и `interface.settings_storage`** (настройки сервисов в шапке панелей). Корневой блок `form` (`alarms.confirm_delete`, `primitives.confirm_delete`, `plans.{auto_execute,editor_left,hide_on_share,risk_top}`, все boolean, `additionalProperties: false`, deep-merge при записи) и `interface.settings_storage` (`server|local`, где хранить `form.*`: в пользовательском файле или в localStorage браузера). Убраны `interface.confirm_delete`, `trade.auto_execute`, `trade.plan_editor_placement` (значения не мигрируются; `interface`/`trade` остаются `additionalProperties: true`, старый ключ от старого клиента не даёт `validation_error`).
+
 ## v2.8.1 — 2026-10-16
 
 - **Новый канал `account` v2** (`afbws/account.channel.v2.json`, capability `afbws.account.channel.v2`; AFB-сторонняя схема вне `asyncapi.yaml`, канал AFB↔BF не затрагивается — PATCH). Один schema id на сообщение (`afbws.account.<op>.v2`), тот же id — запрос, ответ и пуш (пуш без `request_id`). Операции: `list` (запрос `bf_id?`/`account_id?`/`force?`, ответ `items[]`, пуш — полный список счетов одного `bf_id` с `default_account_id`), `orders` (запрос `bf_id` + `account_id?`, пуш для счёта по умолчанию), `events` (без пуша), `error`. Операции `get` нет: её заменяет `list` с `bf_id` и `account_id`. Формы снимка/ордера/события — как в v1, определены в самом файле; мультивалютный счёт выражается `cash[]`, виртуальный заполняет `as_of`. `account.channel.v1.json` не менялся. Типы: `AccountChannelV2Message`, `AccountV2List`, `AccountV2Orders`, `AccountV2Events`, `AccountV2Error`, `AccountV2Snapshot`, `AccountV2Order`, `AccountV2EventRecord`.

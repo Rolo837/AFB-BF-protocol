@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: d0bf9b00829cb4833f762e9677f8c4430599bbb782abc5ba9fe49e19104dcaca
+ * source-hash: 6b77b0ed17699644db44523bba959603ee2e68858cf30c928bb324ee6a08b4f8
  */
 
 /**
@@ -2572,7 +2572,7 @@ export interface AfbwsCommonV1_Root {
   [k: string]: unknown;
 }
 /**
- * Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard` are deep-merged, `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
+ * Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard`/`form` are deep-merged, `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "ConfigSettingsV1".
@@ -2583,6 +2583,7 @@ export interface ConfigSettingsV1 {
   dataset?: ConfigDataset;
   dashboard?: ConfigDashboard;
   trade?: ConfigTrade;
+  form?: ConfigV1_Form;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2614,7 +2615,10 @@ export interface ConfigProfile {
 export interface ConfigInterface {
   layout?: ConfigLayout;
   snow_mode?: boolean;
-  confirm_delete?: boolean;
+  /**
+   * Where the per-service form switches (`settings.form.*`) are stored: `server` — in the user file (default), `local` — in the browser's localStorage under identical `form.*` keys. This value itself is always stored on the server.
+   */
+  settings_storage?: 'server' | 'local';
   smart_alarms?: boolean;
   preset_timeframes?: {
     positions?: string;
@@ -2751,7 +2755,6 @@ export interface ConfigV1_DashboardLayoutItem {
  * via the `definition` "ConfigTrade".
  */
 export interface ConfigTrade {
-  auto_execute?: boolean;
   default_connector?: string;
   default_capital?: number;
   /**
@@ -2760,7 +2763,6 @@ export interface ConfigTrade {
   default_risk_pct?: number;
   notify?: ConfigV1_TradeNotify;
   chart_deal_markers?: boolean;
-  plan_editor_placement?: string;
   [k: string]: unknown;
 }
 /**
@@ -2775,6 +2777,44 @@ export interface ConfigV1_TradeNotify {
   close?: boolean;
   link?: boolean;
   [k: string]: unknown;
+}
+/**
+ * Stored here when `interface.settings_storage` is `server`; otherwise the same keys (`form.<service>.<name>`) live in localStorage.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigV1_Form".
+ */
+export interface ConfigV1_Form {
+  alarms?: {
+    /**
+     * Ask for confirmation before deleting an alarm (default true).
+     */
+    confirm_delete?: boolean;
+  };
+  primitives?: {
+    /**
+     * Ask for confirmation before deleting a graphic primitive (default true).
+     */
+    confirm_delete?: boolean;
+  };
+  plans?: {
+    /**
+     * Activate the deal automatically after a plan is published (default false).
+     */
+    auto_execute?: boolean;
+    /**
+     * Plan editor is placed beside the list (left) instead of over it (default true).
+     */
+    editor_left?: boolean;
+    /**
+     * Hide commercial information when opening the plan description for copying (default false).
+     */
+    hide_on_share?: boolean;
+    /**
+     * Show the 'Risk and volume' section first in the plan modal (default false).
+     */
+    risk_top?: boolean;
+  };
 }
 /**
  * Merged under every user's own settings. A write (manager only) requires `dataset`.

@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: d0bf9b00829cb4833f762e9677f8c4430599bbb782abc5ba9fe49e19104dcaca
+# source-hash: 6b77b0ed17699644db44523bba959603ee2e68858cf30c928bb324ee6a08b4f8
 
 from __future__ import annotations
 
@@ -1763,6 +1763,10 @@ class Alarms(TypedDict):
     statuses: NotRequired[list[str]]
 
 
+class Alarms1(TypedDict):
+    confirm_delete: NotRequired[bool]
+
+
 class Backstop(TypedDict):
     """
     Per-deal overrides for the hybrid-mode server-side backstop order; unset fields fall back to the executing BF's own config defaults. Meaningful only when execution_mode is `hybrid`.
@@ -2235,7 +2239,7 @@ class ConfigHelp(TypedDict):
 class ConfigInterface(TypedDict):
     layout: NotRequired[ConfigLayout]
     snow_mode: NotRequired[bool]
-    confirm_delete: NotRequired[bool]
+    settings_storage: NotRequired[Literal["server", "local"]]
     smart_alarms: NotRequired[bool]
     preset_timeframes: NotRequired[PresetTimeframes]
     chart_toolbar: NotRequired[ConfigV1ChartToolbar]
@@ -2295,7 +2299,7 @@ class ConfigSettings(TypedDict):
 
 class ConfigSettingsV1(TypedDict):
     """
-    Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard` are deep-merged, `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
+    Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard`/`form` are deep-merged, `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
     """
 
     profile: NotRequired[ConfigProfile]
@@ -2303,6 +2307,7 @@ class ConfigSettingsV1(TypedDict):
     dataset: NotRequired[ConfigDataset]
     dashboard: NotRequired[ConfigDashboard]
     trade: NotRequired[ConfigTrade]
+    form: NotRequired[ConfigV1Form]
 
 
 class ConfigToken1(TypedDict):
@@ -2349,13 +2354,11 @@ class ConfigTrade(TypedDict):
     `default_capital` is persisted by the server into the user's virtual account, not into the settings file; reads return the live value.
     """
 
-    auto_execute: NotRequired[bool]
     default_connector: NotRequired[str]
     default_capital: NotRequired[float]
     default_risk_pct: NotRequired[float]
     notify: NotRequired[ConfigV1TradeNotify]
     chart_deal_markers: NotRequired[bool]
-    plan_editor_placement: NotRequired[str]
 
 
 class ConfigV1ChartToolbar(TypedDict):
@@ -2371,6 +2374,16 @@ class ConfigV1DashboardLayoutItem(TypedDict):
     y: NotRequired[int]
     w: NotRequired[int]
     h: NotRequired[int]
+
+
+class ConfigV1Form(TypedDict):
+    """
+    Stored here when `interface.settings_storage` is `server`; otherwise the same keys (`form.<service>.<name>`) live in localStorage.
+    """
+
+    alarms: NotRequired[Alarms1]
+    primitives: NotRequired[Primitives]
+    plans: NotRequired[Plans1]
 
 
 class ConfigV1ServicesFilters(TypedDict):
@@ -5114,6 +5127,13 @@ class Plans(TypedDict):
     statuses: NotRequired[list[str]]
 
 
+class Plans1(TypedDict):
+    auto_execute: NotRequired[bool]
+    editor_left: NotRequired[bool]
+    hide_on_share: NotRequired[bool]
+    risk_top: NotRequired[bool]
+
+
 class Position(TypedDict):
     symbol: NotRequired[str]
     quantity: NotRequired[int]
@@ -5137,6 +5157,10 @@ class PresetTimeframes(TypedDict):
     trades: NotRequired[str]
     hhi: NotRequired[str]
     orders: NotRequired[str]
+
+
+class Primitives(TypedDict):
+    confirm_delete: NotRequired[bool]
 
 
 class Publish(TypedDict):

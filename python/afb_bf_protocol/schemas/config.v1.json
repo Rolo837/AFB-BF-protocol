@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/config.v1.json",
   "title": "afb.config.v1 — per-user settings payload (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard` are deep-merged, `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.",
+  "description": "Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard`/`form` are deep-merged, `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -10,7 +10,8 @@
     "interface": { "$ref": "#/$defs/interface" },
     "dataset": { "$ref": "#/$defs/dataset" },
     "dashboard": { "$ref": "#/$defs/dashboard" },
-    "trade": { "$ref": "#/$defs/trade" }
+    "trade": { "$ref": "#/$defs/trade" },
+    "form": { "$ref": "#/$defs/form" }
   },
   "$defs": {
     "profile": {
@@ -85,7 +86,11 @@
       "properties": {
         "layout": { "$ref": "#/$defs/layout" },
         "snow_mode": { "type": "boolean" },
-        "confirm_delete": { "type": "boolean" },
+        "settings_storage": {
+          "type": "string",
+          "enum": ["server", "local"],
+          "description": "Where the per-service form switches (`settings.form.*`) are stored: `server` — in the user file (default), `local` — in the browser's localStorage under identical `form.*` keys. This value itself is always stored on the server."
+        },
         "smart_alarms": { "type": "boolean" },
         "preset_timeframes": {
           "type": "object",
@@ -183,7 +188,6 @@
       "description": "`default_capital` is persisted by the server into the user's virtual account, not into the settings file; reads return the live value.",
       "additionalProperties": true,
       "properties": {
-        "auto_execute": { "type": "boolean" },
         "default_connector": { "type": "string" },
         "default_capital": { "type": "number" },
         "default_risk_pct": {
@@ -193,8 +197,39 @@
           "description": "Default risk_factor (%) for a newly created trade plan."
         },
         "notify": { "$ref": "#/$defs/tradeNotify" },
-        "chart_deal_markers": { "type": "boolean" },
-        "plan_editor_placement": { "type": "string" }
+        "chart_deal_markers": { "type": "boolean" }
+      }
+    },
+    "form": {
+      "type": "object",
+      "title": "settings.form — per-service UI switches (deep-merged on write).",
+      "description": "Stored here when `interface.settings_storage` is `server`; otherwise the same keys (`form.<service>.<name>`) live in localStorage.",
+      "additionalProperties": false,
+      "properties": {
+        "alarms": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "confirm_delete": { "type": "boolean", "description": "Ask for confirmation before deleting an alarm (default true)." }
+          }
+        },
+        "primitives": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "confirm_delete": { "type": "boolean", "description": "Ask for confirmation before deleting a graphic primitive (default true)." }
+          }
+        },
+        "plans": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "auto_execute": { "type": "boolean", "description": "Activate the deal automatically after a plan is published (default false)." },
+            "editor_left": { "type": "boolean", "description": "Plan editor is placed beside the list (left) instead of over it (default true)." },
+            "hide_on_share": { "type": "boolean", "description": "Hide commercial information when opening the plan description for copying (default false)." },
+            "risk_top": { "type": "boolean", "description": "Show the 'Risk and volume' section first in the plan modal (default false)." }
+          }
+        }
       }
     },
     "defaults": {
