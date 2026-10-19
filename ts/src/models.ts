@@ -1,62 +1,11 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: a0e13d0d404e76dfa56c298ad8523ed863d4d775cc9625ad150dd30d86f4055c
+ * source-hash: eb7b34cf0449db4654c04fd70cfb892cf66afb20a4d189d234056de0c07abe99
  */
 
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v1). Replaces legacy `channel=account, type=get_account|get_orders|get_events` for clients that negotiated this capability; legacy stays available as fallback — same channel name (`account`) for both, discriminated by presence of `schema` vs `type`, never both in the same session. The legacy `get_catalog`/`get_instrument`/`resolve_instrument` commands are NOT part of this migration — they are already superseded by the `instrument` channel (see instrument.channel.v1.json) for negotiated clients. `item`/`items` are explicit allow-list projections built by backend/trade/public_views.py, never a verbatim proxy of a BF broker.* payload — see $defs/accountSnapshot and $defs/order, which independently declare their own strict shape (reusing only the field-level $defs of payloads/broker.accounts.json/broker.orders.json, not their whole root) so this channel never inherits the wire schemas' additionalProperties:true. `account` here means a broker account (one bf_id/connector may have more than one — see broker.get_accounts/broker.accounts on the AFB<->BF wire), not the connector itself. See AFB/docs/ENTITY_WS_PROTOCOL.md and plans/account-channel-migration (account.md).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountChannelV1Message".
- */
-export type AccountChannelV1Message =
-  | AccountListRequest
-  | AccountListResponse
-  | AccountGetRequest
-  | AccountGetResponse
-  | AccountOrdersRequest
-  | AccountOrdersResponse
-  | AccountEventsRequest
-  | AccountEventsResponse
-  | AccountErrorResponse
-  | AccountSnapshotPush
-  | AccountOrdersPush;
-/**
- * Client-generated correlation id (e.g. uuid4), echoed verbatim in the matching response.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsCommonV1_RequestId".
- */
-export type AfbwsCommonV1_RequestId = string;
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountBfId".
- */
-export type AccountBfId = string;
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountAccountId".
- */
-export type AccountAccountId = string;
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsCommonV1_ErrorCode".
- */
-export type AfbwsCommonV1_ErrorCode =
-  | 'not_found'
-  | 'invalid_schema'
-  | 'invalid_channel'
-  | 'validation_error'
-  | 'conflict'
-  | 'internal_error'
-  | 'forbidden'
-  | 'bf_offline'
-  | 'unsupported_action'
-  | 'superseded'
-  | 'busy';
-/**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, error; v1 `get` is replaced by `list` with `bf_id` + `account_id`. A client negotiates v1 or v2 (v2 preferred if both are offered); the backend answers in the negotiated version only. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes (same fields as v1, no references to account.channel.v1.json), reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a broker account (one bf_id may have more than one), not the connector itself.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, error; `list` takes `bf_id` + `account_id`. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes , reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a broker account (one bf_id may have more than one), not the connector itself.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountChannelV2Message".
@@ -83,6 +32,13 @@ export type AccountV2List = {
   default_account_id?: AccountV2AccountId;
   items?: AccountV2Snapshot[];
 };
+/**
+ * Client-generated correlation id (e.g. uuid4), echoed verbatim in the matching response.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCommonV1_RequestId".
+ */
+export type AfbwsCommonV1_RequestId = string;
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountV2BfId".
@@ -129,81 +85,23 @@ export type AccountV2Events = {
   items?: AccountV2EventRecord[];
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.alarm.channel.v1). Replaces bulk settings/get_alarms+set_alarms and mail/alarms+mail/ack for clients that negotiated this capability; legacy stays available as fallback for clients that did not. See AFB/docs/ENTITY_WS_PROTOCOL.md.
- *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmChannelV1Message".
+ * via the `definition` "AfbwsCommonV1_ErrorCode".
  */
-export type AlarmChannelV1Message =
-  | AlarmGetRequest
-  | AlarmGetResponse
-  | AlarmListRequest
-  | AlarmListResponse
-  | AlarmSetRequest
-  | AlarmSetResponse
-  | AlarmDeleteRequest
-  | AlarmDeleteResponse
-  | AlarmErrorResponse
-  | AlarmTriggeredPush
-  | AlarmAckRequest
-  | AlarmAckResponse;
+export type AfbwsCommonV1_ErrorCode =
+  | 'not_found'
+  | 'invalid_schema'
+  | 'invalid_channel'
+  | 'validation_error'
+  | 'conflict'
+  | 'internal_error'
+  | 'forbidden'
+  | 'bf_offline'
+  | 'unsupported_action'
+  | 'superseded'
+  | 'busy';
 /**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV1_AlarmConditionNode".
- */
-export type AlarmV1_AlarmConditionNode =
-  | {
-      left?: ConditionV1_PriceExpr;
-      right?: ConditionV1_RightConst;
-      op?: 'touch';
-    }
-  | {
-      left?: ConditionV1_PriceExpr;
-      right?: ConditionV1_RightConst;
-      op: 'breakout' | 'breakdown' | 'crossing';
-      timeframe: ConditionV1_Timeframe;
-    }
-  | {
-      left?: ConditionV1_PriceExpr;
-      right?: ConditionV1_RightConst;
-      op: ConditionV1_PriceLevelOp;
-    }
-  | {
-      left?: AlarmV1_AlarmIndicatorExpr;
-      right?: ConditionV1_RightConst | AlarmV1_AlarmIndicatorExpr;
-      op: ConditionV1_ScalarOp;
-    }
-  | {
-      left?: ConditionV1_DatasetExpr;
-      right?: ConditionV1_RightConst | ConditionV1_DatasetExpr;
-      op: ConditionV1_ScalarOp;
-    };
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DecimalString".
- */
-export type DecimalString = string;
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "ConditionV1_Timeframe".
- */
-export type ConditionV1_Timeframe = '5min' | '10min' | '15min' | '30min' | '1h' | '2h' | '4h' | '1d';
-/**
- * Price level check (inclusive): above fires when cur >= level; below when cur <= level.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "ConditionV1_PriceLevelOp".
- */
-export type ConditionV1_PriceLevelOp = 'above' | 'below';
-/**
- * indicator/dataset: above cur > thr, below cur < thr. crosses_above: prev <= prev_thr AND cur > thr. crosses_below: prev >= prev_thr AND cur < thr. crossing: crosses_above OR crosses_below. Price above/below use evaluate_price_level_op (inclusive >= / <=) — see the price level operator branch.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "ConditionV1_ScalarOp".
- */
-export type ConditionV1_ScalarOp = 'above' | 'below' | 'crosses_above' | 'crosses_below' | 'crossing';
-/**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.alarm.channel.v2). Items are afb.alarm.v2 (`instrument_key` instead of `ticker`). Same convention as afbws.market: ONE schema id per message (`afbws.alarm.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`). Collections are arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. `triggered` is the only server push (no `request_id`). A client negotiates v1 or v2 (v2 preferred if both are offered); the backend answers in the negotiated version only. See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.alarm.channel.v2). Items are afb.alarm.v2 (`instrument_key` instead of `ticker`). Same convention as afbws.market: ONE schema id per message (`afbws.alarm.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`). Collections are arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. `triggered` is the only server push (no `request_id`). See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AlarmChannelV2Message".
@@ -248,6 +146,30 @@ export type AlarmV2_AlarmConditionNode =
       right?: ConditionV1_RightConst | ConditionV1_DatasetExpr;
       op: ConditionV1_ScalarOp;
     };
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DecimalString".
+ */
+export type DecimalString = string;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConditionV1_Timeframe".
+ */
+export type ConditionV1_Timeframe = '5min' | '10min' | '15min' | '30min' | '1h' | '2h' | '4h' | '1d';
+/**
+ * Price level check (inclusive): above fires when cur >= level; below when cur <= level.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConditionV1_PriceLevelOp".
+ */
+export type ConditionV1_PriceLevelOp = 'above' | 'below';
+/**
+ * indicator/dataset: above cur > thr, below cur < thr. crosses_above: prev <= prev_thr AND cur > thr. crosses_below: prev >= prev_thr AND cur < thr. crossing: crosses_above OR crosses_below. Price above/below use evaluate_price_level_op (inclusive >= / <=) — see the price level operator branch.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConditionV1_ScalarOp".
+ */
+export type ConditionV1_ScalarOp = 'above' | 'below' | 'crosses_above' | 'crosses_below' | 'crossing';
 /**
  * Request (`request_id` present): `items[]` — upsert by `item.id`, batched. Response (same `request_id`): applied `items[]` (authoritative records, possibly empty) + `rejected[]` for items that were not applied. Push (no `request_id`, server-initiated): `items[]` (at least one) are authoritative afb.alarm.v2 records that the server created or changed on its own (e.g. alarms moved to another contract by the expiration replace) — upsert by id on the client, never a snapshot; `rejected` is not allowed. Removal is conveyed by `afbws.alarm.delete.v2` without `request_id`.
  *
@@ -360,7 +282,7 @@ export type AfbwsCatalogChannelV1_Snapshot = {
   sources?: AfbwsCatalogChannelV1_SourceStatus[];
 } & AfbwsCatalogChannelV1_Snapshot1;
 /**
- * Same list and order as afbws.instrument.channel.v1#/$defs/favoriteColor (kept in lockstep; no cross-reference on purpose).
+ * Same list and order as afbws.instrument.channel.v2 favoriteColor (kept in lockstep; no cross-reference on purpose).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsCatalogChannelV1_FavoriteColor".
@@ -624,13 +546,6 @@ export type DealId = string;
  */
 export type BfId = string;
 /**
- * Explicit allow-list projector output over afb.deal.v1/v2 (../deal.v1.json, ../deal.v2.json), built by backend/trade/public_views.py — never a serialization of the persisted DealState file. Deliberately NOT an allOf+$ref extension of the whole wire root: those wire schemas declare `owner`/`archive_reason` in their own `properties` with no `additionalProperties: false`, so those fields would count as already-'evaluated' and survive an outer `unevaluatedProperties: false` — the only way to actually drop them is to define this object's own shape directly and reuse the wire schemas' field-level $defs (target, sizing, conditions, execution policy) rather than their root. `source` is strict and requires `tradeplan_id` — the single public link back to the owning tradeplan; `source.kind`/`draft_id`, compile snapshots and raw phase-B overrides never appear here. The one internal field that IS projected — per-leg, not on `source` — is `leg_id` (v2 legs only), the plan-leg identity the frontend needs to tell which deal leg still tracks which plan leg.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealPublicV1".
- */
-export type DealPublicV1 = DealPublicDealV1 | DealPublicDealV2;
-/**
  * Stable identity of this leg across edits — the key overrides/carry-over (tradeplan/deal separation Фаза B2) use to match a plan leg to its compiled deal leg, never array position. Assigned once when a leg is created and never reused/reassigned; a plan predating this field falls back to a deterministic `legacy:{role}:{index}` synthetic id at compile time (see AFB backend/tradeplans/models.py) until migrated.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -741,47 +656,6 @@ export type DealOperationItem = {
   cancel_open_orders?: boolean;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.gp.channel.v1). Replaces bulk settings/get_primitives+set_primitives for clients that negotiated this capability; legacy stays available as fallback for clients that did not. `list()` (no ticker) returns every primitive the caller owns across all tickers; `list(ticker)` filters to one canonical SECID. `set` is a plain upsert by item.id — moving a primitive (new start/stop) is the same request as creating or editing one, never a separate command; there is no bulk-set and no confirm/usage RPC — the backend alone decides whether a move/delete is safe against linked tradeplans and answers with a typed conflict (see errorResponse) instead of the client asking first. See AFB/docs/ENTITY_WS_PROTOCOL.md.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpChannelV1Message".
- */
-export type GpChannelV1Message =
-  | GpGetRequest
-  | GpGetResponse
-  | GpListRequest
-  | GpListResponse
-  | GpSetRequest
-  | GpSetResponse
-  | GpDeleteRequest
-  | GpDeleteResponse
-  | AfbwsGpChannelV1_SyncPush
-  | GpErrorResponse;
-/**
- * AFB-side chart primitive (line/line_enter/line_sl/line_tp/note/zone/ruler) — like afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`. `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV1".
- */
-export type GpV1 = {
-  [k: string]: unknown;
-} & {
-  schema: 'afb.gp.v1';
-  id: string;
-  ticker: string;
-  kind: 'line' | 'line_enter' | 'line_sl' | 'line_tp' | 'note' | 'zone' | 'ruler';
-  start: GpV1_Point;
-  stop?: GpV1_Point;
-  /**
-   * note only (optional even there).
-   */
-  text?: string;
-  /**
-   * Владеющий торговый план. Проставляется сервером при компиляции плана в сделку (публикация/amend); снимается только при физическом удалении плана. Клиент это поле не задаёт и не меняет — в set-запросе оно игнорируется в пользу хранимого значения. Пустое/отсутствующее — свободный примитив, доступный любому плану. При архивации плана его уровни физически удаляются из этого хранилища, но условия плана НЕ переписываются в числа — план сохраняет исходные ссылки на примитивы; полная копия каждого удалённого уровня (kind/координаты/стиль) переносится в archived_components плана и является источником его исторической отрисовки.
-   */
-  tradeplan_id?: string;
-};
-/**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.gp.channel.v2). Items are afb.gp.v2 (`instrument_key`, kinds trendline/fibonacci; primitive parameters `start`/`stop`/`text` live in the `settings` dictionary, strictly typed by `kind`). Same convention as afbws.market: ONE schema id per message (`afbws.gp.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response and, where documented, a server push. Requests and responses are told apart by direction and fields (a response echoes the request's `request_id`); a message WITHOUT `request_id` is a server push. Collections are always arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. Chart-indicator management (replaces legacy settings/{get,set,get_default,set_default} `indicators`) is `indicator.list|set|delete`; shared indicators are changed by a manager only and pushed to everyone via `indicator.set`/`indicator.delete` without `request_id`. Primitive display settings: `style`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -890,313 +764,7 @@ export type GpV2Style = {
   styles?: GpV2PrimitiveStyles;
 };
 /**
- * DEPRECATED — superseded by afbws.instrument.channel.v2 (instrument.channel.v2.json); still served to clients that did not negotiate v2, to be removed after the release window. Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v1). Replaced legacy `securities/list`, `setup/markets`+`get_assign`+`set_assign`, and `account/get_catalog`+`get_instrument`+`resolve_instrument` — all removed from the AFB dispatcher in the legacy-protocol cleanup; there is no legacy fallback any more, a connection that has not negotiated this capability gets a typed `invalid_channel` error instead. `catalog` is the one read snapshot of the curated catalog for any authenticated caller. `get`/`resolve`/`detail` are also open to any authenticated caller (unlike legacy `securities/list`, which allowed anonymous access — that is not carried over). `catalog` is the Assets-modal UI snapshot of the curated catalog — same wire form for every authenticated caller; the backend varies completeness (manager also sees unassigned assets, user sees only live sets and the assets in them — sets/assets carry no archived flag). `commit`/`pool`/`sources`/`refresh` require the manager gate. `pool` pages the backend MOEX universe as discriminated listing|series rows (futures appear as series, not expirations); broker/BF sources are not served in this revision. `inventory` is the full exchange instrument inventory (paged, filterable). `collections` build the Catalog tree (category hierarchy); `sets` are named Sets — of assets or of instruments, by `set_type` (not the category tree); `asset_sets` is the deprecated legacy view of the asset-type sets. `catalog` may carry `suggestions` for pending asset proposals; `commit.accept_suggestions` resolves them. `commit` is the sole write, a CAS-guarded delta against `base_revision`; stale revisions return `conflict` with the current revision in errorResponse.details. Pending pool listings/series and asset full composition travel in that one commit. `user` is the caller's personal-sets operation and is served. `favorites`/`paint` are the caller's colored favorites: `favorites` is read-only (the current list, in display order), `paint` is the write — an additive, CAS-free delta (`mark`/`unmark`/`order`) over instruments and assets, kept separate from `user` so a favorite click never spuriously conflicts with an open personal-sets edit. `resolve` keeps the pre-flight semantics of legacy `account/resolve_instrument` (compiles a tradeplan draft and asks the target BF to resolve it) but returns the canonical instrument shape instead of an untyped proxy blob. `detail` is a lighter sibling of `resolve` for the tradeplan editor: given just `bf_id`+`ticker` for an already-catalogued instrument, it fetches live broker-side trading params (margin, tradable/longable/shortable) without compiling a draft — no new AFB<->BF wire message, it drives the same `broker.resolve_instrument` mechanism as `resolve` against a minimal synthetic venue triplet. See AFB/docs/ENTITY_WS_PROTOCOL.md. Federated-catalog phase 2 expresses manager curation as arbitrary, freely overlapping SETS (see assetSetView) instead of the single-parent group tree, plus an independent derivatives axis (catalogDerivative) in place of legacy `asset`. Phase 2.5 inserts an ASSET (catalogAsset) between a single listing and a set: an asset is a small bundle of instruments that share one pricing source — "Brent oil" is the BR-* and BRM-* series together — and it, not the ticker, is what a set of type `asset` contains (`sets[].asset_ids`; a set of type `instrument` holds single listings, `sets[].instrument_keys`) and what reference data (MOEX positions, HHI) hangs off. A series joins an asset whole, so a contract that arrives with the daily refresh belongs to its sets by definition instead of by a membership heuristic. Catalog and commit snapshots nest membership and composition on the entities themselves — an asset set carries its ordered `asset_ids`, an asset its ordered `members`. Order is carried by array position everywhere on the wire: no entity has an order field, and a write restates a full order through the dedicated `set_order`/`collection_order`/`order` sections of `commit`. The manager-only `sources`/`refresh` pair makes catalog updates explicit: `sources` lists feeds (MOEX/ISS or a broker connector) with availability and last-refresh state, while `refresh` runs one source and returns its change report; `dry_run: true` produces the same report without writing.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentChannelV1Message".
- */
-export type InstrumentChannelV1Message =
-  | InstrumentGetRequest
-  | InstrumentGetResponse
-  | InstrumentPoolRequest
-  | InstrumentPoolResponse
-  | InstrumentResolveRequest
-  | InstrumentResolveResponse
-  | InstrumentDetailRequest
-  | InstrumentDetailResponse
-  | InstrumentCatalogRequest
-  | InstrumentCatalogResponse
-  | InstrumentCommitRequest
-  | InstrumentCommitResponse
-  | InstrumentUserRequest
-  | InstrumentUserResponse
-  | AfbwsInstrumentChannelV1_FavoritesRequest
-  | AfbwsInstrumentChannelV1_FavoritesResponse
-  | AfbwsInstrumentChannelV1_PaintRequest
-  | AfbwsInstrumentChannelV1_PaintResponse
-  | InstrumentSourcesRequest
-  | InstrumentSourcesResponse
-  | InstrumentRefreshRequest
-  | InstrumentRefreshResponse
-  | InstrumentInventoryRequest
-  | InstrumentInventoryResponse
-  | AfbwsInstrumentChannelV1_ExpirationListRequest
-  | AfbwsInstrumentChannelV1_ExpirationListResponse
-  | AfbwsInstrumentChannelV1_ExpirationPush
-  | AfbwsInstrumentChannelV1_ReplaceRequest
-  | AfbwsInstrumentChannelV1_ReplaceResponse
-  | InstrumentErrorResponse;
-/**
- * AFB-side canonical instrument — like afb.gp.v1/afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. One broker-agnostic shape for every market class (stock/futures/currency/index); class-specific fields are gated by `market` via the `allOf`/`if` blocks below (forbidden, not just absent, for classes they don't apply to), but the wire type stays a single schema. `ticker` is the canonical identity: bare SECID for MOEX (e.g. "SBER"), `EXCHANGE:TICKER` for everything else (e.g. "XNAS:AAPL") — `exchange`/`board`/`market` are still carried as explicit fields so nothing but one shared parser (AFB backend/instruments/identity.py, frontend utils/instrumentId.ts) ever splits the string. `group`/`asset` place the instrument in the curated catalog tree (config/instruments.yaml) that AFB users actually see — `group: null` means not yet distributed into a group, the flat-list replacement for the old `lost` bucket. `source` says who refreshes this record's trading params ("moex" for the daily ISS refresh, a broker id like "finam" for instruments obtained from that broker's catalog) — it is NOT a broker binding: which connector can actually trade this instrument, and under what broker-native symbol, is resolved at publish time (see deal.v1.json's target.instrument + BF's own catalog), never persisted here.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentV1".
- */
-export type InstrumentV1 = {
-  [k: string]: unknown;
-} & {
-  schema: 'afb.instrument.v1';
-  /**
-   * Canonical identity: bare SECID for MOEX, "EXCHANGE:TICKER" otherwise.
-   */
-  ticker: string;
-  /**
-   * Optional. Full composite key `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:MXH7`, `MISX:IMOEX`) — same grammar and namespace as `inventoryListingEntry.instrument_key` and `favoriteRef.key` for kind `instrument`. Nothing but one shared parser (AFB backend/instruments/catalog_key.py, frontend utils/instrumentId.ts) ever splits it; case is never normalized. The `ticker` field stays the legacy compatibility identity; `instrument_key` is the one the catalog's own structures (`catalogAssetMember.instrument_key`, the `items[].derivative` backreference) join on.
-   */
-  instrument_key?: string;
-  exchange: string;
-  board: string;
-  market: 'stock' | 'futures' | 'currency' | 'index' | 'options';
-  name?: string | null;
-  shortname?: string | null;
-  /**
-   * @deprecated
-   * Deprecated — underlying asset code (futures) or self-grouping code; superseded by the catalog's own asset/member structure (catalogAsset). Optional, kept for old clients.
-   */
-  asset?: string | null;
-  /**
-   * @deprecated
-   * Deprecated legacy leftover — the AFB backend no longer populates this field (kept in the schema only for old caching clients that might still read it).
-   */
-  group?: string | null;
-  lot_size?: number | null;
-  price_step?: DecimalString;
-  decimals?: number | null;
-  currency?: string | null;
-  /**
-   * Previous trading day's close (MOEX PREVPRICE/PREVWAPRICE), not a live quote.
-   */
-  prev_close?: string;
-  /**
-   * Futures only.
-   */
-  expiration?: string;
-  step_price?: DecimalString;
-  margin?: DecimalString;
-  /**
-   * @deprecated
-   * Deprecated — futures only; FUTOI series/perpetual code. Optional, kept for old clients.
-   */
-  futoi_code?: string;
-  /**
-   * Optional; `market` futures/options only. Backreference to `catalogDerivative.derivative` — the `MIC:CODE` code of the derivative this contract belongs to (its series for a serial future, the perpetual's own ticker for a perpetual future, the option's own ticker for an option). Stable across snapshots: a derivative's `kind` is innate and never changes (a serial future and a perpetual are different things on the exchange, one never becomes the other), so this code can be cached. This is the only carrier of the contract↔derivative link — `items[].asset`/`futoi_code` must not be read for it.
-   */
-  derivative?: string;
-  /**
-   * Stock only.
-   */
-  isin?: string;
-  /**
-   * "moex" or a broker id (e.g. "finam") — who refreshes this record's trading params.
-   */
-  source: string;
-};
-/**
- * Source is MOEX-only in this revision: omit `source` or send "moex". A bf_id is invalid — broker pool is not served. `kind` selects listing vs series rows; `market` filters by class. `kind=listing` cannot be paired with `market=futures` (futures are series rows); `kind=series` cannot be paired with a non-futures market. `limit` defaults to 50 and is capped at 200. `cursor` is an opaque token bound to the same `query`/`kind`/`market` filter tuple and to the pool snapshot that produced it (see `fetched_at`); a mismatched or stale cursor is `validation_error` or `conflict`, not a silent restart at the first page.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentPoolRequest".
- */
-export type InstrumentPoolRequest = {
-  [k: string]: unknown;
-} & {
-  channel: 'instrument';
-  schema: 'afbws.instrument.pool.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  /**
-   * Only MOEX is served. Omit or send "moex"; any other value (including a bf_id) is invalid.
-   */
-  source?: 'moex';
-  /**
-   * Optional substring filter over ticker, short/full name, and series code/name. Applied server-side against the in-memory MOEX snapshot.
-   */
-  query?: string;
-  /**
-   * `listing` — non-futures instruments; `series` — futures series rows, not expirations.
-   */
-  kind?: 'listing' | 'series';
-  market?: 'stock' | 'futures' | 'currency' | 'index';
-  /**
-   * Page size. Default 50 when omitted, maximum 200. Bounds are enforced by this schema.
-   */
-  limit?: number;
-  /**
-   * Opaque page cursor from a previous next_cursor of THIS filter (`query`/`kind`/`market`) against the same pool snapshot. Omit on the first page. Reusing a cursor after the snapshot is refreshed, or with a different filter tuple, is `validation_error` or `conflict` — the client must restart from the first page.
-   */
-  cursor?: string;
-};
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentPoolEntry".
- */
-export type InstrumentPoolEntry = InstrumentPoolListingEntry | InstrumentPoolSeriesEntry;
-/**
- * Wraps the canonical listing so a pending draft copies `listing` into commitRequest.listings unchanged (send `group: null`). Futures do not appear here — they are poolSeriesEntry rows. `listing.market` must not be `futures`.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentPoolListingEntry".
- */
-export type InstrumentPoolListingEntry = {
-  [k: string]: unknown;
-} & {
-  kind: 'listing';
-  listing: InstrumentV1;
-};
-/**
- * Array position is the display order. The identity is `kind` plus exactly one key: `instrument_key` for `kind=listing` (join to `items[]`), `derivative` for `kind=derivative` (join to `derivatives[]` by `catalogDerivative.derivative`, and on to the contracts through the `items[].derivative` backreference). Both keys share the one `MIC:...` grammar. `code`, `label` and `market` are denormalized display only — the server forms them, the client just renders; none of the three is ever an identity or a join key. A derivative member is whole: for a serial future every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, or index. The server rejects a futures contract as a listing member of an asset that already contains its derivative. This `kind` (`listing`/`derivative`) is unrelated to `catalogDerivative.kind` (`perpetual`/`series`/`options`) and `poolEntry.kind` — independent namespaces.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCatalogAssetMember".
- */
-export type InstrumentCatalogAssetMember = {
-  [k: string]: unknown;
-} & {
-  kind: 'listing' | 'derivative';
-  /**
-   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
-   */
-  instrument_key?: string;
-  /**
-   * For `kind=derivative`: the derivative's `MIC:CODE` code, joining to `catalogDerivative.derivative`. Case-sensitive, never normalized.
-   */
-  derivative?: string;
-  /**
-   * Short badge token — never identity, never a join key. The server forms it (a bare ticker / series code); the client only paints it on the composition plaque. To identify or join a member use `instrument_key` / `derivative`.
-   */
-  code?: string;
-  /**
-   * Display label for plaques (shortname/name; backend may fall back to code).
-   */
-  label?: string;
-  market?: 'stock' | 'futures' | 'currency' | 'index' | 'options';
-};
-/**
- * Canonical order: max_favorite_colors: N keeps the first N — yellow (the default paint) is always first; the rest of the order is an AFB UI preference and the list is reordered wholesale when it changes. Values are exactly the Chakra colorPalette names AFB's theme/accentPalettes.ts uses; keep the two lists in lockstep.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_FavoriteColor".
- */
-export type AfbwsInstrumentChannelV1_FavoriteColor =
-  'yellow' | 'red' | 'blue' | 'green' | 'gray' | 'orange' | 'cyan' | 'purple' | 'pink' | 'teal';
-/**
- * True set (Наборы): metadata plus its ordered members. `set_type` says what the members are and is fixed when the set is created: `asset` — the members are `asset_ids`; `instrument` — the members are `instrument_keys` (single listings, never derivatives). Exactly the member list of the set's own type is present; the other one is forbidden. The set's own display position is its position in `sets[]` (and in `userState.sets[]` for a personal set) — there is no order field on the wire; a commit restates that order wholesale through `commitRequest.set_order`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentSetView".
- */
-export type InstrumentSetView = {
-  [k: string]: unknown;
-} & {
-  set_id: string;
-  scope: 'global' | 'user';
-  name: string;
-  owner_user_id?: string | null;
-  set_type: InstrumentSetType;
-  /**
-   * Member assets in display order. Present only when `set_type` is `asset`.
-   */
-  asset_ids?: string[];
-  /**
-   * Member instruments (listings) in display order. Present only when `set_type` is `instrument`. An instrument that is archived (e.g. an expired futures contract) is removed from the set by the backend.
-   */
-  instrument_keys?: AfbwsCommonV1_InstrumentKey[];
-  visibility_tier?: 'manager' | 'user' | 'guest';
-  /**
-   * Same opaque icon key as `collection.icon_id`.
-   */
-  icon_id?: string | null;
-  /**
-   * Same 10-value palette favorites already use.
-   */
-  icon_color?: AfbwsInstrumentChannelV1_FavoriteColor | null;
-};
-/**
- * What a set holds. `asset` — assets (a contract's asset keeps a set alive across expirations); `instrument` — single listings. Chosen when the set is created and never changed while it has members.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentSetType".
- */
-export type InstrumentSetType = 'asset' | 'instrument';
-/**
- * DEPRECATED: the legacy view behind `asset_sets[]`, superseded by `setView`/`sets[]`; it is removed once every frontend reads `sets[]`. `asset_sets[]` carries only the sets of type `asset` (a set of instruments is never listed here, so an old frontend does not see it). True asset set (Наборы): metadata plus ordered `asset_ids`. The set's own display position is its position in `asset_sets[]` (and in `userState.sets[]` for a personal set) — there is no order field on the wire; a commit restates that order wholesale through `commitRequest.asset_set_order`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentAssetSetView".
- */
-export type InstrumentAssetSetView = {
-  [k: string]: unknown;
-} & {
-  set_id: string;
-  scope: 'global' | 'user';
-  name: string;
-  owner_user_id?: string | null;
-  /**
-   * Member assets in display order.
-   */
-  asset_ids: string[];
-  visibility_tier?: 'manager' | 'user' | 'guest';
-  /**
-   * PATCH, "Инструменты, активы, иконки" Шаг 2. Same opaque icon key as `collection.icon_id`.
-   */
-  icon_id?: string | null;
-  /**
-   * Same 10-value palette favorites already use.
-   */
-  icon_color?: AfbwsInstrumentChannelV1_FavoriteColor | null;
-};
-/**
- * Same discriminator and identity as catalogAssetMember: `kind` plus exactly one key — `instrument_key` for `kind=listing`, `derivative` for `kind=derivative`. `code`/`label`/`market` are display-only and are never written; the server derives them from items/derivatives. A contract listed here whose derivative is also listed is rejected.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentAssetMemberInput".
- */
-export type InstrumentAssetMemberInput = {
-  [k: string]: unknown;
-} & {
-  kind: 'listing' | 'derivative';
-  /**
-   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
-   */
-  instrument_key?: string;
-  /**
-   * For `kind=derivative` — the derivative's `MIC:CODE` code. Case-sensitive, never normalized.
-   */
-  derivative?: string;
-};
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentInventoryEntry".
- */
-export type InstrumentInventoryEntry = InstrumentInventoryListingEntry | InstrumentInventorySeriesEntry;
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentInventoryListingEntry".
- */
-export type InstrumentInventoryListingEntry = {
-  [k: string]: unknown;
-} & {
-  kind: 'listing';
-  instrument_type: 'stock' | 'currency' | 'index' | 'futures' | 'option';
-  instrument_key: AfbwsCommonV1_InstrumentKey;
-  ticker: string;
-  exchange: string;
-  board: string;
-  market: 'stock' | 'futures' | 'currency' | 'index';
-  source: string;
-  name?: string | null;
-  shortname?: string | null;
-  lifecycle?: string;
-  series_code?: string;
-};
-/**
- * A structure kind the replace moves from the expiring contract to the new one.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_ReplaceKind".
- */
-export type AfbwsInstrumentChannelV1_ReplaceKind = 'alarms' | 'primitives' | 'sets' | 'favorites';
-/**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v2). Replaces afbws.instrument.channel.v1 (deprecated, still served to clients that did not negotiate v2) with only the operations the project uses and that afbws.catalog.channel.v1 does not already cover. Same convention as afbws.catalog/afbws.alarm.v2/afbws.gp.v2: ONE schema id per message (`afbws.instrument.<op>.v2`), the same schema is the request, its response and, for `expiration`, the server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.instrument.error.v2`. Operations: `catalog`, `sets`, `favorites`, `paint`, `expiration`, `replace`, `detail`. Instruments are addressed ONLY by `instrument_key`; `ticker` appears solely as a display attribute of a listing / notice. All operations are open to any authenticated caller; manager rights (global sets) are checked by the backend per `visibility`. See AFB/docs/ws/instrument.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v2). Provides only the operations the project uses and that afbws.catalog.channel.v1 does not already cover. Same convention as afbws.catalog/afbws.alarm.v2/afbws.gp.v2: ONE schema id per message (`afbws.instrument.<op>.v2`), the same schema is the request, its response and, for `expiration`, the server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.instrument.error.v2`. Operations: `catalog`, `sets`, `favorites`, `paint`, `expiration`, `replace`, `detail`. Instruments are addressed ONLY by `instrument_key`; `ticker` appears solely as a display attribute of a listing / notice. All operations are open to any authenticated caller; manager rights (global sets) are checked by the backend per `visibility`. See AFB/docs/ws/instrument.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsInstrumentChannelV2_Root".
@@ -1229,7 +797,7 @@ export type AfbwsInstrumentChannelV2_Catalog = {
   derivatives?: AfbwsInstrumentChannelV2_Derivative[];
 } & AfbwsInstrumentChannelV2_Catalog1;
 /**
- * Same list and order as afbws.instrument.channel.v1#/$defs/favoriteColor and afbws.catalog.channel.v1 (kept in lockstep; no cross-reference on purpose).
+ * Same list and order as afbws.catalog.channel.v1 (kept in lockstep; no cross-reference on purpose).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsInstrumentChannelV2_FavoriteColor".
@@ -1574,7 +1142,7 @@ export type MarketSnapshotTable = MarketTable & {
   kind?: 'quote' | 'oi' | 'oi_daily';
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v1). Replaces bulk settings/get_plans+set_plans and mail/plans for clients that negotiated this capability; legacy stays available as fallback. `entity` carries both afb.tradeplan.v1 and afb.tradeplan.v2 — v1's `schema` is optional in its own canon file (legacy compatibility), so `entityV1` here wraps it with an explicit required-schema layer; v2 already requires `schema`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v1). Replaces bulk settings/get_plans+set_plans and mail/plans for clients that negotiated this capability; legacy stays available as fallback. `entity` carries afb.tradeplan.v2 (afb.tradeplan.v1 was removed). See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanChannelV1Message".
@@ -1593,31 +1161,12 @@ export type TradeplanChannelV1Message =
   | TradeplanErrorResponse
   | TradeplanSyncPush;
 /**
- * afb.tradeplan.v1 (schema required, see entityV1) or afb.tradeplan.v2 (schema already required in its own canon file — referenced directly, no wrapping $def needed).
+ * afb.tradeplan.v2 (schema already required in its own canon file).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanEntity".
  */
-export type TradeplanEntity = TradeplanEntityV1 | TradePlanV2;
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanEntityV1".
- */
-export type TradeplanEntityV1 = TradePlanV1 & {
-  [k: string]: unknown;
-};
-/**
- * price_value: null with condition_type price means market entry.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV1_EntryCondition".
- */
-export type TradeplanV1_EntryCondition = TradeplanV1_MarketOrPriceCondition | TradeplanV1_PrimitiveCondition;
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV1_Condition".
- */
-export type TradeplanV1_Condition = TradeplanV1_PriceCondition | TradeplanV1_PrimitiveCondition;
+export type TradeplanEntity = TradePlanV2;
 /**
  * AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
  *
@@ -1694,6 +1243,37 @@ export type TradeplanV2_TpExitList = {
 }[];
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmV1_AlarmConditionNode".
+ */
+export type AlarmV1_AlarmConditionNode =
+  | {
+      left?: ConditionV1_PriceExpr;
+      right?: ConditionV1_RightConst;
+      op?: 'touch';
+    }
+  | {
+      left?: ConditionV1_PriceExpr;
+      right?: ConditionV1_RightConst;
+      op: 'breakout' | 'breakdown' | 'crossing';
+      timeframe: ConditionV1_Timeframe;
+    }
+  | {
+      left?: ConditionV1_PriceExpr;
+      right?: ConditionV1_RightConst;
+      op: ConditionV1_PriceLevelOp;
+    }
+  | {
+      left?: AlarmV1_AlarmIndicatorExpr;
+      right?: ConditionV1_RightConst | AlarmV1_AlarmIndicatorExpr;
+      op: ConditionV1_ScalarOp;
+    }
+  | {
+      left?: ConditionV1_DatasetExpr;
+      right?: ConditionV1_RightConst | ConditionV1_DatasetExpr;
+      op: ConditionV1_ScalarOp;
+    };
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2_ExitList".
  */
 export type DealV2_ExitList = {
@@ -1703,228 +1283,15 @@ export type DealV2_ExitList = {
   source?: DealV2_LegSource;
 }[];
 /**
- * Response to broker.get_catalog. Describes the shape BF's InstrumentRegistry/CatalogStore actually emits today (belphegor/brokers/catalog_store.py CatalogMeta.to_dict() for the meta form, get_catalog_slice() for the slice form) — deliberately permissive (additionalProperties: true throughout, required kept to the minimum AFB reads) since BrokerPort.get_catalog_meta()/get_catalog_slice() impose nothing on a broker plugin's exact dict shape. This is a PATCH-level description of existing wire behavior, not a new constraint on it.
+ * AFB-side chart primitive (line/line_enter/line_sl/line_tp/note/zone/ruler) — like afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`. `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "BrokerCatalogPayload".
+ * via the `definition` "GpV1".
  */
-export type BrokerCatalogPayload = PayloadsBrokerCatalog_Meta | PayloadsBrokerCatalog_Slice;
-/**
- * Empty payload requests the meta form (exchanges/markets pairs) of the broker.catalog reply; {exchange,market} together request the slice form (instrument rows) for that market. AFB never sends exchange without market or vice versa (backend/trade/ws_handlers.py::handle_account).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "BrokerGetCatalogPayload".
- */
-export type BrokerGetCatalogPayload =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      exchange: string;
-      market: string;
-    };
+export type GpV1 = {
+  [k: string]: unknown;
+};
 
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountListRequest".
- */
-export interface AccountListRequest {
-  channel: 'account';
-  schema: 'afbws.account.list.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  bf_id?: AccountBfId;
-  /**
-   * Bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF.
-   */
-  force?: boolean;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountListResponse".
- */
-export interface AccountListResponse {
-  channel: 'account';
-  schema: 'afbws.account.list.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  items: AccountSnapshot[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountSnapshot".
- */
-export interface AccountSnapshot {
-  bf_id: AccountBfId;
-  account_id: AccountAccountId;
-  /**
-   * True only for this bf_id's default (trading) account.
-   */
-  tradable: boolean;
-  readonly: boolean;
-  status: 'ok' | 'stale' | 'error';
-  equity: string | null;
-  cash: PayloadsBrokerAccounts_CashBalance[];
-  positions: PayloadsBrokerAccounts_Position[];
-  as_of?: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "PayloadsBrokerAccounts_CashBalance".
- */
-export interface PayloadsBrokerAccounts_CashBalance {
-  currency: string;
-  value: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "PayloadsBrokerAccounts_Position".
- */
-export interface PayloadsBrokerAccounts_Position {
-  quantity: number;
-  average_price: string;
-  current_price?: string | null;
-  unrealized_pnl?: string | null;
-  instrument?: {};
-  broker_ref?: {};
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountGetRequest".
- */
-export interface AccountGetRequest {
-  channel: 'account';
-  schema: 'afbws.account.get.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  bf_id: AccountBfId;
-  account_id?: AccountAccountId;
-  force?: boolean;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountGetResponse".
- */
-export interface AccountGetResponse {
-  channel: 'account';
-  schema: 'afbws.account.get.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  item: AccountSnapshot;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountOrdersRequest".
- */
-export interface AccountOrdersRequest {
-  channel: 'account';
-  schema: 'afbws.account.orders.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  bf_id: AccountBfId;
-  account_id?: AccountAccountId;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountOrdersResponse".
- */
-export interface AccountOrdersResponse {
-  channel: 'account';
-  schema: 'afbws.account.orders.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  bf_id: AccountBfId;
-  account_id: AccountAccountId;
-  items: AccountOrder[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountOrder".
- */
-export interface AccountOrder {
-  order_id: string;
-  deal_id?: string;
-  symbol?: string;
-  side?: string;
-  role?: string;
-  status?: string;
-  quantity?: number;
-  filled_quantity?: number;
-  leg_index?: number;
-  limit_price?: string | null;
-  average_price?: string | null;
-  client_order_id?: string;
-  cancel_source?: 'system' | 'broker';
-  updated_at?: string;
-  error_code?: string | null;
-  error_message?: string | null;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountEventsRequest".
- */
-export interface AccountEventsRequest {
-  channel: 'account';
-  schema: 'afbws.account.events.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  bf_id: AccountBfId;
-  /**
-   * YYYY-MM-DD market date; omitted means today (market_today()).
-   */
-  date?: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountEventsResponse".
- */
-export interface AccountEventsResponse {
-  channel: 'account';
-  schema: 'afbws.account.events.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  bf_id: AccountBfId;
-  date: string;
-  items: AccountEventRecord[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountEventRecord".
- */
-export interface AccountEventRecord {
-  logged_at: string;
-  bf_id: AccountBfId;
-  deal_id?: string | null;
-  category: 'deal' | 'order' | 'position' | 'condition';
-  event: string;
-  data?: {} | null;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountErrorResponse".
- */
-export interface AccountErrorResponse {
-  channel: 'account';
-  schema: 'afbws.account.error.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  code: AfbwsCommonV1_ErrorCode;
-  message: string;
-  details?: {};
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountSnapshotPush".
- */
-export interface AccountSnapshotPush {
-  channel: 'account';
-  schema: 'afbws.account.snapshot.push.v1';
-  bf_id: AccountBfId;
-  default_account_id: AccountAccountId;
-  items: AccountSnapshot[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccountOrdersPush".
- */
-export interface AccountOrdersPush {
-  channel: 'account';
-  schema: 'afbws.account.orders.push.v1';
-  bf_id: AccountBfId;
-  account_id: AccountAccountId;
-  items: AccountOrder[];
-}
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountV2Snapshot".
@@ -1940,8 +1307,31 @@ export interface AccountV2Snapshot {
   status: 'ok' | 'stale' | 'error';
   equity: string | null;
   cash: PayloadsBrokerAccounts_CashBalance[];
-  positions: PayloadsBrokerAccounts_Position[];
+  positions: AfbwsAccountChannelV2_Position[];
   as_of?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "PayloadsBrokerAccounts_CashBalance".
+ */
+export interface PayloadsBrokerAccounts_CashBalance {
+  currency: string;
+  value: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsAccountChannelV2_Position".
+ */
+export interface AfbwsAccountChannelV2_Position {
+  quantity: number;
+  average_price: string;
+  current_price?: string | null;
+  unrealized_pnl?: string | null;
+  /**
+   * Instrument block restored by AFB; optional.
+   */
+  instrument?: {};
+  broker_ref?: {};
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1990,222 +1380,6 @@ export interface AccountV2Error {
   details?: {};
 }
 /**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmGetRequest".
- */
-export interface AlarmGetRequest {
-  channel: 'alarm';
-  schema: 'afbws.alarm.get.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  id: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmGetResponse".
- */
-export interface AlarmGetResponse {
-  channel: 'alarm';
-  schema: 'afbws.alarm.get.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  item: AlarmV1;
-}
-/**
- * AFB-side user alarm — like afb.tradeplan.v2, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel; it is documented here (rather than only in AFB) because it shares condition.v1.json's operator vocabulary with deal.v2 and tradeplan.v2. Replaces the legacy YAML shape (condition_type/trigger_type/value_type/value/value_ref flat fields, break_up/break_down operator names) with a conditionNode. Legacy alarms are read via a lazy converter (see docs/PROTOCOL.md 'Алармы' mapping table) and rewritten in this format on next save/reactivation; the API layer only accepts/emits this format going forward. `period` is the alarm's overall computation timeframe (legacy default '10min'); when `condition` is a price candle operator, `condition.timeframe` carries the candle timeframe and by construction equals `period`.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV1".
- */
-export interface AlarmV1 {
-  schema: 'afb.alarm.v1';
-  id: string;
-  ticker: string;
-  condition: AlarmV1_AlarmConditionNode;
-  period?: ConditionV1_Timeframe;
-  trigger_frequency?: 'once' | 'every_candle' | 'daily';
-  status?: 'active' | 'triggered' | 'expired';
-  created_at?: string;
-  updated_at?: string;
-  triggered_at?: string;
-  delivery_at?: string;
-  trigger_count?: number;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "ConditionV1_PriceExpr".
- */
-export interface ConditionV1_PriceExpr {
-  source: 'price';
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "ConditionV1_RightConst".
- */
-export interface ConditionV1_RightConst {
-  const: DecimalString;
-}
-/**
- * Unlike condition.v1.json#/$defs/indicatorExpr, only `source`+`id` are required: AFB resolves `type`/`field`/`params` from the user's saved indicator settings by `id` rather than carrying them inline.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV1_AlarmIndicatorExpr".
- */
-export interface AlarmV1_AlarmIndicatorExpr {
-  source: 'indicator';
-  id: string;
-  type?: 'wma' | 'kama' | 'psar';
-  field?: string;
-  params?: {};
-}
-/**
- * position.* / orders / hhi / trades datasets share this shape; dataset_id=volume is declared here but temporarily unsupported by AFB/BF backends (see condition_semantics module docstring) and not offered by the UI.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "ConditionV1_DatasetExpr".
- */
-export interface ConditionV1_DatasetExpr {
-  source: 'dataset';
-  field: string;
-  dataset_id?: string;
-  params?: {};
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmListRequest".
- */
-export interface AlarmListRequest {
-  channel: 'alarm';
-  schema: 'afbws.alarm.list.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  ticker?: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmListResponse".
- */
-export interface AlarmListResponse {
-  channel: 'alarm';
-  schema: 'afbws.alarm.list.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  items: AlarmV1[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmSetRequest".
- */
-export interface AlarmSetRequest {
-  channel: 'alarm';
-  schema: 'afbws.alarm.set.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  item: AlarmV1;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmSetResponse".
- */
-export interface AlarmSetResponse {
-  channel: 'alarm';
-  schema: 'afbws.alarm.set.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  item: AlarmV1;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmDeleteRequest".
- */
-export interface AlarmDeleteRequest {
-  channel: 'alarm';
-  schema: 'afbws.alarm.delete.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  id: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmDeleteResponse".
- */
-export interface AlarmDeleteResponse {
-  channel: 'alarm';
-  schema: 'afbws.alarm.delete.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  id: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmErrorResponse".
- */
-export interface AlarmErrorResponse {
-  channel: 'alarm';
-  schema: 'afbws.alarm.error.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  code: AfbwsCommonV1_ErrorCode;
-  message: string;
-  details?: {};
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmTriggeredPush".
- */
-export interface AlarmTriggeredPush {
-  channel: 'alarm';
-  schema: 'afbws.alarm.triggered.push.v1';
-  /**
-   * @minItems 1
-   */
-  events: [AlarmTriggerEvent, ...AlarmTriggerEvent[]];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmTriggerEvent".
- */
-export interface AlarmTriggerEvent {
-  schema: 'afb.alarm.trigger.v1';
-  alarm_id: string;
-  triggered_at: string;
-  alarm: AlarmV1;
-  current_price?: number;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmAckRequest".
- */
-export interface AlarmAckRequest {
-  channel: 'alarm';
-  schema: 'afbws.alarm.ack.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  /**
-   * @minItems 1
-   */
-  events: [AlarmAckEvent, ...AlarmAckEvent[]];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmAckEvent".
- */
-export interface AlarmAckEvent {
-  schema: 'afb.alarm.trigger_ack.v1';
-  alarm_id: string;
-  triggered_at: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmAckResponse".
- */
-export interface AlarmAckResponse {
-  channel: 'alarm';
-  schema: 'afbws.alarm.ack.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  results: AlarmAckResultItem[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmAckResultItem".
- */
-export interface AlarmAckResultItem {
-  schema: 'afbws.alarm.ack_result.v1';
-  alarm_id: string;
-  triggered_at: string;
-  status: 'ok' | 'not_found';
-}
-/**
  * Request: optional filters `ids[]` and/or `instrument_keys[]` (both = intersection; none = every alarm of the caller). Response (same `request_id`): `items[]` (afb.alarm.v2). There is no separate `get`: use `ids`. A request carrying `items` is invalid.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2246,6 +1420,20 @@ export interface AlarmV2 {
   trigger_count?: number;
 }
 /**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConditionV1_PriceExpr".
+ */
+export interface ConditionV1_PriceExpr {
+  source: 'price';
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConditionV1_RightConst".
+ */
+export interface ConditionV1_RightConst {
+  const: DecimalString;
+}
+/**
  * Unlike condition.v1.json#/$defs/indicatorExpr, only `source`+`id` are required: AFB resolves `type`/`field`/`params` from the user's saved indicator settings by `id` rather than carrying them inline.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2256,6 +1444,18 @@ export interface AlarmV2_AlarmIndicatorExpr {
   id: string;
   type?: 'wma' | 'kama' | 'psar';
   field?: string;
+  params?: {};
+}
+/**
+ * position.* / orders / hhi / trades datasets share this shape; dataset_id=volume is declared here but temporarily unsupported by AFB/BF backends (see condition_semantics module docstring) and not offered by the UI.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConditionV1_DatasetExpr".
+ */
+export interface ConditionV1_DatasetExpr {
+  source: 'dataset';
+  field: string;
+  dataset_id?: string;
   params?: {};
 }
 /**
@@ -3062,102 +2262,9 @@ export interface AfbwsDealChannelV1_DealOpenPosition {
   as_of: string;
 }
 /**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealPublicDealV1".
+ * Explicit allow-list projector output over afb.deal.v2 (../deal.v2.json), built by backend/trade/public_views.py — never a serialization of the persisted DealState file. Deliberately NOT an allOf+$ref extension of the whole wire root: those wire schemas declare `owner`/`archive_reason` in their own `properties` with no `additionalProperties: false`, so those fields would count as already-'evaluated' and survive an outer `unevaluatedProperties: false` — the only way to actually drop them is to define this object's own shape directly and reuse the wire schemas' field-level $defs (target, sizing, conditions, execution policy) rather than their root. `source` is strict and requires `tradeplan_id` — the single public link back to the owning tradeplan; `source.kind`/`draft_id`, compile snapshots and raw phase-B overrides never appear here. The one internal field that IS projected — per-leg, not on `source` — is `leg_id` (v2 legs only), the plan-leg identity the frontend needs to tell which deal leg still tracks which plan leg.
  */
-export interface DealPublicDealV1 {
-  schema: 'afb.deal.v1';
-  deal_id: string;
-  revision: number;
-  target: DealTarget;
-  direction: 'long' | 'short';
-  entry: DealV1_Entry;
-  sizing: DealSizing;
-  risk?: {
-    take_profit?: DealV1_ExitBlock;
-    stop_loss?: DealV1_ExitBlock;
-  };
-  execution_policy?: DealExecutionPolicy;
-  source: DealPublicSource;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealTarget".
- */
-export interface DealTarget {
-  bf_id: string;
-  broker: string;
-  instrument: DealInstrument;
-  /**
-   * broker-native locator added by BF after publish
-   */
-  binding?: {};
-  /**
-   * Broker account this deal is published against. Optional on the wire — absent means BF's own trading account (brokers/port.py::account_id). AFB compiles it from the owning tradeplan's publish.account_id (see tradeplan.v1.json#/properties/publish), resolving empty/absent to the connector's default account before publish (ExecutionService.resolve_plan_account). BF validates it against its own account (plan_engine/plan_validation.py: wrong_account_id) when present.
-   */
-  account_id?: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealInstrument".
- */
-export interface DealInstrument {
-  exchange: string;
-  board: string;
-  ticker: string;
-  /**
-   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
-   */
-  instrument_key?: string;
-  market?: 'stock' | 'futures' | 'currency';
-  price_step?: DecimalString;
-  step_price?: DecimalString;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1_Entry".
- */
-export interface DealV1_Entry {
-  condition: DealV1_ConditionNode;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1_ConditionNode".
- */
-export interface DealV1_ConditionNode {
-  node_type: 'event';
-  id?: string;
-  op: 'above' | 'below' | 'crosses_above' | 'crosses_below' | 'crossing';
-  /**
-   * afb.deal.v1 conditions compare against the last traded price, or (entry only — see executor-side validation) fire immediately with no price level of its own. quote/indicator/dataset sources are afb.deal.v2-only.
-   */
-  left: {
-    source: 'price' | 'immediate';
-    field?: 'last';
-  };
-  right: {
-    const: DecimalString;
-  };
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1_ExitBlock".
- */
-export interface DealV1_ExitBlock {
-  condition?: DealV1_ConditionNode;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealPublicSource".
- */
-export interface DealPublicSource {
-  tradeplan_id: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealPublicDealV2".
- */
-export interface DealPublicDealV2 {
+export interface DealPublicV1 {
   schema: 'afb.deal.v2';
   deal_id: string;
   revision: number;
@@ -3189,6 +2296,43 @@ export interface DealPublicDealV2 {
   source: DealPublicSource;
 }
 /**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealTarget".
+ */
+export interface DealTarget {
+  bf_id: string;
+  broker: string;
+  instrument: DealInstrument;
+  /**
+   * broker-native locator added by BF after publish
+   */
+  binding?: {};
+  /**
+   * Broker account this deal is published against. Optional on the wire — absent means BF's own trading account (brokers/port.py::account_id). AFB compiles it from the owning tradeplan's publish.account_id (see tradeplan.v2.json publish), resolving empty/absent to the connector's default account before publish (ExecutionService.resolve_plan_account). BF validates it against its own account (plan_engine/plan_validation.py: wrong_account_id) when present.
+   */
+  account_id?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealInstrument".
+ */
+export interface DealInstrument {
+  exchange: string;
+  board: string;
+  ticker: string;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key?: string;
+  /**
+   * Opaque broker locator of the instrument, e.g. `TICKER@MIC`. AFB takes it from its listing_link (finam.db); BF resolves the instrument ONLY by it (no BF-side catalog). Not part of the instrument identity: amend identity is decided by instrument_key (or exchange/board/ticker), see amend_rules. Absent => BF rejects with instrument_unresolvable unless the deal binding already carries a symbol.
+   */
+  broker_symbol?: string;
+  market?: 'stock' | 'futures' | 'currency';
+  price_step?: DecimalString;
+  step_price?: DecimalString;
+}
+/**
  * AFB resolves alarm indicators by `id`, BF by `type`+`params`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -3206,6 +2350,13 @@ export interface ConditionV1_IndicatorExpr {
  */
 export interface ConditionV1_ImmediateExpr {
   source: 'immediate';
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealPublicSource".
+ */
+export interface DealPublicSource {
+  tradeplan_id: string;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -3544,131 +2695,76 @@ export interface DealAckResultItem {
   status: 'ok' | 'not_found';
 }
 /**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpGetRequest".
- */
-export interface GpGetRequest {
-  channel: 'gp';
-  schema: 'afbws.gp.get.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  id: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpGetResponse".
- */
-export interface GpGetResponse {
-  channel: 'gp';
-  schema: 'afbws.gp.get.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  item: GpV1;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV1_Point".
- */
-export interface GpV1_Point {
-  /**
-   * Unix seconds, as in klines.
-   */
-  time: number;
-  price: number;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpListRequest".
- */
-export interface GpListRequest {
-  channel: 'gp';
-  schema: 'afbws.gp.list.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  ticker?: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpListResponse".
- */
-export interface GpListResponse {
-  channel: 'gp';
-  schema: 'afbws.gp.list.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  items: GpV1[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpSetRequest".
- */
-export interface GpSetRequest {
-  channel: 'gp';
-  schema: 'afbws.gp.set.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  item: GpV1;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpSetResponse".
- */
-export interface GpSetResponse {
-  channel: 'gp';
-  schema: 'afbws.gp.set.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  item: GpV1;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpDeleteRequest".
- */
-export interface GpDeleteRequest {
-  channel: 'gp';
-  schema: 'afbws.gp.delete.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  id: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpDeleteResponse".
- */
-export interface GpDeleteResponse {
-  channel: 'gp';
-  schema: 'afbws.gp.delete.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  id: string;
-}
-/**
- * items[] — upsert by id (bind: tradeplan_id set on publish/amend; release: tradeplan_id cleared on plan physical delete), full authoritative afb.gp.v1 record, same shape as set.response. Never a snapshot. Primitive deletion (archival freeze) is NOT conveyed by this push — a dropped primitive was, by construction, bound to a plan and only rendered while that plan is selected; the plan's own afbws.tradeplan.sync.push.v1 (status: archived, frozen numeric conditions) already replaces its on-chart representation.
+ * Explicit allow-list projector output over afb.deal.v2 (../deal.v2.json), built by backend/trade/public_views.py — never a serialization of the persisted DealState file. Deliberately NOT an allOf+$ref extension of the whole wire root: those wire schemas declare `owner`/`archive_reason` in their own `properties` with no `additionalProperties: false`, so those fields would count as already-'evaluated' and survive an outer `unevaluatedProperties: false` — the only way to actually drop them is to define this object's own shape directly and reuse the wire schemas' field-level $defs (target, sizing, conditions, execution policy) rather than their root. `source` is strict and requires `tradeplan_id` — the single public link back to the owning tradeplan; `source.kind`/`draft_id`, compile snapshots and raw phase-B overrides never appear here. The one internal field that IS projected — per-leg, not on `source` — is `leg_id` (v2 legs only), the plan-leg identity the frontend needs to tell which deal leg still tracks which plan leg.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsGpChannelV1_SyncPush".
+ * via the `definition` "DealPublicV1".
  */
-export interface AfbwsGpChannelV1_SyncPush {
-  channel: 'gp';
-  schema: 'afbws.gp.sync.push.v1';
+export interface DealPublicDealV2 {
+  schema: 'afb.deal.v2';
+  deal_id: string;
+  revision: number;
+  target: DealTarget;
+  direction: 'long' | 'short';
   /**
    * @minItems 1
    */
-  items: [GpV1, ...GpV1[]];
+  entry: [
+    {
+      leg_id?: TradeplanV2_LegId;
+      percent?: DecimalString;
+      logic?: DealV2_LegJoin;
+      condition: DealV2_ConditionNode;
+      source?: DealV2_LegSource;
+    },
+    ...{
+      leg_id?: TradeplanV2_LegId;
+      percent?: DecimalString;
+      logic?: DealV2_LegJoin;
+      condition: DealV2_ConditionNode;
+      source?: DealV2_LegSource;
+    }[]
+  ];
+  stop_loss?: DealPublicExitList;
+  take_profit?: DealPublicExitList;
+  sizing: DealSizing;
+  execution_policy?: DealExecutionPolicy;
+  source: DealPublicSource;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpErrorResponse".
+ * via the `definition` "DealPublicDealV2".
  */
-export interface GpErrorResponse {
-  channel: 'gp';
-  schema: 'afbws.gp.error.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  code: AfbwsCommonV1_ErrorCode;
-  message: string;
-  item?: GpV1;
-  details?: GpErrorDetails;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpErrorDetails".
- */
-export interface GpErrorDetails {
-  tradeplan_ids?: string[];
-  deal_ids?: string[];
-  locked_scopes?: ('entry' | 'stop_loss' | 'take_profit')[];
+export interface DealPublicDealV21 {
+  schema: 'afb.deal.v2';
+  deal_id: string;
+  revision: number;
+  target: DealTarget;
+  direction: 'long' | 'short';
+  /**
+   * @minItems 1
+   */
+  entry: [
+    {
+      leg_id?: TradeplanV2_LegId;
+      percent?: DecimalString;
+      logic?: DealV2_LegJoin;
+      condition: DealV2_ConditionNode;
+      source?: DealV2_LegSource;
+    },
+    ...{
+      leg_id?: TradeplanV2_LegId;
+      percent?: DecimalString;
+      logic?: DealV2_LegJoin;
+      condition: DealV2_ConditionNode;
+      source?: DealV2_LegSource;
+    }[]
+  ];
+  stop_loss?: DealPublicExitList;
+  take_profit?: DealPublicExitList;
+  sizing: DealSizing;
+  execution_policy?: DealExecutionPolicy;
+  source: DealPublicSource;
 }
 /**
  * Request: optional filters `ids[]` and/or `instrument_keys[]` (both given = intersection; none = every primitive the caller owns). Response: same `request_id`, `items[]` (afb.gp.v2) — possibly empty, never an error for a missing id. There is no separate `get`: use `ids`. `items` is response-only; a request carrying `items` together with a filter is invalid.
@@ -3848,1105 +2944,6 @@ export interface GpV2Error {
   code: AfbwsCommonV1_ErrorCode;
   message: string;
   details?: GpV2ErrorDetails;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentGetRequest".
- */
-export interface InstrumentGetRequest {
-  channel: 'instrument';
-  schema: 'afbws.instrument.get.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  ticker: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentGetResponse".
- */
-export interface InstrumentGetResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.get.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  item: InstrumentV1;
-}
-/**
- * Replaces the former meta/slice pair. `entries` is a mixed listing|series page. `total` is the match count AFTER `query`/`kind`/`market` filters and BEFORE paging (`entries.length` ≤ `limit`, never a substitute for `total`). `next_cursor` is bound to the same filter tuple and to the snapshot identified by `fetched_at`; null means this page is the last. `fetched_at` is when the backend snapshot was taken, not when this page was built.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentPoolResponse".
- */
-export interface InstrumentPoolResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.pool.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  source: 'moex';
-  /**
-   * When the backend MOEX snapshot was fetched, ISO-8601 UTC.
-   */
-  fetched_at: string;
-  /**
-   * Count of matches after `query`/`kind`/`market` filters and before paging. Independent of `limit` and of `entries.length`.
-   */
-  total: number;
-  /**
-   * Opaque cursor for the next page of THIS filter against the snapshot in `fetched_at`; null when this page is the last. Echo it back only with the same `query`/`kind`/`market`.
-   */
-  next_cursor: string | null;
-  entries: InstrumentPoolEntry[];
-}
-/**
- * Maps to seriesUpsert on commit: `code` → `series_code`, `underlying` → `underlying_ticker`. The backend materializes active contracts from the MOEX snapshot in the same commit that upserts the series.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentPoolSeriesEntry".
- */
-export interface InstrumentPoolSeriesEntry {
-  kind: 'series';
-  /**
-   * series_code (the ISS ASSETCODE grouping). Maps to seriesUpsert.series_code on commit.
-   */
-  code: string;
-  /**
-   * The `MIC:CODE` derivative code this row commits as — `MISX:<code>` for a serial series, `MISX:<ticker>` for a perpetual future (whose ASSETCODE `code` differs from its ticker: `IMOEX`/`IMOEXF`, `USDRUBTOM`/`USDRUBF`). This is the key `catalogAssetMember.derivative` / `assetMemberInput.derivative` join on, so a client must send it verbatim rather than synthesize `MISX:<code>`.
-   */
-  derivative?: string;
-  name: string | null;
-  source: 'moex';
-  market: 'futures';
-  /**
-   * Underlying ticker when the series has one. Maps to seriesUpsert.underlying_ticker on commit.
-   */
-  underlying?: string | null;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentResolveRequest".
- */
-export interface InstrumentResolveRequest {
-  channel: 'instrument';
-  schema: 'afbws.instrument.resolve.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  bf_id: string;
-  tradeplan_id?: string;
-  draft?: {};
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentResolveResponse".
- */
-export interface InstrumentResolveResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.resolve.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  item: InstrumentV1;
-  /**
-   * Broker-native locator, BF-owned shape — see broker.instrument_resolved.json.
-   */
-  binding: {
-    [k: string]: unknown;
-  };
-  /**
-   * Broker-owned trading params, BF-owned shape.
-   */
-  broker_instrument: {
-    [k: string]: unknown;
-  };
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentDetailRequest".
- */
-export interface InstrumentDetailRequest {
-  channel: 'instrument';
-  schema: 'afbws.instrument.detail.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  bf_id: string;
-  /**
-   * Canonical ticker of an item already present in the curated catalog (see instrument/get) — not an arbitrary broker-native symbol.
-   */
-  ticker: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentDetailResponse".
- */
-export interface InstrumentDetailResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.detail.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  item: InstrumentV1;
-  /**
-   * Broker-native locator, BF-owned shape — see broker.instrument_resolved.json.
-   */
-  binding: {
-    [k: string]: unknown;
-  };
-  /**
-   * Broker-owned trading params, BF-owned shape (InstrumentInfo.to_broker_instrument_dict() — the same deal-publish-shared shape resolveResponse carries, not the narrower broker.instrument.json allow-list; e.g. it has no `symbol` key, that lives in `binding` instead).
-   */
-  broker_instrument: {
-    [k: string]: unknown;
-  };
-}
-/**
- * The wire form is identical for a user and a manager; completeness (unassigned assets) is applied server-side from the caller's role — sets/assets no longer carry an archived flag, so the only completeness axis left is whether an asset belongs to any set. `catalog` is the Assets-modal snapshot and the only read of the curated catalog.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCatalogRequest".
- */
-export interface InstrumentCatalogRequest {
-  channel: 'instrument';
-  schema: 'afbws.instrument.catalog.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-}
-/**
- * Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Set membership is `sets[].asset_ids` / `sets[].instrument_keys` (by `set_type`) in display order; `asset_sets[]` is the deprecated legacy view of the asset-type sets. Composition is `assets[].members` (`kind` plus `instrument_key`/`derivative`, with `code`/`label`/`market` for display) in display order. Order is always array position — no entity on this wire carries an order field. `items` are the canonical instrument records (including materialized futures contracts); `derivatives` is the derivatives axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `sets[].asset_ids`.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCatalogResponse".
- */
-export interface InstrumentCatalogResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.catalog.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  /**
-   * Revision of the global catalog this snapshot was taken at — send it back as commitRequest.base_revision.
-   */
-  catalog_revision: number;
-  /**
-   * Curated assets, each with nested `members` in display order.
-   */
-  assets: InstrumentCatalogAsset[];
-  items: InstrumentV1[];
-  /**
-   * The derivatives axis: one entry per derivative (serial future, perpetual future, reserved option), not keyed by code.
-   */
-  derivatives?: AfbwsInstrumentChannelV1_CatalogDerivative[];
-  collections?: InstrumentCollection[];
-  /**
-   * Sets visible to the caller, of both types, in display order. Membership is inline: `asset_ids` for `set_type: asset`, `instrument_keys` for `set_type: instrument`. The backend always sends it.
-   */
-  sets?: InstrumentSetView[];
-  /**
-   * @deprecated
-   * DEPRECATED — read `sets`. Only the sets of type `asset`, in the legacy view; sets of instruments are never listed here.
-   */
-  asset_sets?: InstrumentAssetSetView[];
-  suggestions?: InstrumentAssetSuggestion[];
-  user?: InstrumentUserState;
-}
-/**
- * An asset is a small bundle of instruments that share a pricing source and therefore tell one economic story: "Brent oil" is the BR-* and BRM-* series together, "Sberbank" is the share plus its futures series. Two jobs justify the level. It is the unit sets are built from, so a set survives expirations without being re-edited; and it is the carrier of reference data (MOEX positions, HHI), so analytics have one place to attach to instead of guessing which contract of which series to read. Assets are always global — the personal sets of phase 3 are assembled from the same manager-curated assets, which is what keeps that phase thin. An asset that is in no set is a normal state: it shows up as unassigned for a manager and is omitted from a user's catalog snapshot. Composition is nested as ordered `members` on the asset itself; array position is the order.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCatalogAsset".
- */
-export interface InstrumentCatalogAsset {
-  /**
-   * Opaque id, minted by the client on create and never rewritten by the server — the only handle set membership, members and edits refer to.
-   */
-  asset_id: string;
-  name: string;
-  /**
-   * Full composition in display order. Array position is the order. Send `[]` for an empty asset. Reference data (MOEX positions, analytics) hangs off the asset's first derivative member — there is no separate reference pointer.
-   */
-  members: InstrumentCatalogAssetMember[];
-  /**
-   * The collection this asset lives in — an asset belongs to 0 or 1, same as an instrument belongs to 0 or 1 asset. null: the asset is unassigned. Position inside the collection is carried by the order of `assets[]`: the assets of one collection come consecutively, and the collections themselves follow the order of `collections[]`.
-   */
-  collection_id?: string | null;
-}
-/**
- * One row per derivative: a serial futures, a perpetual futures, or (reserved) an option. Carries no contract list — the contract↔derivative link lives on the contract, as `items[].derivative` pointing back at `derivative` here; a client expands a `kind=derivative` asset member by `member.derivative -> this.derivative -> items[] where item.derivative == that`. The word `series` also names a `poolEntry.kind` and one value of this `kind` — independent namespaces. Read side only — the write form is still `commitRequest.series[]` / `seriesUpsert`; there is deliberately no `commitRequest.derivatives`.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_CatalogDerivative".
- */
-export interface AfbwsInstrumentChannelV1_CatalogDerivative {
-  /**
-   * Code of this derivative in `MIC:CODE` form (venueless 2-segment `instrument_key` grammar): the series code for `kind=series` (`MISX:MIX`), the single contract's ticker for `kind=perpetual` (`MISX:IMOEXF`), the option's ticker for `kind=options`. A code in its own namespace — NOT a listing key: a perpetual's `derivative` is `MISX:IMOEXF` while its contract's `instrument_key` is `MISX:RFUD:IMOEXF`. Stable across snapshots: `kind` is innate to the derivative and never changes (a serial future and a perpetual are different things on the exchange, one never becomes the other), so the code can be cached.
-   */
-  derivative: string;
-  kind: 'perpetual' | 'series' | 'options';
-  /**
-   * Full composite instrument_key of the underlying listing (e.g. `MISX:TQBR:SBER`, `MISX:IMOEX`), or null when the underlying has no listing in the catalog — the common case: indices, currency baskets, foreign and synthetic underlyings (Brent, gold, wheat, BTC, S&P 500) have no MOEX spot. Only the pointer to a base listing is absent; `derivative` still identifies the row. An option written on a futures uses that futures' own `instrument_key` here.
-   */
-  underlying: string | null;
-  /**
-   * Display name: shortname of the underlying listing, falling back to the series name (`Brent`, `Золото`), falling back to the code.
-   */
-  name?: string | null;
-}
-/**
- * Order is carried by array position: `collections[]` already arrives in the order the tree is drawn in (the children of one `parent_id` follow one another), so there is no order field on the wire. A commit restates that order wholesale through `commitRequest.collection_order`.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCollection".
- */
-export interface InstrumentCollection {
-  collection_id: string;
-  parent_id?: string | null;
-  name: string;
-  /**
-   * system_pending — hidden from non-manager callers.
-   */
-  pending?: boolean;
-  /**
-   * PATCH, "Инструменты, активы, иконки" Шаг 2. Opaque icon key the frontend's own icon picker resolves — the server stores and returns it as-is, never interprets it. null/absent: no icon chosen, frontend falls back to its default-by-id rule.
-   */
-  icon_id?: string | null;
-  /**
-   * Same 10-value palette favorites already use — one color vocabulary, not two. null/absent: no explicit color, frontend falls back to its default.
-   */
-  icon_color?: AfbwsInstrumentChannelV1_FavoriteColor | null;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentAssetSuggestion".
- */
-export interface InstrumentAssetSuggestion {
-  suggestion_id: string;
-  subject_type: 'listing' | 'series';
-  subject_ref: string;
-  reason: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'stale';
-  proposed_name?: string;
-  proposed_collection_id?: string | null;
-  fingerprint?: string;
-  created_at?: string;
-  last_seen_at?: string;
-  resolved_asset_id?: string;
-}
-/**
- * The caller's personal overlay, served next to the global catalog. `sets[]` are full setView objects — every entry has scope "user" and carries its own membership inline (ordered `asset_ids` or `instrument_keys`, by `set_type`); there is no parallel membership array. `asset_sets[]` is the deprecated legacy view of the asset-type subset. Set order is the order of this array. Personal sets are assembled from the same global assets a manager curates: a user never owns an asset of their own.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentUserState".
- */
-export interface InstrumentUserState {
-  /**
-   * Revision of the PERSONAL aggregate — counted separately from catalog_revision.
-   */
-  revision: number;
-  /**
-   * The caller's own sets of both types — every entry has scope: "user" and states its membership inline (`asset_ids` or `instrument_keys` by `set_type`). Set order is the order of this array. The backend always sends it.
-   */
-  sets?: InstrumentSetView[];
-  /**
-   * @deprecated
-   * DEPRECATED — read `sets`. Only the caller's sets of type `asset`, in the legacy view.
-   */
-  asset_sets: InstrumentAssetSetView[];
-}
-/**
- * Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `modify_sets`, `remove_sets`, `assets`, `remove_assets`, `set_members`, `listings`/`archive_listings`, `series`, `collections`, `remove_collections`, `collection_members`. The server plans the whole delta before applying, so a listing or series upserted in this same request may be referenced from `assets[].members` even though those sections are written later — that is how a pending pool entry and the asset composition that contains it travel atomically. A set created here can be filled by `set_members` in the same request — with assets or, for a set of type `instrument`, with instruments (a listing upserted in this same request may be named by its `instrument_key`) — and an asset created here can be put into a set of type `asset`, because both exist by the time `set_members` runs — `set_members`/other same-commit references use the same client-minted `set_id`/`asset_id` the `setUpsert`/`assetUpsert` entry carries. Order is never a field on an entity: `set_order`, `collection_order`, and the `order` of `set_members`/`collection_members` each state a FULL final order, and every read snapshot carries order as array position. `set_id` and `asset_id` are always client-minted opaque ids (setUpsert/assetUpsert), never generated by the server (setUpsert/assetUpsert): a `set_id`/`asset_id` absent from the base snapshot is an INSERT, one already present is an UPDATE, and the server never rewrites an id it is given.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCommitRequest".
- */
-export interface InstrumentCommitRequest {
-  channel: 'instrument';
-  schema: 'afbws.instrument.commit.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  /**
-   * The catalog_revision these edits were built on (CAS guard).
-   */
-  base_revision: number;
-  assets?: InstrumentAssetUpsert[];
-  /**
-   * asset_ids to delete outright. The deletion takes the asset's set memberships and its composition edges with it, but touches neither the listings nor the series that were its members — they survive uncurated and reappear as unassigned. There is no archive flag for assets.
-   */
-  remove_assets?: string[];
-  /**
-   * Upsert of the instrument records themselves, by `ticker`. Copy a pool listing entry's `listing` here unchanged. The element's `group` field is IGNORED — membership is expressed only through `set_members`; clients send `group: null`. instrument.v1 is reused verbatim for its class gating (futures-only expiration/step_price/margin/futoi_code, `isin` for stock only), which is exactly what a listing write has to enforce.
-   */
-  listings?: InstrumentV1[];
-  archive_listings?: InstrumentListingArchival[];
-  /**
-   * Upsert of futures series. Copy a pending pool series row here (`code` → `series_code`, `underlying` → `underlying_ticker`). The backend materializes that series' active contracts from the MOEX snapshot in the same transaction. This stays the write form even though the read snapshots now project series as `derivatives[]` — the asymmetry is deliberate: `derivatives[]` is a computed view (its `derivative` code and its contract set are not independently editable), so there is no `commitRequest.derivatives`.
-   */
-  series?: InstrumentSeriesUpsert[];
-  collections?: InstrumentCollectionUpsert[];
-  /**
-   * collection_ids to delete outright — any collection, no id is protected from removal. The assets that were in them are not deleted — they end up with no collection (`collection_id: null`).
-   */
-  remove_collections?: string[];
-  /**
-   * The FULL final order of collection_ids — not a partial reshuffle. The list is FLAT: a collection carries one global order key in storage, not a position inside its parent, so parents and children are ordered in the same sequence. Collections absent from the list keep their relative position after the listed ones.
-   */
-  collection_order?: string[];
-  /**
-   * Which assets belong to which collection, and in what order inside it. An asset belongs to exactly one collection, so an `add` here also moves it out of its previous one.
-   */
-  collection_members?: InstrumentCollectionMembersEdit[];
-  /**
-   * Sets (of assets or of instruments) to create or update — identity, name, `set_type` on create; the order of the sets is `set_order`.
-   */
-  modify_sets?: InstrumentSetUpsert[];
-  /**
-   * set_ids to delete outright (their membership goes with them). There is no archive flag.
-   */
-  remove_sets?: string[];
-  /**
-   * Membership delta of the sets — asset_ids for a set of type `asset`, instrument_keys for a set of type `instrument` — with the full resulting order per set. At most one entry per `set_id`.
-   */
-  set_members?: InstrumentMembersEdit[];
-  /**
-   * The FULL final order of set_ids — not a partial reshuffle. Sets absent from the list keep their relative position after the listed ones.
-   */
-  set_order?: string[];
-  /**
-   * @deprecated
-   * DEPRECATED — use `modify_sets`. Accepted for frontends that predate typed sets; an entry without `set_type` creates a set of type `asset`, and this field can not edit a set of type `instrument`. Sending it together with `modify_sets` in one request is a `validation_error`.
-   */
-  asset_sets?: InstrumentSetUpsert[];
-  /**
-   * @deprecated
-   * DEPRECATED — use `remove_sets`. Sending both in one request is a `validation_error`.
-   */
-  remove_asset_sets?: string[];
-  /**
-   * @deprecated
-   * DEPRECATED — use `set_members`. Applies to sets of type `asset` only. Sending both in one request is a `validation_error`.
-   */
-  asset_set_members?: InstrumentMembersEdit[];
-  /**
-   * @deprecated
-   * DEPRECATED — use `set_order`. Sending both in one request is a `validation_error`.
-   */
-  asset_set_order?: string[];
-  accept_suggestions?: InstrumentAcceptSuggestion[];
-  reject_suggestions?: string[];
-  /**
-   * Operator's note for this commit — stored verbatim in catalog_audit.reason.
-   */
-  reason?: string;
-}
-/**
- * The client mints `asset_id` itself (same generateId style as deal/primitive ids; for a non-empty asset the first block is the bare code of its first `members[]` entry). Scalars otherwise behave as a patch — an omitted field keeps its stored value — while `members`, when present, is the WHOLE composition in its final order, exactly like membersEdit.order. Composition has no add/remove form on purpose: an asset holds a handful of members that a manager edits as one picture, and a full statement removes any question about what an absent element means. Omit `members` to leave the composition untouched; send `[]` to empty the asset without deleting it.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentAssetUpsert".
- */
-export interface InstrumentAssetUpsert {
-  /**
-   * Client-minted opaque id. Unknown in the current snapshot -> INSERT (create); known -> UPDATE.
-   */
-  asset_id: string;
-  name: string;
-  /**
-   * The FULL composition of the asset, in the order it should end up in — not a partial edit. Each element is `{kind, instrument_key|derivative}` (same identity as catalogAssetMember). A contract listed here whose derivative is also listed is rejected.
-   */
-  members?: InstrumentAssetMemberInput[];
-  /**
-   * The collection this asset moves into; null unassigns it from any collection. Position inside that collection is not stated here — send `commitRequest.collection_members` to fix it.
-   */
-  collection_id?: string | null;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentListingArchival".
- */
-export interface InstrumentListingArchival {
-  ticker: string;
-  /**
-   * Free-form note stored with the audit entry (e.g. "expired", "delisted").
-   */
-  reason?: string;
-}
-/**
- * Write form for a pool series row: copy `code` → `series_code`, `name` → `name`, `underlying` → `underlying_ticker`. The write form carries no order — a serial future's expirations are materialized by the backend.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentSeriesUpsert".
- */
-export interface InstrumentSeriesUpsert {
-  series_code: string;
-  name?: string | null;
-  underlying_ticker?: string | null;
-}
-/**
- * Identity and naming only — position is not stated here; send `commitRequest.collection_order` to fix the order of the tree.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCollectionUpsert".
- */
-export interface InstrumentCollectionUpsert {
-  collection_id: string;
-  parent_id?: string | null;
-  name: string;
-  /**
-   * Omitted: unchanged. null: clears the icon.
-   */
-  icon_id?: string | null;
-  /**
-   * Omitted: unchanged. null: clears the color.
-   */
-  icon_color?: AfbwsInstrumentChannelV1_FavoriteColor | null;
-}
-/**
- * An asset lives in at most ONE collection, so `add` here also states membership: an asset added to a collection leaves the one it was in. Assets that fall out of a collection without being added to another end up with no collection (`collection_id: null`) — a legal, normal state, same as an instrument with no asset. `order`, when present, must list the collection's full membership after add/remove.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCollectionMembersEdit".
- */
-export interface InstrumentCollectionMembersEdit {
-  collection_id: string;
-  /**
-   * asset_ids to put into this collection; adding an already-present asset is a no-op, not an error.
-   */
-  add?: string[];
-  /**
-   * asset_ids to drop from this collection — an asset that ends up in no collection is not deleted, it is simply unassigned (`collection_id: null`).
-   */
-  remove?: string[];
-  /**
-   * The FULL asset_id order of this collection after add/remove — not a partial reshuffle.
-   */
-  order?: string[];
-}
-/**
- * Server derives scope/owner — client sends set_id, name, the optional `set_type` and an optional visibility_tier (default on server: user). Position is not stated here; send `set_order` to fix the order of the sets. `set_type` is decided when the set is created: omitted on create means `asset` (what a frontend that predates typed sets creates); on update it may be omitted, and a value that differs from the stored type is rejected with `validation_error`.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentSetUpsert".
- */
-export interface InstrumentSetUpsert {
-  set_id: string;
-  name: string;
-  /**
-   * What a set holds. `asset` — assets (a contract's asset keeps a set alive across expirations); `instrument` — single listings. Chosen when the set is created and never changed while it has members.
-   */
-  set_type?: 'asset' | 'instrument';
-  /**
-   * Optional; server default is user.
-   */
-  visibility_tier?: 'manager' | 'user' | 'guest';
-  /**
-   * Omitted: unchanged. null: clears the icon.
-   */
-  icon_id?: string | null;
-  /**
-   * Omitted: unchanged. null: clears the color.
-   */
-  icon_color?: AfbwsInstrumentChannelV1_FavoriteColor | null;
-}
-/**
- * Members are named by the set's own type: `asset_id` for a set of type `asset`, `instrument_key` for a set of type `instrument`; a value of the other kind is rejected with `validation_error`. Without `order`, every newly added member goes to the END of the set, in the order listed in `add`; the members already there keep their relative order.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentMembersEdit".
- */
-export interface InstrumentMembersEdit {
-  set_id: string;
-  /**
-   * Members to add (asset_ids or instrument_keys by the set type); adding an already-present member is a no-op, not an error. Appended to the end when `order` is absent.
-   */
-  add?: string[];
-  /**
-   * Members to drop from this set — a dropped asset that ends up in no set is not deleted, it becomes unassigned; a dropped instrument stays in the catalog.
-   */
-  remove?: string[];
-  /**
-   * The FULL member order of this set after add/remove — not a partial reshuffle.
-   */
-  order?: string[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentAcceptSuggestion".
- */
-export interface InstrumentAcceptSuggestion {
-  suggestion_id: string;
-  asset_id: string;
-  collection_id?: string | null;
-}
-/**
- * `catalog_revision` is already the new one. A rejected commit is an errorResponse instead — there is no partially-applied outcome.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCommitResponse".
- */
-export interface InstrumentCommitResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.commit.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  catalog_revision: number;
-  assets: InstrumentCatalogAsset[];
-  items: InstrumentV1[];
-  /**
-   * The derivatives axis: one entry per derivative, not keyed by code.
-   */
-  derivatives?: AfbwsInstrumentChannelV1_CatalogDerivative[];
-  collections?: InstrumentCollection[];
-  /**
-   * Post-commit sets visible to the caller, of both types (see catalogResponse.sets). The backend always sends it.
-   */
-  sets?: InstrumentSetView[];
-  /**
-   * @deprecated
-   * DEPRECATED — read `sets`. Only the sets of type `asset`, in the legacy view.
-   */
-  asset_sets?: InstrumentAssetSetView[];
-  suggestions?: InstrumentAssetSuggestion[];
-  applied?: {
-    [k: string]: number;
-  };
-  user?: InstrumentUserState;
-}
-/**
- * `base_revision` here is the revision of the PERSONAL aggregate (userState.revision), not the global catalog_revision — personal edits never conflict with a manager's commit. Sets created through this operation are implicitly scope: "user" and owned by the caller; a `set_id` naming a global set is rejected. An empty request is legal and just reads the current personal state back.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentUserRequest".
- */
-export interface InstrumentUserRequest {
-  channel: 'instrument';
-  schema: 'afbws.instrument.user.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  /**
-   * userState.revision the edits were built on (CAS guard); a mismatch is `conflict` with details.user_revision.
-   */
-  base_revision: number;
-  /**
-   * Personal sets (of assets or of instruments) to create or update — identity, name, `set_type` on create; the order of the sets is `set_order`. Scope is implied, never sent. `visibility_tier` is FORBIDDEN in this operation and is rejected with `validation_error`: a personal set has scope `user`, and the tier is meaningful only for global sets.
-   */
-  modify_sets?: InstrumentSetUpsert[];
-  /**
-   * Personal set_ids to delete.
-   */
-  remove_sets?: string[];
-  /**
-   * Membership delta of the caller's own sets — asset_ids for a set of type `asset`, instrument_keys for a set of type `instrument`. At most one entry per `set_id`.
-   */
-  set_members?: InstrumentMembersEdit[];
-  /**
-   * The FULL final order of the caller's own set_ids — not a partial reshuffle. Sets absent from the list keep their relative position after the listed ones.
-   */
-  set_order?: string[];
-  /**
-   * @deprecated
-   * DEPRECATED — use `modify_sets`. An entry without `set_type` creates a set of type `asset`; this field can not edit a set of type `instrument`. Together with `modify_sets` in one request — `validation_error`.
-   */
-  asset_sets?: InstrumentSetUpsert[];
-  /**
-   * @deprecated
-   * DEPRECATED — use `remove_sets`. Together with `remove_sets` in one request — `validation_error`.
-   */
-  remove_asset_sets?: string[];
-  /**
-   * @deprecated
-   * DEPRECATED — use `set_members`. Applies to sets of type `asset` only. Together with `set_members` in one request — `validation_error`.
-   */
-  asset_set_members?: InstrumentMembersEdit[];
-  /**
-   * @deprecated
-   * DEPRECATED — use `set_order`. Together with `set_order` in one request — `validation_error`.
-   */
-  asset_set_order?: string[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentUserResponse".
- */
-export interface InstrumentUserResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.user.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  /**
-   * The new personal revision — same value as user.revision, hoisted for symmetry with catalog_revision.
-   */
-  user_revision: number;
-  user: InstrumentUserState;
-}
-/**
- * Carries no data beyond the envelope; there is no way to set or replace favorites through this operation — that is `paint`. Legal at any time, including right after a `paint` to read back the merged result.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_FavoritesRequest".
- */
-export interface AfbwsInstrumentChannelV1_FavoritesRequest {
-  channel: 'instrument';
-  schema: 'afbws.instrument.favorites.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_FavoritesResponse".
- */
-export interface AfbwsInstrumentChannelV1_FavoritesResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.favorites.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  /**
-   * In display order — position in the array is the order, nothing carries a sort key on the wire.
-   */
-  favorites: AfbwsInstrumentChannelV1_FavoriteEntry[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_FavoriteEntry".
- */
-export interface AfbwsInstrumentChannelV1_FavoriteEntry {
-  kind: 'instrument' | 'asset';
-  key: string;
-  color: AfbwsInstrumentChannelV1_FavoriteColor;
-}
-/**
- * Every section is optional and a list; an empty request is legal and a no-op — reading favorites back is `favorites`, not `paint`. `mark` paints one or more refs (repainting an already-favorited ref is legal — that is how its color changes); a ref repeated within the same `mark` list is applied in order, the last color wins. `unmark` removes one or more refs, idempotently — unmarking a ref that is not a favorite is a no-op, not an error. `order` REPLACES the caller's whole display order, the same idiom as commit's `asset_set_order` — not a partial reshuffle.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_PaintRequest".
- */
-export interface AfbwsInstrumentChannelV1_PaintRequest {
-  channel: 'instrument';
-  schema: 'afbws.instrument.paint.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  mark?: AfbwsInstrumentChannelV1_FavoriteEntry[];
-  unmark?: AfbwsInstrumentChannelV1_FavoriteRef[];
-  order?: AfbwsInstrumentChannelV1_FavoriteRef[];
-}
-/**
- * `key` is `instrument_key` for kind "instrument" and `asset_id` for kind "asset" — different identifier spaces, hence a dedicated field name rather than catalogAssetMember's `code`, which would invite the wrong join.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_FavoriteRef".
- */
-export interface AfbwsInstrumentChannelV1_FavoriteRef {
-  kind: 'instrument' | 'asset';
-  key: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_PaintResponse".
- */
-export interface AfbwsInstrumentChannelV1_PaintResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.paint.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  /**
-   * Present iff the request had `mark` — one entry per ref that was marked or repainted.
-   */
-  marked?: AfbwsInstrumentChannelV1_FavoriteEntry[];
-  /**
-   * Present iff the request had `unmark` — only the refs that were actually favorites and got removed, not every ref named in the request.
-   */
-  unmarked?: AfbwsInstrumentChannelV1_FavoriteRef[];
-  /**
-   * Present iff the request had `order` — echoes the order that was applied.
-   */
-  order?: AfbwsInstrumentChannelV1_FavoriteRef[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentSourcesRequest".
- */
-export interface InstrumentSourcesRequest {
-  channel: 'instrument';
-  schema: 'afbws.instrument.sources.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentSourcesResponse".
- */
-export interface InstrumentSourcesResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.sources.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  sources: InstrumentCatalogSource[];
-}
-/**
- * The registry is assembled, not stored: the MOEX/ISS entry comes from the market-source configuration, broker entries from the connectors currently registered. An unavailable source is still listed — the point of the operation is to show WHY nothing is updating (ISS unreachable, connector offline) rather than to hide the row.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentCatalogSource".
- */
-export interface InstrumentCatalogSource {
-  /**
-   * Handle to pass to refreshRequest — "moex" for the ISS feed, a bf_id for a connector's own catalog. Pool browsing in this revision only accepts source "moex"; refresh may still list broker rows as unavailable/unsupported.
-   */
-  source_id: string;
-  /**
-   * What kind of feed this is, so a client can label and group sources without parsing source_id.
-   */
-  kind: 'moex' | 'broker';
-  /**
-   * Whether a refresh could run right now — the feed is configured and reachable for `moex`, the connector is online for `broker`.
-   */
-  available: boolean;
-  /**
-   * When this source last wrote the catalog, ISO-8601 UTC, taken from the catalog audit; null if it never has. This is also what the "already refreshed today" gate reads.
-   */
-  last_refresh_at: string | null;
-  /**
-   * How many catalogued listings currently name this source as the owner of their trading params — the size of what a refresh from here would touch, not the size of the source's own universe.
-   */
-  listing_count: number;
-  inventory_count?: number;
-  last_error?: string;
-  inventory_revision?: number;
-}
-/**
- * `dry_run` exists because the planning step is already separate from the write: a preview runs the very same planner and returns the very same report, it just never commits. That is the only difference between the two modes — a manager can always look before archiving a few dozen expired contracts.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentRefreshRequest".
- */
-export interface InstrumentRefreshRequest {
-  channel: 'instrument';
-  schema: 'afbws.instrument.refresh.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  /**
-   * A source_id from sourcesResponse; an unknown or unavailable one is a typed error, not a silent no-op.
-   */
-  source_id: string;
-  /**
-   * true — plan and report only, the catalog is not written and its revision does not move.
-   */
-  dry_run?: boolean;
-}
-/**
- * A refresh that could not run at all (unknown or offline source, stale catalog under a concurrent commit) is an errorResponse instead — a report always describes a plan that was built successfully.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentRefreshResponse".
- */
-export interface InstrumentRefreshResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.refresh.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  source_id: string;
-  /**
-   * Echo of the request's mode — always present here, unlike in the request where it defaults.
-   */
-  dry_run: boolean;
-  report: InstrumentRefreshReport;
-}
-/**
- * Lists rather than counts, because the interesting cases are individually reviewable: which contracts got archived, which rows the source offered that the catalog does not carry. Every element is a catalog instrument key in its composite form (`MIC:BOARD:TICKER`) — the wire `ticker` of instrument.v1 collapses to the bare local symbol for MOEX and could not tell two boards apart, and a report is precisely where that ambiguity is unacceptable. `new_series` holds series_codes instead. The three trailing lists are diagnostics, not changes: they say what the refresh deliberately did NOT do.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentRefreshReport".
- */
-export interface InstrumentRefreshReport {
-  /**
-   * Whether the catalog was actually written. false both for a dry run and for a run that found nothing to change — in either case revision_after equals revision_before.
-   */
-  applied: boolean;
-  /**
-   * Catalog revision the plan was built on.
-   */
-  revision_before: number;
-  /**
-   * Revision after the commit; equal to revision_before when nothing was applied.
-   */
-  revision_after: number;
-  /**
-   * Listings created by this refresh — only futures contracts get born this way.
-   */
-  added: string[];
-  /**
-   * Existing listings whose source-owned fields changed; lifecycle, membership and provenance are never touched by a refresh.
-   */
-  updated: string[];
-  /**
-   * Archived listings the source offered again, so they were un-archived instead of duplicated.
-   */
-  resurrected: string[];
-  archived: InstrumentRefreshArchivedEntry[];
-  /**
-   * series_codes first seen in this answer. Refresh no longer creates an asset for one (PATCH, "Инструменты, активы, иконки" Шаг 1) — the series_code sits unassigned until a manager links it to an asset through `commit`, exactly like an uncurated spot listing already does.
-   */
-  new_series: string[];
-  /**
-   * Rows the source listed that the catalog does not hold and did NOT add: the catalog is curated, and `commit` is where non-futures rows are born. A curation gap shows up here rather than silently growing the catalog.
-   */
-  absent_from_catalog: string[];
-  /**
-   * Futures rows the source gave with no series code — unplaceable, so skipped.
-   */
-  rows_without_series: string[];
-  changes?: {
-    [k: string]: number;
-  };
-  suggestion_ids?: string[];
-  inventory_revision_before?: number;
-  inventory_revision_after?: number;
-  /**
-   * Per-market column-contract diagnostics collected while fetching this refresh's source rows — see `docs/ISS_SOURCES.md` in AFB.
-   */
-  markets?: AfbwsInstrumentChannelV1_RefreshMarketReport[];
-}
-/**
- * Archival is the part of a refresh that a manager cannot undo by re-running it, so the reason travels with the key instead of being left in the server log.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentRefreshArchivedEntry".
- */
-export interface InstrumentRefreshArchivedEntry {
-  key: string;
-  /**
-   * Why it was archived — e.g. expired, or absent from the source's answer.
-   */
-  reason: string;
-}
-/**
- * Turns a silently-obsolete column mapping into a visible diagnostic instead of quietly-empty fields. `status: "failed"` means the market's rows were NOT applied — a missing required column, an empty answer, or a network error all count as failed, since a partial answer must not look like a complete one.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_RefreshMarketReport".
- */
-export interface AfbwsInstrumentChannelV1_RefreshMarketReport {
-  market: string;
-  status: 'ok' | 'failed';
-  missing_required?: string[];
-  missing_optional?: string[];
-  type_mismatch?: string[];
-  malformed_rows?: number;
-  board_conflicts?: {}[];
-  error?: string;
-}
-/**
- * Filterable, paged browse of the complete MOEX (or other source) instrument universe — distinct from the curated `pool` candidate list. `limit` defaults to 50, capped at 200.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentInventoryRequest".
- */
-export interface InstrumentInventoryRequest {
-  channel: 'instrument';
-  schema: 'afbws.instrument.inventory.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  source?: string;
-  market?: 'stock' | 'futures' | 'currency' | 'index';
-  board?: string;
-  instrument_type?: 'stock' | 'currency' | 'index' | 'futures' | 'option' | 'series';
-  query?: string;
-  limit?: number;
-  cursor?: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentInventoryResponse".
- */
-export interface InstrumentInventoryResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.inventory.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  total: number;
-  next_cursor: string | null;
-  inventory_revision: number;
-  entries: InstrumentInventoryEntry[];
-  source?: string;
-  fetched_at?: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentInventorySeriesEntry".
- */
-export interface InstrumentInventorySeriesEntry {
-  kind: 'series';
-  instrument_type: 'series';
-  series_code: string;
-  source: string;
-  market: 'futures';
-  name?: string | null;
-  underlying?: string | null;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_ExpirationListRequest".
- */
-export interface AfbwsInstrumentChannelV1_ExpirationListRequest {
-  channel: 'instrument';
-  schema: 'afbws.instrument.expiration.list.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_ExpirationListResponse".
- */
-export interface AfbwsInstrumentChannelV1_ExpirationListResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.expiration.list.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  items: AfbwsInstrumentChannelV1_ExpirationNotice[];
-}
-/**
- * Present while `0 <= days_left <= <the caller's `interface.futures_days_to_expiration`>` (0 disables the notice entirely) and the caller uses the contract (`usage` is not all-zero). `candidates[]` are the other ACTIVE contracts of the same derivative that expire AFTER this one, ordered by expiration then key; the FIRST is the default proposal (the nearest by expiration). Empty when no later contract exists.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_ExpirationNotice".
- */
-export interface AfbwsInstrumentChannelV1_ExpirationNotice {
-  instrument_key: AfbwsCommonV1_InstrumentKey;
-  ticker: string;
-  shortname?: string;
-  /**
-   * `YYYY-MM-DD`.
-   */
-  expiration: string;
-  /**
-   * Calendar days from the server's market date to `expiration` (0 on the expiration day).
-   */
-  days_left: number;
-  usage: AfbwsInstrumentChannelV1_ExpirationUsage;
-  candidates: AfbwsInstrumentChannelV1_ExpirationCandidate[];
-}
-/**
- * Trade plans and deals are deliberately not listed: they carry only a bare `ticker`, are level-sensitive and are never replaced by the contract-roll flow — after expiration they are archived by the server's expiration policy.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_ExpirationUsage".
- */
-export interface AfbwsInstrumentChannelV1_ExpirationUsage {
-  alarms: number;
-  /**
-   * Free graphic primitives (not owned by a trade plan).
-   */
-  primitives: number;
-  /**
-   * Memberships in the caller's personal instrument sets.
-   */
-  sets: number;
-  /**
-   * Colored favorites.
-   */
-  favorites: number;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_ExpirationCandidate".
- */
-export interface AfbwsInstrumentChannelV1_ExpirationCandidate {
-  instrument_key: AfbwsCommonV1_InstrumentKey;
-  ticker: string;
-  /**
-   * `YYYY-MM-DD`.
-   */
-  expiration: string;
-  shortname?: string;
-}
-/**
- * Sent by the daily expiration job to connected users when a new notice stage is reached, so the card appears without a reload. An empty `items[]` clears the card.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_ExpirationPush".
- */
-export interface AfbwsInstrumentChannelV1_ExpirationPush {
-  channel: 'instrument';
-  schema: 'afbws.instrument.expiration.push.v1';
-  items: AfbwsInstrumentChannelV1_ExpirationNotice[];
-}
-/**
- * `to_key` must be an ACTIVE contract of the same derivative as `from_key` (the server validates; the card offers `expirationNotice.candidates[]`, the first being the default). `kinds` limits what is moved; omitted = all four. Prices and levels are NEVER adjusted — alarm conditions and primitive levels are copied as they are. Partial results are normal: what could not be moved is listed in `rejected[]`, the rest is applied. Idempotent: repeating the request moves nothing more.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_ReplaceRequest".
- */
-export interface AfbwsInstrumentChannelV1_ReplaceRequest {
-  channel: 'instrument';
-  schema: 'afbws.instrument.replace.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  from_key: AfbwsCommonV1_InstrumentKey;
-  to_key: AfbwsCommonV1_InstrumentKey;
-  /**
-   * @minItems 1
-   */
-  kinds?: [AfbwsInstrumentChannelV1_ReplaceKind, ...AfbwsInstrumentChannelV1_ReplaceKind[]];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_ReplaceResponse".
- */
-export interface AfbwsInstrumentChannelV1_ReplaceResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.replace.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  from_key: AfbwsCommonV1_InstrumentKey;
-  to_key: AfbwsCommonV1_InstrumentKey;
-  replaced: AfbwsInstrumentChannelV1_ExpirationUsage1;
-  rejected: AfbwsInstrumentChannelV1_ReplaceRejection[];
-  /**
-   * The caller's pending expiration notices after the move (same as a fresh `expiration.list`).
-   */
-  items: AfbwsInstrumentChannelV1_ExpirationNotice[];
-}
-/**
- * Trade plans and deals are deliberately not listed: they carry only a bare `ticker`, are level-sensitive and are never replaced by the contract-roll flow — after expiration they are archived by the server's expiration policy.
- */
-export interface AfbwsInstrumentChannelV1_ExpirationUsage1 {
-  alarms: number;
-  /**
-   * Free graphic primitives (not owned by a trade plan).
-   */
-  primitives: number;
-  /**
-   * Memberships in the caller's personal instrument sets.
-   */
-  sets: number;
-  /**
-   * Colored favorites.
-   */
-  favorites: number;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV1_ReplaceRejection".
- */
-export interface AfbwsInstrumentChannelV1_ReplaceRejection {
-  kind: AfbwsInstrumentChannelV1_ReplaceKind;
-  /**
-   * alarm_id / primitive id / set_id; for `favorites` the old `instrument_key`.
-   */
-  id: string;
-  code: AfbwsCommonV1_ErrorCode;
-  message?: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentErrorResponse".
- */
-export interface InstrumentErrorResponse {
-  channel: 'instrument';
-  schema: 'afbws.instrument.error.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  code: AfbwsCommonV1_ErrorCode;
-  message: string;
-  details?: InstrumentErrorDetails;
-}
-/**
- * Populated on `conflict` (stale base_revision: `catalog_revision` for commit, `user_revision` for user — re-fetch, re-apply, retry) and on `validation_error` (`set_ids`/`asset_ids`/`tickers`/`instrument_keys` name the offending rows — one list per level, since a rejected edit can be about a set, an asset or a listing; `limit` is populated instead when the rejection is a tier-limit overflow). Absent for errors that carry no such context.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "InstrumentErrorDetails".
- */
-export interface InstrumentErrorDetails {
-  /**
-   * The server's current global catalog revision.
-   */
-  catalog_revision?: number;
-  /**
-   * The caller's current personal-aggregate revision.
-   */
-  user_revision?: number;
-  set_ids?: string[];
-  asset_ids?: string[];
-  tickers?: string[];
-  collection_ids?: string[];
-  suggestion_ids?: string[];
-  /**
-   * Instrument refs that failed to resolve: favorite/paint refs of kind "instrument" and members of a set of type `instrument`.
-   */
-  instrument_keys?: string[];
-  limit?: {
-    /**
-     * The limit key, e.g. max_favorite_colors, max_sets (max_asset_sets is its deprecated alias and is never reported here).
-     */
-    key: string;
-    allowed: number;
-    requested: number;
-  };
 }
 /**
  * A node of the category tree; its position in `collections[]` is the display order. `asset_ids` is the ordered composition (assets filed into it).
@@ -5654,69 +3651,6 @@ export interface TradeplanGetResponse {
   item: TradeplanEntity;
 }
 /**
- * AFB-side single-entry / single-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v1. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `schema` is optional: its absence means afb.tradeplan.v1 (compatibility with frontends older than the tradeplan schema itself).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradePlanV1".
- */
-export interface TradePlanV1 {
-  id: string;
-  ticker: string;
-  status?: 'draft' | 'published' | 'completed' | 'archived';
-  direction?: 'long' | 'short';
-  schema?: 'afb.tradeplan.v1';
-  activated_at?: string;
-  closed_at?: string;
-  archived_at?: string;
-  /**
-   * Only for outgoing messages: the plan's ticker is not found in the securities catalog. Not persisted — overlaid in plans_for_ws_response on read. Not a lifecycle state.
-   */
-  instrument_missing?: boolean;
-  entry_condition: TradeplanV1_EntryCondition;
-  quantity_value?: number | null;
-  quantity_mode?: 'lots' | 'margin' | 'balance_pct' | 'risk_currency' | 'risk_factor';
-  take_profit?: TradeplanV1_Condition | null;
-  stop_loss?: TradeplanV1_Condition | null;
-  /**
-   * Параметры публикации плана (используется ТОЛЬКО при публикации, не хранит связь с сделкой). bf_id — коннектор по умолчанию для UI; истина при публикации — bf_id из afbws.deal.publish.request.v1. account_id пусто/отсутствует — дефолтный (торговый) счёт коннектора, резолвится на лету (ExecutionService.resolve_plan_account).
-   */
-  publish?: {
-    bf_id?: string;
-    account_id?: string;
-  };
-  /**
-   * AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect.
-   */
-  delivery_at?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV1_MarketOrPriceCondition".
- */
-export interface TradeplanV1_MarketOrPriceCondition {
-  condition_type?: 'price';
-  price_value?: number | null;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV1_PrimitiveCondition".
- */
-export interface TradeplanV1_PrimitiveCondition {
-  condition_type: 'primitive';
-  primitive_id: string;
-  price_value?: number | null;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV1_PriceCondition".
- */
-export interface TradeplanV1_PriceCondition {
-  condition_type?: 'price';
-  price_value: number;
-}
-/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2_TpConditionNode".
  */
@@ -5868,7 +3802,40 @@ export interface TradeplanSyncPush {
   items: TradeplanEntity[];
 }
 /**
- * Building blocks reused across deal.v1.json/deal.v2.json/tradeplan.v1.json/tradeplan.v2.json/condition.v1.json/instrument.v1.json and payloads/dataset.*.json. Extracted from deal.v1.json (2026-08-11, tradeplan/deal separation Фаза B1) once it became clear deal.v1.json was serving as the de-facto shared library for the whole protocol, not just the afb.deal.v1 wire shape — deal.v1.json now keeps only what's genuinely v1-specific (conditionNode/entry/exitBlock). On the wire this is invisible: the resolved schema is byte-identical to before the move.
+ * AFB-side user alarm — like afb.tradeplan.v2, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel; it is documented here (rather than only in AFB) because it shares condition.v1.json's operator vocabulary with deal.v2 and tradeplan.v2. Replaces the legacy YAML shape (condition_type/trigger_type/value_type/value/value_ref flat fields, break_up/break_down operator names) with a conditionNode. Legacy alarms are read via a lazy converter (see docs/PROTOCOL.md 'Алармы' mapping table) and rewritten in this format on next save/reactivation; the API layer only accepts/emits this format going forward. `period` is the alarm's overall computation timeframe (legacy default '10min'); when `condition` is a price candle operator, `condition.timeframe` carries the candle timeframe and by construction equals `period`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmV1".
+ */
+export interface AlarmV1 {
+  schema: 'afb.alarm.v1';
+  id: string;
+  ticker: string;
+  condition: AlarmV1_AlarmConditionNode;
+  period?: ConditionV1_Timeframe;
+  trigger_frequency?: 'once' | 'every_candle' | 'daily';
+  status?: 'active' | 'triggered' | 'expired';
+  created_at?: string;
+  updated_at?: string;
+  triggered_at?: string;
+  delivery_at?: string;
+  trigger_count?: number;
+}
+/**
+ * Unlike condition.v1.json#/$defs/indicatorExpr, only `source`+`id` are required: AFB resolves `type`/`field`/`params` from the user's saved indicator settings by `id` rather than carrying them inline.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AlarmV1_AlarmIndicatorExpr".
+ */
+export interface AlarmV1_AlarmIndicatorExpr {
+  source: 'indicator';
+  id: string;
+  type?: 'wma' | 'kama' | 'psar';
+  field?: string;
+  params?: {};
+}
+/**
+ * Building blocks reused across deal.v2.json/tradeplan.v2.json/condition.v1.json/instrument.v1.json and payloads/dataset.*.json. Extracted from the former deal.v1.json (2026-08-11); deal.v1/tradeplan.v1 have since been removed.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "CommonV1_Root".
@@ -5899,32 +3866,7 @@ export interface DealSource {
   draft_id?: string;
 }
 /**
- * Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. The deal-level `direction` (long/short, same vocabulary as afb.deal.v2) is the single source of truth for position bias. Shared $defs (decimalString/instrument/target/sizing/executionPolicy/source) live in common.v1.json — this file keeps only what's v1-specific (conditionNode/entry/exitBlock); see common.v1.json's description for why.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV1".
- */
-export interface DealV1 {
-  schema: 'afb.deal.v1';
-  deal_id: string;
-  revision: number;
-  owner?: {
-    user_id?: string;
-  };
-  target: DealTarget;
-  direction: 'long' | 'short';
-  entry: DealV1_Entry;
-  sizing: DealSizing;
-  risk?: {
-    take_profit?: DealV1_ExitBlock;
-    stop_loss?: DealV1_ExitBlock;
-  };
-  execution_policy?: DealExecutionPolicy;
-  archive_reason?: string;
-  source?: DealSource;
-}
-/**
- * Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string) and an optional `logic` (`#/$defs/legJoin`) joining it to the PRECEDING element in the same list — see `legJoin` for the full grammar (groups/buckets, `and`/`or` precedence, `percent` placement). Sum of percents per bucket resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from deal.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_* /crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.
+ * Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string) and an optional `logic` (`#/$defs/legJoin`) joining it to the PRECEDING element in the same list — see `legJoin` for the full grammar (groups/buckets, `and`/`or` precedence, `percent` placement). Sum of percents per bucket resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from common.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_* /crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2".
@@ -6073,6 +4015,17 @@ export interface Envelope_Signature {
    * base64url (no padding) signature
    */
   value: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV1_Point".
+ */
+export interface GpV1_Point {
+  /**
+   * Unix seconds, as in klines.
+   */
+  time: number;
+  price: number;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -6442,58 +4395,7 @@ export interface NotificationSystemV1_Root {
   timestamp?: string;
 }
 /**
- * DEPRECATED: superseded by broker.accounts (see payloads/broker.accounts.json) — kept for wire compatibility with AFB builds that have not negotiated multi_account. Response to broker.get_account, describing only BF's single trading account. Matches belphegor/reporting/broker_snapshots.py::account_snapshot_payload() exactly, including the account_id/broker_account_id split that broker.accounts deliberately drops (see broker.accounts.json). Correlated via correlation_id.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "BrokerAccountPayload".
- */
-export interface BrokerAccountPayload {
-  /**
-   * BF's own trading account id (self._account_id) — NOT necessarily what the broker calls it, see broker_account_id.
-   */
-  account_id: string;
-  /**
-   * The account id as returned by the broker's GetAccount response (snapshot.account_id).
-   */
-  broker_account_id?: string;
-  equity?: string | null;
-  cash: PayloadsBrokerAccount_CashBalance[];
-  positions: PayloadsBrokerAccount_Position[];
-  [k: string]: unknown;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "PayloadsBrokerAccount_CashBalance".
- */
-export interface PayloadsBrokerAccount_CashBalance {
-  currency: string;
-  value: string;
-  [k: string]: unknown;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "PayloadsBrokerAccount_Position".
- */
-export interface PayloadsBrokerAccount_Position {
-  /**
-   * Signed lots (see position_reconcile.signed_broker_qty) — zero-quantity rows are never emitted.
-   */
-  quantity: number;
-  average_price: string;
-  current_price?: string | null;
-  unrealized_pnl?: string | null;
-  /**
-   * Venue-resolved identity (exchange/board/ticker/market) — present when the symbol is known to BF's catalog.
-   */
-  instrument?: {};
-  /**
-   * Broker-native {broker,symbol} — present when instrument is unresolved, or always when afb.include_broker_ref is set.
-   */
-  broker_ref?: {};
-  [k: string]: unknown;
-}
-/**
- * Response to broker.get_accounts and unsolicited push after every reconcile pass (see belphegor/reporting/account_directory.py::AccountDirectory, engine.py::_publish_broker_snapshots) — full list of accounts visible to BF's broker token. Only sent to AFB sessions that advertised session.hello_ack.features.multi_account; a BF instance that has negotiated multi_account with this AFB never sends the deprecated broker.account instead (see broker.account.json). Unlike broker.account, `accounts[].account_id` is the ONLY account identifier — no broker_account_id split, by design (the account_id/broker_account_id duplication in broker.account was judged confusing and deliberately not carried forward). Only `default_account_id` (BF's own trading account, self._account_id) is tradable in this phase — see brokers/port.py::account_id docstring; the rest are read-only until a later multi-account execution phase.
+ * Response to broker.get_accounts and unsolicited push after every reconcile pass (see belphegor/reporting/account_directory.py::AccountDirectory, engine.py::_publish_broker_snapshots) — full list of accounts visible to BF's broker token. `accounts[].account_id` is the ONLY account identifier — no broker_account_id split, by design. Positions carry only `broker_ref {broker, symbol}`: BF has no instrument catalog, AFB maps the symbol to its own instrument (instrument_key) itself. Only `default_account_id` (BF's own trading account, self._account_id) is tradable in this phase — see brokers/port.py::account_id docstring; the rest are read-only until a later multi-account execution phase.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "BrokerAccountsPayload".
@@ -6504,7 +4406,7 @@ export interface BrokerAccountsPayload {
    */
   default_account_id: string;
   /**
-   * ISO timestamp this snapshot was assembled at. Unlike broker.account, this is always populated (no revision counter — BF does not track one).
+   * ISO timestamp this snapshot was assembled at.
    */
   as_of: string;
   accounts: PayloadsBrokerAccounts_Account[];
@@ -6533,46 +4435,26 @@ export interface PayloadsBrokerAccounts_Account {
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "PayloadsBrokerCatalog_Meta".
+ * via the `definition` "PayloadsBrokerAccounts_Position".
  */
-export interface PayloadsBrokerCatalog_Meta {
-  session_date?: string | null;
-  revision?: number;
-  broker: string;
-  exchanges: string[];
-  markets: {
-    exchange?: string;
-    market?: string;
-    [k: string]: unknown;
-  }[];
-  [k: string]: unknown;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "PayloadsBrokerCatalog_Slice".
- */
-export interface PayloadsBrokerCatalog_Slice {
-  session_date?: string | null;
-  revision?: number;
-  broker: string;
-  exchange: string;
-  market: string;
-  instruments: {
+export interface PayloadsBrokerAccounts_Position {
+  quantity: number;
+  average_price: string;
+  current_price?: string | null;
+  unrealized_pnl?: string | null;
+  broker_ref: {
     /**
-     * Opaque broker-native locator (e.g. Finam's TICKER@MIC). Not the AFB `ticker`.
+     * BF connector/broker id (e.g. finam).
      */
-    broker_symbol: string;
-    exchange?: string;
-    board?: string;
-    ticker?: string;
-    name?: string;
-    market?: string;
-    [k: string]: unknown;
-  }[];
-  [k: string]: unknown;
+    broker: string;
+    /**
+     * Broker-side instrument locator (e.g. TICKER@MIC); the same value deals carry as target.instrument.broker_symbol.
+     */
+    symbol: string;
+  };
 }
 /**
- * NACK for any broker.* command (get_account/get_orders/get_catalog/get_instrument/resolve_instrument). Correlated to the request via correlation_id.
+ * NACK for any broker.* command (get_accounts/get_orders/resolve_instrument). Correlated to the request via correlation_id.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "BrokerErrorPayload".
@@ -6583,11 +4465,11 @@ export interface BrokerErrorPayload {
    */
   at?: string;
   /**
-   * Machine-readable error code (e.g. broker_disconnected).
+   * Machine-readable error code (e.g. broker_disconnected). For broker.resolve_instrument also the instrument-resolution codes: instrument_unresolvable, instrument_mismatch, instrument_delisted, unsupported (same meaning as in deal.rejected.code).
    */
   code: string;
   /**
-   * The broker.* command that failed (e.g. broker.get_account).
+   * The broker.* command that failed (e.g. broker.get_accounts).
    */
   command_type: string;
   /**
@@ -6597,16 +4479,7 @@ export interface BrokerErrorPayload {
   [k: string]: unknown;
 }
 /**
- * DEPRECATED: superseded by broker.get_accounts (see payloads/broker.get_accounts.json) — kept for wire compatibility with AFB builds that have not negotiated multi_account (see daemon.capabilities.json#/properties/features/properties/multi_account, session.hello_ack.json#/properties/features/properties/multi_account). AFB always sends an empty payload; no fields are read by BF (belphegor/plan_engine/engine.py::_get_account).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "BrokerGetAccountPayload".
- */
-export interface BrokerGetAccountPayload {
-  [k: string]: unknown;
-}
-/**
- * Request the full list of accounts visible to BF's broker token (not just its own trading account) — see belphegor/reporting/account_directory.py::AccountDirectory. Only sent by AFB after the BF instance advertised daemon.capabilities.features.multi_account (see daemon.capabilities.json). AFB always sends an empty payload today; account_ids is reserved for a future partial-refresh use and is not currently read by BF.
+ * Request the full list of accounts visible to BF's broker token (not just its own trading account) — see belphegor/reporting/account_directory.py::AccountDirectory. AFB always sends an empty payload today; account_ids is reserved for a future partial-refresh use and is not currently read by BF.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "BrokerGetAccountsPayload".
@@ -6619,52 +4492,12 @@ export interface BrokerGetAccountsPayload {
   [k: string]: unknown;
 }
 /**
- * DEPRECATED: superseded by broker.resolve_instrument (see payloads/broker.resolve_instrument.json), which AFB's afbws.instrument.channel.v1 canal uses exclusively for detail lookups. Kept for wire compatibility; belphegor/plan_engine/engine.py::_get_symbol_info still serves it.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "BrokerGetInstrumentPayload".
- */
-export interface BrokerGetInstrumentPayload {
-  symbol: string;
-  [k: string]: unknown;
-}
-/**
  * AFB always sends an empty payload; no filters exist today.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "BrokerGetOrdersPayload".
  */
 export interface BrokerGetOrdersPayload {
-  [k: string]: unknown;
-}
-/**
- * Response to broker.get_instrument — the enriched instrument (belphegor/domain/instruments.py InstrumentInfo), unlike broker.catalog's brief CatalogEntry rows. Broker-agnostic explicit allow-list, not an asdict()-based dump: broker-native/Finam-specific fields (asset_type, min_step_raw, long_risk_rate, short_risk_rate, future_details, bond_details) never reach this wire — AFB doesn't read them and admitting them would make this canon description implicitly Finam-shaped (belphegor/reporting/broker_snapshots.py::instrument_resolved_payload builds this explicitly, not via InstrumentInfo.to_broker_instrument_dict(), which a different wire field — deal.accepted's broker_instrument — still uses unchanged). `symbol`/`currency` are the canon names on this wire — they map from InstrumentInfo's own internal `symbol`/`quote_currency` attributes, which are unchanged BF-side. additionalProperties stays true so a future broker plugin can add fields without breaking AFB's validation; required kept to `symbol`. This is a PATCH-level description of existing wire behavior, not a new constraint on it.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "BrokerInstrumentPayload".
- */
-export interface BrokerInstrumentPayload {
-  /**
-   * Opaque broker-native locator (e.g. Finam's TICKER@MIC).
-   */
-  symbol: string;
-  exchange?: string;
-  board?: string;
-  ticker?: string;
-  mic?: string;
-  name?: string;
-  market?: string;
-  decimals?: number;
-  price_step?: string;
-  lot_size?: number;
-  currency?: string;
-  expiration_date?: string | null;
-  tradable?: boolean;
-  longable?: boolean;
-  shortable?: boolean;
-  long_initial_margin?: string | null;
-  short_initial_margin?: string | null;
-  updated_at?: string | null;
   [k: string]: unknown;
 }
 /**
@@ -6681,9 +4514,13 @@ export interface BrokerInstrumentResolvedPayload {
     [k: string]: unknown;
   };
   /**
-   * Same trading-params shape as broker.instrument.json (minus symbol/account_id/exchange/board/ticker) — see InstrumentInfo.to_broker_instrument_dict().
+   * BF trading params of the resolved instrument (initial margin, tradable/longable/shortable, lot size, price_step, price_type, ...) — see InstrumentInfo.to_broker_instrument_dict(). With `account_id` in the request the values are the account's own.
    */
   broker_instrument: {
+    /**
+     * Which order/trigger prices the instrument allows (Finam AssetParams.price_type): POSITIVE = strictly > 0; NON_NEGATIVE = >= 0; ANY = negative prices allowed (e.g. some futures); UNKNOWN = the broker did not say. Optional — absent means UNKNOWN.
+     */
+    price_type?: 'UNKNOWN' | 'POSITIVE' | 'NON_NEGATIVE' | 'ANY';
     [k: string]: unknown;
   };
   [k: string]: unknown;
@@ -6750,15 +4587,15 @@ export interface BrokerPositionLedgerPayload {
   [k: string]: unknown;
 }
 /**
- * Deal-instrument pre-flight (AFB's afbws.instrument.channel.v1 `resolve`/`detail`, and the tradeplan publish path) — `deal` is a compiled ExecutionDeal (afb.deal.v1 or afb.deal.v2), the same shape deal.publish carries, sent here purely for its target/instrument fields; BF does not persist it from this command.
+ * Deal-instrument pre-flight (AFB's afbws.instrument.channel.v2 `detail`, and the tradeplan publish path) — `deal` is a compiled ExecutionDeal (afb.deal.v2), the same shape deal.publish carries, sent here purely for its target/instrument fields; BF does not persist it from this command.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "BrokerResolveInstrumentPayload".
  */
 export interface BrokerResolveInstrumentPayload {
-  deal: DealV1 | DealV2;
+  deal: DealV2;
   /**
-   * Optional broker account whose trading parameters (initial margin, tradable/longable/shortable, price_type) are wanted — they depend on the account's tariff. Sent by AFB's afbws.instrument.channel.v2 `detail`. A connector that does not support account granularity ignores it and answers with connector-level values.
+   * Optional broker account whose trading parameters (initial margin, tradable/longable/shortable, price_type) are wanted — they depend on the account's tariff. Sent by AFB's afbws.instrument.channel.v2 `detail`. BF answers with the values of THAT account (broker_instrument in broker.instrument_resolved); absent means BF's own trading account (default_account_id). The instrument is located solely by deal.target.instrument.broker_symbol (or binding.symbol).
    */
   account_id?: string;
   [k: string]: unknown;
@@ -6884,7 +4721,7 @@ export interface DaemonCapabilitiesPayload {
   condition_ops?: string[];
   condition_nodes?: string[];
   /**
-   * BF's single trading account (brokers/port.py::account_id) — the account this BF instance executes orders on. When features.multi_account is true, the full account list/snapshots are fetched separately via broker.get_accounts, not from this field.
+   * BF's single trading account (brokers/port.py::account_id) — the account this BF instance executes orders on. The full account list/snapshots are fetched separately via broker.get_accounts (always supported), not from this field.
    */
   account_id?: string;
   account_aliases?: string[];
@@ -6905,15 +4742,10 @@ export interface DaemonCapabilitiesPayload {
      */
     server_sltp?: boolean;
     /**
-     * Deal execution modes this BF instance supports (see deal.v1.json#/$defs/executionPolicy/properties/execution_mode). AFB/UI use this to offer only modes the BF can actually run.
+     * Deal execution modes this BF instance supports (see deal.v2.json#/$defs/executionPolicy/properties/execution_mode). AFB/UI use this to offer only modes the BF can actually run.
      */
     execution_modes?: ('client' | 'hybrid' | 'server')[];
     reports_api?: boolean;
-    catalog?: boolean;
-    /**
-     * This BF build implements broker.get_accounts/broker.accounts (see payloads/broker.accounts.json) — read-only visibility into every account the broker token can see, not just the trading account named by account_id above. Execution still happens only on account_id in this phase. AFB gates sending broker.get_accounts on this flag being true; absent/false means fall back to the deprecated broker.get_account/broker.account pair.
-     */
-    multi_account?: boolean;
     /**
      * This BF build accepts calendar.update (see payloads/calendar.update.json) — a replace-all MOEX trading calendar snapshot (holidays/weekend sessions, per-board session windows) it uses to gate execution and background broker polling on real trading-session boundaries instead of its own static off-hours config. AFB gates sending calendar.update on this flag being true; absent/false means the BF is never sent a calendar snapshot and keeps gating on its own local config.
      */
@@ -6997,6 +4829,10 @@ export interface DealInstrument1 {
    * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
    */
   instrument_key?: string;
+  /**
+   * Opaque broker locator of the instrument, e.g. `TICKER@MIC`. AFB takes it from its listing_link (finam.db); BF resolves the instrument ONLY by it (no BF-side catalog). Not part of the instrument identity: amend identity is decided by instrument_key (or exchange/board/ticker), see amend_rules. Absent => BF rejects with instrument_unresolvable unless the deal binding already carries a symbol.
+   */
+  broker_symbol?: string;
   market?: 'stock' | 'futures' | 'currency';
   price_step?: DecimalString;
   step_price?: DecimalString;
@@ -7016,6 +4852,10 @@ export interface DealAcceptedPayload {
     [k: string]: unknown;
   };
   broker_instrument?: {
+    /**
+     * Which order/trigger prices the instrument allows (Finam AssetParams.price_type): POSITIVE = strictly > 0; NON_NEGATIVE = >= 0; ANY = negative prices allowed (e.g. some futures); UNKNOWN = the broker did not say. Optional — absent means UNKNOWN.
+     */
+    price_type?: 'UNKNOWN' | 'POSITIVE' | 'NON_NEGATIVE' | 'ANY';
     asset_type?: string;
     bond_details?: string | number | boolean | {} | unknown[] | null;
     decimals?: number;
@@ -7079,7 +4919,7 @@ export interface DealAcceptedPayload {
 export interface DealAmendPayload {
   deal_id: string;
   base_revision: number;
-  deal: DealV1 | DealV2;
+  deal: DealV2;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -7132,7 +4972,7 @@ export interface DealPositionsSyncedPayload {
  * via the `definition` "DealPublishPayload".
  */
 export interface DealPublishPayload {
-  deal: DealV1 | DealV2;
+  deal: DealV2;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -7143,6 +4983,9 @@ export interface DealRejectedPayload {
    * ISO-8601 BF event-occurrence time (same value as the BF journal entry `at`).
    */
   at?: string;
+  /**
+   * Machine-readable rejection code. Instrument-resolution codes: `instrument_unresolvable` (no broker symbol in the binding or target.instrument.broker_symbol, or the broker does not know it), `instrument_mismatch` (the broker asset behind broker_symbol disagrees with the deal's exchange/board/ticker), `instrument_delisted` (the instrument was delisted/archived at the broker), `unsupported` (the BF/connector cannot execute this deal, e.g. an unsupported mode/market).
+   */
   code: string;
   command_type: string;
   deal_id?: string | number | boolean | {} | unknown[] | null;
@@ -7380,13 +5223,9 @@ export interface SessionHelloAckPayload {
    */
   margin_trading_bf?: boolean;
   /**
-   * AFB-side capability flags for this session — read by BF's afb_client (see afb_client/ws_client.py, alongside dry_run/margin_trading above) to decide what it may send this AFB.
+   * AFB-side capability flags for this session — read by BF's afb_client (see afb_client/ws_client.py, alongside dry_run/margin_trading above). No flags are currently defined: multi-account (broker.get_accounts/broker.accounts) is the only account path and is always supported by both sides (formerly features.multi_account).
    */
   features?: {
-    /**
-     * This AFB build understands broker.accounts (see payloads/broker.accounts.json) and negotiated_support for it. When true, BF sends broker.accounts (in response to broker.get_accounts, and unsolicited after every reconcile pass) and stops sending the deprecated broker.account to this session. Absent/false means BF must keep sending broker.account only.
-     */
-    multi_account?: boolean;
     [k: string]: unknown;
   };
   [k: string]: unknown;

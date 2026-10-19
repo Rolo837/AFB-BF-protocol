@@ -1,8 +1,7 @@
 """afbws/tradeplan.channel.v1.json — schema-first tradeplan channel (AFB
 backend<->AFB frontend only). Negotiated via auth.support/auth_ok.support; not
-part of the afb.execution.v1 AFB<->BF wire. `entity` covers both afb.tradeplan.v1
-(schema made mandatory here, unlike its own canon file) and afb.tradeplan.v2
-(already mandatory there)."""
+part of the afb.execution.v1 AFB<->BF wire. `entity` is afb.tradeplan.v2
+(`schema` mandatory in its own canon file; afb.tradeplan.v1 was removed)."""
 from __future__ import annotations
 
 import json
@@ -12,12 +11,6 @@ import pytest
 
 TRADEPLAN_CHANNEL_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/tradeplan.channel.v1.json"
 
-_V1_ITEM = {
-    "schema": "afb.tradeplan.v1",
-    "id": "tp1",
-    "ticker": "SBER",
-    "entry_condition": {"condition_type": "price", "price_value": 100},
-}
 _V2_ITEM = {
     "schema": "afb.tradeplan.v2",
     "id": "tp2",
@@ -30,29 +23,24 @@ _V2_ITEM = {
 
 def _validator(def_name: str, registry):
     """See test_afbws_alarm_channel_schema.py::_validator — full-URI $ref so
-    internal cross-refs (entity -> entityV1/tradeplan.v2, amend_results ->
+    internal cross-refs (entity -> tradeplan.v2, amend_results ->
     amendResultItem) resolve against the whole document."""
     from jsonschema import Draft202012Validator
 
     return Draft202012Validator({"$ref": f"{TRADEPLAN_CHANNEL_ID}#/$defs/{def_name}"}, registry=registry)
 
 
-# --- entity (schema-required wrapping of v1) --------------------------------
-
-def test_entity_accepts_v1_with_explicit_schema(registry):
-    _validator("entity", registry).validate(_V1_ITEM)  # does not raise
-
+# --- entity (afb.tradeplan.v2) --------------------------------
 
 def test_entity_accepts_v2(registry):
     _validator("entity", registry).validate(_V2_ITEM)  # does not raise
 
 
-def test_entity_rejects_v1_without_schema(registry):
-    """Unlike the plain tradeplan.v1.json canon (schema optional for legacy
-    back-compat), the new channel always requires an explicit schema."""
+def test_entity_rejects_missing_schema(registry):
+    """The channel always requires an explicit schema."""
     from jsonschema import ValidationError
 
-    bad = {k: v for k, v in _V1_ITEM.items() if k != "schema"}
+    bad = {k: v for k, v in _V2_ITEM.items() if k != "schema"}
     with pytest.raises(ValidationError):
         _validator("entity", registry).validate(bad)
 
@@ -69,8 +57,8 @@ def test_get_request_valid(registry):
     _validator("getRequest", registry).validate(msg)  # does not raise
 
 
-def test_get_response_valid_v1_and_v2(registry):
-    for item in (_V1_ITEM, _V2_ITEM):
+def test_get_response_valid(registry):
+    for item in (_V2_ITEM,):
         msg = {
             "channel": "tradeplan",
             "schema": "afbws.tradeplan.get.response.v1",
@@ -133,12 +121,12 @@ def test_list_response_carries_a_v2_plan_with_only_an_instrument_key(registry):
     _validator("listResponse", registry).validate(msg)  # does not raise
 
 
-def test_list_response_mixed_v1_v2_valid(registry):
+def test_list_response_valid(registry):
     msg = {
         "channel": "tradeplan",
         "schema": "afbws.tradeplan.list.response.v1",
         "request_id": "req-1",
-        "items": [_V1_ITEM, _V2_ITEM],
+        "items": [_V2_ITEM],
     }
     _validator("listResponse", registry).validate(msg)  # does not raise
 
@@ -146,7 +134,7 @@ def test_list_response_mixed_v1_v2_valid(registry):
 def test_list_response_item_without_schema_rejected(registry):
     from jsonschema import ValidationError
 
-    bad_item = {k: v for k, v in _V1_ITEM.items() if k != "schema"}
+    bad_item = {k: v for k, v in _V2_ITEM.items() if k != "schema"}
     msg = {
         "channel": "tradeplan",
         "schema": "afbws.tradeplan.list.response.v1",
@@ -261,7 +249,7 @@ def test_sync_push_valid(registry):
     msg = {
         "channel": "tradeplan",
         "schema": "afbws.tradeplan.sync.push.v1",
-        "items": [_V1_ITEM, _V2_ITEM],
+        "items": [_V2_ITEM],
     }
     _validator("syncPush", registry).validate(msg)  # does not raise
 

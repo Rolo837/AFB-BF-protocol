@@ -8,7 +8,13 @@
     },
     "broker_instrument": {
       "type": "object",
-      "description": "Same trading-params shape as broker.instrument.json (minus symbol/account_id/exchange/board/ticker) — see InstrumentInfo.to_broker_instrument_dict().",
+      "description": "BF trading params of the resolved instrument (initial margin, tradable/longable/shortable, lot size, price_step, price_type, ...) — see InstrumentInfo.to_broker_instrument_dict(). With `account_id` in the request the values are the account's own.",
+      "properties": {
+        "price_type": {
+          "enum": ["UNKNOWN", "POSITIVE", "NON_NEGATIVE", "ANY"],
+          "description": "Which order/trigger prices the instrument allows (Finam AssetParams.price_type): POSITIVE = strictly > 0; NON_NEGATIVE = >= 0; ANY = negative prices allowed (e.g. some futures); UNKNOWN = the broker did not say. Optional — absent means UNKNOWN."
+        }
+      },
       "additionalProperties": true
     }
   },

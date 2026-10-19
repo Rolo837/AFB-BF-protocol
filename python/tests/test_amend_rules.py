@@ -8,9 +8,9 @@ import pytest
 from afb_bf_protocol import AMEND_FIELDS, AmendContext, editable_fields_for, evaluate_amend, is_amend_allowed
 
 
-def _deal_v1(**over):
+def _deal(**over):
     d = {
-        "schema": "afb.deal.v1",
+        "schema": "afb.deal.v2",
         "deal_id": "deal-x:bf1",
         "revision": 1,
         "owner": {"user_id": "u"},
@@ -23,22 +23,20 @@ def _deal_v1(**over):
             },
         },
         "direction": "long",
-        "entry": {
+        "entry": [{
             "condition": {
                 "node_type": "event", "id": "entry_1", "op": "above",
                 "left": {"source": "price", "field": "last"},
                 "right": {"const": "100.5"},
             },
-        },
+        }],
         "sizing": {"mode": "lots", "value": "10"},
-        "risk": {
-            "stop_loss": {"condition": {
-                "node_type": "event", "id": "sl", "op": "below",
-                "left": {"source": "price", "field": "last"}, "right": {"const": "95"}}},
-            "take_profit": {"condition": {
-                "node_type": "event", "id": "tp", "op": "above",
-                "left": {"source": "price", "field": "last"}, "right": {"const": "110"}}},
-        },
+        "stop_loss": [{"condition": {
+            "node_type": "event", "id": "sl", "op": "below",
+            "left": {"source": "price", "field": "last"}, "right": {"const": "95"}}}],
+        "take_profit": [{"condition": {
+            "node_type": "event", "id": "tp", "op": "above",
+            "left": {"source": "price", "field": "last"}, "right": {"const": "110"}}}],
         "execution_policy": {"max_spread_steps": 5},
     }
     d.update(over)
@@ -61,15 +59,15 @@ def _mutate(deal, path, value):
 
 
 def test_noop_amend_always_allowed():
-    d = _deal_v1()
+    d = _deal()
     dec = evaluate_amend(d, copy.deepcopy(d), _ctx("active", "holding"))
     assert dec.allowed
     assert dec.changed() == []
 
 
 def test_only_changed_fields_are_judged():
-    d = _deal_v1()
-    new = _mutate(d, ["risk", "stop_loss", "condition", "right", "const"], "96")
+    d = _deal()
+    new = _mutate(d, ["stop_loss", 0, "condition", "right", "const"], "96")
     dec = evaluate_amend(d, new, _ctx("active", "holding"))
     changed = {v.field for v in dec.changed()}
     assert changed == {"stop_loss"}
@@ -85,8 +83,8 @@ def test_only_changed_fields_are_judged():
     ("exit_working", False),
 ])
 def test_entry_level_by_phase(phase, allowed):
-    d = _deal_v1()
-    new = _mutate(d, ["entry", "condition", "right", "const"], "101.5")
+    d = _deal()
+    new = _mutate(d, ["entry", 0, "condition", "right", "const"], "101.5")
     dec = evaluate_amend(d, new, _ctx("active" if phase != "idle" else "published", phase))
     assert dec.allowed is allowed
 
@@ -96,13 +94,13 @@ def test_entry_level_by_phase(phase, allowed):
     ("holding", False), ("exit_working", False),
 ])
 def test_side_by_phase(phase, allowed):
-    d = _deal_v1()
+    d = _deal()
     new = _mutate(d, ["direction"], "short")
     assert is_amend_allowed(d, new, _ctx("active", phase)) is allowed
 
 
-def test_v1_direction_change_detected():
-    d = _deal_v1()
+def test_direction_change_detected():
+    d = _deal()
     new = copy.deepcopy(d)
     new["direction"] = "short"
     dec = evaluate_amend(d, new, _ctx("active", "holding"))
@@ -114,10 +112,10 @@ def test_legacy_order_block_ignored_by_entry_field():
     """An unknown/leftover `entry.order` key (pre-v2.0.0 wire, no longer part
     of the schema) must not trigger a spurious "entry changed" when an old
     stored deal still carries it but the amend payload does not."""
-    d = _deal_v1()
-    d["entry"]["order"] = {"type": "market", "limit_offset_steps": 1, "time_in_force": "day"}
+    d = _deal()
+    d["entry"][0]["order"] = {"type": "market", "limit_offset_steps": 1, "time_in_force": "day"}
     new = copy.deepcopy(d)
-    del new["entry"]["order"]
+    del new["entry"][0]["order"]
     dec = evaluate_amend(d, new, _ctx("active", "holding"))
     assert dec.allowed is True
     assert dec.changed() == []
@@ -130,13 +128,13 @@ def test_immediate_entry_right_formatting_drift_ignored():
     ("0.0" for legs compiled via the legacy price+zero-const path,
     "0" via the direct-immediate path introduced in protocol v2.4.5), which
     must not be read as an entry change."""
-    d = _deal_v1()
-    d["entry"]["condition"] = {
+    d = _deal()
+    d["entry"][0]["condition"] = {
         "node_type": "event", "id": "entry_1", "op": "above",
         "left": {"source": "immediate"}, "right": {"const": "0.0"},
     }
     new = copy.deepcopy(d)
-    new["entry"]["condition"] = {
+    new["entry"][0]["condition"] = {
         "node_type": "event", "id": "entry_1", "op": "above",
         "left": {"source": "immediate"}, "right": {"const": "0"},
     }
@@ -146,7 +144,7 @@ def test_immediate_entry_right_formatting_drift_ignored():
 
 
 def test_instrument_immutable_once_active():
-    d = _deal_v1()
+    d = _deal()
     new = _mutate(d, ["target", "instrument", "ticker"], "GAZP")
     assert is_amend_allowed(d, new, _ctx("published", "idle")) is True
     for phase in ("awaiting_entry", "entry_working", "holding", "exit_working"):
@@ -160,15 +158,15 @@ def _with_key(deal, key):
 
 
 def test_equal_keys_mean_an_unchanged_instrument_even_if_the_venue_tuple_differs():
-    old = _with_key(_deal_v1(), "MISX:TQBR:SBER")
-    new = _mutate(_with_key(_deal_v1(), "MISX:TQBR:SBER"), ["target", "instrument", "exchange"], "MISX")
+    old = _with_key(_deal(), "MISX:TQBR:SBER")
+    new = _mutate(_with_key(_deal(), "MISX:TQBR:SBER"), ["target", "instrument", "exchange"], "MISX")
     for phase in ("awaiting_entry", "holding"):
         assert is_amend_allowed(old, new, _ctx("active", phase)) is True
 
 
 def test_different_keys_mean_a_changed_instrument_even_if_the_tuple_is_identical():
-    old = _with_key(_deal_v1(), "XNYM:futures:CL")
-    new = _with_key(_deal_v1(), "RUSX:futures:CL")
+    old = _with_key(_deal(), "XNYM:futures:CL")
+    new = _with_key(_deal(), "RUSX:futures:CL")
     assert is_amend_allowed(old, new, _ctx("published", "idle")) is True
     for phase in ("awaiting_entry", "entry_working", "holding", "exit_working"):
         assert is_amend_allowed(old, new, _ctx("active", phase)) is False
@@ -176,8 +174,8 @@ def test_different_keys_mean_a_changed_instrument_even_if_the_tuple_is_identical
 
 def test_a_key_on_one_side_only_falls_back_to_the_venue_tuple():
     """A stored deal without the key and its freshly compiled twin with it are the same instrument."""
-    old = _deal_v1()
-    new = _with_key(_deal_v1(), "MISX:TQBR:SBER")
+    old = _deal()
+    new = _with_key(_deal(), "MISX:TQBR:SBER")
     for phase in ("awaiting_entry", "holding"):
         assert is_amend_allowed(old, new, _ctx("active", phase)) is True
         assert is_amend_allowed(new, old, _ctx("active", phase)) is True
@@ -188,7 +186,7 @@ def test_a_key_on_one_side_only_falls_back_to_the_venue_tuple():
 # --- sizing: editable only before entry -------------------------------------
 
 def test_sizing_free_before_entry():
-    d = _deal_v1()
+    d = _deal()
     bigger = _mutate(d, ["sizing", "value"], "20")
     smaller = _mutate(d, ["sizing", "value"], "5")
     for phase in ("awaiting_entry", "entry_working"):
@@ -198,7 +196,7 @@ def test_sizing_free_before_entry():
 
 @pytest.mark.parametrize("phase", ["holding", "exit_working"])
 def test_sizing_frozen_after_entry(phase):
-    d = _deal_v1()
+    d = _deal()
     for value in ("20", "4"):  # neither increase nor decrease is allowed
         new = _mutate(d, ["sizing", "value"], value)
         dec = evaluate_amend(d, new, _ctx("active", phase))
@@ -210,22 +208,22 @@ def test_sizing_frozen_after_entry(phase):
 
 @pytest.mark.parametrize("phase", ["awaiting_entry", "entry_working", "holding"])
 def test_stop_loss_editable_through_lifecycle(phase):
-    d = _deal_v1()
-    new = _mutate(d, ["risk", "stop_loss", "condition", "right", "const"], "97")
+    d = _deal()
+    new = _mutate(d, ["stop_loss", 0, "condition", "right", "const"], "97")
     assert is_amend_allowed(d, new, _ctx("active", phase)) is True
 
 
 def test_stop_loss_in_exit_allowed_with_warning():
-    d = _deal_v1()
-    new = _mutate(d, ["risk", "stop_loss", "condition", "right", "const"], "97")
+    d = _deal()
+    new = _mutate(d, ["stop_loss", 0, "condition", "right", "const"], "97")
     dec = evaluate_amend(d, new, _ctx("active", "exit_working"))
     assert dec.allowed is True
     assert any(w.field == "stop_loss" for w in dec.warnings())
 
 
 def test_take_profit_editable_while_holding():
-    d = _deal_v1()
-    new = _mutate(d, ["risk", "take_profit", "condition", "right", "const"], "115")
+    d = _deal()
+    new = _mutate(d, ["take_profit", 0, "condition", "right", "const"], "115")
     assert is_amend_allowed(d, new, _ctx("active", "holding")) is True
 
 
@@ -233,18 +231,18 @@ def test_take_profit_editable_while_holding():
 
 @pytest.mark.parametrize("status", ["closed", "cancelled", "orphaned"])
 def test_terminal_immutable(status):
-    d = _deal_v1()
-    new = _mutate(d, ["risk", "stop_loss", "condition", "right", "const"], "97")
+    d = _deal()
+    new = _mutate(d, ["stop_loss", 0, "condition", "right", "const"], "97")
     dec = evaluate_amend(d, new, _ctx(status, "idle"))
     assert dec.allowed is False
     assert "terminal_immutable" in dec.reasons()
 
 
 def test_mixed_amend_denied_if_any_field_denied():
-    d = _deal_v1()
+    d = _deal()
     # move SL (allowed in holding) AND change entry level (denied in holding)
-    new = _mutate(d, ["risk", "stop_loss", "condition", "right", "const"], "97")
-    new = _mutate(new, ["entry", "condition", "right", "const"], "102")
+    new = _mutate(d, ["stop_loss", 0, "condition", "right", "const"], "97")
+    new = _mutate(new, ["entry", 0, "condition", "right", "const"], "102")
     dec = evaluate_amend(d, new, _ctx("active", "holding"))
     assert dec.allowed is False
     rejected = {v.field for v in dec.rejected()}
@@ -258,7 +256,7 @@ def _deal_v2():
         "schema": "afb.deal.v2",
         "deal_id": "deal-y:bf1",
         "revision": 1,
-        "target": _deal_v1()["target"],
+        "target": _deal()["target"],
         "direction": "long",
         "entry": [
             {"percent": "100",
@@ -377,41 +375,6 @@ def test_editable_fields_for_terminal_allows_nothing():
 # описывают одно и то же в разной ФОРМЕ. Так как `entry` заморожен в
 # `holding`, это выглядело как тотальный запрет двигать линию стоп-лосса.
 
-def test_v1_body_vs_v2_recompile_same_prices_is_not_a_change():
-    """Сделка `deal-bd33-4411-b9e5`: тело осталось afb.deal.v1 (план на диске
-    был v1), рекомпиляция даёт afb.deal.v2. Роль как один объект против роли
-    как списка ног, плюс `left.field` который v1-компилятор писал, а
-    v2-компилятор выбрасывает. Цены при этом те же."""
-    old_v1 = {
-        "schema": "afb.deal.v1", "deal_id": "deal-x", "revision": 2,
-        "target": _deal_v1()["target"], "direction": "long",
-        "entry": {"condition": {
-            "node_type": "event", "id": "entry_1", "op": "above",
-            "left": {"source": "price", "field": "last"}, "right": {"const": "2308.5"}}},
-        "sizing": {"mode": "risk_factor", "value": "0.5"},
-        "risk": {"stop_loss": {"condition": {
-            "node_type": "event", "id": "sl_1", "op": "below",
-            "left": {"source": "price", "field": "last"}, "right": {"const": "2235.5"}}}},
-        "execution_policy": {"margin_trading": False},
-    }
-    new_v2 = {
-        "schema": "afb.deal.v2", "deal_id": "deal-x", "revision": 3,
-        "target": _deal_v1()["target"], "direction": "long",
-        "entry": [{"condition": {
-            "node_type": "event", "id": "entry_1", "op": "above",
-            "left": {"source": "price"}, "right": {"const": "2308.5"}}, "source": "tradeplan"}],
-        "stop_loss": [{"condition": {
-            "node_type": "event", "id": "sl_1", "op": "below",
-            "left": {"source": "price"}, "right": {"const": "2235.5"}}, "source": "tradeplan"}],
-        "take_profit": [],
-        "sizing": {"mode": "risk_factor", "value": "0.5"},
-        "execution_policy": {"margin_trading": False},
-    }
-    dec = evaluate_amend(old_v1, new_v2, _ctx("active", "holding"))
-    assert dec.changed() == []
-    assert dec.allowed is True
-
-
 def test_per_leg_source_stamp_alone_is_not_a_change():
     """Сделка `deal-39b6-48ed-bcf6` (active/holding): её ноги сохранены до
     появления per-leg `source`, и первая же рекомпиляция ставит
@@ -514,3 +477,28 @@ def test_editable_fields_for_respects_custom_field_subset():
     `fields` param lets a caller narrow the query to just that subset."""
     subset = ("entry", "sizing", "stop_loss", "take_profit", "execution_policy")
     assert editable_fields_for(_ctx("active", "holding"), fields=subset) == ("stop_loss", "take_profit", "execution_policy")
+
+
+# --- broker_symbol is not part of the instrument identity --------------------
+
+def test_broker_symbol_difference_alone_is_not_an_instrument_change():
+    old = _deal()
+    new = _mutate(old, ["target", "instrument", "broker_symbol"], "SBER@MISX")
+    dec = evaluate_amend(old, new, _ctx("active", "holding"))
+    assert dec.changed() == []
+    assert dec.allowed is True
+
+
+def test_broker_symbol_difference_does_not_mask_a_real_instrument_change():
+    old = _mutate(_deal(), ["target", "instrument", "broker_symbol"], "SBER@MISX")
+    new = _mutate(old, ["target", "instrument", "ticker"], "GAZP")
+    new = _mutate(new, ["target", "instrument", "broker_symbol"], "GAZP@MISX")
+    dec = evaluate_amend(old, new, _ctx("active", "holding"))
+    assert {v.field for v in dec.changed()} == {"instrument"}
+    assert dec.allowed is False
+
+
+def test_broker_symbol_ignored_when_instrument_keys_equal():
+    old = _mutate(_deal(), ["target", "instrument", "instrument_key"], "MISX:TQBR:SBER")
+    new = _mutate(old, ["target", "instrument", "broker_symbol"], "SBER@MISX")
+    assert evaluate_amend(old, new, _ctx("active", "holding")).changed() == []

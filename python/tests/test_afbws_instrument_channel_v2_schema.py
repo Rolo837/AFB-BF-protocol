@@ -33,16 +33,9 @@ _NOTICE = {"instrument_key": "MISX:RFUD:SiZ6", "ticker": "SiZ6", "expiration": "
 
 
 def test_capability_id_declared():
-    from afb_bf_protocol import INSTRUMENT_CHANNEL_V1, INSTRUMENT_CHANNEL_V2
+    from afb_bf_protocol import INSTRUMENT_CHANNEL_V2
 
     assert INSTRUMENT_CHANNEL_V2 == "afbws.instrument.channel.v2"
-    assert INSTRUMENT_CHANNEL_V1 == "afbws.instrument.channel.v1"
-
-
-def test_v1_is_marked_deprecated():
-    spec = json.loads((Path(__file__).resolve().parents[2] / "spec/schemas/afbws/instrument.channel.v1.json").read_text(encoding="utf-8"))
-    assert spec["deprecated"] is True
-    assert "instrument.channel.v2" in spec["description"]
 
 
 def test_examples_validate(registry):

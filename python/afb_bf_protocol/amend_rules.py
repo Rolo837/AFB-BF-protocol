@@ -32,7 +32,7 @@ Invariants encoded here:
   part of the deal) are ignored here, so they never cause a spurious "entry
   changed".
   "side" reads the deal-level ``direction`` (long/short) — the single source of
-  truth for position bias on both afb.deal.v1 and afb.deal.v2 (see
+  truth for position bias on afb.deal.v2 (see
   amend_rules._sides).
 - Sizing is editable only before a position is taken; once holding (or exiting) it
   is frozen. Changing a held position's size is a *reduce/add* flow, not an amend.
@@ -129,13 +129,7 @@ class AmendDecision:
         }
 
 
-# --- deal field extraction (schema v1 + v2) ---------------------------------
-
-def _is_v2(deal: dict[str, Any]) -> bool:
-    if str(deal.get("schema") or "") == "afb.deal.v2":
-        return True
-    return isinstance(deal.get("entry"), list)
-
+# --- deal field extraction (afb.deal.v2) ---------------------------------
 
 def _instrument_identity(deal: dict[str, Any]) -> tuple[str, str, str, str]:
     target = deal.get("target") if isinstance(deal.get("target"), dict) else {}
@@ -157,7 +151,9 @@ def _instrument_key(deal: dict[str, Any]) -> str:
 def _instrument_changed(old_deal: dict[str, Any], new_deal: dict[str, Any]) -> bool:
     """The catalog key, when BOTH sides carry it, is the identity of the instrument. If either side lacks
     it (a deal published before the key existed), fall back to the venue tuple — so a stored deal and its
-    freshly compiled twin do not look like an "instrument changed"."""
+    freshly compiled twin do not look like an "instrument changed". ``broker_symbol`` is deliberately NOT
+    part of the identity: it is a broker locator derived from the instrument (AFB listing_link), not the
+    instrument itself, and may be absent on one side."""
     old_key, new_key = _instrument_key(old_deal), _instrument_key(new_deal)
     if old_key and new_key:
         return old_key != new_key
@@ -165,9 +161,8 @@ def _instrument_changed(old_deal: dict[str, Any], new_deal: dict[str, Any]) -> b
 
 
 def _sides(deal: dict[str, Any]) -> tuple[str, ...]:
-    # Both afb.deal.v1 and afb.deal.v2 require the root `direction`
-    # (long/short) as of protocol v2.0.0 — entry.side (legacy buy/sell) is no
-    # longer part of the wire schema.
+    # afb.deal.v2 requires the root `direction` (long/short) — entry.side
+    # (legacy buy/sell) is not part of the wire schema.
     return (str(deal.get("direction") or ""),)
 
 
@@ -193,12 +188,11 @@ def _canonical_condition(condition: Any) -> Any:
     2. **``left.field`` on a price or indicator leg.** ``condition.v1.json``'s
        ``priceExpr`` only ever allows ``field: "last"``, so present-and-"last"
        and absent mean exactly the same thing; for ``indicator`` the field is
-       likewise not part of what is evaluated. The afb.deal.v1 compiler
-       emitted it, the afb.deal.v2 compiler drops it for BOTH sources
+       likewise not part of what is evaluated. The afb.deal.v2 compiler drops it for BOTH sources
        (AFB ``backend/trade/service.py::_compile_v2_condition`` pops
        ``left.field`` on ``price`` and on ``indicator``) — without this,
-       recompiling any deal stored in the v1 shape reported every such leg as
-       changed.
+       recompiling a stored deal that still carries the field reported every
+       such leg as changed.
 
     ``id`` and ``op`` are deliberately NOT canonicalized away on ordinary
     legs: both compilers stamp identical ids (``entry_1``/``sl_1``), and
@@ -242,11 +236,9 @@ def _canonical_percent(percent: Any, *, single: bool) -> Any:
 
 def _canonical_legs(legs: Any) -> Any:
     """A role's legs (entry/stop_loss/take_profit) in one canonical shape,
-    identical for afb.deal.v1 and afb.deal.v2 bodies.
+    for afb.deal.v2 bodies.
 
-    v1 expressed a role as a single object (``entry``, ``risk.stop_loss``);
-    v2 expresses it as a list of legs carrying ``percent``/``logic``. Callers
-    normalize both into a list before getting here, and this flattens each
+    A role is a list of legs carrying ``percent``/``logic``; this flattens each
     leg to ``{percent, logic, condition}``:
 
     - ``percent``/``logic`` stay in the comparison — a pure grouping/bucketing
@@ -285,12 +277,10 @@ def _canonical_legs(legs: Any) -> Any:
 def _entry_triggers(deal: dict[str, Any]) -> Any:
     """Entry condition(s), excluding ``side`` (governed separately) and the
     deprecated per-leg ``order`` block (BF-only concern, not part of the
-    deal). See ``_canonical_legs`` for the shared v1/v2 shape."""
+    deal). See ``_canonical_legs`` for the leg shape."""
     entry = deal.get("entry")
-    if _is_v2(deal) and isinstance(entry, list):
+    if isinstance(entry, list):
         return _canonical_legs(entry)
-    if isinstance(entry, dict):
-        return _canonical_legs([entry])
     return []
 
 
@@ -299,19 +289,11 @@ def _sizing(deal: dict[str, Any]) -> Any:
 
 
 def _stops(deal: dict[str, Any]) -> Any:
-    if _is_v2(deal):
-        return _canonical_legs(deal.get("stop_loss") or [])
-    risk = deal.get("risk") if isinstance(deal.get("risk"), dict) else {}
-    sl = risk.get("stop_loss")
-    return _canonical_legs([sl]) if sl else []
+    return _canonical_legs(deal.get("stop_loss") or [])
 
 
 def _takes(deal: dict[str, Any]) -> Any:
-    if _is_v2(deal):
-        return _canonical_legs(deal.get("take_profit") or [])
-    risk = deal.get("risk") if isinstance(deal.get("risk"), dict) else {}
-    tp = risk.get("take_profit")
-    return _canonical_legs([tp]) if tp else []
+    return _canonical_legs(deal.get("take_profit") or [])
 
 
 def _policy(deal: dict[str, Any]) -> Any:

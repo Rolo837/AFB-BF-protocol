@@ -6,7 +6,8 @@
       "description": "ISO-8601 BF event-occurrence time (same value as the BF journal entry `at`)."
     },
     "code": {
-      "type": "string"
+      "type": "string",
+      "description": "Machine-readable rejection code. Instrument-resolution codes: `instrument_unresolvable` (no broker symbol in the binding or target.instrument.broker_symbol, or the broker does not know it), `instrument_mismatch` (the broker asset behind broker_symbol disagrees with the deal's exchange/board/ticker), `instrument_delisted` (the instrument was delisted/archived at the broker), `unsupported` (the BF/connector cannot execute this deal, e.g. an unsupported mode/market)."
     },
     "command_type": {
       "type": "string"

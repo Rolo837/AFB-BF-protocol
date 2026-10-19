@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/broker.resolve_instrument.json",
   "title": "payload: broker.resolve_instrument",
-  "description": "Deal-instrument pre-flight (AFB's afbws.instrument.channel.v1 `resolve`/`detail`, and the tradeplan publish path) — `deal` is a compiled ExecutionDeal (afb.deal.v1 or afb.deal.v2), the same shape deal.publish carries, sent here purely for its target/instrument fields; BF does not persist it from this command.",
+  "description": "Deal-instrument pre-flight (AFB's afbws.instrument.channel.v2 `detail`, and the tradeplan publish path) — `deal` is a compiled ExecutionDeal (afb.deal.v2), the same shape deal.publish carries, sent here purely for its target/instrument fields; BF does not persist it from this command.",
   "type": "object",
   "additionalProperties": true,
   "required": [
@@ -10,19 +10,12 @@
   ],
   "properties": {
     "deal": {
-      "oneOf": [
-        {
-          "$ref": "../deal.v1.json"
-        },
-        {
-          "$ref": "../deal.v2.json"
-        }
-      ]
+      "$ref": "../deal.v2.json"
     },
     "account_id": {
       "type": "string",
       "minLength": 1,
-      "description": "Optional broker account whose trading parameters (initial margin, tradable/longable/shortable, price_type) are wanted — they depend on the account's tariff. Sent by AFB's afbws.instrument.channel.v2 `detail`. A connector that does not support account granularity ignores it and answers with connector-level values."
+      "description": "Optional broker account whose trading parameters (initial margin, tradable/longable/shortable, price_type) are wanted — they depend on the account's tariff. Sent by AFB's afbws.instrument.channel.v2 `detail`. BF answers with the values of THAT account (broker_instrument in broker.instrument_resolved); absent means BF's own trading account (default_account_id). The instrument is located solely by deal.target.instrument.broker_symbol (or binding.symbol)."
     }
   }
 }

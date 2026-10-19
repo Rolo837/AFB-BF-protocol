@@ -105,7 +105,7 @@ class Envelope:
 
 @dataclass
 class ExecutionDeal:
-    """Thin accessor over a deal payload (``afb.deal.v1`` / ``afb.deal.v2``)."""
+    """Thin accessor over a deal payload (``afb.deal.v2``)."""
 
     deal_id: str
     revision: int

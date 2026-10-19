@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/instrument.channel.v2.json",
   "x-afbws-support-id": "afbws.instrument.channel.v2",
   "title": "instrument channel v2 — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v2). Replaces afbws.instrument.channel.v1 (deprecated, still served to clients that did not negotiate v2) with only the operations the project uses and that afbws.catalog.channel.v1 does not already cover. Same convention as afbws.catalog/afbws.alarm.v2/afbws.gp.v2: ONE schema id per message (`afbws.instrument.<op>.v2`), the same schema is the request, its response and, for `expiration`, the server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.instrument.error.v2`. Operations: `catalog`, `sets`, `favorites`, `paint`, `expiration`, `replace`, `detail`. Instruments are addressed ONLY by `instrument_key`; `ticker` appears solely as a display attribute of a listing / notice. All operations are open to any authenticated caller; manager rights (global sets) are checked by the backend per `visibility`. See AFB/docs/ws/instrument.md.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v2). Provides only the operations the project uses and that afbws.catalog.channel.v1 does not already cover. Same convention as afbws.catalog/afbws.alarm.v2/afbws.gp.v2: ONE schema id per message (`afbws.instrument.<op>.v2`), the same schema is the request, its response and, for `expiration`, the server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.instrument.error.v2`. Operations: `catalog`, `sets`, `favorites`, `paint`, `expiration`, `replace`, `detail`. Instruments are addressed ONLY by `instrument_key`; `ticker` appears solely as a display attribute of a listing / notice. All operations are open to any authenticated caller; manager rights (global sets) are checked by the backend per `visibility`. See AFB/docs/ws/instrument.md.",
   "type": "object",
   "oneOf": [
     {
@@ -45,7 +45,7 @@
         "pink",
         "teal"
       ],
-      "description": "Same list and order as afbws.instrument.channel.v1#/$defs/favoriteColor and afbws.catalog.channel.v1 (kept in lockstep; no cross-reference on purpose)."
+      "description": "Same list and order as afbws.catalog.channel.v1 (kept in lockstep; no cross-reference on purpose)."
     },
     "collection": {
       "type": "object",

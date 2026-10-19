@@ -1,162 +1,11 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: a0e13d0d404e76dfa56c298ad8523ed863d4d775cc9625ad150dd30d86f4055c
+# source-hash: eb7b34cf0449db4654c04fd70cfb892cf66afb20a4d189d234056de0c07abe99
 
 from __future__ import annotations
 
 from typing import Any, Literal, NotRequired, TypeAlias, TypedDict
-
-AccountAccountId: TypeAlias = str
-
-
-AccountBfId: TypeAlias = str
-
-
-class AccountErrorResponse(TypedDict):
-    channel: Literal["account"]
-    schema: Literal["afbws.account.error.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    code: AfbwsCommonV1ErrorCode
-    message: str
-    details: NotRequired[dict[str, Any]]
-
-
-class AccountEventRecord(TypedDict):
-    logged_at: str
-    bf_id: AccountBfId
-    deal_id: NotRequired[str | None]
-    category: Literal["deal", "order", "position", "condition"]
-    event: str
-    data: NotRequired[dict[str, Any] | None]
-
-
-class AccountEventsRequest(TypedDict):
-    channel: Literal["account"]
-    schema: Literal["afbws.account.events.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    bf_id: AccountBfId
-    date: NotRequired[str]
-
-
-class AccountEventsResponse(TypedDict):
-    channel: Literal["account"]
-    schema: Literal["afbws.account.events.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    bf_id: AccountBfId
-    date: str
-    items: list[AccountEventRecord]
-
-
-class AccountGetRequest(TypedDict):
-    channel: Literal["account"]
-    schema: Literal["afbws.account.get.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    bf_id: AccountBfId
-    account_id: NotRequired[AccountAccountId]
-    force: NotRequired[bool]
-
-
-class AccountGetResponse(TypedDict):
-    channel: Literal["account"]
-    schema: Literal["afbws.account.get.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    item: AccountSnapshot
-
-
-class AccountListRequest(TypedDict):
-    channel: Literal["account"]
-    schema: Literal["afbws.account.list.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    bf_id: NotRequired[AccountBfId]
-    force: NotRequired[bool]
-
-
-class AccountListResponse(TypedDict):
-    channel: Literal["account"]
-    schema: Literal["afbws.account.list.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    items: list[AccountSnapshot]
-
-
-class AccountOrder(TypedDict):
-    order_id: str
-    deal_id: NotRequired[str]
-    symbol: NotRequired[str]
-    side: NotRequired[str]
-    role: NotRequired[str]
-    status: NotRequired[str]
-    quantity: NotRequired[int]
-    filled_quantity: NotRequired[int]
-    leg_index: NotRequired[int]
-    limit_price: NotRequired[str | None]
-    average_price: NotRequired[str | None]
-    client_order_id: NotRequired[str]
-    cancel_source: NotRequired[Literal["system", "broker"]]
-    updated_at: NotRequired[str]
-    error_code: NotRequired[str | None]
-    error_message: NotRequired[str | None]
-
-
-class AccountOrdersPush(TypedDict):
-    channel: Literal["account"]
-    schema: Literal["afbws.account.orders.push.v1"]
-    bf_id: AccountBfId
-    account_id: AccountAccountId
-    items: list[AccountOrder]
-
-
-class AccountOrdersRequest(TypedDict):
-    channel: Literal["account"]
-    schema: Literal["afbws.account.orders.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    bf_id: AccountBfId
-    account_id: NotRequired[AccountAccountId]
-
-
-class AccountOrdersResponse(TypedDict):
-    channel: Literal["account"]
-    schema: Literal["afbws.account.orders.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    bf_id: AccountBfId
-    account_id: AccountAccountId
-    items: list[AccountOrder]
-
-
-class AccountSnapshot(TypedDict):
-    bf_id: AccountBfId
-    account_id: AccountAccountId
-    tradable: bool
-    readonly: bool
-    status: Literal["ok", "stale", "error"]
-    equity: str | None
-    cash: list[PayloadsBrokerAccountsCashBalance]
-    positions: list[PayloadsBrokerAccountsPosition]
-    as_of: NotRequired[str]
-
-
-class AccountSnapshotPush(TypedDict):
-    channel: Literal["account"]
-    schema: Literal["afbws.account.snapshot.push.v1"]
-    bf_id: AccountBfId
-    default_account_id: AccountAccountId
-    items: list[AccountSnapshot]
-
-
-AccountChannelV1Message: TypeAlias = (
-    AccountListRequest
-    | AccountListResponse
-    | AccountGetRequest
-    | AccountGetResponse
-    | AccountOrdersRequest
-    | AccountOrdersResponse
-    | AccountEventsRequest
-    | AccountEventsResponse
-    | AccountErrorResponse
-    | AccountSnapshotPush
-    | AccountOrdersPush
-)
-
 
 AccountV2AccountId: TypeAlias = str
 
@@ -255,8 +104,17 @@ class AccountV2Snapshot(TypedDict):
     status: Literal["ok", "stale", "error"]
     equity: str | None
     cash: list[PayloadsBrokerAccountsCashBalance]
-    positions: list[PayloadsBrokerAccountsPosition]
+    positions: list[AfbwsAccountChannelV2Position]
     as_of: NotRequired[str]
+
+
+class AfbwsAccountChannelV2Position(TypedDict):
+    quantity: int
+    average_price: str
+    current_price: NotRequired[str | None]
+    unrealized_pnl: NotRequired[str | None]
+    instrument: NotRequired[dict[str, Any]]
+    broker_ref: NotRequired[dict[str, Any]]
 
 
 class AfbwsCatalogChannelV1ArchiveItem(TypedDict):
@@ -738,192 +596,6 @@ class AfbwsDealChannelV1DealRealizedPnl(TypedDict):
     degraded: Literal["missing_price", "missing_step_price"] | None
 
 
-class AfbwsGpChannelV1SyncPush(TypedDict):
-    """
-    items[] — upsert by id (bind: tradeplan_id set on publish/amend; release: tradeplan_id cleared on plan physical delete), full authoritative afb.gp.v1 record, same shape as set.response. Never a snapshot. Primitive deletion (archival freeze) is NOT conveyed by this push — a dropped primitive was, by construction, bound to a plan and only rendered while that plan is selected; the plan's own afbws.tradeplan.sync.push.v1 (status: archived, frozen numeric conditions) already replaces its on-chart representation.
-    """
-
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.sync.push.v1"]
-    items: list[GpV1]
-
-
-class AfbwsInstrumentChannelV1CatalogDerivative(TypedDict):
-    """
-    One row per derivative: a serial futures, a perpetual futures, or (reserved) an option. Carries no contract list — the contract↔derivative link lives on the contract, as `items[].derivative` pointing back at `derivative` here; a client expands a `kind=derivative` asset member by `member.derivative -> this.derivative -> items[] where item.derivative == that`. The word `series` also names a `poolEntry.kind` and one value of this `kind` — independent namespaces. Read side only — the write form is still `commitRequest.series[]` / `seriesUpsert`; there is deliberately no `commitRequest.derivatives`.
-    """
-
-    derivative: str
-    kind: Literal["perpetual", "series", "options"]
-    underlying: str | None
-    name: NotRequired[str | None]
-
-
-class AfbwsInstrumentChannelV1ExpirationCandidate(TypedDict):
-    instrument_key: AfbwsCommonV1InstrumentKey
-    ticker: str
-    expiration: str
-    shortname: NotRequired[str]
-
-
-class AfbwsInstrumentChannelV1ExpirationListRequest(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.expiration.list.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-
-
-class AfbwsInstrumentChannelV1ExpirationListResponse(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.expiration.list.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    items: list[AfbwsInstrumentChannelV1ExpirationNotice]
-
-
-class AfbwsInstrumentChannelV1ExpirationNotice(TypedDict):
-    """
-    Present while `0 <= days_left <= <the caller's `interface.futures_days_to_expiration`>` (0 disables the notice entirely) and the caller uses the contract (`usage` is not all-zero). `candidates[]` are the other ACTIVE contracts of the same derivative that expire AFTER this one, ordered by expiration then key; the FIRST is the default proposal (the nearest by expiration). Empty when no later contract exists.
-    """
-
-    instrument_key: AfbwsCommonV1InstrumentKey
-    ticker: str
-    shortname: NotRequired[str]
-    expiration: str
-    days_left: int
-    usage: AfbwsInstrumentChannelV1ExpirationUsage
-    candidates: list[AfbwsInstrumentChannelV1ExpirationCandidate]
-
-
-class AfbwsInstrumentChannelV1ExpirationPush(TypedDict):
-    """
-    Sent by the daily expiration job to connected users when a new notice stage is reached, so the card appears without a reload. An empty `items[]` clears the card.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.expiration.push.v1"]
-    items: list[AfbwsInstrumentChannelV1ExpirationNotice]
-
-
-class AfbwsInstrumentChannelV1ExpirationUsage(TypedDict):
-    """
-    Trade plans and deals are deliberately not listed: they carry only a bare `ticker`, are level-sensitive and are never replaced by the contract-roll flow — after expiration they are archived by the server's expiration policy.
-    """
-
-    alarms: int
-    primitives: int
-    sets: int
-    favorites: int
-
-
-AfbwsInstrumentChannelV1FavoriteColor: TypeAlias = Literal[
-    "yellow", "red", "blue", "green", "gray", "orange", "cyan", "purple", "pink", "teal"
-]
-
-
-class AfbwsInstrumentChannelV1FavoriteEntry(TypedDict):
-    kind: Literal["instrument", "asset"]
-    key: str
-    color: AfbwsInstrumentChannelV1FavoriteColor
-
-
-class AfbwsInstrumentChannelV1FavoriteRef(TypedDict):
-    """
-    `key` is `instrument_key` for kind "instrument" and `asset_id` for kind "asset" — different identifier spaces, hence a dedicated field name rather than catalogAssetMember's `code`, which would invite the wrong join.
-    """
-
-    kind: Literal["instrument", "asset"]
-    key: str
-
-
-class AfbwsInstrumentChannelV1FavoritesRequest(TypedDict):
-    """
-    Carries no data beyond the envelope; there is no way to set or replace favorites through this operation — that is `paint`. Legal at any time, including right after a `paint` to read back the merged result.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.favorites.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-
-
-class AfbwsInstrumentChannelV1FavoritesResponse(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.favorites.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    favorites: list[AfbwsInstrumentChannelV1FavoriteEntry]
-
-
-class AfbwsInstrumentChannelV1PaintRequest(TypedDict):
-    """
-    Every section is optional and a list; an empty request is legal and a no-op — reading favorites back is `favorites`, not `paint`. `mark` paints one or more refs (repainting an already-favorited ref is legal — that is how its color changes); a ref repeated within the same `mark` list is applied in order, the last color wins. `unmark` removes one or more refs, idempotently — unmarking a ref that is not a favorite is a no-op, not an error. `order` REPLACES the caller's whole display order, the same idiom as commit's `asset_set_order` — not a partial reshuffle.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.paint.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    mark: NotRequired[list[AfbwsInstrumentChannelV1FavoriteEntry]]
-    unmark: NotRequired[list[AfbwsInstrumentChannelV1FavoriteRef]]
-    order: NotRequired[list[AfbwsInstrumentChannelV1FavoriteRef]]
-
-
-class AfbwsInstrumentChannelV1PaintResponse(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.paint.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    marked: NotRequired[list[AfbwsInstrumentChannelV1FavoriteEntry]]
-    unmarked: NotRequired[list[AfbwsInstrumentChannelV1FavoriteRef]]
-    order: NotRequired[list[AfbwsInstrumentChannelV1FavoriteRef]]
-
-
-class AfbwsInstrumentChannelV1RefreshMarketReport(TypedDict):
-    """
-    Turns a silently-obsolete column mapping into a visible diagnostic instead of quietly-empty fields. `status: "failed"` means the market's rows were NOT applied — a missing required column, an empty answer, or a network error all count as failed, since a partial answer must not look like a complete one.
-    """
-
-    market: str
-    status: Literal["ok", "failed"]
-    missing_required: NotRequired[list[str]]
-    missing_optional: NotRequired[list[str]]
-    type_mismatch: NotRequired[list[str]]
-    malformed_rows: NotRequired[int]
-    board_conflicts: NotRequired[list[dict[str, Any]]]
-    error: NotRequired[str]
-
-
-AfbwsInstrumentChannelV1ReplaceKind: TypeAlias = Literal[
-    "alarms", "primitives", "sets", "favorites"
-]
-
-
-class AfbwsInstrumentChannelV1ReplaceRejection(TypedDict):
-    kind: AfbwsInstrumentChannelV1ReplaceKind
-    id: str
-    code: AfbwsCommonV1ErrorCode
-    message: NotRequired[str]
-
-
-class AfbwsInstrumentChannelV1ReplaceRequest(TypedDict):
-    """
-    `to_key` must be an ACTIVE contract of the same derivative as `from_key` (the server validates; the card offers `expirationNotice.candidates[]`, the first being the default). `kinds` limits what is moved; omitted = all four. Prices and levels are NEVER adjusted — alarm conditions and primitive levels are copied as they are. Partial results are normal: what could not be moved is listed in `rejected[]`, the rest is applied. Idempotent: repeating the request moves nothing more.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.replace.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    from_key: AfbwsCommonV1InstrumentKey
-    to_key: AfbwsCommonV1InstrumentKey
-    kinds: NotRequired[list[AfbwsInstrumentChannelV1ReplaceKind]]
-
-
-class AfbwsInstrumentChannelV1ReplaceResponse(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.replace.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    from_key: AfbwsCommonV1InstrumentKey
-    to_key: AfbwsCommonV1InstrumentKey
-    replaced: AfbwsInstrumentChannelV1ExpirationUsage
-    rejected: list[AfbwsInstrumentChannelV1ReplaceRejection]
-    items: list[AfbwsInstrumentChannelV1ExpirationNotice]
-
-
 class AfbwsInstrumentChannelV2AccountDetail(TypedDict):
     bf_id: str
     account_id: str
@@ -1384,128 +1056,6 @@ class AfbwsTradeplanChannelV1ArchiveResponse(TypedDict):
     item: TradeplanEntity
 
 
-class AlarmAckEvent(TypedDict):
-    schema: Literal["afb.alarm.trigger_ack.v1"]
-    alarm_id: str
-    triggered_at: str
-
-
-class AlarmAckRequest(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.ack.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    events: list[AlarmAckEvent]
-
-
-class AlarmAckResponse(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.ack.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    results: list[AlarmAckResultItem]
-
-
-class AlarmAckResultItem(TypedDict):
-    schema: Literal["afbws.alarm.ack_result.v1"]
-    alarm_id: str
-    triggered_at: str
-    status: Literal["ok", "not_found"]
-
-
-class AlarmDeleteRequest(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.delete.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    id: str
-
-
-class AlarmDeleteResponse(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.delete.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    id: str
-
-
-class AlarmErrorResponse(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.error.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    code: AfbwsCommonV1ErrorCode
-    message: str
-    details: NotRequired[dict[str, Any]]
-
-
-class AlarmGetRequest(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.get.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    id: str
-
-
-class AlarmGetResponse(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.get.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    item: AlarmV1
-
-
-class AlarmListRequest(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.list.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    ticker: NotRequired[str]
-
-
-class AlarmListResponse(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.list.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    items: list[AlarmV1]
-
-
-class AlarmSetRequest(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.set.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    item: AlarmV1
-
-
-class AlarmSetResponse(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.set.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    item: AlarmV1
-
-
-class AlarmTriggerEvent(TypedDict):
-    schema: Literal["afb.alarm.trigger.v1"]
-    alarm_id: str
-    triggered_at: str
-    alarm: AlarmV1
-    current_price: NotRequired[float]
-
-
-class AlarmTriggeredPush(TypedDict):
-    channel: Literal["alarm"]
-    schema: Literal["afbws.alarm.triggered.push.v1"]
-    events: list[AlarmTriggerEvent]
-
-
-AlarmChannelV1Message: TypeAlias = (
-    AlarmGetRequest
-    | AlarmGetResponse
-    | AlarmListRequest
-    | AlarmListResponse
-    | AlarmSetRequest
-    | AlarmSetResponse
-    | AlarmDeleteRequest
-    | AlarmDeleteResponse
-    | AlarmErrorResponse
-    | AlarmTriggeredPush
-    | AlarmAckRequest
-    | AlarmAckResponse
-)
-
-
 class AlarmV1(TypedDict):
     """
     AFB-side user alarm — like afb.tradeplan.v2, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel; it is documented here (rather than only in AFB) because it shares condition.v1.json's operator vocabulary with deal.v2 and tradeplan.v2. Replaces the legacy YAML shape (condition_type/trigger_type/value_type/value/value_ref flat fields, break_up/break_down operator names) with a conditionNode. Legacy alarms are read via a lazy converter (see docs/PROTOCOL.md 'Алармы' mapping table) and rewritten in this format on next save/reactivation; the API layer only accepts/emits this format going forward. `period` is the alarm's overall computation timeframe (legacy default '10min'); when `condition` is a price candle operator, `condition.timeframe` carries the candle timeframe and by construction equals `period`.
@@ -1822,21 +1372,9 @@ class Breakpoints(TypedDict):
     xl: NotRequired[int]
 
 
-class BrokerAccountPayload(TypedDict):
-    """
-    DEPRECATED: superseded by broker.accounts (see payloads/broker.accounts.json) — kept for wire compatibility with AFB builds that have not negotiated multi_account. Response to broker.get_account, describing only BF's single trading account. Matches belphegor/reporting/broker_snapshots.py::account_snapshot_payload() exactly, including the account_id/broker_account_id split that broker.accounts deliberately drops (see broker.accounts.json). Correlated via correlation_id.
-    """
-
-    account_id: str
-    broker_account_id: NotRequired[str]
-    equity: NotRequired[str | None]
-    cash: list[PayloadsBrokerAccountCashBalance]
-    positions: list[PayloadsBrokerAccountPosition]
-
-
 class BrokerAccountsPayload(TypedDict):
     """
-    Response to broker.get_accounts and unsolicited push after every reconcile pass (see belphegor/reporting/account_directory.py::AccountDirectory, engine.py::_publish_broker_snapshots) — full list of accounts visible to BF's broker token. Only sent to AFB sessions that advertised session.hello_ack.features.multi_account; a BF instance that has negotiated multi_account with this AFB never sends the deprecated broker.account instead (see broker.account.json). Unlike broker.account, `accounts[].account_id` is the ONLY account identifier — no broker_account_id split, by design (the account_id/broker_account_id duplication in broker.account was judged confusing and deliberately not carried forward). Only `default_account_id` (BF's own trading account, self._account_id) is tradable in this phase — see brokers/port.py::account_id docstring; the rest are read-only until a later multi-account execution phase.
+    Response to broker.get_accounts and unsolicited push after every reconcile pass (see belphegor/reporting/account_directory.py::AccountDirectory, engine.py::_publish_broker_snapshots) — full list of accounts visible to BF's broker token. `accounts[].account_id` is the ONLY account identifier — no broker_account_id split, by design. Positions carry only `broker_ref {broker, symbol}`: BF has no instrument catalog, AFB maps the symbol to its own instrument (instrument_key) itself. Only `default_account_id` (BF's own trading account, self._account_id) is tradable in this phase — see brokers/port.py::account_id docstring; the rest are read-only until a later multi-account execution phase.
     """
 
     default_account_id: str
@@ -1846,7 +1384,7 @@ class BrokerAccountsPayload(TypedDict):
 
 class BrokerErrorPayload(TypedDict):
     """
-    NACK for any broker.* command (get_account/get_orders/get_catalog/get_instrument/resolve_instrument). Correlated to the request via correlation_id.
+    NACK for any broker.* command (get_accounts/get_orders/resolve_instrument). Correlated to the request via correlation_id.
     """
 
     at: NotRequired[str]
@@ -1855,38 +1393,12 @@ class BrokerErrorPayload(TypedDict):
     message: NotRequired[str]
 
 
-class BrokerGetAccountPayload(TypedDict):
-    """
-    DEPRECATED: superseded by broker.get_accounts (see payloads/broker.get_accounts.json) — kept for wire compatibility with AFB builds that have not negotiated multi_account (see daemon.capabilities.json#/properties/features/properties/multi_account, session.hello_ack.json#/properties/features/properties/multi_account). AFB always sends an empty payload; no fields are read by BF (belphegor/plan_engine/engine.py::_get_account).
-    """
-
-
 class BrokerGetAccountsPayload(TypedDict):
     """
-    Request the full list of accounts visible to BF's broker token (not just its own trading account) — see belphegor/reporting/account_directory.py::AccountDirectory. Only sent by AFB after the BF instance advertised daemon.capabilities.features.multi_account (see daemon.capabilities.json). AFB always sends an empty payload today; account_ids is reserved for a future partial-refresh use and is not currently read by BF.
+    Request the full list of accounts visible to BF's broker token (not just its own trading account) — see belphegor/reporting/account_directory.py::AccountDirectory. AFB always sends an empty payload today; account_ids is reserved for a future partial-refresh use and is not currently read by BF.
     """
 
     account_ids: NotRequired[list[str]]
-
-
-class BrokerGetCatalogPayload1(TypedDict):
-    """
-    Empty payload requests the meta form (exchanges/markets pairs) of the broker.catalog reply; {exchange,market} together request the slice form (instrument rows) for that market. AFB never sends exchange without market or vice versa (backend/trade/ws_handlers.py::handle_account).
-    """
-
-    exchange: str
-    market: str
-
-
-BrokerGetCatalogPayload: TypeAlias = dict[str, Any] | BrokerGetCatalogPayload1
-
-
-class BrokerGetInstrumentPayload(TypedDict):
-    """
-    DEPRECATED: superseded by broker.resolve_instrument (see payloads/broker.resolve_instrument.json), which AFB's afbws.instrument.channel.v1 canal uses exclusively for detail lookups. Kept for wire compatibility; belphegor/plan_engine/engine.py::_get_symbol_info still serves it.
-    """
-
-    symbol: str
 
 
 class BrokerGetOrdersPayload(TypedDict):
@@ -1896,6 +1408,15 @@ class BrokerGetOrdersPayload(TypedDict):
 
 
 class BrokerInstrument(TypedDict):
+    """
+    BF trading params of the resolved instrument (initial margin, tradable/longable/shortable, lot size, price_step, price_type, ...) — see InstrumentInfo.to_broker_instrument_dict(). With `account_id` in the request the values are the account's own.
+    """
+
+    price_type: NotRequired[Literal["UNKNOWN", "POSITIVE", "NON_NEGATIVE", "ANY"]]
+
+
+class BrokerInstrument1(TypedDict):
+    price_type: NotRequired[Literal["UNKNOWN", "POSITIVE", "NON_NEGATIVE", "ANY"]]
     asset_type: NotRequired[str]
     bond_details: NotRequired[
         str | float | int | bool | dict[str, Any] | list[Any] | None
@@ -1924,38 +1445,13 @@ class BrokerInstrument(TypedDict):
     updated_at: NotRequired[str]
 
 
-class BrokerInstrumentPayload(TypedDict):
-    """
-    Response to broker.get_instrument — the enriched instrument (belphegor/domain/instruments.py InstrumentInfo), unlike broker.catalog's brief CatalogEntry rows. Broker-agnostic explicit allow-list, not an asdict()-based dump: broker-native/Finam-specific fields (asset_type, min_step_raw, long_risk_rate, short_risk_rate, future_details, bond_details) never reach this wire — AFB doesn't read them and admitting them would make this canon description implicitly Finam-shaped (belphegor/reporting/broker_snapshots.py::instrument_resolved_payload builds this explicitly, not via InstrumentInfo.to_broker_instrument_dict(), which a different wire field — deal.accepted's broker_instrument — still uses unchanged). `symbol`/`currency` are the canon names on this wire — they map from InstrumentInfo's own internal `symbol`/`quote_currency` attributes, which are unchanged BF-side. additionalProperties stays true so a future broker plugin can add fields without breaking AFB's validation; required kept to `symbol`. This is a PATCH-level description of existing wire behavior, not a new constraint on it.
-    """
-
-    symbol: str
-    exchange: NotRequired[str]
-    board: NotRequired[str]
-    ticker: NotRequired[str]
-    mic: NotRequired[str]
-    name: NotRequired[str]
-    market: NotRequired[str]
-    decimals: NotRequired[int]
-    price_step: NotRequired[str]
-    lot_size: NotRequired[int]
-    currency: NotRequired[str]
-    expiration_date: NotRequired[str | None]
-    tradable: NotRequired[bool]
-    longable: NotRequired[bool]
-    shortable: NotRequired[bool]
-    long_initial_margin: NotRequired[str | None]
-    short_initial_margin: NotRequired[str | None]
-    updated_at: NotRequired[str | None]
-
-
 class BrokerInstrumentResolvedPayload(TypedDict):
     """
     Response to broker.resolve_instrument (deal-instrument pre-flight resolution). Deliberately permissive (additionalProperties: true throughout) — both objects are BF-owned shapes; this is a PATCH-level description of existing wire behavior, not a new constraint on it.
     """
 
     binding: dict[str, Any]
-    broker_instrument: dict[str, Any]
+    broker_instrument: BrokerInstrument
 
 
 class BrokerOrdersPayload(TypedDict):
@@ -1969,16 +1465,21 @@ class BrokerOrdersPayload(TypedDict):
 
 class BrokerPositionLedgerPayload(TypedDict):
     account_id: str
-    entries: list[Entry]
+    entries: list[Entry2]
     residual_by_symbol: dict[str, int]
+
+
+class BrokerRef(TypedDict):
+    broker: str
+    symbol: str
 
 
 class BrokerResolveInstrumentPayload(TypedDict):
     """
-    Deal-instrument pre-flight (AFB's afbws.instrument.channel.v1 `resolve`/`detail`, and the tradeplan publish path) — `deal` is a compiled ExecutionDeal (afb.deal.v1 or afb.deal.v2), the same shape deal.publish carries, sent here purely for its target/instrument fields; BF does not persist it from this command.
+    Deal-instrument pre-flight (AFB's afbws.instrument.channel.v2 `detail`, and the tradeplan publish path) — `deal` is a compiled ExecutionDeal (afb.deal.v2), the same shape deal.publish carries, sent here purely for its target/instrument fields; BF does not persist it from this command.
     """
 
-    deal: DealV1 | DealV2
+    deal: DealV2
     account_id: NotRequired[str]
 
 
@@ -2519,7 +2020,7 @@ class Day(TypedDict):
 class DealAcceptedPayload(TypedDict):
     at: NotRequired[str]
     binding: NotRequired[Binding]
-    broker_instrument: NotRequired[BrokerInstrument]
+    broker_instrument: NotRequired[BrokerInstrument1]
     broker_sizing: NotRequired[BrokerSizing]
     command_type: str
     deal_id: str
@@ -2565,7 +2066,7 @@ class DealAmendPayload(TypedDict):
 
     deal_id: str
     base_revision: int
-    deal: DealV1 | DealV2
+    deal: DealV2
 
 
 class DealAmendRequest(TypedDict):
@@ -2680,6 +2181,7 @@ class DealInstrument(TypedDict):
     board: str
     ticker: str
     instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    broker_symbol: NotRequired[str]
     market: NotRequired[Literal["stock", "futures", "currency"]]
     price_step: NotRequired[DecimalString]
     step_price: NotRequired[DecimalString]
@@ -2755,19 +2257,6 @@ class DealPositionsSyncedPayload(TypedDict):
     deal_id: str
 
 
-class DealPublicDealV1(TypedDict):
-    schema: Literal["afb.deal.v1"]
-    deal_id: str
-    revision: int
-    target: DealTarget
-    direction: Literal["long", "short"]
-    entry: DealV1Entry
-    sizing: DealSizing
-    risk: NotRequired[Risk]
-    execution_policy: NotRequired[DealExecutionPolicy]
-    source: DealPublicSource
-
-
 class DealPublicDealV2(TypedDict):
     schema: Literal["afb.deal.v2"]
     deal_id: str
@@ -2797,11 +2286,11 @@ class DealPublicSource(TypedDict):
     tradeplan_id: str
 
 
-DealPublicV1: TypeAlias = DealPublicDealV1 | DealPublicDealV2
+DealPublicV1: TypeAlias = DealPublicDealV2
 
 
 class DealPublishPayload(TypedDict):
-    deal: DealV1 | DealV2
+    deal: DealV2
 
 
 class DealPublishRequest(TypedDict):
@@ -3061,44 +2550,9 @@ DealChannelV1Message: TypeAlias = (
 )
 
 
-class DealV1(TypedDict):
-    """
-    Single-entry / single-exit deal. All prices, steps, sizing values and thresholds are decimal STRINGS. The deal-level `direction` (long/short, same vocabulary as afb.deal.v2) is the single source of truth for position bias. Shared $defs (decimalString/instrument/target/sizing/executionPolicy/source) live in common.v1.json — this file keeps only what's v1-specific (conditionNode/entry/exitBlock); see common.v1.json's description for why.
-    """
-
-    schema: Literal["afb.deal.v1"]
-    deal_id: str
-    revision: int
-    owner: NotRequired[Owner]
-    target: DealTarget
-    direction: Literal["long", "short"]
-    entry: DealV1Entry
-    sizing: DealSizing
-    risk: NotRequired[Risk]
-    execution_policy: NotRequired[DealExecutionPolicy]
-    archive_reason: NotRequired[str]
-    source: NotRequired[DealSource]
-
-
-class DealV1ConditionNode(TypedDict):
-    node_type: Literal["event"]
-    id: NotRequired[str]
-    op: Literal["above", "below", "crosses_above", "crosses_below", "crossing"]
-    left: Left
-    right: Right
-
-
-class DealV1Entry(TypedDict):
-    condition: DealV1ConditionNode
-
-
-class DealV1ExitBlock(TypedDict):
-    condition: NotRequired[DealV1ConditionNode]
-
-
 class DealV2(TypedDict):
     """
-    Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string) and an optional `logic` (`#/$defs/legJoin`) joining it to the PRECEDING element in the same list — see `legJoin` for the full grammar (groups/buckets, `and`/`or` precedence, `percent` placement). Sum of percents per bucket resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from deal.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_*/crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.
+    Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string) and an optional `logic` (`#/$defs/legJoin`) joining it to the PRECEDING element in the same list — see `legJoin` for the full grammar (groups/buckets, `and`/`or` precedence, `percent` placement). Sum of percents per bucket resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from common.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_*/crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.
     """
 
     schema: Literal["afb.deal.v2"]
@@ -3303,6 +2757,13 @@ class Display2(TypedDict):
 
 
 class Entry(TypedDict):
+    leg_id: NotRequired[TradeplanV2LegId]
+    percent: NotRequired[DecimalString]
+    logic: NotRequired[DealV2LegJoin]
+    condition: TradeplanV2TpConditionNode
+
+
+class Entry2(TypedDict):
     entry_id: str
     account_id: NotRequired[str]
     symbol: str
@@ -3319,13 +2780,6 @@ class Entry(TypedDict):
     note: NotRequired[str]
     created_at: NotRequired[str]
     updated_at: NotRequired[str]
-
-
-class Entry1(TypedDict):
-    leg_id: NotRequired[TradeplanV2LegId]
-    percent: NotRequired[DecimalString]
-    logic: NotRequired[DealV2LegJoin]
-    condition: TradeplanV2TpConditionNode
 
 
 class EntryItem(TypedDict):
@@ -3381,17 +2835,7 @@ class Features(TypedDict):
     server_sltp: NotRequired[bool]
     execution_modes: NotRequired[list[Literal["client", "hybrid", "server"]]]
     reports_api: NotRequired[bool]
-    catalog: NotRequired[bool]
-    multi_account: NotRequired[bool]
     market_calendar: NotRequired[bool]
-
-
-class Features1(TypedDict):
-    """
-    AFB-side capability flags for this session — read by BF's afb_client (see afb_client/ws_client.py, alongside dry_run/margin_trading above) to decide what it may send this AFB.
-    """
-
-    multi_account: NotRequired[bool]
 
 
 class Fill(TypedDict):
@@ -3402,92 +2846,6 @@ class Fill(TypedDict):
     role: str
     side: str
     timestamp: NotRequired[str | float | int | bool | dict[str, Any] | list[Any] | None]
-
-
-class GpDeleteRequest(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.delete.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    id: str
-
-
-class GpDeleteResponse(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.delete.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    id: str
-
-
-class GpErrorDetails(TypedDict):
-    tradeplan_ids: NotRequired[list[str]]
-    deal_ids: NotRequired[list[str]]
-    locked_scopes: NotRequired[list[Literal["entry", "stop_loss", "take_profit"]]]
-
-
-class GpErrorResponse(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.error.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    code: AfbwsCommonV1ErrorCode
-    message: str
-    item: NotRequired[GpV1]
-    details: NotRequired[GpErrorDetails]
-
-
-class GpGetRequest(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.get.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    id: str
-
-
-class GpGetResponse(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.get.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    item: GpV1
-
-
-class GpListRequest(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.list.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    ticker: NotRequired[str]
-
-
-class GpListResponse(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.list.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    items: list[GpV1]
-
-
-class GpSetRequest(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.set.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    item: GpV1
-
-
-class GpSetResponse(TypedDict):
-    channel: Literal["gp"]
-    schema: Literal["afbws.gp.set.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    item: GpV1
-
-
-GpChannelV1Message: TypeAlias = (
-    GpGetRequest
-    | GpGetResponse
-    | GpListRequest
-    | GpListResponse
-    | GpSetRequest
-    | GpSetResponse
-    | GpDeleteRequest
-    | GpDeleteResponse
-    | AfbwsGpChannelV1SyncPush
-    | GpErrorResponse
-)
 
 
 class GpV1(TypedDict):
@@ -3764,646 +3122,6 @@ class Instrument(TypedDict):
     secname: NotRequired[str]
 
 
-class Instrument2(TypedDict):
-    broker_symbol: str
-    exchange: NotRequired[str]
-    board: NotRequired[str]
-    ticker: NotRequired[str]
-    name: NotRequired[str]
-    market: NotRequired[str]
-
-
-class InstrumentAcceptSuggestion(TypedDict):
-    suggestion_id: str
-    asset_id: str
-    collection_id: NotRequired[str | None]
-
-
-class InstrumentAssetMemberInput(TypedDict):
-    """
-    Same discriminator and identity as catalogAssetMember: `kind` plus exactly one key — `instrument_key` for `kind=listing`, `derivative` for `kind=derivative`. `code`/`label`/`market` are display-only and are never written; the server derives them from items/derivatives. A contract listed here whose derivative is also listed is rejected.
-    """
-
-    kind: Literal["listing", "derivative"]
-    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
-    derivative: NotRequired[str]
-
-
-class InstrumentAssetSetView(TypedDict):
-    """
-    DEPRECATED: the legacy view behind `asset_sets[]`, superseded by `setView`/`sets[]`; it is removed once every frontend reads `sets[]`. `asset_sets[]` carries only the sets of type `asset` (a set of instruments is never listed here, so an old frontend does not see it). True asset set (Наборы): metadata plus ordered `asset_ids`. The set's own display position is its position in `asset_sets[]` (and in `userState.sets[]` for a personal set) — there is no order field on the wire; a commit restates that order wholesale through `commitRequest.asset_set_order`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.
-    """
-
-    set_id: str
-    scope: Literal["global", "user"]
-    name: str
-    owner_user_id: NotRequired[str | None]
-    asset_ids: list[str]
-    visibility_tier: NotRequired[Literal["manager", "user", "guest"]]
-    icon_id: NotRequired[str | None]
-    icon_color: NotRequired[AfbwsInstrumentChannelV1FavoriteColor | None]
-
-
-class InstrumentAssetSuggestion(TypedDict):
-    suggestion_id: str
-    subject_type: Literal["listing", "series"]
-    subject_ref: str
-    reason: str
-    status: Literal["pending", "accepted", "rejected", "stale"]
-    proposed_name: NotRequired[str]
-    proposed_collection_id: NotRequired[str | None]
-    fingerprint: NotRequired[str]
-    created_at: NotRequired[str]
-    last_seen_at: NotRequired[str]
-    resolved_asset_id: NotRequired[str]
-
-
-class InstrumentAssetUpsert(TypedDict):
-    """
-    The client mints `asset_id` itself (same generateId style as deal/primitive ids; for a non-empty asset the first block is the bare code of its first `members[]` entry). Scalars otherwise behave as a patch — an omitted field keeps its stored value — while `members`, when present, is the WHOLE composition in its final order, exactly like membersEdit.order. Composition has no add/remove form on purpose: an asset holds a handful of members that a manager edits as one picture, and a full statement removes any question about what an absent element means. Omit `members` to leave the composition untouched; send `[]` to empty the asset without deleting it.
-    """
-
-    asset_id: str
-    name: str
-    members: NotRequired[list[InstrumentAssetMemberInput]]
-    collection_id: NotRequired[str | None]
-
-
-class InstrumentCatalogAsset(TypedDict):
-    """
-    An asset is a small bundle of instruments that share a pricing source and therefore tell one economic story: "Brent oil" is the BR-* and BRM-* series together, "Sberbank" is the share plus its futures series. Two jobs justify the level. It is the unit sets are built from, so a set survives expirations without being re-edited; and it is the carrier of reference data (MOEX positions, HHI), so analytics have one place to attach to instead of guessing which contract of which series to read. Assets are always global — the personal sets of phase 3 are assembled from the same manager-curated assets, which is what keeps that phase thin. An asset that is in no set is a normal state: it shows up as unassigned for a manager and is omitted from a user's catalog snapshot. Composition is nested as ordered `members` on the asset itself; array position is the order.
-    """
-
-    asset_id: str
-    name: str
-    members: list[InstrumentCatalogAssetMember]
-    collection_id: NotRequired[str | None]
-
-
-class InstrumentCatalogAssetMember(TypedDict):
-    """
-    Array position is the display order. The identity is `kind` plus exactly one key: `instrument_key` for `kind=listing` (join to `items[]`), `derivative` for `kind=derivative` (join to `derivatives[]` by `catalogDerivative.derivative`, and on to the contracts through the `items[].derivative` backreference). Both keys share the one `MIC:...` grammar. `code`, `label` and `market` are denormalized display only — the server forms them, the client just renders; none of the three is ever an identity or a join key. A derivative member is whole: for a serial future every expiration belongs to the asset. `kind=listing` is a single instrument: a stock, currency, or index. The server rejects a futures contract as a listing member of an asset that already contains its derivative. This `kind` (`listing`/`derivative`) is unrelated to `catalogDerivative.kind` (`perpetual`/`series`/`options`) and `poolEntry.kind` — independent namespaces.
-    """
-
-    kind: Literal["listing", "derivative"]
-    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
-    derivative: NotRequired[str]
-    code: NotRequired[str]
-    label: NotRequired[str]
-    market: NotRequired[Literal["stock", "futures", "currency", "index", "options"]]
-
-
-class InstrumentCatalogRequest(TypedDict):
-    """
-    The wire form is identical for a user and a manager; completeness (unassigned assets) is applied server-side from the caller's role — sets/assets no longer carry an archived flag, so the only completeness axis left is whether an asset belongs to any set. `catalog` is the Assets-modal snapshot and the only read of the curated catalog.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.catalog.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-
-
-class InstrumentCatalogResponse(TypedDict):
-    """
-    Same form for every authenticated caller; the backend varies completeness (a manager sees unassigned assets too, a user sees only live sets and the assets that belong to them — sets/assets have no archived flag, so this is purely about assets that are in no set). Set membership is `sets[].asset_ids` / `sets[].instrument_keys` (by `set_type`) in display order; `asset_sets[]` is the deprecated legacy view of the asset-type sets. Composition is `assets[].members` (`kind` plus `instrument_key`/`derivative`, with `code`/`label`/`market` for display) in display order. Order is always array position — no entity on this wire carries an order field. `items` are the canonical instrument records (including materialized futures contracts); `derivatives` is the derivatives axis. `catalog_revision` is the CAS token to send back as commitRequest.base_revision. The `group` field inside `items[]` is a legacy leftover and must not be read as membership. Dangling levels are normal: an asset in no set stays in `assets` (manager) and is absent from every `sets[].asset_ids`.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.catalog.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    catalog_revision: int
-    assets: list[InstrumentCatalogAsset]
-    items: list[InstrumentV1]
-    derivatives: NotRequired[list[AfbwsInstrumentChannelV1CatalogDerivative]]
-    collections: NotRequired[list[InstrumentCollection]]
-    sets: NotRequired[list[InstrumentSetView]]
-    asset_sets: NotRequired[list[InstrumentAssetSetView]]
-    suggestions: NotRequired[list[InstrumentAssetSuggestion]]
-    user: NotRequired[InstrumentUserState]
-
-
-class InstrumentCatalogSource(TypedDict):
-    """
-    The registry is assembled, not stored: the MOEX/ISS entry comes from the market-source configuration, broker entries from the connectors currently registered. An unavailable source is still listed — the point of the operation is to show WHY nothing is updating (ISS unreachable, connector offline) rather than to hide the row.
-    """
-
-    source_id: str
-    kind: Literal["moex", "broker"]
-    available: bool
-    last_refresh_at: str | None
-    listing_count: int
-    inventory_count: NotRequired[int]
-    last_error: NotRequired[str]
-    inventory_revision: NotRequired[int]
-
-
-class InstrumentCollection(TypedDict):
-    """
-    Order is carried by array position: `collections[]` already arrives in the order the tree is drawn in (the children of one `parent_id` follow one another), so there is no order field on the wire. A commit restates that order wholesale through `commitRequest.collection_order`.
-    """
-
-    collection_id: str
-    parent_id: NotRequired[str | None]
-    name: str
-    pending: NotRequired[bool]
-    icon_id: NotRequired[str | None]
-    icon_color: NotRequired[AfbwsInstrumentChannelV1FavoriteColor | None]
-
-
-class InstrumentCollectionMembersEdit(TypedDict):
-    """
-    An asset lives in at most ONE collection, so `add` here also states membership: an asset added to a collection leaves the one it was in. Assets that fall out of a collection without being added to another end up with no collection (`collection_id: null`) — a legal, normal state, same as an instrument with no asset. `order`, when present, must list the collection's full membership after add/remove.
-    """
-
-    collection_id: str
-    add: NotRequired[list[str]]
-    remove: NotRequired[list[str]]
-    order: NotRequired[list[str]]
-
-
-class InstrumentCollectionUpsert(TypedDict):
-    """
-    Identity and naming only — position is not stated here; send `commitRequest.collection_order` to fix the order of the tree.
-    """
-
-    collection_id: str
-    parent_id: NotRequired[str | None]
-    name: str
-    icon_id: NotRequired[str | None]
-    icon_color: NotRequired[AfbwsInstrumentChannelV1FavoriteColor | None]
-
-
-class InstrumentCommitRequest(TypedDict):
-    """
-    Compare-and-set: if the server's current catalog revision differs from `base_revision` the whole commit is rejected with `conflict` and errorResponse.details.catalog_revision carries the current one — the client re-fetches `catalog`, re-applies its edits and retries. Every section is optional; an empty commit is legal (and is a cheap way to read the current revision back). All sections are applied in one transaction, in this order: `modify_sets`, `remove_sets`, `assets`, `remove_assets`, `set_members`, `listings`/`archive_listings`, `series`, `collections`, `remove_collections`, `collection_members`. The server plans the whole delta before applying, so a listing or series upserted in this same request may be referenced from `assets[].members` even though those sections are written later — that is how a pending pool entry and the asset composition that contains it travel atomically. A set created here can be filled by `set_members` in the same request — with assets or, for a set of type `instrument`, with instruments (a listing upserted in this same request may be named by its `instrument_key`) — and an asset created here can be put into a set of type `asset`, because both exist by the time `set_members` runs — `set_members`/other same-commit references use the same client-minted `set_id`/`asset_id` the `setUpsert`/`assetUpsert` entry carries. Order is never a field on an entity: `set_order`, `collection_order`, and the `order` of `set_members`/`collection_members` each state a FULL final order, and every read snapshot carries order as array position. `set_id` and `asset_id` are always client-minted opaque ids (setUpsert/assetUpsert), never generated by the server (setUpsert/assetUpsert): a `set_id`/`asset_id` absent from the base snapshot is an INSERT, one already present is an UPDATE, and the server never rewrites an id it is given.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.commit.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    base_revision: int
-    assets: NotRequired[list[InstrumentAssetUpsert]]
-    remove_assets: NotRequired[list[str]]
-    listings: NotRequired[list[InstrumentV1]]
-    archive_listings: NotRequired[list[InstrumentListingArchival]]
-    series: NotRequired[list[InstrumentSeriesUpsert]]
-    collections: NotRequired[list[InstrumentCollectionUpsert]]
-    remove_collections: NotRequired[list[str]]
-    collection_order: NotRequired[list[str]]
-    collection_members: NotRequired[list[InstrumentCollectionMembersEdit]]
-    modify_sets: NotRequired[list[InstrumentSetUpsert]]
-    remove_sets: NotRequired[list[str]]
-    set_members: NotRequired[list[InstrumentMembersEdit]]
-    set_order: NotRequired[list[str]]
-    asset_sets: NotRequired[list[InstrumentSetUpsert]]
-    remove_asset_sets: NotRequired[list[str]]
-    asset_set_members: NotRequired[list[InstrumentMembersEdit]]
-    asset_set_order: NotRequired[list[str]]
-    accept_suggestions: NotRequired[list[InstrumentAcceptSuggestion]]
-    reject_suggestions: NotRequired[list[str]]
-    reason: NotRequired[str]
-
-
-class InstrumentCommitResponse(TypedDict):
-    """
-    `catalog_revision` is already the new one. A rejected commit is an errorResponse instead — there is no partially-applied outcome.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.commit.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    catalog_revision: int
-    assets: list[InstrumentCatalogAsset]
-    items: list[InstrumentV1]
-    derivatives: NotRequired[list[AfbwsInstrumentChannelV1CatalogDerivative]]
-    collections: NotRequired[list[InstrumentCollection]]
-    sets: NotRequired[list[InstrumentSetView]]
-    asset_sets: NotRequired[list[InstrumentAssetSetView]]
-    suggestions: NotRequired[list[InstrumentAssetSuggestion]]
-    applied: NotRequired[dict[str, int]]
-    user: NotRequired[InstrumentUserState]
-
-
-class InstrumentDetailRequest(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.detail.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    bf_id: str
-    ticker: str
-
-
-class InstrumentDetailResponse(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.detail.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    item: InstrumentV1
-    binding: dict[str, Any]
-    broker_instrument: dict[str, Any]
-
-
-class InstrumentErrorDetails(TypedDict):
-    """
-    Populated on `conflict` (stale base_revision: `catalog_revision` for commit, `user_revision` for user — re-fetch, re-apply, retry) and on `validation_error` (`set_ids`/`asset_ids`/`tickers`/`instrument_keys` name the offending rows — one list per level, since a rejected edit can be about a set, an asset or a listing; `limit` is populated instead when the rejection is a tier-limit overflow). Absent for errors that carry no such context.
-    """
-
-    catalog_revision: NotRequired[int]
-    user_revision: NotRequired[int]
-    set_ids: NotRequired[list[str]]
-    asset_ids: NotRequired[list[str]]
-    tickers: NotRequired[list[str]]
-    collection_ids: NotRequired[list[str]]
-    suggestion_ids: NotRequired[list[str]]
-    instrument_keys: NotRequired[list[str]]
-    limit: NotRequired[Limit]
-
-
-class InstrumentErrorResponse(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.error.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    code: AfbwsCommonV1ErrorCode
-    message: str
-    details: NotRequired[InstrumentErrorDetails]
-
-
-class InstrumentGetRequest(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.get.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    ticker: str
-
-
-class InstrumentGetResponse(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.get.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    item: InstrumentV1
-
-
-class InstrumentInventoryListingEntry(TypedDict):
-    kind: Literal["listing"]
-    instrument_type: Literal["stock", "currency", "index", "futures", "option"]
-    instrument_key: AfbwsCommonV1InstrumentKey
-    ticker: str
-    exchange: str
-    board: str
-    market: Literal["stock", "futures", "currency", "index"]
-    source: str
-    name: NotRequired[str | None]
-    shortname: NotRequired[str | None]
-    lifecycle: NotRequired[str]
-    series_code: NotRequired[str]
-
-
-class InstrumentInventoryRequest(TypedDict):
-    """
-    Filterable, paged browse of the complete MOEX (or other source) instrument universe — distinct from the curated `pool` candidate list. `limit` defaults to 50, capped at 200.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.inventory.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    source: NotRequired[str]
-    market: NotRequired[Literal["stock", "futures", "currency", "index"]]
-    board: NotRequired[str]
-    instrument_type: NotRequired[
-        Literal["stock", "currency", "index", "futures", "option", "series"]
-    ]
-    query: NotRequired[str]
-    limit: NotRequired[int]
-    cursor: NotRequired[str]
-
-
-class InstrumentInventoryResponse(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.inventory.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    total: int
-    next_cursor: str | None
-    inventory_revision: int
-    entries: list[InstrumentInventoryEntry]
-    source: NotRequired[str]
-    fetched_at: NotRequired[str]
-
-
-class InstrumentInventorySeriesEntry(TypedDict):
-    kind: Literal["series"]
-    instrument_type: Literal["series"]
-    series_code: str
-    source: str
-    market: Literal["futures"]
-    name: NotRequired[str | None]
-    underlying: NotRequired[str | None]
-
-
-InstrumentInventoryEntry: TypeAlias = (
-    InstrumentInventoryListingEntry | InstrumentInventorySeriesEntry
-)
-
-
-class InstrumentListingArchival(TypedDict):
-    ticker: str
-    reason: NotRequired[str]
-
-
-class InstrumentMembersEdit(TypedDict):
-    """
-    Members are named by the set's own type: `asset_id` for a set of type `asset`, `instrument_key` for a set of type `instrument`; a value of the other kind is rejected with `validation_error`. Without `order`, every newly added member goes to the END of the set, in the order listed in `add`; the members already there keep their relative order.
-    """
-
-    set_id: str
-    add: NotRequired[list[str]]
-    remove: NotRequired[list[str]]
-    order: NotRequired[list[str]]
-
-
-class InstrumentPoolListingEntry(TypedDict):
-    """
-    Wraps the canonical listing so a pending draft copies `listing` into commitRequest.listings unchanged (send `group: null`). Futures do not appear here — they are poolSeriesEntry rows. `listing.market` must not be `futures`.
-    """
-
-    kind: Literal["listing"]
-    listing: InstrumentV1
-
-
-class InstrumentPoolRequest(TypedDict):
-    """
-    Source is MOEX-only in this revision: omit `source` or send "moex". A bf_id is invalid — broker pool is not served. `kind` selects listing vs series rows; `market` filters by class. `kind=listing` cannot be paired with `market=futures` (futures are series rows); `kind=series` cannot be paired with a non-futures market. `limit` defaults to 50 and is capped at 200. `cursor` is an opaque token bound to the same `query`/`kind`/`market` filter tuple and to the pool snapshot that produced it (see `fetched_at`); a mismatched or stale cursor is `validation_error` or `conflict`, not a silent restart at the first page.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.pool.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    source: NotRequired[Literal["moex"]]
-    query: NotRequired[str]
-    kind: NotRequired[Literal["listing", "series"]]
-    market: NotRequired[Literal["stock", "futures", "currency", "index"]]
-    limit: NotRequired[int]
-    cursor: NotRequired[str]
-
-
-class InstrumentPoolResponse(TypedDict):
-    """
-    Replaces the former meta/slice pair. `entries` is a mixed listing|series page. `total` is the match count AFTER `query`/`kind`/`market` filters and BEFORE paging (`entries.length` ≤ `limit`, never a substitute for `total`). `next_cursor` is bound to the same filter tuple and to the snapshot identified by `fetched_at`; null means this page is the last. `fetched_at` is when the backend snapshot was taken, not when this page was built.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.pool.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    source: Literal["moex"]
-    fetched_at: str
-    total: int
-    next_cursor: str | None
-    entries: list[InstrumentPoolEntry]
-
-
-class InstrumentPoolSeriesEntry(TypedDict):
-    """
-    Maps to seriesUpsert on commit: `code` → `series_code`, `underlying` → `underlying_ticker`. The backend materializes active contracts from the MOEX snapshot in the same commit that upserts the series.
-    """
-
-    kind: Literal["series"]
-    code: str
-    derivative: NotRequired[str]
-    name: str | None
-    source: Literal["moex"]
-    market: Literal["futures"]
-    underlying: NotRequired[str | None]
-
-
-InstrumentPoolEntry: TypeAlias = InstrumentPoolListingEntry | InstrumentPoolSeriesEntry
-
-
-class InstrumentRefreshArchivedEntry(TypedDict):
-    """
-    Archival is the part of a refresh that a manager cannot undo by re-running it, so the reason travels with the key instead of being left in the server log.
-    """
-
-    key: str
-    reason: str
-
-
-class InstrumentRefreshReport(TypedDict):
-    """
-    Lists rather than counts, because the interesting cases are individually reviewable: which contracts got archived, which rows the source offered that the catalog does not carry. Every element is a catalog instrument key in its composite form (`MIC:BOARD:TICKER`) — the wire `ticker` of instrument.v1 collapses to the bare local symbol for MOEX and could not tell two boards apart, and a report is precisely where that ambiguity is unacceptable. `new_series` holds series_codes instead. The three trailing lists are diagnostics, not changes: they say what the refresh deliberately did NOT do.
-    """
-
-    applied: bool
-    revision_before: int
-    revision_after: int
-    added: list[str]
-    updated: list[str]
-    resurrected: list[str]
-    archived: list[InstrumentRefreshArchivedEntry]
-    new_series: list[str]
-    absent_from_catalog: list[str]
-    rows_without_series: list[str]
-    changes: NotRequired[dict[str, int]]
-    suggestion_ids: NotRequired[list[str]]
-    inventory_revision_before: NotRequired[int]
-    inventory_revision_after: NotRequired[int]
-    markets: NotRequired[list[AfbwsInstrumentChannelV1RefreshMarketReport]]
-
-
-class InstrumentRefreshRequest(TypedDict):
-    """
-    `dry_run` exists because the planning step is already separate from the write: a preview runs the very same planner and returns the very same report, it just never commits. That is the only difference between the two modes — a manager can always look before archiving a few dozen expired contracts.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.refresh.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    source_id: str
-    dry_run: NotRequired[bool]
-
-
-class InstrumentRefreshResponse(TypedDict):
-    """
-    A refresh that could not run at all (unknown or offline source, stale catalog under a concurrent commit) is an errorResponse instead — a report always describes a plan that was built successfully.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.refresh.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    source_id: str
-    dry_run: bool
-    report: InstrumentRefreshReport
-
-
-class InstrumentResolveRequest(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.resolve.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    bf_id: str
-    tradeplan_id: NotRequired[str]
-    draft: NotRequired[dict[str, Any]]
-
-
-class InstrumentResolveResponse(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.resolve.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    item: InstrumentV1
-    binding: dict[str, Any]
-    broker_instrument: dict[str, Any]
-
-
-class InstrumentSeriesUpsert(TypedDict):
-    """
-    Write form for a pool series row: copy `code` → `series_code`, `name` → `name`, `underlying` → `underlying_ticker`. The write form carries no order — a serial future's expirations are materialized by the backend.
-    """
-
-    series_code: str
-    name: NotRequired[str | None]
-    underlying_ticker: NotRequired[str | None]
-
-
-InstrumentSetType: TypeAlias = Literal["asset", "instrument"]
-
-
-class InstrumentSetUpsert(TypedDict):
-    """
-    Server derives scope/owner — client sends set_id, name, the optional `set_type` and an optional visibility_tier (default on server: user). Position is not stated here; send `set_order` to fix the order of the sets. `set_type` is decided when the set is created: omitted on create means `asset` (what a frontend that predates typed sets creates); on update it may be omitted, and a value that differs from the stored type is rejected with `validation_error`.
-    """
-
-    set_id: str
-    name: str
-    set_type: NotRequired[InstrumentSetType]
-    visibility_tier: NotRequired[Literal["manager", "user", "guest"]]
-    icon_id: NotRequired[str | None]
-    icon_color: NotRequired[AfbwsInstrumentChannelV1FavoriteColor | None]
-
-
-class InstrumentSetView(TypedDict):
-    """
-    True set (Наборы): metadata plus its ordered members. `set_type` says what the members are and is fixed when the set is created: `asset` — the members are `asset_ids`; `instrument` — the members are `instrument_keys` (single listings, never derivatives). Exactly the member list of the set's own type is present; the other one is forbidden. The set's own display position is its position in `sets[]` (and in `userState.sets[]` for a personal set) — there is no order field on the wire; a commit restates that order wholesale through `commitRequest.set_order`. For scope=global, `visibility_tier` is required; for scope=user, `visibility_tier` is forbidden and `owner_user_id` is required.
-    """
-
-    set_id: str
-    scope: Literal["global", "user"]
-    name: str
-    owner_user_id: NotRequired[str | None]
-    set_type: InstrumentSetType
-    asset_ids: NotRequired[list[str]]
-    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
-    visibility_tier: NotRequired[Literal["manager", "user", "guest"]]
-    icon_id: NotRequired[str | None]
-    icon_color: NotRequired[AfbwsInstrumentChannelV1FavoriteColor | None]
-
-
-class InstrumentSourcesRequest(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.sources.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-
-
-class InstrumentSourcesResponse(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.sources.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    sources: list[InstrumentCatalogSource]
-
-
-class InstrumentUserRequest(TypedDict):
-    """
-    `base_revision` here is the revision of the PERSONAL aggregate (userState.revision), not the global catalog_revision — personal edits never conflict with a manager's commit. Sets created through this operation are implicitly scope: "user" and owned by the caller; a `set_id` naming a global set is rejected. An empty request is legal and just reads the current personal state back.
-    """
-
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.user.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    base_revision: int
-    modify_sets: NotRequired[list[InstrumentSetUpsert]]
-    remove_sets: NotRequired[list[str]]
-    set_members: NotRequired[list[InstrumentMembersEdit]]
-    set_order: NotRequired[list[str]]
-    asset_sets: NotRequired[list[InstrumentSetUpsert]]
-    remove_asset_sets: NotRequired[list[str]]
-    asset_set_members: NotRequired[list[InstrumentMembersEdit]]
-    asset_set_order: NotRequired[list[str]]
-
-
-class InstrumentUserResponse(TypedDict):
-    channel: Literal["instrument"]
-    schema: Literal["afbws.instrument.user.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    user_revision: int
-    user: InstrumentUserState
-
-
-InstrumentChannelV1Message: TypeAlias = (
-    InstrumentGetRequest
-    | InstrumentGetResponse
-    | InstrumentPoolRequest
-    | InstrumentPoolResponse
-    | InstrumentResolveRequest
-    | InstrumentResolveResponse
-    | InstrumentDetailRequest
-    | InstrumentDetailResponse
-    | InstrumentCatalogRequest
-    | InstrumentCatalogResponse
-    | InstrumentCommitRequest
-    | InstrumentCommitResponse
-    | InstrumentUserRequest
-    | InstrumentUserResponse
-    | AfbwsInstrumentChannelV1FavoritesRequest
-    | AfbwsInstrumentChannelV1FavoritesResponse
-    | AfbwsInstrumentChannelV1PaintRequest
-    | AfbwsInstrumentChannelV1PaintResponse
-    | InstrumentSourcesRequest
-    | InstrumentSourcesResponse
-    | InstrumentRefreshRequest
-    | InstrumentRefreshResponse
-    | InstrumentInventoryRequest
-    | InstrumentInventoryResponse
-    | AfbwsInstrumentChannelV1ExpirationListRequest
-    | AfbwsInstrumentChannelV1ExpirationListResponse
-    | AfbwsInstrumentChannelV1ExpirationPush
-    | AfbwsInstrumentChannelV1ReplaceRequest
-    | AfbwsInstrumentChannelV1ReplaceResponse
-    | InstrumentErrorResponse
-)
-
-
-class InstrumentUserState(TypedDict):
-    """
-    The caller's personal overlay, served next to the global catalog. `sets[]` are full setView objects — every entry has scope "user" and carries its own membership inline (ordered `asset_ids` or `instrument_keys`, by `set_type`); there is no parallel membership array. `asset_sets[]` is the deprecated legacy view of the asset-type subset. Set order is the order of this array. Personal sets are assembled from the same global assets a manager curates: a user never owns an asset of their own.
-    """
-
-    revision: int
-    sets: NotRequired[list[InstrumentSetView]]
-    asset_sets: list[InstrumentAssetSetView]
-
-
-class InstrumentV1(TypedDict):
-    """
-    AFB-side canonical instrument — like afb.gp.v1/afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. One broker-agnostic shape for every market class (stock/futures/currency/index); class-specific fields are gated by `market` via the `allOf`/`if` blocks below (forbidden, not just absent, for classes they don't apply to), but the wire type stays a single schema. `ticker` is the canonical identity: bare SECID for MOEX (e.g. "SBER"), `EXCHANGE:TICKER` for everything else (e.g. "XNAS:AAPL") — `exchange`/`board`/`market` are still carried as explicit fields so nothing but one shared parser (AFB backend/instruments/identity.py, frontend utils/instrumentId.ts) ever splits the string. `group`/`asset` place the instrument in the curated catalog tree (config/instruments.yaml) that AFB users actually see — `group: null` means not yet distributed into a group, the flat-list replacement for the old `lost` bucket. `source` says who refreshes this record's trading params ("moex" for the daily ISS refresh, a broker id like "finam" for instruments obtained from that broker's catalog) — it is NOT a broker binding: which connector can actually trade this instrument, and under what broker-native symbol, is resolved at publish time (see deal.v1.json's target.instrument + BF's own catalog), never persisted here.
-    """
-
-    schema: Literal["afb.instrument.v1"]
-    ticker: str
-    instrument_key: NotRequired[str]
-    exchange: str
-    board: str
-    market: Literal["stock", "futures", "currency", "index", "options"]
-    name: NotRequired[str | None]
-    shortname: NotRequired[str | None]
-    asset: NotRequired[str | None]
-    group: NotRequired[str | None]
-    lot_size: NotRequired[int | None]
-    price_step: NotRequired[DecimalString]
-    decimals: NotRequired[int | None]
-    currency: NotRequired[str | None]
-    prev_close: NotRequired[DecimalString]
-    expiration: NotRequired[str]
-    step_price: NotRequired[DecimalString]
-    margin: NotRequired[DecimalString]
-    futoi_code: NotRequired[str]
-    derivative: NotRequired[str]
-    isin: NotRequired[str]
-    source: str
-
-
 class Instruments(TypedDict):
     markets: NotRequired[list[str]]
 
@@ -4457,15 +3175,6 @@ class IssMarketsStockRoot(TypedDict):
 
 class Layouts(TypedDict):
     lg: NotRequired[list[ConfigV1DashboardLayoutItem]]
-
-
-class Left(TypedDict):
-    """
-    afb.deal.v1 conditions compare against the last traded price, or (entry only — see executor-side validation) fire immediately with no price level of its own. quote/indicator/dataset sources are afb.deal.v2-only.
-    """
-
-    source: Literal["price", "immediate"]
-    field: NotRequired[Literal["last"]]
 
 
 class Limit(TypedDict):
@@ -4714,11 +3423,6 @@ class LinkUserV1(BfRegistryEntry, LinkSharedFields):
 
 
 LinkEntity: TypeAlias = LinkUserV1 | LinkAdminV1
-
-
-class Market(TypedDict):
-    exchange: NotRequired[str]
-    market: NotRequired[str]
 
 
 class MarketData(TypedDict):
@@ -5045,24 +3749,6 @@ class OrderFilledPayload(TypedDict):
     status: str
 
 
-class Owner(TypedDict):
-    user_id: NotRequired[str]
-
-
-class PayloadsBrokerAccountCashBalance(TypedDict):
-    currency: str
-    value: str
-
-
-class PayloadsBrokerAccountPosition(TypedDict):
-    quantity: int
-    average_price: str
-    current_price: NotRequired[str | None]
-    unrealized_pnl: NotRequired[str | None]
-    instrument: NotRequired[dict[str, Any]]
-    broker_ref: NotRequired[dict[str, Any]]
-
-
 class PayloadsBrokerAccountsAccount(TypedDict):
     account_id: str
     tradable: bool
@@ -5083,28 +3769,7 @@ class PayloadsBrokerAccountsPosition(TypedDict):
     average_price: str
     current_price: NotRequired[str | None]
     unrealized_pnl: NotRequired[str | None]
-    instrument: NotRequired[dict[str, Any]]
-    broker_ref: NotRequired[dict[str, Any]]
-
-
-class PayloadsBrokerCatalogMeta(TypedDict):
-    session_date: NotRequired[str | None]
-    revision: NotRequired[int]
-    broker: str
-    exchanges: list[str]
-    markets: list[Market]
-
-
-class PayloadsBrokerCatalogSlice(TypedDict):
-    session_date: NotRequired[str | None]
-    revision: NotRequired[int]
-    broker: str
-    exchange: str
-    market: str
-    instruments: list[Instrument2]
-
-
-BrokerCatalogPayload: TypeAlias = PayloadsBrokerCatalogMeta | PayloadsBrokerCatalogSlice
+    broker_ref: BrokerRef
 
 
 class PayloadsBrokerOrdersOrder(TypedDict):
@@ -5172,15 +3837,6 @@ class Publish(TypedDict):
     account_id: NotRequired[str]
 
 
-class Right(TypedDict):
-    const: DecimalString
-
-
-class Risk(TypedDict):
-    take_profit: NotRequired[DealV1ExitBlock]
-    stop_loss: NotRequired[DealV1ExitBlock]
-
-
 class Section(TypedDict):
     exchange: str
     section: Literal["stock", "futures", "currency"]
@@ -5233,7 +3889,7 @@ class SessionHelloAckPayload(TypedDict):
     margin_trading: NotRequired[bool]
     margin_trading_afb: NotRequired[bool]
     margin_trading_bf: NotRequired[bool]
-    features: NotRequired[Features1]
+    features: NotRequired[dict[str, Any]]
 
 
 class SessionHelloPayload(TypedDict):
@@ -5269,33 +3925,6 @@ class Subscription(TypedDict):
     instrument: DealInstrument
 
 
-class TradePlanV1(TypedDict):
-    """
-    AFB-side single-entry / single-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v1. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `schema` is optional: its absence means afb.tradeplan.v1 (compatibility with frontends older than the tradeplan schema itself).
-    """
-
-    id: str
-    ticker: str
-    status: NotRequired[Literal["draft", "published", "completed", "archived"]]
-    direction: NotRequired[Literal["long", "short"]]
-    schema: NotRequired[Literal["afb.tradeplan.v1"]]
-    activated_at: NotRequired[str]
-    closed_at: NotRequired[str]
-    archived_at: NotRequired[str]
-    instrument_missing: NotRequired[bool]
-    entry_condition: TradeplanV1EntryCondition
-    quantity_value: NotRequired[float | None]
-    quantity_mode: NotRequired[
-        Literal["lots", "margin", "balance_pct", "risk_currency", "risk_factor"]
-    ]
-    take_profit: NotRequired[TradeplanV1Condition | None]
-    stop_loss: NotRequired[TradeplanV1Condition | None]
-    publish: NotRequired[Publish]
-    delivery_at: NotRequired[str]
-    created_at: NotRequired[str]
-    updated_at: NotRequired[str]
-
-
 class TradePlanV21(TypedDict):
     """
     AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
@@ -5312,7 +3941,7 @@ class TradePlanV21(TypedDict):
     closed_at: NotRequired[str]
     archived_at: NotRequired[str]
     instrument_missing: NotRequired[bool]
-    entries: list[Entry1]
+    entries: list[Entry]
     stop_loss: NotRequired[TradeplanV2TpExitList]
     take_profit: NotRequired[TradeplanV2TpExitList]
     sizing: DealSizing
@@ -5338,7 +3967,7 @@ class TradePlanV22(TypedDict):
     closed_at: NotRequired[str]
     archived_at: NotRequired[str]
     instrument_missing: NotRequired[bool]
-    entries: list[Entry1]
+    entries: list[Entry]
     stop_loss: NotRequired[TradeplanV2TpExitList]
     take_profit: NotRequired[TradeplanV2TpExitList]
     sizing: DealSizing
@@ -5375,11 +4004,82 @@ class TradeplanDeleteResponse(TypedDict):
     id: str
 
 
-class TradeplanEntityV1(TradePlanV1):
-    pass
+class TradeplanEntity1(TypedDict):
+    """
+    AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
+    """
+
+    id: str
+    ticker: str
+    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    status: NotRequired[Literal["draft", "published", "completed", "archived"]]
+    editor: NotRequired[Literal["simple", "advanced"]]
+    direction: Literal["long", "short"]
+    schema: Literal["afb.tradeplan.v2"]
+    activated_at: NotRequired[str]
+    closed_at: NotRequired[str]
+    archived_at: NotRequired[str]
+    instrument_missing: NotRequired[bool]
+    entries: list[Entry]
+    stop_loss: NotRequired[TradeplanV2TpExitList]
+    take_profit: NotRequired[TradeplanV2TpExitList]
+    sizing: DealSizing
+    publish: NotRequired[Publish]
+    delivery_at: NotRequired[str]
+    created_at: NotRequired[str]
+    updated_at: NotRequired[str]
 
 
-TradeplanEntity: TypeAlias = TradeplanEntityV1 | TradePlanV2
+class TradeplanEntity2(TypedDict):
+    """
+    AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
+    """
+
+    id: str
+    ticker: NotRequired[str]
+    instrument_key: AfbwsCommonV1InstrumentKey
+    status: NotRequired[Literal["draft", "published", "completed", "archived"]]
+    editor: NotRequired[Literal["simple", "advanced"]]
+    direction: Literal["long", "short"]
+    schema: Literal["afb.tradeplan.v2"]
+    activated_at: NotRequired[str]
+    closed_at: NotRequired[str]
+    archived_at: NotRequired[str]
+    instrument_missing: NotRequired[bool]
+    entries: list[Entry]
+    stop_loss: NotRequired[TradeplanV2TpExitList]
+    take_profit: NotRequired[TradeplanV2TpExitList]
+    sizing: DealSizing
+    publish: NotRequired[Publish]
+    delivery_at: NotRequired[str]
+    created_at: NotRequired[str]
+    updated_at: NotRequired[str]
+
+
+class TradeplanEntity3(TypedDict):
+    """
+    afb.tradeplan.v2 (schema already required in its own canon file).
+    """
+
+
+class TradeplanEntity4(TradeplanEntity1, TradeplanEntity3):
+    """
+    afb.tradeplan.v2 (schema already required in its own canon file).
+    """
+
+
+class TradeplanEntity5(TradeplanEntity2, TradeplanEntity3):
+    """
+    afb.tradeplan.v2 (schema already required in its own canon file).
+    """
+
+
+TradeplanEntity: TypeAlias = TradeplanEntity4 | TradeplanEntity5
+
+
+"""
+afb.tradeplan.v2 (schema already required in its own canon file).
+"""
 
 
 class TradeplanErrorResponse(TypedDict):
@@ -5459,32 +4159,6 @@ TradeplanChannelV1Message: TypeAlias = (
     | AfbwsTradeplanChannelV1ArchiveResponse
     | TradeplanErrorResponse
     | TradeplanSyncPush
-)
-
-
-class TradeplanV1MarketOrPriceCondition(TypedDict):
-    condition_type: NotRequired[Literal["price"]]
-    price_value: NotRequired[float | None]
-
-
-class TradeplanV1PriceCondition(TypedDict):
-    condition_type: NotRequired[Literal["price"]]
-    price_value: float
-
-
-class TradeplanV1PrimitiveCondition(TypedDict):
-    condition_type: Literal["primitive"]
-    primitive_id: str
-    price_value: NotRequired[float | None]
-
-
-TradeplanV1Condition: TypeAlias = (
-    TradeplanV1PriceCondition | TradeplanV1PrimitiveCondition
-)
-
-
-TradeplanV1EntryCondition: TypeAlias = (
-    TradeplanV1MarketOrPriceCondition | TradeplanV1PrimitiveCondition
 )
 
 

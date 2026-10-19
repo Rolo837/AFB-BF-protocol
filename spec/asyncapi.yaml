@@ -1,7 +1,7 @@
 asyncapi: 3.1.0
 info:
   title: AFB <-> BF Execution Protocol
-  version: 2.8.2
+  version: 2.9.0
   description: >-
     Business protocol between AFB (OMS) and BF (executor daemon), wire version
     afb.execution.v1. Every message is a signed JSON envelope (Ed25519 over a
@@ -48,28 +48,16 @@ channels:
         $ref: '#/components/messages/daemon_capabilities_query'
       daemon_restart:
         $ref: '#/components/messages/daemon_restart'
-      broker_get_account:
-        $ref: '#/components/messages/broker_get_account'
       broker_get_accounts:
         $ref: '#/components/messages/broker_get_accounts'
       broker_get_orders:
         $ref: '#/components/messages/broker_get_orders'
-      broker_get_catalog:
-        $ref: '#/components/messages/broker_get_catalog'
-      broker_get_instrument:
-        $ref: '#/components/messages/broker_get_instrument'
       broker_resolve_instrument:
         $ref: '#/components/messages/broker_resolve_instrument'
-      broker_account:
-        $ref: '#/components/messages/broker_account'
       broker_accounts:
         $ref: '#/components/messages/broker_accounts'
       broker_orders:
         $ref: '#/components/messages/broker_orders'
-      broker_catalog:
-        $ref: '#/components/messages/broker_catalog'
-      broker_instrument:
-        $ref: '#/components/messages/broker_instrument'
       broker_instrument_resolved:
         $ref: '#/components/messages/broker_instrument_resolved'
       broker_position_ledger:
@@ -139,11 +127,8 @@ operations:
       - $ref: '#/channels/afbBf/messages/session_resync_response'
       - $ref: '#/channels/afbBf/messages/daemon_capabilities_query'
       - $ref: '#/channels/afbBf/messages/daemon_restart'
-      - $ref: '#/channels/afbBf/messages/broker_get_account'
       - $ref: '#/channels/afbBf/messages/broker_get_accounts'
       - $ref: '#/channels/afbBf/messages/broker_get_orders'
-      - $ref: '#/channels/afbBf/messages/broker_get_catalog'
-      - $ref: '#/channels/afbBf/messages/broker_get_instrument'
       - $ref: '#/channels/afbBf/messages/broker_resolve_instrument'
       - $ref: '#/channels/afbBf/messages/deal_publish'
       - $ref: '#/channels/afbBf/messages/deal_operation'
@@ -165,11 +150,8 @@ operations:
       - $ref: '#/channels/afbBf/messages/daemon_status'
       - $ref: '#/channels/afbBf/messages/daemon_capabilities'
       - $ref: '#/channels/afbBf/messages/daemon_error'
-      - $ref: '#/channels/afbBf/messages/broker_account'
       - $ref: '#/channels/afbBf/messages/broker_accounts'
       - $ref: '#/channels/afbBf/messages/broker_orders'
-      - $ref: '#/channels/afbBf/messages/broker_catalog'
-      - $ref: '#/channels/afbBf/messages/broker_instrument'
       - $ref: '#/channels/afbBf/messages/broker_instrument_resolved'
       - $ref: '#/channels/afbBf/messages/broker_position_ledger'
       - $ref: '#/channels/afbBf/messages/broker_error'
@@ -412,27 +394,6 @@ components:
               type:
                 const: daemon.restart
       description: 'No fixture yet.'
-    broker_get_account:
-      name: broker.get_account
-      title: broker.get_account
-      summary: 'user/afb2bf broker.get_account'
-      tags:
-        - name: 'class:user'
-        - name: 'dir:afb2bf'
-        - name: 'deprecated'
-      payload:
-        allOf:
-          - $ref: './schemas/envelope.json'
-          - type: object
-            properties:
-              type:
-                const: broker.get_account
-              payload:
-                $ref: './schemas/payloads/broker.get_account.json'
-      description: >-
-        DEPRECATED: superseded by broker.get_accounts, sent only when the BF
-        session did not advertise daemon.capabilities.features.multi_account.
-        No fixture yet.
     broker_get_accounts:
       name: broker.get_accounts
       title: broker.get_accounts
@@ -450,9 +411,7 @@ components:
               payload:
                 $ref: './schemas/payloads/broker.get_accounts.json'
       description: >-
-        Requests the full account list (see broker.accounts) — only sent when
-        the BF session advertised daemon.capabilities.features.multi_account.
-        No fixture yet.
+        Requests the full account list (see broker.accounts). No fixture yet.
     broker_get_orders:
       name: broker.get_orders
       title: broker.get_orders
@@ -470,43 +429,6 @@ components:
               payload:
                 $ref: './schemas/payloads/broker.get_orders.json'
       description: 'No fixture yet.'
-    broker_get_catalog:
-      name: broker.get_catalog
-      title: broker.get_catalog
-      summary: 'user/afb2bf broker.get_catalog'
-      tags:
-        - name: 'class:user'
-        - name: 'dir:afb2bf'
-      payload:
-        allOf:
-          - $ref: './schemas/envelope.json'
-          - type: object
-            properties:
-              type:
-                const: broker.get_catalog
-              payload:
-                $ref: './schemas/payloads/broker.get_catalog.json'
-      description: 'No fixture yet.'
-    broker_get_instrument:
-      name: broker.get_instrument
-      title: broker.get_instrument
-      summary: 'user/afb2bf broker.get_instrument'
-      tags:
-        - name: 'class:user'
-        - name: 'dir:afb2bf'
-        - name: 'deprecated'
-      payload:
-        allOf:
-          - $ref: './schemas/envelope.json'
-          - type: object
-            properties:
-              type:
-                const: broker.get_instrument
-              payload:
-                $ref: './schemas/payloads/broker.get_instrument.json'
-      description: >-
-        DEPRECATED: superseded by broker.resolve_instrument, which the
-        afbws.instrument.channel.v1 canal uses exclusively. No fixture yet.
     broker_resolve_instrument:
       name: broker.resolve_instrument
       title: broker.resolve_instrument
@@ -524,27 +446,6 @@ components:
               payload:
                 $ref: './schemas/payloads/broker.resolve_instrument.json'
       description: 'No fixture yet.'
-    broker_account:
-      name: broker.account
-      title: broker.account
-      summary: 'user/bf2afb broker.account'
-      tags:
-        - name: 'class:user'
-        - name: 'dir:bf2afb'
-        - name: 'deprecated'
-      payload:
-        allOf:
-          - $ref: './schemas/envelope.json'
-          - type: object
-            properties:
-              type:
-                const: broker.account
-              payload:
-                $ref: './schemas/payloads/broker.account.json'
-      description: >-
-        DEPRECATED: superseded by broker.accounts. Sent only to AFB sessions
-        that did not advertise session.hello_ack.features.multi_account.
-        Correlated via correlation_id. No fixture yet.
     broker_accounts:
       name: broker.accounts
       title: broker.accounts
@@ -565,9 +466,8 @@ components:
         Full list of accounts visible to BF's broker token (read-only except
         for default_account_id, BF's own trading account) — response to
         broker.get_accounts, and pushed unsolicited after every reconcile
-        pass. Sent only to AFB sessions that advertised
-        session.hello_ack.features.multi_account; broker.account is not sent
-        to those same sessions (see broker.account.json). Correlated via
+        pass. Positions carry broker_ref {broker, symbol} only (no instrument
+        block — AFB resolves the instrument itself). Correlated via
         correlation_id when it is a direct reply. No fixture yet.
     broker_orders:
       name: broker.orders
@@ -586,50 +486,6 @@ components:
               payload:
                 $ref: './schemas/payloads/broker.orders.json'
       description: 'No fixture yet.'
-    broker_catalog:
-      name: broker.catalog
-      title: broker.catalog
-      summary: 'user/bf2afb broker.catalog'
-      tags:
-        - name: 'class:user'
-        - name: 'dir:bf2afb'
-      payload:
-        allOf:
-          - $ref: './schemas/envelope.json'
-          - type: object
-            properties:
-              type:
-                const: broker.catalog
-              payload:
-                $ref: './schemas/payloads/broker.catalog.json'
-      description: >-
-        Response to broker.get_catalog — meta form (exchanges/markets pairs)
-        when the request omitted exchange/market, slice form (instrument
-        rows) when it named both. Correlated via correlation_id.
-        'No fixture yet.'
-    broker_instrument:
-      name: broker.instrument
-      title: broker.instrument
-      summary: 'user/bf2afb broker.instrument'
-      tags:
-        - name: 'class:user'
-        - name: 'dir:bf2afb'
-        - name: 'deprecated'
-      payload:
-        allOf:
-          - $ref: './schemas/envelope.json'
-          - type: object
-            properties:
-              type:
-                const: broker.instrument
-              payload:
-                $ref: './schemas/payloads/broker.instrument.json'
-      description: >-
-        DEPRECATED: superseded by broker.instrument_resolved, which the
-        afbws.instrument.channel.v1 canal uses exclusively. Response to
-        broker.get_instrument — full enriched instrument
-        (belphegor/domain/instruments.py InstrumentInfo). Correlated via
-        correlation_id. 'No fixture yet.'
     broker_instrument_resolved:
       name: broker.instrument_resolved
       title: broker.instrument_resolved
@@ -691,8 +547,8 @@ components:
               payload:
                 $ref: './schemas/payloads/broker.error.json'
       description: >-
-        NACK for any broker.* command (get_account, get_accounts, get_orders,
-        get_catalog, get_instrument, resolve_instrument). Correlated via
+        NACK for any broker.* command (get_accounts, get_orders,
+        resolve_instrument). Correlated via
         correlation_id. Example: examples/broker.error.json
     deal_publish:
       name: deal.publish

@@ -120,13 +120,6 @@ export const MESSAGE_REGISTRY = {
     event: "restart",
     persists_on_bf: false,
   },
-  "broker.get_account": {
-    message_class: "user",
-    direction: "afb2bf",
-    category: "broker",
-    event: "get_account",
-    persists_on_bf: false,
-  },
   "broker.get_accounts": {
     message_class: "user",
     direction: "afb2bf",
@@ -141,32 +134,11 @@ export const MESSAGE_REGISTRY = {
     event: "get_orders",
     persists_on_bf: false,
   },
-  "broker.get_catalog": {
-    message_class: "user",
-    direction: "afb2bf",
-    category: "broker",
-    event: "get_catalog",
-    persists_on_bf: false,
-  },
-  "broker.get_instrument": {
-    message_class: "user",
-    direction: "afb2bf",
-    category: "broker",
-    event: "get_instrument",
-    persists_on_bf: false,
-  },
   "broker.resolve_instrument": {
     message_class: "user",
     direction: "afb2bf",
     category: "broker",
     event: "resolve_instrument",
-    persists_on_bf: false,
-  },
-  "broker.account": {
-    message_class: "user",
-    direction: "bf2afb",
-    category: "broker",
-    event: "account",
     persists_on_bf: false,
   },
   "broker.accounts": {
@@ -181,20 +153,6 @@ export const MESSAGE_REGISTRY = {
     direction: "bf2afb",
     category: "broker",
     event: "orders",
-    persists_on_bf: false,
-  },
-  "broker.catalog": {
-    message_class: "user",
-    direction: "bf2afb",
-    category: "broker",
-    event: "catalog",
-    persists_on_bf: false,
-  },
-  "broker.instrument": {
-    message_class: "user",
-    direction: "bf2afb",
-    category: "broker",
-    event: "instrument",
     persists_on_bf: false,
   },
   "broker.instrument_resolved": {

@@ -158,8 +158,10 @@ stateDiagram-v2
 
 **AFB → BF:**
 ```json
-{ "deal": { /* afb.deal.v1 или afb.deal.v2 */ } }
+{ "deal": { /* afb.deal.v2 */ } }
 ```
+
+**Инструмент и `broker_symbol`.** BF не держит собственного каталога инструментов: он находит инструмент у брокера **только** по непрозрачному локатору — `binding.symbol` либо `target.instrument.broker_symbol` (например `SBER@MISX`; AFB берёт его из своей связи листинга `listing_link`). `exchange`/`board`/`ticker` сделки используются лишь для сверки с найденным активом (пустой `board` у брокера — штатно, сравниваются только непустые части). `broker_symbol` — необязательное поле, но без него и без `binding.symbol` публикация отклоняется (`instrument_unresolvable`). В идентичность инструмента для `deal.amend` `broker_symbol` **не входит** (её определяет `instrument_key`, а без него — `exchange`/`board`/`ticker`/`market`).
 
 **BF → AFB (успех):** `deal.accepted`
 ```json
@@ -168,7 +170,7 @@ stateDiagram-v2
   "deal_id": "deal-xxx:bf-id",
   "revision": 1,
   "binding": { "account_id": "...", "symbol": "ALRS@MISX" },
-  "broker_instrument": { /* параметры инструмента от брокера */ },
+  "broker_instrument": { /* параметры инструмента от брокера; в т.ч. price_type: UNKNOWN|POSITIVE|NON_NEGATIVE|ANY — какие цены допустимы (POSITIVE: строго > 0) */ },
   "broker_sizing": { "lots": 185, "required_cash": "4713.8", ... }
 }
 ```
@@ -182,6 +184,15 @@ stateDiagram-v2
   "message": "Security not found"
 }
 ```
+
+**Коды отказа, связанные с инструментом** (`deal.rejected.code`, а для `broker.resolve_instrument` — `broker.error.code`):
+
+| Код | Когда |
+|-----|-------|
+| `instrument_unresolvable` | нет ни `binding.symbol`, ни `target.instrument.broker_symbol`, либо брокер не знает такой локатор |
+| `instrument_mismatch` | актив брокера по `broker_symbol` не совпадает с `exchange`/`board`/`ticker` сделки |
+| `instrument_delisted` | инструмент снят с торгов/архивирован у брокера (в т.ч. при проверке активных сделок на смене торгового дня) |
+| `unsupported` | коннектор/BF не умеет исполнять эту сделку (режим, рынок и т.п.) |
 
 ---
 
@@ -262,22 +273,15 @@ stateDiagram-v2
 
 | Команда AFB → BF | Успех BF → AFB | Описание |
 |------------------|----------------|----------|
-| `broker.get_accounts` | `broker.accounts` | полный список счетов брокерского токена (не только торговый) — `default_account_id`, `as_of`, `accounts[]` с `equity`/`cash`/`positions` по каждому. Только `default_account_id` — `tradable`; остальные счета read-only в этой фазе. Отправляется только при взаимно согласованной `features.multi_account` (см. ниже) |
-| ~~`broker.get_account`~~ | ~~`broker.account`~~ | **DEPRECATED**, заменено `broker.get_accounts`/`broker.accounts` — баланс и параметры только счёта, на котором BF торгует; несёт исторический дубль `account_id`/`broker_account_id` одного и того же счёта |
+| `broker.get_accounts` | `broker.accounts` | полный список счетов брокерского токена (не только торговый) — `default_account_id`, `as_of`, `accounts[]` с `equity`/`cash`/`positions` по каждому. Только `default_account_id` — `tradable`; остальные счета read-only в этой фазе. Позиции несут только `broker_ref {broker, symbol}` (блока `instrument` нет — инструмент по `symbol` восстанавливает AFB) |
 | `broker.get_orders` | `broker.orders` | список активных ордеров (счёта, на котором BF торгует) |
-| `broker.get_catalog` | `broker.catalog` | инструменты биржи/рынка |
-| ~~`broker.get_instrument`~~ | ~~`broker.instrument`~~ | **DEPRECATED**, заменено уже существующей парой `broker.resolve_instrument`/`broker.instrument_resolved` — параметры конкретного инструмента |
-| `broker.resolve_instrument` | `broker.instrument_resolved` | резолюция инструмента для сделки |
+| `broker.resolve_instrument` | `broker.instrument_resolved` | резолюция инструмента для сделки (по `broker_symbol`) и его торговые параметры (`broker_instrument`, в т.ч. `price_type`); с `account_id` — значения этого счёта, без него — торгового счёта BF |
 
 Ошибка любой `broker.*` команды → **`broker.error`** с `code`, `command_type` (тип исходной команды), опционально `message`/`at`. Сопоставление с запросом — через `correlation_id` (и `idempotency_key` на запросе).
 
 Все запросы используют `idempotency_key` и `correlation_id` для сопоставления ответа с запросом.
 
-**Мультисчётность (`features.multi_account`).** Один коннектор BF может видеть несколько счетов брокерского токена, но исполняет заявки только на одном — своём торговом (`daemon.capabilities.account_id` / `default_account_id` в `broker.accounts`). Видимость остальных read-only и не меняет исполнение. Согласование обязательно двустороннее, чтобы не сломать линк со старой стороной:
-
-- BF объявляет поддержку в `daemon.capabilities.features.multi_account: true`; отсутствие/`false` — старый BF, шлёт только `broker.get_account`/`broker.account`.
-- AFB объявляет поддержку в `session.hello_ack.features.multi_account: true`; только тогда BF шлёт `broker.get_accounts` в ответ и `broker.accounts` — как ответ, так и незапрошенный push после каждого reconcile. Той же сессии `broker.account` **не отправляется** — ровно один источник данных о счёте на сессию.
-- Если это поле не согласовано хотя бы одной стороной, обе продолжают работать по устаревшей паре `broker.get_account`/`broker.account`. Отправка `broker.accounts` стороне, не объявившей `multi_account`, недопустима — на приёме неизвестный тип обрывает BF-линк (`verify_incoming` отклоняет любой тип вне `BF_EVENT_TYPES`, соединение закрывается).
+**Мультисчётность.** Один коннектор BF может видеть несколько счетов брокерского токена, но исполняет заявки только на одном — своём торговом (`daemon.capabilities.account_id` / `default_account_id` в `broker.accounts`). Видимость остальных read-only и не меняет исполнение. Это единственный путь получения счетов: `broker.get_accounts` в ответ и `broker.accounts` как ответ и как незапрошенный push после каждого reconcile. Согласования нет — флаг `features.multi_account` удалён (стал константой), как и устаревшая одно-счётная пара `broker.get_account`/`broker.account`. Каталог инструментов BF тоже удалён (`broker.get_catalog`/`broker.catalog`, `features.catalog`), как и `broker.get_instrument`/`broker.instrument` (заменены `broker.resolve_instrument`/`broker.instrument_resolved`). Получение любого из удалённых типов обрывает BF-линк (`verify_incoming` отклоняет тип вне `BF_EVENT_TYPES`).
 
 ---
 
@@ -398,9 +402,7 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/asyncapi.yaml` | Полная AsyncAPI-спека всех сообщений |
 | `docs/MESSAGES.md` | Каталог сообщений (генерируется из asyncapi.yaml) |
 | `spec/schemas/envelope.json` | JSON Schema конверта |
-| `spec/schemas/deal.v1.json` | Схема сделки v1 (одна точка входа/выхода) |
 | `spec/schemas/deal.v2.json` | Схема сделки v2 (множество точек входа/выхода) |
-| `spec/schemas/tradeplan.v1.json` | Шаблон торгового плана v1 (AFB-сторонний, см. §10) |
 | `spec/schemas/tradeplan.v2.json` | Шаблон торгового плана v2 (AFB-сторонний, см. §10) |
 | `spec/schemas/condition.v1.json` | Единый словарь операторов условия (см. §12) |
 | `spec/schemas/alarm.v1.json` | Аларм AFB (AFB-сторонний, см. §11) |
@@ -408,10 +410,10 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/schemas/gp.v1.json` / `gp.v2.json` | Графический примитив AFB v1 / v2 (см. §11.1) |
 | `spec/schemas/afbws/{alarm,gp}.channel.v2.json` | Каналы alarm/gp v2 (capability `afbws.alarm.channel.v2`, `afbws.gp.channel.v2`) |
 | `spec/schemas/config.v1.json` | Настройки пользователя AFB (`settings`: `profile`/`interface`/`dataset`/`dashboard`/`trade`) и платформенные дефолты (`$defs/defaults`), AFB↔фронтенд |
-| `spec/schemas/afbws/account.channel.v2.json` | Канал `account` v2 (capability `afbws.account.channel.v2`): `list`/`orders`/`events`/`error`, один schema id на сообщение (`afbws.account.<op>.v2`), пуш без `request_id` у `list` (полный список счетов одного `bf_id`) и `orders`; `get` v1 заменён `list` с `bf_id`+`account_id`; `account.channel.v1` остаётся для старых клиентов |
+| `spec/schemas/afbws/account.channel.v2.json` | Канал `account` v2 (capability `afbws.account.channel.v2`): `list`/`orders`/`events`/`error`, один schema id на сообщение (`afbws.account.<op>.v2`), пуш без `request_id` у `list` (полный список счетов одного `bf_id`) и `orders`; одиночный счёт — `list` с `bf_id`+`account_id` |
 | `spec/schemas/afbws/config.channel.v1.json` | Канал `config` (capability `afbws.config.channel.v1`): `settings`/`defaults`/`help`/`roles`/`token`, один schema id на сообщение, `afbws.config.error.v1` с `item` вместо флага `rejected`; заменяет legacy-каналы `settings`/`help`/`setup` |
 | `spec/schemas/afbws/catalog.channel.v1.json` | Канал `catalog` (capability `afbws.catalog.channel.v1`), только менеджер: `snapshot`/`symbols`/`support`/`commit`/`refresh`, один schema id на сообщение, списки ≤100, пуш итога обновления `refresh` без `request_id`; заменяет менеджерскую половину `afbws.instrument` (`catalog`/`pool`/`inventory`/`commit`/`refresh`) |
-| `spec/schemas/afbws/instrument.channel.v2.json` | Канал `instrument` v2 (capability `afbws.instrument.channel.v2`), любой авторизованный: `catalog`/`sets`/`favorites`/`paint`/`expiration`/`replace`/`detail`, один schema id на сообщение, пуш без `request_id`, инструмент только по `instrument_key`; `sets` — единая команда наборов (личные и глобальные по `visibility`), `detail` — параметры по всем счетам; заменяет `instrument.channel.v1` (deprecated) |
+| `spec/schemas/afbws/instrument.channel.v2.json` | Канал `instrument` v2 (capability `afbws.instrument.channel.v2`), любой авторизованный: `catalog`/`sets`/`favorites`/`paint`/`expiration`/`replace`/`detail`, один schema id на сообщение, пуш без `request_id`, инструмент только по `instrument_key`; `sets` — единая команда наборов (личные и глобальные по `visibility`), `detail` — параметры по всем счетам |
 | `spec/schemas/payloads/` | JSON Schema каждого payload |
 | `examples/` | Подписанные примеры конвертов |
 | `examples/tradeplans/` | Примеры шаблонов ТП (не конверты, не подписываются) |
@@ -423,40 +425,31 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 
 ---
 
-## 10. Шаблоны торговых планов (afb.tradeplan.v1 / afb.tradeplan.v2)
+## 10. Шаблоны торговых планов (afb.tradeplan.v2)
 
 Шаблон торгового плана (ТП) — **не сообщение протокола**: он не описан в
 `asyncapi.yaml`, не оборачивается в конверт и никогда не идёт по каналу
 AFB↔BF. Это AFB-сторонняя сущность — черновик, который пользователь
 редактирует на фронтенде и хранит в своих настройках (`tradeplans` в
-пользовательском YAML). Схемы `spec/schemas/tradeplan.v1.json` и
-`tradeplan.v2.json` живут в этом репозитории (а не в AFB) по одной причине:
+пользовательском YAML). Схема `spec/schemas/tradeplan.v2.json` живёт в этом репозитории (а не в AFB) по одной причине:
 шаблон ТП напрямую и однозначно связан со схемой сделки, которую AFB из него
-компилирует — контракт `compile(tradeplan.vN) → deal.vN` проверяется тестами
+компилирует — контракт `compile(tradeplan.v2) → deal.v2` проверяется тестами
 в обоих репозиториях.
 
-Оба ТП несут опциональные `connector` (bf_id коннектора публикации) и
+ТП несёт опциональные `connector` (bf_id коннектора публикации) и
 `account_id` (счёт брокера у этого коннектора; пусто/отсутствует — дефолтный
 торговый счёт коннектора, резолвится AFB на лету при публикации, не
 персистится задним числом для старых планов). При компиляции AFB копирует
 `account_id` в `target.account_id` компилируемой сделки (см. §4.5 про
-`broker.get_accounts`/`broker.accounts` и `deal.v1.json#/$defs/target`); BF
+`broker.get_accounts`/`broker.accounts` и `common.v1.json#/$defs/target`); BF
 сверяет его со своим торговым счётом, если поле присутствует.
 
 Версия шаблона определяется полем `schema` внутри самого объекта ТП
-(`"afb.tradeplan.v1"` / `"afb.tradeplan.v2"`), а **не** полем протокола нигде
-на проводе. Единственное правило совместимости: если поле `schema`
-отсутствует, шаблон считается `afb.tradeplan.v1` — так продолжают работать
-фронтенды старее самой схемы ТП, которые никогда это поле не выставляли.
+(`"afb.tradeplan.v2"`), а **не** полем протокола нигде на проводе. Схемы
+`afb.tradeplan.v1` и `afb.deal.v1` удалены (одно-точечные сделка/план):
+валидатор (`payload_validation`) принимает только v2, отсутствующее поле
+`schema` трактуется как `afb.tradeplan.v2`.
 
-- **`afb.tradeplan.v1`** — одна точка входа, опциональные тейк/стоп; условия —
-  цена (`price_value`) или ссылка на график-примитив линии (`primitive_id`).
-  `direction` — поле верхнего уровня, однозначное (одна точка входа), но с
-  **переходным словарём** `"buy" | "long" | "sell" | "short"`: `buy`/`sell` —
-  устаревшее значение (то, что фронтенд шлёт сегодня), `long`/`short` —
-  целевое (тот же словарь, что в `afb.deal.v1`/`v2` и `afb.tradeplan.v2`); оба
-  принимаются, пока фронтенд не переведён на `long`/`short`. Компилируется в
-  `afb.deal.v1`.
 - **`afb.tradeplan.v2`** — списки `entries[]` (вход) и `stop_loss[]`/
   `take_profit[]` (выход) с `percent`, компилируется в `afb.deal.v2`. Условия
   — узлы, совместимые по форме с `conditionNode` из `deal.v2.json` (`op`
@@ -475,15 +468,6 @@ buy/sell-плечей не имеет определённой семантик�
 50% sell» — это не одна позиция). Брокерская сторона (buy/sell) каждого плеча
 выводится AFB/BF из `direction` и роли плеча: `long`-вход и `short`-выход —
 buy; `short`-вход и `long`-выход — sell.
-
-`afb.deal.v1` (сама схема сделки, не только шаблон) тоже получила
-опциональное корневое поле `direction` (long/short) как альтернативу
-устаревшему `entry.side` (buy/sell): деал обязан иметь **хотя бы одно** из
-двух (`anyOf` в `deal.v1.json`), допустимо и оба сразу. Бэкенд AFB переходит
-на `direction` как источник истины, но при компиляции продолжает
-проставлять и `entry.side` — ради BF и любого другого кода, который ещё
-читает только его; `entry.side`, если присутствует, имеет приоритет при
-определении «сторона изменилась» в `amend_rules._sides`.
 
 Важно: `tradeplan.v2.json` **намеренно не enforce-ит** полную матрицу
 допустимых пар `left`/`right` (price/quote — только `const`; indicator/
@@ -547,8 +531,7 @@ Top-level `period` — общий таймфрейм вычисления ала
 `ticker`. Это AFB-сторонние сущности (не AsyncAPI, канал AFB↔BF не пересекают).
 
 - Версия клиента определяется только по `auth.support`: `afbws.alarm.channel.v2` /
-  `afbws.gp.channel.v2` (новые каналы со своими схемами сообщений `*.v2`);
-  v1-каналы работают без изменений. Бэкенд хранит v2 и конвертирует v1↔v2 на границе.
+  `afbws.gp.channel.v2` (каналы со своими схемами сообщений `*.v2`). Бэкенд хранит v2.
 - Соглашение каналов v2 — как у `afbws.market`: **одна схема на сообщение**
   (`afbws.<канал>.<op>.v2`, без суффиксов `.request/.response/.push`); та же схема
   служит запросом, ответом (эхо `request_id`) и — где указано — серверным push-ом
@@ -569,8 +552,7 @@ Top-level `period` — общий таймфрейм вычисления ала
     `account_id?`; ответ `bf_id`, `account_id`, `items[]`; без `request_id` — push для
     счёта по умолчанию), `events` (`bf_id`, `date?`; ответ с `date` и `items[]`; push
     нет, `request_id` обязателен), `error`. Операции `get` нет: счёт — `list` с
-    `bf_id` и `account_id`. Формы `accountSnapshot`/`order`/`eventRecord` — те же, что
-    в v1, но определены в самом файле; мультивалютность — через `cash[]`, у виртуального
+    `bf_id` и `account_id`. Формы `accountSnapshot`/`order`/`eventRecord` определены в самом файле; мультивалютность — через `cash[]`, у виртуального
     счёта заполняется `as_of`. Запрос не несёт `items`; ответ не несёт полей запроса.
   - `gp.channel.v2`: `list`, `set` (`items[]`; без `request_id` — push владения),
     `delete` (`ids[]` и/или `instrument_keys[]` — «удалить все свободные примитивы
@@ -578,7 +560,6 @@ Top-level `period` — общий таймфрейм вычисления ала
     без `request_id` — push удаления), `indicator.list|set|delete`, `style`, `error`.
 - `afb.gp.v2` добавляет категории `trendline` и `fibonacci`: обе двухточечные
   (`start` и `stop` обязательны, `text` запрещён). Вид примитивов не специфицирован.
-  v1-клиентам эти категории не отдаются.
 - Параметры самого примитива (`start`, `stop`, `text`) в `afb.gp.v2` лежат не на корне,
   а в словаре `settings` (обязателен). Корень — только идентичность и серверное
   владение: `schema`, `id`, `instrument_key`, `kind`, `tradeplan_id`. `settings` строго
@@ -625,7 +606,7 @@ best bid/ask ± `limit_offset_steps`), остальные пять → **рын�
 (исполняется безусловно, без ограничения проскальзывания) — решение
 принимает исключительно `belphegor.plan_engine.order_policy`, на проводе
 никакого поля типа заявки не передаётся (deprecated с v1.11.0 блок `order`
-в `deal.v1.json`/`deal.v2.json`/`tradeplan.v2.json` больше не читается BF).
+в `deal.v2.json`/`tradeplan.v2.json` больше не читается BF).
 
 | `left.source` | `right` | Операторы | Семантика | Исполнение BF |
 |---|---|---|---|---|
@@ -925,7 +906,7 @@ AFB) и `stale_after_sec` (TTL в секундах, задаёт AFB). Запи�
 ### Ключевание записей
 
 Каждая запись `dataset.update` ключуется по `instrument`
-(`deal.v1.json#/$defs/instrument`) — тому же инструменту, что фигурирует в
+(`common.v1.json#/$defs/instrument`) — тому же инструменту, что фигурирует в
 условии сделки. AFB сам резолвит биржевые особенности нейминга **до**
 отправки: например, статистика по `positions` для фьючерса на MOEX ключуется
 базовым активом контракта, а не кодом самого фьючерсного контракта. BF об

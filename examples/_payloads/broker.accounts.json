@@ -15,7 +15,7 @@
           "average_price": "280.50",
           "current_price": "281.00",
           "unrealized_pnl": "5.00",
-          "instrument": { "exchange": "MOEX", "board": "TQBR", "ticker": "SBER", "market": "stock" }
+          "broker_ref": { "broker": "finam", "symbol": "SBER@MISX" }
         }
       ]
     },

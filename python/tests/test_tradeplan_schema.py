@@ -1,4 +1,4 @@
-"""afb.tradeplan.v1 / afb.tradeplan.v2 template schemas.
+"""afb.tradeplan.v2 template schema (afb.tradeplan.v1 was removed).
 
 Trade-plan templates are AFB-side only — they never cross the AFB<->BF wire —
 so unlike deal/envelope fixtures they are not signed envelopes; they live under
@@ -16,9 +16,9 @@ from conftest import EXAMPLES
 TRADEPLAN_EXAMPLES = sorted((EXAMPLES / "tradeplans").glob("*.json"))
 assert TRADEPLAN_EXAMPLES, "no tradeplan examples found"
 
-TRADEPLAN_V1_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/tradeplan.v1.json"
+TRADEPLAN_V1_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/tradeplan.v1.json"  # removed; kept to assert absence
 TRADEPLAN_V2_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/tradeplan.v2.json"
-_SCHEMA_ID_BY_NAME = {"afb.tradeplan.v1": TRADEPLAN_V1_ID, "afb.tradeplan.v2": TRADEPLAN_V2_ID}
+_SCHEMA_ID_BY_NAME = {"afb.tradeplan.v2": TRADEPLAN_V2_ID}
 
 
 def _validator(schema_url: str, registry):
@@ -31,75 +31,8 @@ def _validator(schema_url: str, registry):
 @pytest.mark.parametrize("path", TRADEPLAN_EXAMPLES, ids=lambda p: p.stem)
 def test_example_validates_against_declared_or_default_schema(path: Path, registry):
     data = json.loads(path.read_text())
-    schema_name = data.get("schema") or "afb.tradeplan.v1"
+    schema_name = data.get("schema") or "afb.tradeplan.v2"
     _validator(_SCHEMA_ID_BY_NAME[schema_name], registry).validate(data)
-
-
-def test_no_schema_field_means_v1():
-    path = EXAMPLES / "tradeplans" / "tradeplan.v1.no-schema-field.json"
-    data = json.loads(path.read_text())
-    assert "schema" not in data
-
-
-def test_v1_rejects_missing_required_fields(registry):
-    from jsonschema import ValidationError
-
-    with pytest.raises(ValidationError):
-        _validator(TRADEPLAN_V1_ID, registry).validate({"id": "x"})  # no ticker/entry_condition
-
-
-@pytest.mark.parametrize("value", ["long", "short"])
-def test_v1_direction_accepts_target_vocabulary(value, registry):
-    plan = {
-        "id": "tp1",
-        "ticker": "SBER",
-        "direction": value,
-        "entry_condition": {"condition_type": "price", "price_value": 100},
-    }
-    _validator(TRADEPLAN_V1_ID, registry).validate(plan)  # does not raise
-
-
-@pytest.mark.parametrize("value", ["buy", "sell"])
-def test_v1_direction_rejects_legacy_vocabulary_since_v2_0_0(value, registry):
-    from jsonschema import ValidationError
-
-    plan = {
-        "id": "tp1",
-        "ticker": "SBER",
-        "direction": value,
-        "entry_condition": {"condition_type": "price", "price_value": 100},
-    }
-    with pytest.raises(ValidationError):
-        _validator(TRADEPLAN_V1_ID, registry).validate(plan)
-
-
-def test_v1_direction_rejects_unknown_value(registry):
-    from jsonschema import ValidationError
-
-    plan = {
-        "id": "tp1",
-        "ticker": "SBER",
-        "direction": "up",
-        "entry_condition": {"condition_type": "price", "price_value": 100},
-    }
-    with pytest.raises(ValidationError):
-        _validator(TRADEPLAN_V1_ID, registry).validate(plan)
-
-
-def test_v1_stop_loss_accepts_duration(registry):
-    """Protective time on v1 stop_loss is an additionalProperty — accepted by the
-    loose tradeplan schema; AFB models/compile are the producer of truth."""
-    plan = {
-        "id": "tp1",
-        "ticker": "SBER",
-        "entry_condition": {"condition_type": "price", "price_value": 100},
-        "stop_loss": {
-            "condition_type": "price",
-            "price_value": 95,
-            "duration": 5,
-        },
-    }
-    _validator(TRADEPLAN_V1_ID, registry).validate(plan)
 
 
 def test_v2_condition_accepts_duration_on_price_level(registry):
@@ -154,14 +87,6 @@ def test_v2_instrument_key_must_not_be_empty(registry):
 
     with pytest.raises(ValidationError):
         _validator(TRADEPLAN_V2_ID, registry).validate(_v2_plan(instrument_key=""))
-
-
-def test_v1_is_untouched_by_the_key(registry):
-    """Only v2 learned `instrument_key`; v1 still requires its ticker."""
-    from jsonschema import ValidationError
-
-    with pytest.raises(ValidationError):
-        _validator(TRADEPLAN_V1_ID, registry).validate({"id": "x", "instrument_key": "MISX:TQBR:SBER"})
 
 
 def test_v2_requires_non_empty_entries(registry):
@@ -258,14 +183,7 @@ def test_v2_primitive_ref_rejects_extra_keys(registry):
         _validator(TRADEPLAN_V2_ID, registry).validate(plan)
 
 
-def test_v1_and_v2_accept_optional_publish(registry):
-    v1 = {
-        "id": "tp1",
-        "ticker": "SBER",
-        "entry_condition": {"condition_type": "price", "price_value": 100},
-        "publish": {"bf_id": "virtual"},
-    }
-    _validator(TRADEPLAN_V1_ID, registry).validate(v1)
+def test_v2_accepts_optional_publish(registry):
     v2 = {
         "schema": "afb.tradeplan.v2",
         "id": "tp1",
@@ -301,14 +219,13 @@ def test_publish_bf_id_rejects_empty_string(registry):
 def test_publish_account_id_rejects_empty_string(registry):
     from jsonschema import ValidationError
 
-    v1 = {
-        "id": "tp1",
-        "ticker": "SBER",
-        "entry_condition": {"condition_type": "price", "price_value": 100},
-        "publish": {"bf_id": "bf-main", "account_id": ""},
-    }
+    v2 = _v2_plan(publish={"bf_id": "bf-main", "account_id": ""})
     with pytest.raises(ValidationError):
-        _validator(TRADEPLAN_V1_ID, registry).validate(v1)
+        _validator(TRADEPLAN_V2_ID, registry).validate(v2)
+
+
+def test_tradeplan_v1_schema_is_gone(registry):
+    assert TRADEPLAN_V1_ID not in registry
 
 
 def test_publish_rejects_unknown_keys(registry):

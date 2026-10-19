@@ -8,6 +8,28 @@
 
 ## Unreleased
 
+## v2.9.0 — 2026-10-19
+
+**Ломающие изменения (MAJOR по `VERSIONING.md` §2; разрешены владельцем, окна совместимости со старым BF нет — AFB и BF выкатываются парой). Версию, тег и пины ставит пользователь.**
+
+- **Удалены `deal.v1` и `tradeplan.v1`.** Файлы `spec/schemas/deal.v1.json` и `tradeplan.v1.json` (и копии в `python/afb_bf_protocol/schemas/`), примеры `examples/deal.publish*` v1 и `examples/tradeplans/tradeplan.v1*.json`. `payloads/deal.publish.json`, `deal.amend.json`, `broker.resolve_instrument.json` принимают только `afb.deal.v2`; `afbws/deal.public.v1.json` — только v2-проекцию (def `v1` убран); `afbws/tradeplan.channel.v1.json` — `entity` = `tradeplan.v2` (def `entityV1` убран). `payload_validation`: `validate_deal` — только `afb.deal.v2`, `validate_tradeplan`/`resolve_tradeplan_schema` — только `afb.tradeplan.v2` (отсутствующее `schema` = v2). `amend_rules`: убраны v1-экстракторы (`_is_v2`, одно-объектные `entry`/`risk.*`). `condition.v1.json` остаётся. TS: убраны `DealV1`, `TradePlanV1`, `TradeplanEntityV1`, `DealPublicDealV1`.
+- **Удалены команды `broker.get_catalog`/`broker.catalog`, `broker.get_instrument`/`broker.instrument`, `broker.get_account`/`broker.account`** (схемы payload, asyncapi, таксономия `COMMAND_TYPES`/`BF_EVENT_TYPES`, тесты). Остаются `broker.get_accounts`/`accounts`, `get_orders`/`orders`, `resolve_instrument`/`instrument_resolved`, `position_ledger`, `error`.
+- **Флаги `features.multi_account` (`daemon.capabilities`, `session.hello_ack`) и `features.catalog` (`daemon.capabilities`) удалены**: мульти-счёт — константа (единственный путь счетов), каталога у BF нет.
+- **`broker.accounts`: позиция без `instrument`, `broker_ref {broker, symbol}` обязателен** (`additionalProperties: false`). `afbws/account.channel.v1/v2.json` больше не ссылаются на эту позицию: в их `$defs.position` собственное определение с необязательным `instrument` (его восстанавливает AFB).
+
+Removed (PATCH по `VERSIONING.md` §4: схемы `afbws/*` не входят в `asyncapi`, цикл депрекейта не нужен):
+
+- **Удалены схемы `afbws/instrument.channel.v1.json`, `account.channel.v1.json`, `alarm.channel.v1.json`, `gp.channel.v1.json`** (и копии в `python/afb_bf_protocol/schemas/afbws/`), их тесты, типы TS (`InstrumentChannelV1Message`, `AccountChannelV1Message`, `AlarmChannelV1Message`, `GpChannelV1Message` и вложенные) и константы `INSTRUMENT_CHANNEL_V1`, `ACCOUNT_CHANNEL_V1`, `ALARM_CHANNEL_V1`, `GP_CHANNEL_V1` (из `capabilities.py`/`capabilities.ts`, `ALL_CAPABILITY_IDS`, `afb_bf_protocol.__init__`). Остаются v2-каналы; из их описаний убраны упоминания v1. Фронтенды и бэкенды, согласовавшие только v1-каналы, перестают работать.
+- **Тип `InstrumentV1` убран из генерации моделей** (`ts/tools/generate-models.mjs`: корень `instrument.v1.json` в `SKIPPED_ROOTS`; из `models.ts`/`models_generated.py` исчез пустой `{[k: string]: unknown}`). Схема `instrument.v1.json` и её `$defs` остаются.
+
+Добавлено (additive):
+
+- **`common.v1.json#/$defs/instrument.broker_symbol`** (string, `minLength` 1): непрозрачный локатор брокера (`TICKER@MIC`); AFB берёт из `listing_link`, BF резолвит инструмент только по нему (или `binding.symbol`). В идентичность инструмента для `amend_rules` **не входит** (решает `instrument_key`, иначе `exchange/board/ticker/market`); тесты добавлены.
+- **`price_type`** (`UNKNOWN|POSITIVE|NON_NEGATIVE|ANY`) в `broker_instrument` у `broker.instrument_resolved` и `deal.accepted`.
+- `broker.resolve_instrument.account_id`: описание уточнено (BF отвечает значениями этого счёта; без него — торгового счёта).
+- Коды отказа `instrument_mismatch`, `instrument_unresolvable`, `instrument_delisted`, `unsupported` описаны в `deal.rejected.code`, `broker.error.code` и `docs/PROTOCOL.md` §4.1.
+- Пример `examples/deal.publish.json` теперь v2 с `instrument_key`/`broker_symbol`; `examples/broker.accounts.json` — позиция с `broker_ref` без `instrument`.
+
 ## v2.8.2 — 2026-10-16
 
 - **`config.v1.json`: блок `form` и `interface.settings_storage`** (настройки сервисов в шапке панелей). Корневой блок `form` (`alarms.confirm_delete`, `primitives.confirm_delete`, `plans.{auto_execute,editor_left,hide_on_share,risk_top}`, все boolean, `additionalProperties: false`, deep-merge при записи) и `interface.settings_storage` (`server|local`, где хранить `form.*`: в пользовательском файле или в localStorage браузера). Убраны `interface.confirm_delete`, `trade.auto_execute`, `trade.plan_editor_placement` (значения не мигрируются; `interface`/`trade` остаются `additionalProperties: true`, старый ключ от старого клиента не даёт `validation_error`).
