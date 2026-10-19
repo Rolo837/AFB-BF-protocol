@@ -42,6 +42,11 @@ function pascalCase(stem) {
     .join("");
 }
 
+// Schema files whose ROOT is deliberately not emitted as a type: AFB-internal
+// shapes (never an AsyncAPI wire message) whose allOf/if root the compiler can
+// only render as an empty `{[k]: unknown}`. Their `$defs` are still bundled.
+const SKIPPED_ROOTS = new Set(["instrument.v1.json"]);
+
 // relative-to-spec/schemas path -> desired export name for the file's ROOT.
 function namedRootSchemas() {
   const entries = {
@@ -53,7 +58,6 @@ function namedRootSchemas() {
     "alarm.v2.json": "AlarmV2",
     "gp.v1.json": "GpV1",
     "gp.v2.json": "GpV2",
-    "instrument.v1.json": "InstrumentV1",
     "notification.deal.v1.json": "NotificationDealV1",
     "notification.alarm.v1.json": "NotificationAlarmV1",
     "notification.link.v1.json": "NotificationLinkV1",
@@ -66,18 +70,14 @@ function namedRootSchemas() {
     "afbws/connector.record.v1.json": "ConnectorRecord",
     "afbws/connector.list.v1.json": "ConnectorListData",
     "afbws/bfs.registry.v1.json": "BfsRegistryPush",
-    "afbws/account.channel.v1.json": "AccountChannelV1Message",
     "afbws/account.channel.v2.json": "AccountChannelV2Message",
-    "afbws/alarm.channel.v1.json": "AlarmChannelV1Message",
     "afbws/alarm.channel.v2.json": "AlarmChannelV2Message",
     "afbws/tradeplan.channel.v1.json": "TradeplanChannelV1Message",
     "afbws/link.user.v1.json": "LinkUserV1",
     "afbws/link.admin.v1.json": "LinkAdminV1",
     "afbws/link.status.v1.json": "LinkStatusV1",
     "afbws/link.channel.v1.json": "LinkChannelV1Message",
-    "afbws/gp.channel.v1.json": "GpChannelV1Message",
     "afbws/gp.channel.v2.json": "GpChannelV2Message",
-    "afbws/instrument.channel.v1.json": "InstrumentChannelV1Message",
     "afbws/market.channel.v1.json": "MarketChannelV1Message",
     "config.v1.json": "ConfigSettingsV1",
     "afbws/config.channel.v1.json": "ConfigChannelV1Message",
@@ -113,24 +113,6 @@ const NAMED_DEF_SCHEMAS = {
     source: "DealSource",
   },
   "afbws/bfs.registry.v1.json": { entry: "BfsRegistryEntry" },
-  "afbws/account.channel.v1.json": {
-    bfId: "AccountBfId",
-    accountId: "AccountAccountId",
-    accountSnapshot: "AccountSnapshot",
-    order: "AccountOrder",
-    eventRecord: "AccountEventRecord",
-    listRequest: "AccountListRequest",
-    listResponse: "AccountListResponse",
-    getRequest: "AccountGetRequest",
-    getResponse: "AccountGetResponse",
-    ordersRequest: "AccountOrdersRequest",
-    ordersResponse: "AccountOrdersResponse",
-    eventsRequest: "AccountEventsRequest",
-    eventsResponse: "AccountEventsResponse",
-    errorResponse: "AccountErrorResponse",
-    snapshotPush: "AccountSnapshotPush",
-    ordersPush: "AccountOrdersPush",
-  },
   "afbws/account.channel.v2.json": {
     bfId: "AccountV2BfId",
     accountId: "AccountV2AccountId",
@@ -145,23 +127,6 @@ const NAMED_DEF_SCHEMAS = {
   "afbws/connector.record.v1.json": {
     backstop: "ConnectorBackstop",
     executionPolicy: "ConnectorExecutionPolicy",
-  },
-  "afbws/alarm.channel.v1.json": {
-    getRequest: "AlarmGetRequest",
-    getResponse: "AlarmGetResponse",
-    listRequest: "AlarmListRequest",
-    listResponse: "AlarmListResponse",
-    setRequest: "AlarmSetRequest",
-    setResponse: "AlarmSetResponse",
-    deleteRequest: "AlarmDeleteRequest",
-    deleteResponse: "AlarmDeleteResponse",
-    errorResponse: "AlarmErrorResponse",
-    triggerEvent: "AlarmTriggerEvent",
-    triggeredPush: "AlarmTriggeredPush",
-    ackEvent: "AlarmAckEvent",
-    ackRequest: "AlarmAckRequest",
-    ackResultItem: "AlarmAckResultItem",
-    ackResponse: "AlarmAckResponse",
   },
   "afbws/alarm.channel.v2.json": {
     list: "AlarmV2List",
@@ -220,18 +185,6 @@ const NAMED_DEF_SCHEMAS = {
     statusSyncPush: "LinkStatusSyncPush",
     statusPush: "LinkStatusPush",
   },
-  "afbws/gp.channel.v1.json": {
-    getRequest: "GpGetRequest",
-    getResponse: "GpGetResponse",
-    listRequest: "GpListRequest",
-    listResponse: "GpListResponse",
-    setRequest: "GpSetRequest",
-    setResponse: "GpSetResponse",
-    deleteRequest: "GpDeleteRequest",
-    deleteResponse: "GpDeleteResponse",
-    errorResponse: "GpErrorResponse",
-    errorDetails: "GpErrorDetails",
-  },
   "afbws/gp.channel.v2.json": {
     list: "GpV2List",
     set: "GpV2Set",
@@ -244,58 +197,6 @@ const NAMED_DEF_SCHEMAS = {
     style: "GpV2Style",
     error: "GpV2Error",
     errorDetails: "GpV2ErrorDetails",
-  },
-  "afbws/instrument.channel.v1.json": {
-    getRequest: "InstrumentGetRequest",
-    getResponse: "InstrumentGetResponse",
-    poolRequest: "InstrumentPoolRequest",
-    poolListingEntry: "InstrumentPoolListingEntry",
-    poolSeriesEntry: "InstrumentPoolSeriesEntry",
-    poolEntry: "InstrumentPoolEntry",
-    poolResponse: "InstrumentPoolResponse",
-    inventoryRequest: "InstrumentInventoryRequest",
-    inventoryListingEntry: "InstrumentInventoryListingEntry",
-    inventorySeriesEntry: "InstrumentInventorySeriesEntry",
-    inventoryEntry: "InstrumentInventoryEntry",
-    inventoryResponse: "InstrumentInventoryResponse",
-    assetSuggestion: "InstrumentAssetSuggestion",
-    acceptSuggestion: "InstrumentAcceptSuggestion",
-    resolveRequest: "InstrumentResolveRequest",
-    resolveResponse: "InstrumentResolveResponse",
-    detailRequest: "InstrumentDetailRequest",
-    detailResponse: "InstrumentDetailResponse",
-    errorResponse: "InstrumentErrorResponse",
-    errorDetails: "InstrumentErrorDetails",
-    collection: "InstrumentCollection",
-    collectionUpsert: "InstrumentCollectionUpsert",
-    assetSetView: "InstrumentAssetSetView",
-    setView: "InstrumentSetView",
-    setUpsert: "InstrumentSetUpsert",
-    setType: "InstrumentSetType",
-    catalogAsset: "InstrumentCatalogAsset",
-    catalogAssetMember: "InstrumentCatalogAssetMember",
-    catalogSeries: "InstrumentCatalogSeries",
-    catalogSeriesMap: "InstrumentCatalogSeriesMap",
-    userState: "InstrumentUserState",
-    catalogRequest: "InstrumentCatalogRequest",
-    catalogResponse: "InstrumentCatalogResponse",
-    assetMemberInput: "InstrumentAssetMemberInput",
-    assetUpsert: "InstrumentAssetUpsert",
-    membersEdit: "InstrumentMembersEdit",
-    collectionMembersEdit: "InstrumentCollectionMembersEdit",
-    listingArchival: "InstrumentListingArchival",
-    seriesUpsert: "InstrumentSeriesUpsert",
-    commitRequest: "InstrumentCommitRequest",
-    commitResponse: "InstrumentCommitResponse",
-    userRequest: "InstrumentUserRequest",
-    userResponse: "InstrumentUserResponse",
-    catalogSource: "InstrumentCatalogSource",
-    sourcesRequest: "InstrumentSourcesRequest",
-    sourcesResponse: "InstrumentSourcesResponse",
-    refreshRequest: "InstrumentRefreshRequest",
-    refreshArchivedEntry: "InstrumentRefreshArchivedEntry",
-    refreshReport: "InstrumentRefreshReport",
-    refreshResponse: "InstrumentRefreshResponse",
   },
   "config.v1.json": {
     profile: "ConfigProfile",
@@ -489,7 +390,7 @@ function main() {
     // naming. Skip it unless the file is an explicit named export (none are,
     // today) — nothing in this repo references such a file whole anyway.
     const isRedirectOnly = typeof rootRest.$ref === "string";
-    if (!isRedirectOnly || rootExportName[relPath]) {
+    if (!SKIPPED_ROOTS.has(relPath) && (!isRedirectOnly || rootExportName[relPath])) {
       bundledDefs[keyFor(relPath, null)] = rewrite(rootRest, relPath);
     }
     for (const [defName, defValue] of Object.entries($defs ?? {})) {

@@ -410,10 +410,10 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/schemas/gp.v1.json` / `gp.v2.json` | Графический примитив AFB v1 / v2 (см. §11.1) |
 | `spec/schemas/afbws/{alarm,gp}.channel.v2.json` | Каналы alarm/gp v2 (capability `afbws.alarm.channel.v2`, `afbws.gp.channel.v2`) |
 | `spec/schemas/config.v1.json` | Настройки пользователя AFB (`settings`: `profile`/`interface`/`dataset`/`dashboard`/`trade`) и платформенные дефолты (`$defs/defaults`), AFB↔фронтенд |
-| `spec/schemas/afbws/account.channel.v2.json` | Канал `account` v2 (capability `afbws.account.channel.v2`): `list`/`orders`/`events`/`error`, один schema id на сообщение (`afbws.account.<op>.v2`), пуш без `request_id` у `list` (полный список счетов одного `bf_id`) и `orders`; `get` v1 заменён `list` с `bf_id`+`account_id`; `account.channel.v1` остаётся для старых клиентов |
+| `spec/schemas/afbws/account.channel.v2.json` | Канал `account` v2 (capability `afbws.account.channel.v2`): `list`/`orders`/`events`/`error`, один schema id на сообщение (`afbws.account.<op>.v2`), пуш без `request_id` у `list` (полный список счетов одного `bf_id`) и `orders`; одиночный счёт — `list` с `bf_id`+`account_id` |
 | `spec/schemas/afbws/config.channel.v1.json` | Канал `config` (capability `afbws.config.channel.v1`): `settings`/`defaults`/`help`/`roles`/`token`, один schema id на сообщение, `afbws.config.error.v1` с `item` вместо флага `rejected`; заменяет legacy-каналы `settings`/`help`/`setup` |
 | `spec/schemas/afbws/catalog.channel.v1.json` | Канал `catalog` (capability `afbws.catalog.channel.v1`), только менеджер: `snapshot`/`symbols`/`support`/`commit`/`refresh`, один schema id на сообщение, списки ≤100, пуш итога обновления `refresh` без `request_id`; заменяет менеджерскую половину `afbws.instrument` (`catalog`/`pool`/`inventory`/`commit`/`refresh`) |
-| `spec/schemas/afbws/instrument.channel.v2.json` | Канал `instrument` v2 (capability `afbws.instrument.channel.v2`), любой авторизованный: `catalog`/`sets`/`favorites`/`paint`/`expiration`/`replace`/`detail`, один schema id на сообщение, пуш без `request_id`, инструмент только по `instrument_key`; `sets` — единая команда наборов (личные и глобальные по `visibility`), `detail` — параметры по всем счетам; заменяет `instrument.channel.v1` (deprecated) |
+| `spec/schemas/afbws/instrument.channel.v2.json` | Канал `instrument` v2 (capability `afbws.instrument.channel.v2`), любой авторизованный: `catalog`/`sets`/`favorites`/`paint`/`expiration`/`replace`/`detail`, один schema id на сообщение, пуш без `request_id`, инструмент только по `instrument_key`; `sets` — единая команда наборов (личные и глобальные по `visibility`), `detail` — параметры по всем счетам |
 | `spec/schemas/payloads/` | JSON Schema каждого payload |
 | `examples/` | Подписанные примеры конвертов |
 | `examples/tradeplans/` | Примеры шаблонов ТП (не конверты, не подписываются) |
@@ -531,8 +531,7 @@ Top-level `period` — общий таймфрейм вычисления ала
 `ticker`. Это AFB-сторонние сущности (не AsyncAPI, канал AFB↔BF не пересекают).
 
 - Версия клиента определяется только по `auth.support`: `afbws.alarm.channel.v2` /
-  `afbws.gp.channel.v2` (новые каналы со своими схемами сообщений `*.v2`);
-  v1-каналы работают без изменений. Бэкенд хранит v2 и конвертирует v1↔v2 на границе.
+  `afbws.gp.channel.v2` (каналы со своими схемами сообщений `*.v2`). Бэкенд хранит v2.
 - Соглашение каналов v2 — как у `afbws.market`: **одна схема на сообщение**
   (`afbws.<канал>.<op>.v2`, без суффиксов `.request/.response/.push`); та же схема
   служит запросом, ответом (эхо `request_id`) и — где указано — серверным push-ом
@@ -553,8 +552,7 @@ Top-level `period` — общий таймфрейм вычисления ала
     `account_id?`; ответ `bf_id`, `account_id`, `items[]`; без `request_id` — push для
     счёта по умолчанию), `events` (`bf_id`, `date?`; ответ с `date` и `items[]`; push
     нет, `request_id` обязателен), `error`. Операции `get` нет: счёт — `list` с
-    `bf_id` и `account_id`. Формы `accountSnapshot`/`order`/`eventRecord` — те же, что
-    в v1, но определены в самом файле; мультивалютность — через `cash[]`, у виртуального
+    `bf_id` и `account_id`. Формы `accountSnapshot`/`order`/`eventRecord` определены в самом файле; мультивалютность — через `cash[]`, у виртуального
     счёта заполняется `as_of`. Запрос не несёт `items`; ответ не несёт полей запроса.
   - `gp.channel.v2`: `list`, `set` (`items[]`; без `request_id` — push владения),
     `delete` (`ids[]` и/или `instrument_keys[]` — «удалить все свободные примитивы
@@ -562,7 +560,6 @@ Top-level `period` — общий таймфрейм вычисления ала
     без `request_id` — push удаления), `indicator.list|set|delete`, `style`, `error`.
 - `afb.gp.v2` добавляет категории `trendline` и `fibonacci`: обе двухточечные
   (`start` и `stop` обязательны, `text` запрещён). Вид примитивов не специфицирован.
-  v1-клиентам эти категории не отдаются.
 - Параметры самого примитива (`start`, `stop`, `text`) в `afb.gp.v2` лежат не на корне,
   а в словаре `settings` (обязателен). Корень — только идентичность и серверное
   владение: `schema`, `id`, `instrument_key`, `kind`, `tradeplan_id`. `settings` строго

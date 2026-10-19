@@ -15,6 +15,11 @@
 - **Флаги `features.multi_account` (`daemon.capabilities`, `session.hello_ack`) и `features.catalog` (`daemon.capabilities`) удалены**: мульти-счёт — константа (единственный путь счетов), каталога у BF нет.
 - **`broker.accounts`: позиция без `instrument`, `broker_ref {broker, symbol}` обязателен** (`additionalProperties: false`). `afbws/account.channel.v1/v2.json` больше не ссылаются на эту позицию: в их `$defs.position` собственное определение с необязательным `instrument` (его восстанавливает AFB).
 
+Removed (PATCH по `VERSIONING.md` §4: схемы `afbws/*` не входят в `asyncapi`, цикл депрекейта не нужен):
+
+- **Удалены схемы `afbws/instrument.channel.v1.json`, `account.channel.v1.json`, `alarm.channel.v1.json`, `gp.channel.v1.json`** (и копии в `python/afb_bf_protocol/schemas/afbws/`), их тесты, типы TS (`InstrumentChannelV1Message`, `AccountChannelV1Message`, `AlarmChannelV1Message`, `GpChannelV1Message` и вложенные) и константы `INSTRUMENT_CHANNEL_V1`, `ACCOUNT_CHANNEL_V1`, `ALARM_CHANNEL_V1`, `GP_CHANNEL_V1` (из `capabilities.py`/`capabilities.ts`, `ALL_CAPABILITY_IDS`, `afb_bf_protocol.__init__`). Остаются v2-каналы; из их описаний убраны упоминания v1. Фронтенды и бэкенды, согласовавшие только v1-каналы, перестают работать.
+- **Тип `InstrumentV1` убран из генерации моделей** (`ts/tools/generate-models.mjs`: корень `instrument.v1.json` в `SKIPPED_ROOTS`; из `models.ts`/`models_generated.py` исчез пустой `{[k: string]: unknown}`). Схема `instrument.v1.json` и её `$defs` остаются.
+
 Добавлено (additive):
 
 - **`common.v1.json#/$defs/instrument.broker_symbol`** (string, `minLength` 1): непрозрачный локатор брокера (`TICKER@MIC`); AFB берёт из `listing_link`, BF резолвит инструмент только по нему (или `binding.symbol`). В идентичность инструмента для `amend_rules` **не входит** (решает `instrument_key`, иначе `exchange/board/ticker/market`); тесты добавлены.

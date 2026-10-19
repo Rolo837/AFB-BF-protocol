@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/alarm.channel.v2.json",
   "x-afbws-support-id": "afbws.alarm.channel.v2",
   "title": "alarm channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.alarm.channel.v2). Items are afb.alarm.v2 (`instrument_key` instead of `ticker`). Same convention as afbws.market: ONE schema id per message (`afbws.alarm.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`). Collections are arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. `triggered` is the only server push (no `request_id`). A client negotiates v1 or v2 (v2 preferred if both are offered); the backend answers in the negotiated version only. See AFB/docs/ENTITY_WS_PROTOCOL.md.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.alarm.channel.v2). Items are afb.alarm.v2 (`instrument_key` instead of `ticker`). Same convention as afbws.market: ONE schema id per message (`afbws.alarm.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`). Collections are arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. `triggered` is the only server push (no `request_id`). See AFB/docs/ENTITY_WS_PROTOCOL.md.",
   "type": "object",
   "oneOf": [
     {

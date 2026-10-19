@@ -39,7 +39,7 @@
         "pink",
         "teal"
       ],
-      "description": "Same list and order as afbws.instrument.channel.v1#/$defs/favoriteColor (kept in lockstep; no cross-reference on purpose)."
+      "description": "Same list and order as afbws.instrument.channel.v2 favoriteColor (kept in lockstep; no cross-reference on purpose)."
     },
     "source": {
       "enum": [
