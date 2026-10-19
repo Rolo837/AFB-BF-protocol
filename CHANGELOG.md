@@ -8,6 +8,8 @@
 
 ## Unreleased
 
+## v2.9.0 — 2026-10-19
+
 **Ломающие изменения (MAJOR по `VERSIONING.md` §2; разрешены владельцем, окна совместимости со старым BF нет — AFB и BF выкатываются парой). Версию, тег и пины ставит пользователь.**
 
 - **Удалены `deal.v1` и `tradeplan.v1`.** Файлы `spec/schemas/deal.v1.json` и `tradeplan.v1.json` (и копии в `python/afb_bf_protocol/schemas/`), примеры `examples/deal.publish*` v1 и `examples/tradeplans/tradeplan.v1*.json`. `payloads/deal.publish.json`, `deal.amend.json`, `broker.resolve_instrument.json` принимают только `afb.deal.v2`; `afbws/deal.public.v1.json` — только v2-проекцию (def `v1` убран); `afbws/tradeplan.channel.v1.json` — `entity` = `tradeplan.v2` (def `entityV1` убран). `payload_validation`: `validate_deal` — только `afb.deal.v2`, `validate_tradeplan`/`resolve_tradeplan_schema` — только `afb.tradeplan.v2` (отсутствующее `schema` = v2). `amend_rules`: убраны v1-экстракторы (`_is_v2`, одно-объектные `entry`/`risk.*`). `condition.v1.json` остаётся. TS: убраны `DealV1`, `TradePlanV1`, `TradeplanEntityV1`, `DealPublicDealV1`.
