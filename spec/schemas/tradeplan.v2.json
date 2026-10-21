@@ -6,8 +6,9 @@
   "type": "object",
   "required": ["id", "direction", "schema", "entries", "sizing"],
   "anyOf": [{"required": ["ticker"]}, {"required": ["instrument_key"]}],
+  "additionalProperties": false,
   "properties": {
-    "id": {"type": "string", "minLength": 1},
+    "id": {"$ref": "common.v1.json#/$defs/tradeplanId"},
     "ticker": {"type": "string", "minLength": 1},
     "instrument_key": {"$ref": "afbws/common.v1.json#/$defs/instrumentKey", "description": "Full catalog key of the instrument (`<MIC>[:<board|market>]:<ticker>`): the authoritative reference. `ticker` stays as the derived short form while stored plans are migrated; at least one of the two is required. Case-sensitive, never normalized."},
     "status": {"enum": ["draft", "published", "completed", "archived"]},
@@ -27,20 +28,36 @@
     "entries": {
       "type": "array",
       "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": ["condition"],
-        "properties": {
-          "leg_id": {"$ref": "#/$defs/legId"},
-          "percent": {"$ref": "common.v1.json#/$defs/decimalString"},
-          "logic": {"$ref": "deal.v2.json#/$defs/legJoin"},
-          "condition": {"$ref": "#/$defs/tpConditionNode"}
-        }
-      }
+      "items": {"$ref": "#/$defs/tpLeg"}
     },
     "stop_loss": {"$ref": "#/$defs/tpExitList"},
     "take_profit": {"$ref": "#/$defs/tpExitList"},
     "sizing": {"$ref": "common.v1.json#/$defs/sizing"},
+    "publish": {"$ref": "#/$defs/publish"},
+    "connector": {
+      "type": "string",
+      "deprecated": true,
+      "description": "Deprecated pre-`publish` top-level connector id. AFB's parser still reads it as a fallback when `publish.bf_id` is absent (TradePlanV2.from_dict -> _coerce_publish_block) and rewrites the plan into `publish` on the next save, so the closed storage schema must keep accepting it until that fallback is removed. Never part of the channel contract."
+    },
+    "account_id": {
+      "type": "string",
+      "deprecated": true,
+      "description": "Deprecated pre-`publish` top-level account id — the companion of the deprecated `connector` (fallback for `publish.account_id`); see `connector`."
+    },
+    "delivery_at": {
+      "type": "string",
+      "description": "Server-owned storage field: AFB mail/deals read watermark (notifications with created_at <= delivery_at are treated as read on reconnect), advanced by the backend. Never part of the channel contract (afbws/tradeplan.channel.v2.json neither accepts nor returns it)."
+    },
+    "archived_components": {"$ref": "#/$defs/archivedComponents"},
+    "deal_id": {
+      "type": "string",
+      "deprecated": true,
+      "description": "Deprecated storage leftover of the pre-separation plan->deal link (an empty string in the only stored file that has it, an archived plan from 2026-08). The plan does not store the link — deals reference plans via deal.source.tradeplan_id. Never written by new AFB (TradePlanV2.to_dict drops it), never part of the channel contract; declared only so the closed storage schema accepts that file as it lies on disk."
+    },
+    "created_at": {"type": "string"},
+    "updated_at": {"type": "string"}
+  },
+  "$defs": {
     "publish": {
       "type": "object",
       "description": "Параметры публикации плана (используется ТОЛЬКО при публикации, не хранит связь с сделкой). bf_id — коннектор по умолчанию для UI; истина при публикации — bf_id из afbws.deal.publish.request.v1. account_id пусто/отсутствует — дефолтный (торговый) счёт коннектора, резолвится на лету (ExecutionService.resolve_plan_account).",
@@ -50,18 +67,26 @@
         "account_id": {"type": "string", "minLength": 1}
       }
     },
-    "delivery_at": {
-      "type": "string",
-      "description": "AFB mail/deals read watermark: notifications with created_at <= delivery_at are treated as read on reconnect."
+    "archivedComponents": {
+      "type": "object",
+      "description": "Server-owned storage field, written once when the plan is archived: a self-contained snapshot of the chart components the plan used (the plan's own line primitives — physically removed from the live gp store on archive — and the indicators its conditions reference), so an archived plan keeps its historical drawing without depending on gp. Items are copies of AFB's internal gp/indicator storage records, deliberately not formalized here (they are never sent to clients; the channel drops this field). Re-archiving an archived plan carries the snapshot forward unchanged.",
+      "required": ["primitives", "indicators"],
+      "additionalProperties": false,
+      "properties": {
+        "primitives": {"type": "array", "items": {"type": "object", "required": ["id"]}},
+        "indicators": {"type": "array", "items": {"type": "object", "required": ["id"]}}
+      }
     },
-    "created_at": {"type": "string"},
-    "updated_at": {"type": "string"}
-  },
-  "$defs": {
-    "legId": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Stable identity of this leg across edits — the key overrides/carry-over (tradeplan/deal separation Фаза B2) use to match a plan leg to its compiled deal leg, never array position. Assigned once when a leg is created and never reused/reassigned; a plan predating this field falls back to a deterministic `legacy:{role}:{index}` synthetic id at compile time (see AFB backend/tradeplans/models.py) until migrated."
+    "tpLeg": {
+      "type": "object",
+      "required": ["condition"],
+      "additionalProperties": false,
+      "properties": {
+        "leg_id": {"$ref": "common.v1.json#/$defs/legId", "description": "Absent only on plans stored before the field existed (the server back-fills it on the next write); never the synthetic `legacy:{role}:{index}` form."},
+        "percent": {"$ref": "common.v1.json#/$defs/decimalString"},
+        "logic": {"$ref": "deal.v2.json#/$defs/legJoin"},
+        "condition": {"$ref": "#/$defs/tpConditionNode"}
+      }
     },
     "primitiveRef": {
       "type": "object",
@@ -69,52 +94,48 @@
       "properties": {"primitive_id": {"type": "string", "minLength": 1}},
       "additionalProperties": false
     },
+    "conditionOp": {
+      "enum": [
+        "touch", "above", "below", "crosses_above", "crosses_below", "crossing",
+        "breakout", "breakdown"
+      ]
+    },
+    "conditionLeft": {
+      "description": "`condition.v1.json#/$defs/immediateExpr` (market entry) is valid only on an entry leg — enforced after compilation by deal.v2.json/BF, not here, same as the rest of this schema's left/right pairing.",
+      "oneOf": [
+        {"$ref": "deal.v2.json#/$defs/priceExpr"},
+        {"$ref": "deal.v2.json#/$defs/indicatorExpr"},
+        {"$ref": "deal.v2.json#/$defs/datasetExpr"},
+        {"$ref": "condition.v1.json#/$defs/immediateExpr"}
+      ]
+    },
+    "conditionRight": {
+      "oneOf": [
+        {"$ref": "deal.v2.json#/$defs/rightConst"},
+        {"$ref": "deal.v2.json#/$defs/indicatorExpr"},
+        {"$ref": "deal.v2.json#/$defs/datasetExpr"},
+        {"$ref": "#/$defs/primitiveRef"}
+      ]
+    },
     "tpConditionNode": {
       "type": "object",
       "required": ["left", "right"],
+      "additionalProperties": false,
       "properties": {
         "id": {"type": "string"},
-        "op": {
-          "enum": [
-            "touch", "above", "below", "crosses_above", "crosses_below", "crossing",
-            "breakout", "breakdown"
-          ]
-        },
+        "op": {"$ref": "#/$defs/conditionOp"},
         "timeframe": {
           "$ref": "condition.v1.json#/$defs/timeframe",
           "description": "Required (enforced after compilation, not here) when op is a price candle operator (breakout/breakdown/crossing)."
         },
-        "left": {
-          "description": "`condition.v1.json#/$defs/immediateExpr` (market entry) is valid only on an entry leg — enforced after compilation by deal.v2.json/BF, not here, same as the rest of this schema's left/right pairing.",
-          "oneOf": [
-            {"$ref": "deal.v2.json#/$defs/priceExpr"},
-            {"$ref": "deal.v2.json#/$defs/indicatorExpr"},
-            {"$ref": "deal.v2.json#/$defs/datasetExpr"},
-            {"$ref": "condition.v1.json#/$defs/immediateExpr"}
-          ]
-        },
-        "right": {
-          "oneOf": [
-            {"$ref": "deal.v2.json#/$defs/rightConst"},
-            {"$ref": "deal.v2.json#/$defs/indicatorExpr"},
-            {"$ref": "deal.v2.json#/$defs/datasetExpr"},
-            {"$ref": "#/$defs/primitiveRef"}
-          ]
-        }
+        "duration": {"$ref": "condition.v1.json#/$defs/duration"},
+        "left": {"$ref": "#/$defs/conditionLeft"},
+        "right": {"$ref": "#/$defs/conditionRight"}
       }
     },
     "tpExitList": {
       "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["condition"],
-        "properties": {
-          "leg_id": {"$ref": "#/$defs/legId"},
-          "percent": {"$ref": "common.v1.json#/$defs/decimalString"},
-          "logic": {"$ref": "deal.v2.json#/$defs/legJoin"},
-          "condition": {"$ref": "#/$defs/tpConditionNode"}
-        }
-      }
+      "items": {"$ref": "#/$defs/tpLeg"}
     }
   }
 }

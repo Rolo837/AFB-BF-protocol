@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/tradeplan.channel.v2.json",
+  "x-afbws-support-id": "afbws.tradeplan.channel.v2",
+  "title": "tradeplan channel v2 — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v2). Same convention as afbws.alarm/account/market v2: ONE schema id per message (`afbws.tradeplan.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`), and the server push `sync` is the same kind of message without `request_id`. Two plan shapes: `planInput` (what the client sends in `set` — the plan the user edits, NOT server-owned fields) and `planItem` (what the server returns — the stored plan minus `delivery_at`/`archived_components`/`archived_at`/`editor`, plus `instrument_missing`). Both are projections of the AFB-internal storage schema `../tradeplan.v2.json` (afb.tradeplan.v2), which stays the single source for the condition vocabulary; this channel schema is strict (additionalProperties:false) and carries no legacy forms: `leg_id` is never the synthetic `legacy:{role}:{index}`, `op` is mandatory on every condition, `schema` is mandatory, `instrument_key` is mandatory on input and on output either present or replaced by `instrument_missing:true`. See AFB/docs/ENTITY_WS_PROTOCOL.md.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/get" },
+    { "$ref": "#/$defs/list" },
+    { "$ref": "#/$defs/set" },
+    { "$ref": "#/$defs/delete" },
+    { "$ref": "#/$defs/archive" },
+    { "$ref": "#/$defs/sync" },
+    { "$ref": "#/$defs/error" }
+  ],
+  "$defs": {
+    "condition": {
+      "type": "object",
+      "title": "Condition of a plan leg — afb.tradeplan.v2 condition node with a mandatory `op`.",
+      "description": "Same vocabulary as ../tradeplan.v2.json#/$defs/tpConditionNode (price/indicator/dataset/immediate left side, const/indicator/dataset/primitive_id right side, timeframe, duration — the same shared defs) with `op` required: the storage schema tolerates a price leg without `op` (old stored files; means `touch`), the channel does not — the frontend always sends `op`, the server fills `touch` on output for such stored legs.",
+      "required": ["op", "left", "right"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "op": { "$ref": "../tradeplan.v2.json#/$defs/conditionOp" },
+        "timeframe": { "$ref": "../condition.v1.json#/$defs/timeframe" },
+        "duration": { "$ref": "../condition.v1.json#/$defs/duration" },
+        "left": { "$ref": "../tradeplan.v2.json#/$defs/conditionLeft" },
+        "right": { "$ref": "../tradeplan.v2.json#/$defs/conditionRight" }
+      }
+    },
+    "legInput": {
+      "type": "object",
+      "title": "A plan leg as sent by the client (entries / stop_loss / take_profit item).",
+      "description": "`leg_id` is optional on input: a new leg has none, the server assigns one on save (existing ids are never reassigned). `percent`/`logic` — see ../deal.v2.json#/$defs/legJoin.",
+      "required": ["condition"],
+      "additionalProperties": false,
+      "properties": {
+        "leg_id": { "$ref": "../common.v1.json#/$defs/legId" },
+        "percent": { "$ref": "../common.v1.json#/$defs/decimalString" },
+        "logic": { "$ref": "../deal.v2.json#/$defs/legJoin" },
+        "condition": { "$ref": "#/$defs/condition" }
+      }
+    },
+    "legItem": {
+      "type": "object",
+      "title": "A plan leg as returned by the server — `leg_id` is always present.",
+      "required": ["leg_id", "condition"],
+      "additionalProperties": false,
+      "properties": {
+        "leg_id": { "$ref": "../common.v1.json#/$defs/legId" },
+        "percent": { "$ref": "../common.v1.json#/$defs/decimalString" },
+        "logic": { "$ref": "../deal.v2.json#/$defs/legJoin" },
+        "condition": { "$ref": "#/$defs/condition" }
+      }
+    },
+    "planInput": {
+      "type": "object",
+      "title": "afb.tradeplan.v2 as accepted by `set` — the user-editable part of a plan.",
+      "description": "Deliberately has NO server-owned fields: `status` (lifecycle is driven by the plan's deals), `activated_at`, `closed_at`, `archived_at`, `created_at`, `updated_at`, `delivery_at`, `archived_components`, `instrument_missing`; the server keeps them from its own storage (a create starts as `draft`). `ticker` is not accepted either: it is derived by the server from `instrument_key`, the authoritative instrument reference (case-sensitive, never normalized). `editor` (frontend editor-mode hint) is not part of the channel: the current frontend neither sends nor reads it.",
+      "required": ["schema", "id", "instrument_key", "direction", "entries", "stop_loss", "take_profit", "sizing"],
+      "additionalProperties": false,
+      "properties": {
+        "schema": { "const": "afb.tradeplan.v2" },
+        "id": { "$ref": "../common.v1.json#/$defs/tradeplanId" },
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "direction": { "enum": ["long", "short"] },
+        "entries": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/legInput" } },
+        "stop_loss": { "type": "array", "items": { "$ref": "#/$defs/legInput" } },
+        "take_profit": { "type": "array", "items": { "$ref": "#/$defs/legInput" } },
+        "sizing": { "$ref": "../common.v1.json#/$defs/sizing" },
+        "publish": { "$ref": "../tradeplan.v2.json#/$defs/publish" }
+      }
+    },
+    "planItem": {
+      "type": "object",
+      "title": "afb.tradeplan.v2 as returned by the server (get/list/set/archive/sync/conflict).",
+      "description": "An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is present whenever the server could resolve one; a plan whose instrument is not in the catalog comes with `instrument_missing: true` (and possibly without `ticker`) — at least one of the two is always there. `ticker` is the derived wire ticker. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.",
+      "required": ["schema", "id", "direction", "status", "entries", "stop_loss", "take_profit", "sizing", "activated_at", "closed_at", "created_at", "updated_at"],
+      "additionalProperties": false,
+      "properties": {
+        "schema": { "const": "afb.tradeplan.v2" },
+        "id": { "$ref": "../common.v1.json#/$defs/tradeplanId" },
+        "ticker": { "type": "string", "minLength": 1 },
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "instrument_missing": {
+          "const": true,
+          "description": "Overlaid on output only (not persisted): the plan's instrument is not found in the catalog. A reference note, not a lifecycle state. Absent otherwise."
+        },
+        "direction": { "enum": ["long", "short"] },
+        "status": { "enum": ["draft", "published", "completed", "archived"] },
+        "entries": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/legItem" } },
+        "stop_loss": { "type": "array", "items": { "$ref": "#/$defs/legItem" } },
+        "take_profit": { "type": "array", "items": { "$ref": "#/$defs/legItem" } },
+        "sizing": { "$ref": "../common.v1.json#/$defs/sizing" },
+        "publish": { "$ref": "../tradeplan.v2.json#/$defs/publish" },
+        "activated_at": { "type": "string" },
+        "closed_at": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "if": { "not": { "required": ["instrument_key"] } },
+      "then": { "required": ["instrument_missing"] }
+    },
+    "dealStatus": {
+      "enum": ["draft", "publishing", "published", "active", "paused", "closed", "cancelled", "orphaned"],
+      "description": "Deal status after an accepted amend — the same vocabulary as deal_state.v2.json `status` (kept equal by a test; the deal channel will move it to a shared def)."
+    },
+    "amendResultItem": {
+      "type": "object",
+      "title": "afbws.tradeplan.amend_result.v2 — per-deal outcome of re-amending live deals after a plan change",
+      "description": "accepted=true: the deal was amended, `revision` is its new revision (integer; null only if the deal did not report one) and `status` its status after the amend. accepted=false: the deal is unchanged, `message` says why (a human-readable gate/validation text) and `code` is set only for the one machine-readable case the server distinguishes: `tradeplan_missing` (the deal's own tradeplan no longer exists — an orphaned deal). `revision`/`status` never appear on a rejection.",
+      "required": ["schema", "deal_id", "accepted"],
+      "additionalProperties": false,
+      "properties": {
+        "schema": { "const": "afbws.tradeplan.amend_result.v2" },
+        "deal_id": { "type": "string", "minLength": 1 },
+        "accepted": { "type": "boolean" },
+        "revision": { "type": ["integer", "null"] },
+        "status": { "$ref": "#/$defs/dealStatus" },
+        "message": { "type": "string", "minLength": 1 },
+        "code": { "enum": ["tradeplan_missing"] }
+      },
+      "if": { "properties": { "accepted": { "const": true } }, "required": ["accepted"] },
+      "then": { "required": ["revision", "status"], "not": { "anyOf": [{ "required": ["message"] }, { "required": ["code"] }] } },
+      "else": { "required": ["message"], "not": { "anyOf": [{ "required": ["revision"] }, { "required": ["status"] }] } }
+    },
+    "errorDetails": {
+      "type": "object",
+      "title": "Populated on `conflict` only: the authoritative current plan.",
+      "description": "A `conflict` is a delete/archive blocked by a live deal that already entered a position (or by deals in general for delete), or a `set` whose conditions reference a primitive owned by another plan. `current_item` is the plan as the server holds it, so the client can show it without a separate get.",
+      "required": ["current_item"],
+      "additionalProperties": false,
+      "properties": {
+        "current_item": { "$ref": "#/$defs/planItem" }
+      }
+    },
+    "get": {
+      "type": "object",
+      "title": "afbws.tradeplan.get.v2 — read one plan (request / response).",
+      "description": "Request: `id`. Response (same `request_id`): `item`. Exactly one of the two.",
+      "required": ["channel", "schema", "request_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.get.v2" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "$ref": "../common.v1.json#/$defs/tradeplanId" },
+        "item": { "$ref": "#/$defs/planItem" }
+      },
+      "if": { "required": ["id"] },
+      "then": { "not": { "required": ["item"] } },
+      "else": { "required": ["item"] }
+    },
+    "list": {
+      "type": "object",
+      "title": "afbws.tradeplan.list.v2 — read the caller's plans (request / response).",
+      "description": "Request: optional filter `instrument_keys[]` (none = every non-archived plan of the caller; archived plans are not listed, use `get`). Response (same `request_id`): `items[]`. A request carrying `items` is invalid, as is a response carrying a filter.",
+      "required": ["channel", "schema", "request_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.list.v2" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "instrument_keys": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "common.v1.json#/$defs/instrumentKey" }
+        },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/planItem" } }
+      },
+      "not": { "required": ["items", "instrument_keys"] }
+    },
+    "set": {
+      "type": "object",
+      "title": "afbws.tradeplan.set.v2 — upsert one plan (request / response).",
+      "description": "Request: `item` is a `planInput` (create or update by `item.id`). Response (same `request_id`): `item` is the saved `planItem` and `amend_results[]` lists the per-deal outcome of re-amending the plan's live deals (always empty for a create). Distinguished by `amend_results`: present => response, absent => request. There is no push on set.",
+      "required": ["channel", "schema", "request_id", "item"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.set.v2" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "item": { "anyOf": [{ "$ref": "#/$defs/planInput" }, { "$ref": "#/$defs/planItem" }] },
+        "amend_results": { "type": "array", "items": { "$ref": "#/$defs/amendResultItem" } }
+      },
+      "if": { "required": ["amend_results"] },
+      "then": { "properties": { "item": { "$ref": "#/$defs/planItem" } } },
+      "else": { "properties": { "item": { "$ref": "#/$defs/planInput" } } }
+    },
+    "delete": {
+      "type": "object",
+      "title": "afbws.tradeplan.delete.v2 — physically delete a never-published draft (request / response).",
+      "description": "Request and response are the same message: `id` (the response echoes `request_id` and the deleted `id`). Allowed only for a plan that never had a deal; otherwise `conflict` (use archive). The deletion is NOT pushed.",
+      "required": ["channel", "schema", "request_id", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.delete.v2" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "$ref": "../common.v1.json#/$defs/tradeplanId" }
+      }
+    },
+    "archive": {
+      "type": "object",
+      "title": "afbws.tradeplan.archive.v2 — manual archival (request / response).",
+      "description": "Request: `id`. Response (same `request_id`): `item` — the plan with status `archived`. Blocked while the plan has a live deal that already entered a position -> `error` code `conflict` with `details.current_item`. Archival is also delivered as a `sync` push to the user's other connections.",
+      "required": ["channel", "schema", "request_id"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.archive.v2" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "id": { "$ref": "../common.v1.json#/$defs/tradeplanId" },
+        "item": { "$ref": "#/$defs/planItem" }
+      },
+      "if": { "required": ["id"] },
+      "then": { "not": { "required": ["item"] } },
+      "else": { "required": ["item"] }
+    },
+    "sync": {
+      "type": "object",
+      "title": "afbws.tradeplan.sync.v2 — server push (no request_id): partial update by id.",
+      "description": "`items[]` (at least one) is a DELTA, not a snapshot: the client upserts plans in its own list by matching id and leaves everything else untouched. The authoritative full list comes only from afbws.tradeplan.list.v2. Sent on plan lifecycle changes (status derived from its deals) and archival. Plan deletion and `set` are NOT conveyed by this push. Never a request: `request_id` is not allowed.",
+      "required": ["channel", "schema", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.sync.v2" },
+        "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/planItem" } }
+      }
+    },
+    "error": {
+      "type": "object",
+      "title": "afbws.tradeplan.error.v2 — typed error for a whole request (server -> client).",
+      "description": "`details` is present exactly for `conflict` (see errorDetails) and forbidden for every other code.",
+      "required": ["channel", "schema", "request_id", "code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "tradeplan" },
+        "schema": { "const": "afbws.tradeplan.error.v2" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "code": { "$ref": "common.v1.json#/$defs/errorCode" },
+        "message": { "type": "string", "minLength": 1 },
+        "details": { "$ref": "#/$defs/errorDetails" }
+      },
+      "if": { "properties": { "code": { "const": "conflict" } }, "required": ["code"] },
+      "then": { "required": ["details"] },
+      "else": { "not": { "required": ["details"] } }
+    }
+  }
+}

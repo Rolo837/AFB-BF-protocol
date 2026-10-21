@@ -410,6 +410,7 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/schemas/gp.v1.json` / `gp.v2.json` | Графический примитив AFB v1 / v2 (см. §11.1) |
 | `spec/schemas/afbws/{alarm,gp}.channel.v2.json` | Каналы alarm/gp v2 (capability `afbws.alarm.channel.v2`, `afbws.gp.channel.v2`) |
 | `spec/schemas/config.v1.json` | Настройки пользователя AFB (`settings`: `profile`/`interface`/`dataset`/`dashboard`/`trade`) и платформенные дефолты (`$defs/defaults`), AFB↔фронтенд |
+| `spec/schemas/afbws/tradeplan.channel.v2.json` | Канал `tradeplan` v2 (capability `afbws.tradeplan.channel.v2`): `get`/`list`/`set`/`delete`/`archive`/`sync`/`error`, один schema id на сообщение (`afbws.tradeplan.<op>.v2`), пуш `sync` без `request_id`; `planInput` (что принимает `set`) и `planItem` (что отдаёт сервер), строгие, без legacy-форм (см. §11.1) |
 | `spec/schemas/afbws/account.channel.v2.json` | Канал `account` v2 (capability `afbws.account.channel.v2`): `list`/`orders`/`events`/`error`, один schema id на сообщение (`afbws.account.<op>.v2`), пуш без `request_id` у `list` (полный список счетов одного `bf_id`) и `orders`; одиночный счёт — `list` с `bf_id`+`account_id` |
 | `spec/schemas/afbws/config.channel.v1.json` | Канал `config` (capability `afbws.config.channel.v1`): `settings`/`defaults`/`help`/`roles`/`token`, один schema id на сообщение, `afbws.config.error.v1` с `item` вместо флага `rejected`; заменяет legacy-каналы `settings`/`help`/`setup` |
 | `spec/schemas/afbws/catalog.channel.v1.json` | Канал `catalog` (capability `afbws.catalog.channel.v1`), только менеджер: `snapshot`/`symbols`/`support`/`commit`/`refresh`, один schema id на сообщение, списки ≤100, пуш итога обновления `refresh` без `request_id`; заменяет менеджерскую половину `afbws.instrument` (`catalog`/`pool`/`inventory`/`commit`/`refresh`) |
@@ -419,6 +420,7 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `examples/tradeplans/` | Примеры шаблонов ТП (не конверты, не подписываются) |
 | `examples/alarms/` | Примеры алармов (не конверты, не подписываются) |
 | `examples/alarms_v2/` | Примеры алармов `afb.alarm.v2` |
+| `examples/tradeplan_channel_v2/` | Примеры сообщений канала `tradeplan` v2 (запрос/ответ/пуш по сообщению) |
 | `python/afb_bf_protocol/` | Python-пакет: модели, подпись, валидация |
 | `python/afb_bf_protocol/payload_validation.py` | Рантайм-валидация deal/tradeplan/alarm payload'ов (extra `[validation]`) |
 | `python/afb_bf_protocol/condition_semantics.py` | Эталонный evaluator операторов условия (см. §12) |
@@ -554,6 +556,29 @@ Top-level `period` — общий таймфрейм вычисления ала
     нет, `request_id` обязателен), `error`. Операции `get` нет: счёт — `list` с
     `bf_id` и `account_id`. Формы `accountSnapshot`/`order`/`eventRecord` определены в самом файле; мультивалютность — через `cash[]`, у виртуального
     счёта заполняется `as_of`. Запрос не несёт `items`; ответ не несёт полей запроса.
+  - `tradeplan.channel.v2`: `get` (запрос `id`; ответ `item`), `list` (фильтр `instrument_keys[]`;
+    ответ `items[]`, архивные планы не входят), `set` (запрос — `item` = `planInput`; ответ — `item` =
+    `planItem` + `amend_results[]` с итогом переамендинга живых сделок плана; пуша на `set` нет),
+    `delete` (`id`; только для ни разу не публиковавшегося черновика, удаление не пушится), `archive`
+    (запрос `id`, ответ `item`), `sync` (push без `request_id`: `items[]` — дельта планов по `id`,
+    не снимок; шлётся при смене статуса плана по его сделкам и при архивации), `error`
+    (`conflict` несёт `details.current_item` — актуальный `planItem`; для остальных кодов `details`
+    запрещён). Состав:
+    - `planInput` — только редактируемая часть плана: `schema` (`afb.tradeplan.v2`), `id`,
+      `instrument_key` (обязателен; `ticker` сервер выводит сам), `direction`, `entries[]`,
+      `stop_loss[]`, `take_profit[]`, `sizing`, `publish?`. Серверных полей (`status`,
+      `activated_at`/`closed_at`/`created_at`/`updated_at`, `delivery_at`, `archived_*`,
+      `instrument_missing`) во входе нет — сервер хранит их у себя (создание начинается с `draft`).
+    - `planItem` — то, что отдаёт сервер: `planInput` + `ticker?`, `status`, `activated_at`,
+      `closed_at`, `created_at`, `updated_at`, `instrument_missing?`; у каждой ноги есть `leg_id`.
+      `delivery_at`, `archived_components`, `archived_at`, `editor` наружу не уходят. Инструмент:
+      либо `instrument_key`, либо `instrument_missing: true`.
+    - Условие ноги — `op` обязателен всегда; `leg_id` — только настоящий (синтетического
+      `legacy:{role}:{index}` в канале нет). Общие `legId`/`tradeplanId` живут в
+      `common.v1.json`. Внутренняя схема хранилища `tradeplan.v2.json` закрыта
+      (`additionalProperties: false`) и содержит серверные поля (`delivery_at`,
+      `archived_components`) и помеченные `deprecated` остатки старых форматов
+      (`connector`, `account_id`, `deal_id`), которые канал не пропускает.
   - `gp.channel.v2`: `list`, `set` (`items[]`; без `request_id` — push владения),
     `delete` (`ids[]` и/или `instrument_keys[]` — «удалить все свободные примитивы
     инструмента» одним сообщением; примитивы плана в `rejected[]` с `conflict`;

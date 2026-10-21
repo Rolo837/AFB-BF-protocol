@@ -12,6 +12,7 @@ export const INSTRUMENT_CHANNEL_V2 = "afbws.instrument.channel.v2";
 export const LINK_CHANNEL_V1 = "afbws.link.channel.v1";
 export const MARKET_CHANNEL_V1 = "afbws.market.channel.v1";
 export const TRADEPLAN_CHANNEL_V1 = "afbws.tradeplan.channel.v1";
+export const TRADEPLAN_CHANNEL_V2 = "afbws.tradeplan.channel.v2";
 
 export const ALL_CAPABILITY_IDS: ReadonlySet<string> = new Set([
   ACCOUNT_CHANNEL_V2,
@@ -24,4 +25,5 @@ export const ALL_CAPABILITY_IDS: ReadonlySet<string> = new Set([
   LINK_CHANNEL_V1,
   MARKET_CHANNEL_V1,
   TRADEPLAN_CHANNEL_V1,
+  TRADEPLAN_CHANNEL_V2,
 ]);
