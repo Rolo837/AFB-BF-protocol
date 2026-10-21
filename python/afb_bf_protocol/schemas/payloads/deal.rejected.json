@@ -10,7 +10,8 @@
       "description": "Machine-readable rejection code. Instrument-resolution codes: `instrument_unresolvable` (no broker symbol in the binding or target.instrument.broker_symbol, or the broker does not know it), `instrument_mismatch` (the broker asset behind broker_symbol disagrees with the deal's exchange/board/ticker), `instrument_delisted` (the instrument was delisted/archived at the broker), `unsupported` (the BF/connector cannot execute this deal, e.g. an unsupported mode/market)."
     },
     "command_type": {
-      "type": "string"
+      "type": "string",
+      "description": "Command type of the AFB command that was rejected. Absent for rejections not caused by an AFB command (e.g. execution: the broker rejected the entry order)."
     },
     "deal_id": {
       "type": [
@@ -25,14 +26,53 @@
     },
     "message": {
       "type": "string"
+    },
+    "broker_error": {
+      "$ref": "#/$defs/brokerError"
     }
   },
   "additionalProperties": true,
   "required": [
-    "code",
-    "command_type"
+    "code"
   ],
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/deal.rejected.json",
-  "title": "payload: deal.rejected"
+  "title": "payload: deal.rejected",
+  "$defs": {
+    "brokerError": {
+      "type": "object",
+      "description": "Structured broker error behind the rejection. BF sends it only for USER-kind errors (those that must reach the user). Dictionary of `kind` is part of the contract: the frontend picks the user text by it. DAEMON-kind errors (unavailable, timeout, rate_limited, session_closed, trading_halted, auction_only, auth_expired) are handled by the BF daemon itself, never become a rejection and are never sent here. `native_code`/`native_message` are exactly as the broker returned them, unprocessed.",
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "description": "BF error dictionary (USER kinds): `insufficient_funds`, `invalid_order`, `instrument_not_found`, `instrument_not_tradable`, `permission_denied`, `auth_failed`, `rejected` (broker refused for an unknown reason), `unknown`. The set may grow: a consumer MUST tolerate an unknown value (show native_message, fall back to `code`/`message`).",
+          "examples": [
+            "insufficient_funds",
+            "invalid_order",
+            "instrument_not_found",
+            "rejected"
+          ]
+        },
+        "native_code": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Broker's own error code as a string (e.g. `145`), null if the broker gave none."
+        },
+        "native_message": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Broker's own error text, unprocessed; null if none."
+        }
+      }
+    }
+  }
 }

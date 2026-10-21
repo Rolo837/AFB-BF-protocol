@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: eb7b34cf0449db4654c04fd70cfb892cf66afb20a4d189d234056de0c07abe99
+# source-hash: a4c2fae05428e4c37a821667c1489bbf9513817f7a802c96468dad194b3b8bb7
 
 from __future__ import annotations
 
@@ -2335,14 +2335,16 @@ class DealRecordPush(TypedDict):
     deal_id: DealId
     bf_id: BfId
     item: DealDetail
+    outcome: NotRequired[Outcome]
 
 
 class DealRejectedPayload(TypedDict):
     at: NotRequired[str]
     code: str
-    command_type: str
+    command_type: NotRequired[str]
     deal_id: NotRequired[str | float | int | bool | dict[str, Any] | list[Any] | None]
     message: NotRequired[str]
+    broker_error: NotRequired[PayloadsDealRejectedBrokerError]
 
 
 class DealReportPayload(TypedDict):
@@ -3749,6 +3751,18 @@ class OrderFilledPayload(TypedDict):
     status: str
 
 
+class Outcome(TypedDict):
+    """
+    Result of the last command/event for this deal, replacing the former out-of-schema `notify`. AFB composes no user-facing texts: it only passes through what BF returned (`message`, `broker_error`); the text is built on the frontend. Optional: absent for pushes that carry no outcome.
+    """
+
+    command: NotRequired[str | None]
+    result: Literal["accepted", "rejected"]
+    code: NotRequired[str | None]
+    message: NotRequired[str | None]
+    broker_error: NotRequired[PayloadsDealRejectedBrokerError | None]
+
+
 class PayloadsBrokerAccountsAccount(TypedDict):
     account_id: str
     tradable: bool
@@ -3786,6 +3800,16 @@ class PayloadsBrokerOrdersOrder(TypedDict):
     updated_at: NotRequired[str]
     error_code: NotRequired[str | None]
     error_message: NotRequired[str | None]
+
+
+class PayloadsDealRejectedBrokerError(TypedDict):
+    """
+    Structured broker error behind the rejection. BF sends it only for USER-kind errors (those that must reach the user). Dictionary of `kind` is part of the contract: the frontend picks the user text by it. DAEMON-kind errors (unavailable, timeout, rate_limited, session_closed, trading_halted, auction_only, auth_expired) are handled by the BF daemon itself, never become a rejection and are never sent here. `native_code`/`native_message` are exactly as the broker returned them, unprocessed.
+    """
+
+    kind: str
+    native_code: NotRequired[str | None]
+    native_message: NotRequired[str | None]
 
 
 class Plans(TypedDict):
