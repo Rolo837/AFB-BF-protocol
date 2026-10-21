@@ -16,6 +16,7 @@ __all__ = [
     "CATALOG_CHANNEL_V1",
     "CONFIG_CHANNEL_V1",
     "DEAL_CHANNEL_V1",
+    "DEAL_CHANNEL_V2",
     "GP_CHANNEL_V2",
     "INSTRUMENT_CHANNEL_V2",
     "LINK_CHANNEL_V1",
@@ -30,6 +31,7 @@ ALARM_CHANNEL_V2 = "afbws.alarm.channel.v2"
 CATALOG_CHANNEL_V1 = "afbws.catalog.channel.v1"
 CONFIG_CHANNEL_V1 = "afbws.config.channel.v1"
 DEAL_CHANNEL_V1 = "afbws.deal.channel.v1"
+DEAL_CHANNEL_V2 = "afbws.deal.channel.v2"
 GP_CHANNEL_V2 = "afbws.gp.channel.v2"
 INSTRUMENT_CHANNEL_V2 = "afbws.instrument.channel.v2"
 LINK_CHANNEL_V1 = "afbws.link.channel.v1"
@@ -43,6 +45,7 @@ ALL_CAPABILITY_IDS: frozenset[str] = frozenset({
     CATALOG_CHANNEL_V1,
     CONFIG_CHANNEL_V1,
     DEAL_CHANNEL_V1,
+    DEAL_CHANNEL_V2,
     GP_CHANNEL_V2,
     INSTRUMENT_CHANNEL_V2,
     LINK_CHANNEL_V1,

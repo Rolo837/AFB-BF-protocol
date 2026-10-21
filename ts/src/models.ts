@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: be623b093c1cb99277a06c2d01120138f82171622c40894f40e7d5841b53617e
+ * source-hash: 8be25755c5b8322e74dab78a663714fa45229ce8be6d4ca07811088431579ebf
  */
 
 /**
@@ -656,6 +656,140 @@ export type DealOperationItem = {
   cancel_open_orders?: boolean;
 };
 /**
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.deal.channel.v2). Same convention as afbws.alarm/account/tradeplan v2: ONE schema id per message (`afbws.deal.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`); server pushes (`record`, `outcome`, `event`, `pnl`, `triggered`) are the same kind of message without `request_id`. State and facts are split: `record` is the authoritative state of a deal, `outcome` the result of a command, `event` a thin allow-listed fact for the feed (typed per event, see $defs/event), `pnl` the periodic unrealized P&L, `triggered` the guaranteed notifications (acked with `ack`). Strict (additionalProperties:false), no legacy forms: `status`/`execution_phase` are the shared enums (common.v1.json#/$defs/dealStatus, executionPhase), `error.details` does not exist (the server populates none). `item`/`items`/`results` never carry the persisted DealState file shape (source_refs, status_history, event_journal, raw orders/positions, observed) — see $defs/dealSummary and $defs/dealDetail, explicit allow-list projections built by backend/trade/public_views.py. publish/rebind/amend resolve the source tradeplan only via the deal's own link (deal.public.v1.json source.tradeplan_id); they never accept an inline plan-like draft. See AFB/docs/ws/deal.md.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealChannelV2Message".
+ */
+export type DealChannelV2Message =
+  | DealV2Get
+  | DealV2List
+  | DealV2Publish
+  | DealV2Rebind
+  | DealV2Operation
+  | DealV2Amend
+  | DealV2Ack
+  | DealV2Error
+  | DealV2Record
+  | DealV2Outcome
+  | DealV2Event
+  | DealV2Pnl
+  | DealV2Triggered;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Id".
+ */
+export type DealV2Id = string;
+/**
+ * Deal status — the single vocabulary of deal_state.v2.json `status` (kept equal by a test) used by the afbws deal/tradeplan channels. Deletion is not a status.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealStatus".
+ */
+export type DealStatus =
+  'draft' | 'publishing' | 'published' | 'active' | 'paused' | 'closed' | 'cancelled' | 'orphaned';
+/**
+ * Execution phase of a deal — the single vocabulary of deal_state.v2.json `execution_phase` (kept equal by a test).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealExecutionPhase".
+ */
+export type DealExecutionPhase = 'idle' | 'awaiting_entry' | 'entry_working' | 'holding' | 'exit_working';
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2BfId".
+ */
+export type DealV2BfId = string;
+/**
+ * Id of an AFB tradeplan (state/tradeplans/<user_id>/<id>.yaml). Opaque, case-sensitive. Shared by tradeplan.v2.json, afbws/tradeplan.channel.v2.json and gp.v2.json (`tradeplan_id`, the owning plan of a primitive).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanId".
+ */
+export type TradeplanId = string;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2AmendField".
+ */
+export type DealV2AmendField = 'entry' | 'sizing' | 'stop_loss' | 'take_profit' | 'execution_policy';
+/**
+ * Status in an operation/publish result row: the deal status after the command, or `deleted` right after `delete` (the deal is archived and no longer exists as a record).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2ResultStatus".
+ */
+export type DealV2ResultStatus = DealStatus | 'deleted';
+/**
+ * Request: `events[]` (afb.deal.trigger_ack.v2), at least one. Response (same `request_id`): `results[]` — one per event, `status` ok | not_found. Exactly one of `events` / `results`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Ack".
+ */
+export type DealV2Ack = {
+  [k: string]: unknown;
+} & {
+  channel: 'deal';
+  schema: 'afbws.deal.ack.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * @minItems 1
+   */
+  events?: [DealV2AckEvent, ...DealV2AckEvent[]];
+  results?: DealV2AckResultItem[];
+};
+/**
+ * A thin, allow-listed event for the event feed, the order/position patches and the chart markers — never a state snapshot (state: `afbws.deal.record.v2`) and never a raw BF payload: only the fields a consumer reads or that make up the meaning of the event are listed, everything else BF sends (`broker_instrument`, `validation`, `execution_legs`, `target_instrument_patch`, `binding`, `snapshot`, `observed`, `deal.snapshot` altogether) is dropped. `data` is determined by `event` within `category`; `category` is fixed per event.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Event".
+ */
+export type DealV2Event =
+  | DealV2EventDealCreated
+  | DealV2EventDealAmended
+  | DealV2EventDealAccepted
+  | DealV2EventDealRejected
+  | DealV2EventDealStatusChanged
+  | DealV2EventDealDeleted
+  | DealV2EventDealReport
+  | DealV2EventDealOrdersSynced
+  | DealV2EventDealPositionsSynced
+  | DealV2EventOrderCreated
+  | DealV2EventOrderFilled
+  | DealV2EventOrderPartiallyFilled
+  | DealV2EventOrderCancelled
+  | DealV2EventOrderRejected
+  | DealV2EventPositionOpened
+  | DealV2EventPositionChanged
+  | DealV2EventPositionClosed
+  | DealV2EventConditionTriggered;
+/**
+ * Role of an order / of the leg whose condition fired. Superset of deal_state.v2 order.role: `external_close` is the synthetic order BF records when the position was closed outside the deal (it emits order.* for it too).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2OrderRole".
+ */
+export type DealV2OrderRole = 'entry' | 'stop_loss' | 'take_profit' | 'cancel_close' | 'backstop' | 'external_close';
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2OrderSide".
+ */
+export type DealV2OrderSide = 'buy' | 'sell';
+/**
+ * Order status carried by an order.* event: deal_state.v2 order.status plus `unknown` (a broker answer BF could not map; BF then verifies the order against the broker).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2OrderEventStatus".
+ */
+export type DealV2OrderEventStatus =
+  'new' | 'partially_filled' | 'filled' | 'cancelled' | 'rejected' | 'watching' | 'expired' | 'unknown';
+/**
+ * Schema analogue of the legacy TriggeredDealItem — not the MQTT notification.deal.v1 payload (different transport). `notification_id` is the idempotency key the client acks.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2TriggerEvent".
+ */
+export type DealV2TriggerEvent = DealV2TriggerStatusChanged | DealV2TriggerRejected | DealV2TriggerReport;
+/**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.gp.channel.v2). Items are afb.gp.v2 (`instrument_key`, kinds trendline/fibonacci; primitive parameters `start`/`stop`/`text` live in the `settings` dictionary, strictly typed by `kind`). Same convention as afbws.market: ONE schema id per message (`afbws.gp.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response and, where documented, a server push. Requests and responses are told apart by direction and fields (a response echoes the request's `request_id`); a message WITHOUT `request_id` is a server push. Collections are always arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. Chart-indicator management (replaces legacy settings/{get,set,get_default,set_default} `indicators`) is `indicator.list|set|delete`; shared indicators are changed by a manager only and pushed to everyone via `indicator.set`/`indicator.delete` without `request_id`. Primitive display settings: `style`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -681,7 +815,7 @@ export type GpV2 = {
    */
   settings: GpV2PrimitiveSettingsLine | GpV2PrimitiveSettingsNote | GpV2PrimitiveSettingsTwoPoint;
   /**
-   * Владеющий торговый план. Проставляется сервером при компиляции плана в сделку (публикация/amend); снимается только при физическом удалении плана. Клиент это поле не задаёт и не меняет — в set-запросе оно игнорируется в пользу хранимого значения. Пустое/отсутствующее — свободный примитив, доступный любому плану. При архивации плана его уровни физически удаляются из этого хранилища, но условия плана НЕ переписываются в числа — план сохраняет исходные ссылки на примитивы; полная копия каждого удалённого уровня (kind/координаты/стиль) переносится в archived_components плана и является источником его исторической отрисовки.
+   * Id of an AFB tradeplan (state/tradeplans/<user_id>/<id>.yaml). Opaque, case-sensitive. Shared by tradeplan.v2.json, afbws/tradeplan.channel.v2.json and gp.v2.json (`tradeplan_id`, the owning plan of a primitive).
    */
   tradeplan_id?: string;
 };
@@ -1229,13 +1363,6 @@ export type TradePlanV21 = {
   [k: string]: unknown;
 };
 /**
- * Id of an AFB tradeplan (state/tradeplans/<user_id>/<id>.yaml). Opaque, case-sensitive. Shared by tradeplan.v2.json, afbws/tradeplan.channel.v2.json and gp.v2.json (`tradeplan_id`, the owning plan of a primitive).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanId".
- */
-export type TradeplanId = string;
-/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2_ConditionOp".
  */
@@ -1274,14 +1401,6 @@ export type TradeplanChannelV2Message =
   | TradeplanV2Archive
   | TradeplanV2Sync
   | TradeplanV2Error;
-/**
- * Deal status after an accepted amend — the same vocabulary as deal_state.v2.json `status` (kept equal by a test; the deal channel will move it to a shared def).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV2DealStatus".
- */
-export type TradeplanV2DealStatus =
-  'draft' | 'publishing' | 'published' | 'active' | 'paused' | 'closed' | 'cancelled' | 'orphaned';
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AlarmV1_AlarmConditionNode".
@@ -2776,6 +2895,936 @@ export interface DealAckResultItem {
   status: 'ok' | 'not_found';
 }
 /**
+ * Request: `deal_id`. Response (same `request_id`): `item`. Exactly one of the two.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Get".
+ */
+export interface DealV2Get {
+  channel: 'deal';
+  schema: 'afbws.deal.get.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  deal_id?: DealV2Id;
+  item?: DealV2Detail;
+}
+/**
+ * Allow-list built by backend/trade/public_views.py::deal_detail. `deal` is the public afb.deal.v2 projection (deal.public.v1.json). `editable_fields` lists what the current status/execution_phase allows to amend.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Detail".
+ */
+export interface DealV2Detail {
+  deal_id: DealV2Id;
+  revision: number;
+  status: DealStatus;
+  execution_phase: DealExecutionPhase;
+  bf_id: DealV2BfId;
+  tradeplan_id: TradeplanId;
+  ticker: string;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key?: string;
+  market?: 'stock' | 'futures' | 'currency';
+  direction: 'long' | 'short';
+  sizing?: DealSizing;
+  execution_policy?: DealExecutionPolicy;
+  broker_sizing?: DealV2SizingDisplay;
+  realized_pnl?: DealV2RealizedPnl;
+  position?: DealV2OpenPosition;
+  created_at: string;
+  updated_at: string;
+  deal: DealPublicV1;
+  editable_fields: DealV2AmendField[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2SizingDisplay".
+ */
+export interface DealV2SizingDisplay {
+  lots?: number;
+  required_cash?: string;
+  /**
+   * BF-resolved actual order quantity (lots), fixed once at entry-trigger time — distinct from `lots`, which stays the pre-trade publish estimate. Present only once BF has reported it (`status_changed.quantity`).
+   */
+  resolved_lots?: number;
+}
+/**
+ * Absent entirely means no ledger yet (deal predates it, or has not had an exit fill) — distinct from a present-but-degraded value.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2RealizedPnl".
+ */
+export interface DealV2RealizedPnl {
+  /**
+   * Decimal string, rubles. Null exactly when degraded is set — a fill's money multiplier (step_price/price_step or lot_size) could not be resolved.
+   */
+  value: string | null;
+  degraded: null | 'missing_price' | 'missing_step_price';
+}
+/**
+ * Absent entirely means flat (no open position) or not yet known — distinct from a present qty of 0, which is never emitted.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2OpenPosition".
+ */
+export interface DealV2OpenPosition {
+  /**
+   * Signed net quantity (positive long, negative short).
+   */
+  qty: number;
+  /**
+   * Decimal string — weighted-average open entry price.
+   */
+  avg_price: string;
+  /**
+   * ISO-8601 timestamp this snapshot was computed at.
+   */
+  as_of: string;
+}
+/**
+ * Request: no filters (the plan->deals grouping is built from `tradeplan_id` of each row, not a server-side filter). Response (same `request_id`): `items[]`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2List".
+ */
+export interface DealV2List {
+  channel: 'deal';
+  schema: 'afbws.deal.list.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  items?: DealV2Summary[];
+}
+/**
+ * Explicit allow-list built by backend/trade/public_views.py::deal_summary, never a serialization of the persisted DealState (source_refs, status_history, event_journal, raw orders/positions, observed, owner_user_id never appear). `sizing` is the user-set {mode,value} from the «Риск и объём» block — NOT the broker_sizing projection, see `broker_sizing`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Summary".
+ */
+export interface DealV2Summary {
+  deal_id: DealV2Id;
+  revision: number;
+  status: DealStatus;
+  execution_phase: DealExecutionPhase;
+  bf_id: DealV2BfId;
+  tradeplan_id: TradeplanId;
+  ticker: string;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key?: string;
+  market?: 'stock' | 'futures' | 'currency';
+  direction: 'long' | 'short';
+  sizing?: DealSizing;
+  execution_policy?: DealExecutionPolicy;
+  broker_sizing?: DealV2SizingDisplay;
+  realized_pnl?: DealV2RealizedPnl;
+  position?: DealV2OpenPosition;
+  created_at: string;
+  updated_at: string;
+}
+/**
+ * Request: `tradeplan_id` + `bf_id` (no inline plan draft, no plural bf_ids — 1:1). Response (same `request_id`): `results[]` (batch-shaped, at most one element today) and `accepted`. Distinguished by `results`: present => response, absent => request.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Publish".
+ */
+export interface DealV2Publish {
+  channel: 'deal';
+  schema: 'afbws.deal.publish.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  tradeplan_id?: TradeplanId;
+  bf_id?: DealV2BfId;
+  results?: DealV2Result[];
+  accepted?: boolean;
+}
+/**
+ * accepted=true: `bf_id` and `status` are set (status is `deleted` after a delete), `revision` is the deal's revision and `item` the authoritative record when the deal still exists. accepted=false: only `message` (why) — the command did not touch the deal, so there is no status/revision. When a rebind changes the deal id, `deal_id`/`item` carry the NEW id — the client must drop the old cache key.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Result".
+ */
+export interface DealV2Result {
+  deal_id: DealV2Id;
+  bf_id?: DealV2BfId;
+  status?: DealV2ResultStatus;
+  accepted: boolean;
+  revision?: number;
+  item?: DealV2Detail;
+  message?: string;
+}
+/**
+ * Request: `deal_id` + `bf_id` (the backend resolves the source tradeplan via the deal's own link). Response (same `request_id`): `results[]` and `accepted`; if the new target changes the deal id, `results[0].deal_id`/`item` carry the NEW id. Distinguished by `results`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Rebind".
+ */
+export interface DealV2Rebind {
+  channel: 'deal';
+  schema: 'afbws.deal.rebind.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  deal_id?: DealV2Id;
+  bf_id?: DealV2BfId;
+  results?: DealV2Result[];
+  accepted?: boolean;
+}
+/**
+ * Request: `items[]` (at least one). Response (same `request_id`): `results[]` (one per item, partial failures are rows with accepted=false) and `accepted`. Distinguished by `items` vs `results`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Operation".
+ */
+export interface DealV2Operation {
+  channel: 'deal';
+  schema: 'afbws.deal.operation.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * @minItems 1
+   */
+  items?: [DealV2OperationItem, ...DealV2OperationItem[]];
+  results?: DealV2Result[];
+  /**
+   * any(result.accepted for result in results)
+   */
+  accepted?: boolean;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2OperationItem".
+ */
+export interface DealV2OperationItem {
+  deal_id: DealV2Id;
+  action: 'activate' | 'pause' | 'resume' | 'cancel' | 'reconcile' | 'delete';
+  /**
+   * Only meaningful for action='cancel'.
+   */
+  cancel_open_orders?: boolean;
+}
+/**
+ * Request: `deal_id`, optional `deal_edit` (only the legs/fields overridden on the deal side; anything omitted keeps following the linked tradeplan) and optional `base_revision` (optimistic concurrency: a mismatch is a `conflict` error carrying the current `item`). Response (same `request_id`): `item` (authoritative record), `revision`, `status`, `accepted`. The outcome of the BF confirmation arrives later as `outcome` and `event` pushes. Distinguished by `item`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Amend".
+ */
+export interface DealV2Amend {
+  channel: 'deal';
+  schema: 'afbws.deal.amend.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  deal_id?: DealV2Id;
+  deal_edit?: DealV2Edit;
+  base_revision?: number;
+  item?: DealV2Detail;
+  revision?: number;
+  status?: DealStatus;
+  accepted?: boolean;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Edit".
+ */
+export interface DealV2Edit {
+  entry?: DealV2RoleEdit;
+  stop_loss?: DealV2RoleEdit;
+  take_profit?: DealV2RoleEdit;
+  sizing?: DealSizing;
+  execution_policy?: DealExecutionPolicy;
+}
+/**
+ * Indices refer to the CURRENT deal's leg array for that role at base_revision — never a tradeplan's, never leg_id. edited/removed_indices/reset_indices apply to existing legs; new_legs are appended after them. See AFB backend tradeplans/overrides.py::apply_deal_edit for the exact merge order.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2RoleEdit".
+ */
+export interface DealV2RoleEdit {
+  edited?: DealV2LegEdit[];
+  removed_indices?: number[];
+  /**
+   * Drop this leg's deal-level override (source reverts to tradeplan) — the leg re-adopts whatever the linked plan currently holds for the matching leg_id.
+   */
+  reset_indices?: number[];
+  new_legs?: DealV2NewLeg[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2LegEdit".
+ */
+export interface DealV2LegEdit {
+  index: number;
+  condition?: DealV2_ConditionNode;
+  percent?: DecimalString;
+  logic?: DealV2_LegJoin;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2NewLeg".
+ */
+export interface DealV2NewLeg {
+  condition: DealV2_ConditionNode;
+  percent?: DecimalString;
+  logic?: DealV2_LegJoin;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2AckEvent".
+ */
+export interface DealV2AckEvent {
+  schema: 'afb.deal.trigger_ack.v2';
+  notification_id: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2AckResultItem".
+ */
+export interface DealV2AckResultItem {
+  schema: 'afbws.deal.ack_result.v2';
+  notification_id: string;
+  status: 'ok' | 'not_found';
+}
+/**
+ * `item` (the authoritative current record) is only present with `conflict` — a stale `base_revision` on amend — so the client can adopt it instead of retrying blind; a `conflict` may also come without it (lifecycle/amend gate, deal id taken). No other code carries `item`, and no code carries `details`: the server populates none for the deal channel.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Error".
+ */
+export interface DealV2Error {
+  channel: 'deal';
+  schema: 'afbws.deal.error.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  code: AfbwsCommonV1_ErrorCode;
+  message: string;
+  item?: DealV2Detail;
+}
+/**
+ * REPLACE of the public projection identified by deal_id: the client overwrites its cached copy, never merges. One push per mutation of the record. It carries NO command outcome — that is `afbws.deal.outcome.v2`; and no thin events are merged into it — see `afbws.deal.event.v2`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Record".
+ */
+export interface DealV2Record {
+  channel: 'deal';
+  schema: 'afbws.deal.record.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  item: DealV2Detail;
+}
+/**
+ * A separate push, so the client does not need the whole record just to show a toast. AFB composes no user-facing texts: it passes through what BF returned, the text is built on the frontend. result=rejected: any BF rejection (`code` required). result=accepted: only the confirmation of `deal.amend` (the one accepted outcome the server reports), without code/message/broker_error.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Outcome".
+ */
+export interface DealV2Outcome {
+  channel: 'deal';
+  schema: 'afbws.deal.outcome.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  /**
+   * Command type this outcome refers to (`deal.amend`, `deal.publish`, `deal.operation`, `deal.resync`, ...), null for an outcome not caused by a command (an execution rejection).
+   */
+  command: string | null;
+  result: 'accepted' | 'rejected';
+  /**
+   * Rejection code from BF `deal.rejected.code`. Only with result=rejected.
+   */
+  code?: string;
+  /**
+   * Message exactly as received from BF. Only with result=rejected.
+   */
+  message?: string | null;
+  broker_error?: PayloadsDealRejected_BrokerError;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventDealCreated".
+ */
+export interface DealV2EventDealCreated {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'deal';
+  event: 'created';
+  logged_at: string;
+  data: DealV2CreatedData;
+}
+/**
+ * Light, no snapshot: the full state arrives as `afbws.deal.record.v2`. Produced by AFB (no `at`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2CreatedData".
+ */
+export interface DealV2CreatedData {
+  revision: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventDealAmended".
+ */
+export interface DealV2EventDealAmended {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'deal';
+  event: 'amended';
+  logged_at: string;
+  data: DealV2AmendedData;
+}
+/**
+ * Light, no snapshot (state: `afbws.deal.record.v2`; BF confirmation: `accepted`/`rejected` events and `afbws.deal.outcome.v2`). Produced by AFB (no `at`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2AmendedData".
+ */
+export interface DealV2AmendedData {
+  revision: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventDealAccepted".
+ */
+export interface DealV2EventDealAccepted {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'deal';
+  event: 'accepted';
+  logged_at: string;
+  data: DealV2AcceptedData;
+}
+/**
+ * BF-only fields (`broker_instrument`, `validation`, `broker_sizing`, `binding`, `target_instrument_patch`) are not forwarded.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2AcceptedData".
+ */
+export interface DealV2AcceptedData {
+  /**
+   * Type of the accepted AFB command (`deal.publish`, `deal.operation`, `deal.amend`, `deal.resync`, ...).
+   */
+  command_type: string;
+  revision?: number;
+  /**
+   * ISO-8601 BF event-occurrence time (BF `at`). Absent on events produced by AFB itself.
+   */
+  at?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventDealRejected".
+ */
+export interface DealV2EventDealRejected {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'deal';
+  event: 'rejected';
+  logged_at: string;
+  data: DealV2RejectedData;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2RejectedData".
+ */
+export interface DealV2RejectedData {
+  /**
+   * Machine-readable rejection code (BF `deal.rejected.code`).
+   */
+  code: string;
+  /**
+   * Message exactly as received from BF.
+   */
+  message?: string;
+  /**
+   * Absent for rejections not caused by an AFB command (the broker rejected the entry order).
+   */
+  command_type?: string;
+  broker_error?: PayloadsDealRejected_BrokerError;
+  /**
+   * ISO-8601 BF event-occurrence time (BF `at`). Absent on events produced by AFB itself.
+   */
+  at?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventDealStatusChanged".
+ */
+export interface DealV2EventDealStatusChanged {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'deal';
+  event: 'status_changed';
+  logged_at: string;
+  data: DealV2StatusChangedData;
+}
+/**
+ * Deletion/archival is NOT a status: it is the `deleted` event.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2StatusChangedData".
+ */
+export interface DealV2StatusChangedData {
+  status: DealStatus;
+  execution_phase?: DealExecutionPhase;
+  /**
+   * Decimal string.
+   */
+  last_price?: string;
+  /**
+   * Why the deal was cancelled/paused (BF user-kind or `execution_error`, ...). Only with a cancelling status.
+   */
+  cancel_reason?: string;
+  /**
+   * Resolved order quantity (lots), fixed once by BF at entry-trigger time.
+   */
+  quantity?: number;
+  /**
+   * ISO-8601 BF event-occurrence time (BF `at`). Absent on events produced by AFB itself.
+   */
+  at?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventDealDeleted".
+ */
+export interface DealV2EventDealDeleted {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'deal';
+  event: 'deleted';
+  logged_at: string;
+  data: DealV2DeletedData;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2DeletedData".
+ */
+export interface DealV2DeletedData {
+  /**
+   * Archive reason: `user_delete`, `instrument_delisted`, `no_binding`, ...
+   */
+  reason?: string;
+  archived_at?: string;
+  revision?: number;
+  /**
+   * ISO-8601 BF event-occurrence time (BF `at`). Absent on events produced by AFB itself.
+   */
+  at?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventDealReport".
+ */
+export interface DealV2EventDealReport {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'deal';
+  event: 'report';
+  logged_at: string;
+  data: DealV2ReportData;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2ReportData".
+ */
+export interface DealV2ReportData {
+  status: DealStatus;
+  close_reason?: string;
+  /**
+   * The chart-marker source (one element per broker trade). The realized P&L is NOT here: it is `realized_pnl` of the deal record (AFB ledger).
+   */
+  fills?: DealV2ReportFill[];
+  /**
+   * ISO-8601 BF event-occurrence time (BF `at`). Absent on events produced by AFB itself.
+   */
+  at?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2ReportFill".
+ */
+export interface DealV2ReportFill {
+  trade_id?: string;
+  order_id: string;
+  role: DealV2OrderRole;
+  side: DealV2OrderSide;
+  /**
+   * Decimal string, null when unknown.
+   */
+  price?: string | null;
+  quantity?: number;
+  /**
+   * ISO-8601 fill time, null for legacy BF versions.
+   */
+  timestamp?: string | null;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventDealOrdersSynced".
+ */
+export interface DealV2EventDealOrdersSynced {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'deal';
+  event: 'orders_synced';
+  logged_at: string;
+  data: DealV2OrdersSyncedData;
+}
+/**
+ * Marker event: the changed orders arrive as separate order.* events and in the record.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2OrdersSyncedData".
+ */
+export interface DealV2OrdersSyncedData {
+  /**
+   * ISO-8601 BF event-occurrence time (BF `at`). Absent on events produced by AFB itself.
+   */
+  at?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventDealPositionsSynced".
+ */
+export interface DealV2EventDealPositionsSynced {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'deal';
+  event: 'positions_synced';
+  logged_at: string;
+  data: DealV2PositionsSyncedData;
+}
+/**
+ * Marker event (declared by the BF protocol; current BF versions do not emit it).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2PositionsSyncedData".
+ */
+export interface DealV2PositionsSyncedData {
+  /**
+   * ISO-8601 BF event-occurrence time (BF `at`). Absent on events produced by AFB itself.
+   */
+  at?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventOrderCreated".
+ */
+export interface DealV2EventOrderCreated {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'order';
+  event: 'created';
+  logged_at: string;
+  data: DealV2OrderCreatedData;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2OrderCreatedData".
+ */
+export interface DealV2OrderCreatedData {
+  /**
+   * BF's own client_order_id — the identity to match orders by.
+   */
+  order_id: string;
+  side: DealV2OrderSide;
+  role: DealV2OrderRole;
+  quantity?: number;
+  /**
+   * Limit/stop price, or the average fill price once filled. Decimal string, null when unknown.
+   */
+  price?: string | null;
+  status: DealV2OrderEventStatus;
+  /**
+   * ISO-8601 BF event-occurrence time (BF `at`). Absent on events produced by AFB itself.
+   */
+  at?: string;
+  /**
+   * The broker's own exchange order id, when known.
+   */
+  broker_order_id?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventOrderFilled".
+ */
+export interface DealV2EventOrderFilled {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'order';
+  event: 'filled';
+  logged_at: string;
+  data: DealV2OrderData;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2OrderData".
+ */
+export interface DealV2OrderData {
+  /**
+   * BF's own client_order_id — the identity to match orders by.
+   */
+  order_id: string;
+  side: DealV2OrderSide;
+  role: DealV2OrderRole;
+  quantity?: number;
+  /**
+   * Limit/stop price, or the average fill price once filled. Decimal string, null when unknown.
+   */
+  price?: string | null;
+  status: DealV2OrderEventStatus;
+  /**
+   * ISO-8601 BF event-occurrence time (BF `at`). Absent on events produced by AFB itself.
+   */
+  at?: string;
+  filled_quantity?: number;
+  leg_index?: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventOrderPartiallyFilled".
+ */
+export interface DealV2EventOrderPartiallyFilled {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'order';
+  event: 'partially_filled';
+  logged_at: string;
+  data: DealV2OrderData;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventOrderCancelled".
+ */
+export interface DealV2EventOrderCancelled {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'order';
+  event: 'cancelled';
+  logged_at: string;
+  data: DealV2OrderData;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventOrderRejected".
+ */
+export interface DealV2EventOrderRejected {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'order';
+  event: 'rejected';
+  logged_at: string;
+  data: DealV2OrderData;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventPositionOpened".
+ */
+export interface DealV2EventPositionOpened {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'position';
+  event: 'opened';
+  logged_at: string;
+  data: DealV2PositionData;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2PositionData".
+ */
+export interface DealV2PositionData {
+  /**
+   * Instrument symbol of the position (the key of the client's per-deal position map): the broker symbol, else the bare ticker.
+   */
+  symbol: string;
+  /**
+   * Signed net quantity after the change; 0 on closed.
+   */
+  quantity: number;
+  /**
+   * Decimal string, null when unknown.
+   */
+  average_price?: string | null;
+  /**
+   * ISO-8601 BF event-occurrence time (BF `at`). Absent on events produced by AFB itself.
+   */
+  at?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventPositionChanged".
+ */
+export interface DealV2EventPositionChanged {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'position';
+  event: 'changed';
+  logged_at: string;
+  data: DealV2PositionData;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventPositionClosed".
+ */
+export interface DealV2EventPositionClosed {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'position';
+  event: 'closed';
+  logged_at: string;
+  data: DealV2PositionData;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2EventConditionTriggered".
+ */
+export interface DealV2EventConditionTriggered {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  category: 'condition';
+  event: 'triggered';
+  logged_at: string;
+  data: DealV2ConditionTriggeredData;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2ConditionTriggeredData".
+ */
+export interface DealV2ConditionTriggeredData {
+  condition_id: string;
+  /**
+   * Decimal string, null when unknown.
+   */
+  price?: string | null;
+  /**
+   * Role of an order / of the leg whose condition fired. Superset of deal_state.v2 order.role: `external_close` is the synthetic order BF records when the position was closed outside the deal (it emits order.* for it too).
+   */
+  phase: 'entry' | 'stop_loss' | 'take_profit' | 'cancel_close' | 'backstop' | 'external_close';
+  /**
+   * ISO-8601 BF event-occurrence time (BF `at`). Absent on events produced by AFB itself.
+   */
+  at?: string;
+}
+/**
+ * Not persisted. `trend` is deliberately absent — a frontend-only projection computed from consecutive pushes.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Pnl".
+ */
+export interface DealV2Pnl {
+  channel: 'deal';
+  schema: 'afbws.deal.pnl.v2';
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  data: {
+    /**
+     * Decimal string
+     */
+    unrealized: string;
+    currency: string;
+    qty: number;
+    /**
+     * Decimal string
+     */
+    avg_price: string;
+    /**
+     * Decimal string
+     */
+    last_price: string;
+    as_of: string;
+  };
+}
+/**
+ * Server-initiated; same ack discipline as alarms: a reconnect redelivers events that were not acked (afbws.deal.ack.v2).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Triggered".
+ */
+export interface DealV2Triggered {
+  channel: 'deal';
+  schema: 'afbws.deal.triggered.v2';
+  /**
+   * @minItems 1
+   */
+  events: [DealV2TriggerEvent, ...DealV2TriggerEvent[]];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2TriggerStatusChanged".
+ */
+export interface DealV2TriggerStatusChanged {
+  schema: 'afb.deal.trigger.v2';
+  notification_id: string;
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  event: 'status_changed';
+  created_at: string;
+  data: DealV2StatusChangedData;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2TriggerRejected".
+ */
+export interface DealV2TriggerRejected {
+  schema: 'afb.deal.trigger.v2';
+  notification_id: string;
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  event: 'rejected';
+  created_at: string;
+  data: DealV2RejectedData;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2TriggerReport".
+ */
+export interface DealV2TriggerReport {
+  schema: 'afb.deal.trigger.v2';
+  notification_id: string;
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
+  event: 'report';
+  created_at: string;
+  data: DealV2TriggerReportData;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2TriggerReportData".
+ */
+export interface DealV2TriggerReportData {
+  status: DealStatus;
+  close_reason?: string;
+}
+/**
  * Explicit allow-list projector output over afb.deal.v2 (../deal.v2.json), built by backend/trade/public_views.py — never a serialization of the persisted DealState file. Deliberately NOT an allOf+$ref extension of the whole wire root: those wire schemas declare `owner`/`archive_reason` in their own `properties` with no `additionalProperties: false`, so those fields would count as already-'evaluated' and survive an outer `unevaluatedProperties: false` — the only way to actually drop them is to define this object's own shape directly and reuse the wire schemas' field-level $defs (target, sizing, conditions, execution policy) rather than their root. `source` is strict and requires `tradeplan_id` — the single public link back to the owning tradeplan; `source.kind`/`draft_id`, compile snapshots and raw phase-B overrides never appear here. The one internal field that IS projected — per-leg, not on `source` — is `leg_id` (v2 legs only), the plan-leg identity the frontend needs to tell which deal leg still tracks which plan leg.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -4052,7 +5101,7 @@ export interface TradeplanV2AmendResultItem {
   deal_id: string;
   accepted: boolean;
   revision?: number | null;
-  status?: TradeplanV2DealStatus;
+  status?: DealStatus;
   message?: string;
   code?: 'tradeplan_missing';
 }

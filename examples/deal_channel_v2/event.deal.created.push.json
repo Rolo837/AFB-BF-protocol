@@ -1,0 +1,12 @@
+{
+  "channel": "deal",
+  "schema": "afbws.deal.event.v2",
+  "deal_id": "deal-71a4-4d3e-8f56",
+  "bf_id": "finam-arena-316",
+  "category": "deal",
+  "event": "created",
+  "logged_at": "2026-10-21T11:42:07+03:00",
+  "data": {
+    "revision": 1
+  }
+}

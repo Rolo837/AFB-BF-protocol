@@ -1,0 +1,26 @@
+{
+  "channel": "deal",
+  "schema": "afbws.deal.operation.v2",
+  "request_id": "req-5",
+  "accepted": true,
+  "results": [
+    {
+      "deal_id": "deal-71a4-4d3e-8f56",
+      "bf_id": "finam-arena-316",
+      "status": "cancelled",
+      "accepted": true,
+      "revision": 3
+    },
+    {
+      "deal_id": "deal-aa11-4d3e-8f56",
+      "bf_id": "finam-arena-316",
+      "status": "deleted",
+      "accepted": true
+    },
+    {
+      "deal_id": "deal-ff00-4d3e-8f56",
+      "accepted": false,
+      "message": "Сделка не найдена"
+    }
+  ]
+}

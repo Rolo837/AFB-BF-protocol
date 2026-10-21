@@ -103,10 +103,6 @@
       "if": { "not": { "required": ["instrument_key"] } },
       "then": { "required": ["instrument_missing"] }
     },
-    "dealStatus": {
-      "enum": ["draft", "publishing", "published", "active", "paused", "closed", "cancelled", "orphaned"],
-      "description": "Deal status after an accepted amend — the same vocabulary as deal_state.v2.json `status` (kept equal by a test; the deal channel will move it to a shared def)."
-    },
     "amendResultItem": {
       "type": "object",
       "title": "afbws.tradeplan.amend_result.v2 — per-deal outcome of re-amending live deals after a plan change",
@@ -118,7 +114,7 @@
         "deal_id": { "type": "string", "minLength": 1 },
         "accepted": { "type": "boolean" },
         "revision": { "type": ["integer", "null"] },
-        "status": { "$ref": "#/$defs/dealStatus" },
+        "status": { "$ref": "../common.v1.json#/$defs/dealStatus" },
         "message": { "type": "string", "minLength": 1 },
         "code": { "enum": ["tradeplan_missing"] }
       },

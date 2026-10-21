@@ -99,8 +99,13 @@ def test_tradeplan_v2_one_id_per_message():
 def test_tradeplan_v2_deal_status_matches_deal_state():
     spec = _ROOT / "spec" / "schemas"
     channel = json.loads((spec / "afbws" / "tradeplan.channel.v2.json").read_text())
+    common = json.loads((spec / "common.v1.json").read_text())
     deal_state = json.loads((spec / "deal_state.v2.json").read_text())
-    assert channel["$defs"]["dealStatus"]["enum"] == deal_state["properties"]["status"]["enum"]
+    assert "dealStatus" not in channel["$defs"]  # shared def, not a local copy
+    assert channel["$defs"]["amendResultItem"]["properties"]["status"] == {
+        "$ref": "../common.v1.json#/$defs/dealStatus"
+    }
+    assert common["$defs"]["dealStatus"]["enum"] == deal_state["properties"]["status"]["enum"]
 
 
 def test_tradeplan_v2_plan_input(registry):
