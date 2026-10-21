@@ -10,6 +10,11 @@
       "status": "published",
       "accepted": true,
       "revision": 1
+    },
+    {
+      "deal_id": "deal-aa11-4d3e-8f56",
+      "accepted": false,
+      "message": "Сделка уже вошла в позицию: смена коннектора недоступна"
     }
   ]
 }

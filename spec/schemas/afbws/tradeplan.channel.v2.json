@@ -3,10 +3,9 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/tradeplan.channel.v2.json",
   "x-afbws-support-id": "afbws.tradeplan.channel.v2",
   "title": "tradeplan channel v2 — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v2). Same convention as afbws.alarm/account/market v2: ONE schema id per message (`afbws.tradeplan.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`), and the server push `sync` is the same kind of message without `request_id`. Two plan shapes: `planInput` (what the client sends in `set` — the plan the user edits, NOT server-owned fields) and `planItem` (what the server returns — the stored plan minus `delivery_at`/`archived_components`/`archived_at`/`editor`, plus `instrument_missing`). Both are projections of the AFB-internal storage schema `../tradeplan.v2.json` (afb.tradeplan.v2), which stays the single source for the condition vocabulary; this channel schema is strict (additionalProperties:false) and carries no legacy forms: `leg_id` is never the synthetic `legacy:{role}:{index}`, `op` is mandatory on every condition, `schema` is mandatory, `instrument_key` is mandatory on input and on output either present or replaced by `instrument_missing:true`. See AFB/docs/ENTITY_WS_PROTOCOL.md.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v2). Same convention as afbws.alarm/account/market v2: ONE schema id per message (`afbws.tradeplan.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`), and the server push `sync` is the same kind of message without `request_id`. Collections are arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; per-plan failures of a batch come back in `rejected[]`, `error` is only for a whole request. There is no separate `get`: use `list` with `ids`. Two plan shapes: `planInput` (what the client sends in `set` — the plan the user edits, NOT server-owned fields) and `planItem` (what the server returns — the stored plan minus `delivery_at`/`archived_components`/`archived_at`/`editor`, plus `instrument_missing`). Both are projections of the AFB-internal storage schema `../tradeplan.v2.json` (afb.tradeplan.v2), which stays the single source for the condition vocabulary; this channel schema is strict (additionalProperties:false) and carries no legacy forms: `leg_id` is never the synthetic `legacy:{role}:{index}`, `op` is mandatory on every condition, `schema` is mandatory, `instrument_key` is mandatory on input and on output either present or replaced by `instrument_missing:true`. See AFB/docs/ENTITY_WS_PROTOCOL.md.",
   "type": "object",
   "oneOf": [
-    { "$ref": "#/$defs/get" },
     { "$ref": "#/$defs/list" },
     { "$ref": "#/$defs/set" },
     { "$ref": "#/$defs/delete" },
@@ -75,7 +74,7 @@
     },
     "planItem": {
       "type": "object",
-      "title": "afb.tradeplan.v2 as returned by the server (get/list/set/archive/sync/conflict).",
+      "title": "afb.tradeplan.v2 as returned by the server (list/set/archive/sync, and `rejected[].item` on a conflict).",
       "description": "An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is present whenever the server could resolve one; a plan whose instrument is not in the catalog comes with `instrument_missing: true` (and possibly without `ticker`) — at least one of the two is always there. `ticker` is the derived wire ticker. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.",
       "required": ["schema", "id", "direction", "status", "entries", "stop_loss", "take_profit", "sizing", "activated_at", "closed_at", "created_at", "updated_at"],
       "additionalProperties": false,
@@ -106,11 +105,12 @@
     "amendResultItem": {
       "type": "object",
       "title": "afbws.tradeplan.amend_result.v2 — per-deal outcome of re-amending live deals after a plan change",
-      "description": "accepted=true: the deal was amended, `revision` is its new revision (integer; null only if the deal did not report one) and `status` its status after the amend. accepted=false: the deal is unchanged, `message` says why (a human-readable gate/validation text) and `code` is set only for the one machine-readable case the server distinguishes: `tradeplan_missing` (the deal's own tradeplan no longer exists — an orphaned deal). `revision`/`status` never appear on a rejection.",
-      "required": ["schema", "deal_id", "accepted"],
+      "description": "One row per deal of an applied plan; `tradeplan_id` names that plan, so a batch `set` response can be matched without guessing. accepted=true: the deal was amended, `revision` is its new revision (integer; null only if the deal did not report one) and `status` its status after the amend. accepted=false: the deal is unchanged, `message` says why (a human-readable gate/validation text) and `code` is set only for the one machine-readable case the server distinguishes: `tradeplan_missing` (the deal's own tradeplan no longer exists — an orphaned deal). `revision`/`status` never appear on a rejection.",
+      "required": ["schema", "tradeplan_id", "deal_id", "accepted"],
       "additionalProperties": false,
       "properties": {
         "schema": { "const": "afbws.tradeplan.amend_result.v2" },
+        "tradeplan_id": { "$ref": "../common.v1.json#/$defs/tradeplanId" },
         "deal_id": { "type": "string", "minLength": 1 },
         "accepted": { "type": "boolean" },
         "revision": { "type": ["integer", "null"] },
@@ -122,43 +122,37 @@
       "then": { "required": ["revision", "status"], "not": { "anyOf": [{ "required": ["message"] }, { "required": ["code"] }] } },
       "else": { "required": ["message"], "not": { "anyOf": [{ "required": ["revision"] }, { "required": ["status"] }] } }
     },
-    "errorDetails": {
+    "rejection": {
       "type": "object",
-      "title": "Populated on `conflict` only: the authoritative current plan.",
-      "description": "A `conflict` is a delete/archive blocked by a live deal that already entered a position (or by deals in general for delete), or a `set` whose conditions reference a primitive owned by another plan. `current_item` is the plan as the server holds it, so the client can show it without a separate get.",
-      "required": ["current_item"],
+      "title": "One plan that was not applied by set/delete/archive.",
+      "description": "`id` is the plan id from the request, `code` a whole-request error code reused per plan (`not_found`, `validation_error`, `conflict`, ...), `message` the human-readable reason. `item` is the authoritative current plan and is present only with `conflict` (a stale or blocked plan: archive/delete blocked by a live deal that already entered a position, `set` over a primitive owned by another plan), so the client can adopt it without a separate read; a `conflict` may also come without it.",
+      "required": ["id", "code", "message"],
       "additionalProperties": false,
       "properties": {
-        "current_item": { "$ref": "#/$defs/planItem" }
-      }
-    },
-    "get": {
-      "type": "object",
-      "title": "afbws.tradeplan.get.v2 — read one plan (request / response).",
-      "description": "Request: `id`. Response (same `request_id`): `item`. Exactly one of the two.",
-      "required": ["channel", "schema", "request_id"],
-      "additionalProperties": false,
-      "properties": {
-        "channel": { "const": "tradeplan" },
-        "schema": { "const": "afbws.tradeplan.get.v2" },
-        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
         "id": { "$ref": "../common.v1.json#/$defs/tradeplanId" },
+        "code": { "$ref": "common.v1.json#/$defs/errorCode" },
+        "message": { "type": "string", "minLength": 1 },
         "item": { "$ref": "#/$defs/planItem" }
       },
-      "if": { "required": ["id"] },
-      "then": { "not": { "required": ["item"] } },
-      "else": { "required": ["item"] }
+      "if": { "properties": { "code": { "const": "conflict" } }, "required": ["code"] },
+      "else": { "not": { "required": ["item"] } }
     },
     "list": {
       "type": "object",
-      "title": "afbws.tradeplan.list.v2 — read the caller's plans (request / response).",
-      "description": "Request: optional filter `instrument_keys[]` (none = every non-archived plan of the caller; archived plans are not listed, use `get`). Response (same `request_id`): `items[]`. A request carrying `items` is invalid, as is a response carrying a filter.",
+      "title": "afbws.tradeplan.list.v2 — read plans (request / response).",
+      "description": "Request: optional filters `ids[]` and/or `instrument_keys[]` (both = intersection; none = every non-archived plan of the caller; archived plans are returned only when named in `ids`). Response (same `request_id`): `items[]`. There is no separate `get`: use `ids`. A request carrying `items` is invalid, as is a response carrying a filter.",
       "required": ["channel", "schema", "request_id"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "tradeplan" },
         "schema": { "const": "afbws.tradeplan.list.v2" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "../common.v1.json#/$defs/tradeplanId" }
+        },
         "instrument_keys": {
           "type": "array",
           "minItems": 1,
@@ -167,59 +161,78 @@
         },
         "items": { "type": "array", "items": { "$ref": "#/$defs/planItem" } }
       },
-      "not": { "required": ["items", "instrument_keys"] }
+      "not": {
+        "required": ["items"],
+        "anyOf": [{ "required": ["ids"] }, { "required": ["instrument_keys"] }]
+      }
     },
     "set": {
       "type": "object",
-      "title": "afbws.tradeplan.set.v2 — upsert one plan (request / response).",
-      "description": "Request: `item` is a `planInput` (create or update by `item.id`). Response (same `request_id`): `item` is the saved `planItem` and `amend_results[]` lists the per-deal outcome of re-amending the plan's live deals (always empty for a create). Distinguished by `amend_results`: present => response, absent => request. There is no push on set.",
-      "required": ["channel", "schema", "request_id", "item"],
+      "title": "afbws.tradeplan.set.v2 — upsert plans (request / response).",
+      "description": "Request: `items[]` (at least one) of `planInput` — create or update by `item.id`, batched. Response (same `request_id`): `items[]` the applied authoritative `planItem`s (possibly empty), `rejected[]` for plans that were not applied (a stale/conflicting plan carries its current `planItem` in `rejected[].item`), and `amend_results[]` — the per-deal outcome of re-amending the live deals of every applied plan (empty for creates only; each row names its `tradeplan_id`). Distinguished by `amend_results`: present => response, absent => request. A failing plan never fails the batch. There is no push on set.",
+      "required": ["channel", "schema", "request_id", "items"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "tradeplan" },
         "schema": { "const": "afbws.tradeplan.set.v2" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
-        "item": { "anyOf": [{ "$ref": "#/$defs/planInput" }, { "$ref": "#/$defs/planItem" }] },
+        "items": { "type": "array", "items": { "anyOf": [{ "$ref": "#/$defs/planInput" }, { "$ref": "#/$defs/planItem" }] } },
+        "rejected": { "type": "array", "items": { "$ref": "#/$defs/rejection" } },
         "amend_results": { "type": "array", "items": { "$ref": "#/$defs/amendResultItem" } }
       },
+      "dependentRequired": { "rejected": ["amend_results"] },
       "if": { "required": ["amend_results"] },
-      "then": { "properties": { "item": { "$ref": "#/$defs/planItem" } } },
-      "else": { "properties": { "item": { "$ref": "#/$defs/planInput" } } }
+      "then": { "properties": { "items": { "items": { "$ref": "#/$defs/planItem" } } } },
+      "else": { "properties": { "items": { "minItems": 1, "items": { "$ref": "#/$defs/planInput" } } } }
     },
     "delete": {
       "type": "object",
-      "title": "afbws.tradeplan.delete.v2 — physically delete a never-published draft (request / response).",
-      "description": "Request and response are the same message: `id` (the response echoes `request_id` and the deleted `id`). Allowed only for a plan that never had a deal; otherwise `conflict` (use archive). The deletion is NOT pushed.",
-      "required": ["channel", "schema", "request_id", "id"],
+      "title": "afbws.tradeplan.delete.v2 — physically delete never-published drafts (request / response).",
+      "description": "Request: `ids[]` (at least one). Response (same `request_id`): `ids[]` actually deleted (possibly empty) + `rejected[]`. Allowed only for a plan that never had a deal; otherwise that plan is rejected with `conflict` (use archive). The deletion is NOT pushed.",
+      "required": ["channel", "schema", "request_id", "ids"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "tradeplan" },
         "schema": { "const": "afbws.tradeplan.delete.v2" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
-        "id": { "$ref": "../common.v1.json#/$defs/tradeplanId" }
-      }
+        "ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "../common.v1.json#/$defs/tradeplanId" }
+        },
+        "rejected": { "type": "array", "items": { "$ref": "#/$defs/rejection" } }
+      },
+      "if": { "required": ["rejected"] },
+      "else": { "properties": { "ids": { "minItems": 1 } } }
     },
     "archive": {
       "type": "object",
       "title": "afbws.tradeplan.archive.v2 — manual archival (request / response).",
-      "description": "Request: `id`. Response (same `request_id`): `item` — the plan with status `archived`. Blocked while the plan has a live deal that already entered a position -> `error` code `conflict` with `details.current_item`. Archival is also delivered as a `sync` push to the user's other connections.",
+      "description": "Request: `ids[]` (at least one). Response (same `request_id`): `items[]` — the archived plans (status `archived`) — and `rejected[]` (a plan with a live deal that already entered a position is rejected with `conflict` and its current `item`). Exactly one of `ids` / `items`. Archival is also delivered as a single `sync` push (all archived plans in one message) to the user's other connections.",
       "required": ["channel", "schema", "request_id"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "tradeplan" },
         "schema": { "const": "afbws.tradeplan.archive.v2" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
-        "id": { "$ref": "../common.v1.json#/$defs/tradeplanId" },
-        "item": { "$ref": "#/$defs/planItem" }
+        "ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "../common.v1.json#/$defs/tradeplanId" }
+        },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/planItem" } },
+        "rejected": { "type": "array", "items": { "$ref": "#/$defs/rejection" } }
       },
-      "if": { "required": ["id"] },
-      "then": { "not": { "required": ["item"] } },
-      "else": { "required": ["item"] }
+      "oneOf": [
+        { "required": ["ids"], "not": { "anyOf": [{ "required": ["items"] }, { "required": ["rejected"] }] } },
+        { "required": ["items"], "not": { "required": ["ids"] } }
+      ]
     },
     "sync": {
       "type": "object",
       "title": "afbws.tradeplan.sync.v2 — server push (no request_id): partial update by id.",
-      "description": "`items[]` (at least one) is a DELTA, not a snapshot: the client upserts plans in its own list by matching id and leaves everything else untouched. The authoritative full list comes only from afbws.tradeplan.list.v2. Sent on plan lifecycle changes (status derived from its deals) and archival. Plan deletion and `set` are NOT conveyed by this push. Never a request: `request_id` is not allowed.",
+      "description": "`items[]` (at least one) is a DELTA, not a snapshot: the client upserts plans in its own list by matching id and leaves everything else untouched. The authoritative full list comes only from afbws.tradeplan.list.v2. Sent on plan lifecycle changes (status derived from its deals) and archival (one push per batch). Plan deletion and `set` are NOT conveyed by this push. Never a request: `request_id` is not allowed.",
       "required": ["channel", "schema", "items"],
       "additionalProperties": false,
       "properties": {
@@ -231,7 +244,7 @@
     "error": {
       "type": "object",
       "title": "afbws.tradeplan.error.v2 — typed error for a whole request (server -> client).",
-      "description": "`details` is present exactly for `conflict` (see errorDetails) and forbidden for every other code.",
+      "description": "Per-plan failures of a batched set/delete/archive are reported in that response's `rejected[]`, not here.",
       "required": ["channel", "schema", "request_id", "code", "message"],
       "additionalProperties": false,
       "properties": {
@@ -239,12 +252,8 @@
         "schema": { "const": "afbws.tradeplan.error.v2" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
         "code": { "$ref": "common.v1.json#/$defs/errorCode" },
-        "message": { "type": "string", "minLength": 1 },
-        "details": { "$ref": "#/$defs/errorDetails" }
-      },
-      "if": { "properties": { "code": { "const": "conflict" } }, "required": ["code"] },
-      "then": { "required": ["details"] },
-      "else": { "not": { "required": ["details"] } }
+        "message": { "type": "string", "minLength": 1 }
+      }
     }
   }
 }

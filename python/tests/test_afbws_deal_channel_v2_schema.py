@@ -18,7 +18,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 _SPEC = _ROOT / "spec" / "schemas"
 _EXAMPLES = _ROOT / "examples" / "deal_channel_v2"
 _ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/deal.channel.v2.json"
-_OPS = {"get", "list", "publish", "rebind", "operation", "amend", "ack", "error",
+_OPS = {"list", "publish", "rebind", "operation", "amend", "ack", "error",
         "record", "outcome", "event", "pnl", "triggered"}
 _PUSHES = {"record", "outcome", "event", "pnl", "triggered"}
 _EVENTS = {
@@ -44,6 +44,7 @@ _DETAIL = {
     },
     "editable_fields": ["stop_loss"],
 }
+_DETAIL2 = {**_DETAIL, "deal_id": "d2", "deal": {**_DETAIL["deal"], "deal_id": "d2"}}
 _SUMMARY = {k: v for k, v in _DETAIL.items() if k not in ("deal", "editable_fields")}
 
 
@@ -51,9 +52,13 @@ def _m(op, **kw):
     return {"channel": "deal", "schema": f"afbws.deal.{op}.v2", **kw}
 
 
+def _ev(category, event, data, **kw):
+    return {"deal_id": "d1", "bf_id": "bf1", "category": category, "event": event,
+            "logged_at": "2026-10-21T10:00:00+03:00", "data": data, **kw}
+
+
 def _event(category, event, data, **kw):
-    return _m("event", deal_id="d1", bf_id="bf1", category=category, event=event,
-              logged_at="2026-10-21T10:00:00+03:00", data=data, **kw)
+    return _m("event", events=[_ev(category, event, data)], **kw)
 
 
 def _v(def_name, registry):
@@ -93,26 +98,28 @@ def test_deal_v2_one_id_per_message():
     schema = _schema()
     assert schema["x-afbws-support-id"] == "afbws.deal.channel.v2"
     assert _OPS <= set(schema["$defs"])
-    stale = {"getRequest", "getResponse", "listRequest", "listResponse", "publishRequest", "publishResponse",
+    stale = {"get", "getRequest", "getResponse", "listRequest", "listResponse", "publishRequest", "publishResponse",
              "rebindRequest", "rebindResponse", "operationRequest", "operationResponse", "amendRequest",
              "amendResponse", "ackRequest", "ackResponse", "errorResponse", "triggeredPush"}
     assert not stale & set(schema["$defs"])
-    # message ids: each message def (except the typed unions) carries exactly one schema const
+    # message ids: each message def carries exactly one schema const
     ids = set()
     for name, d in schema["$defs"].items():
         props = d.get("properties", {})
         if props.get("channel") == {"const": "deal"} and name in _OPS:
             ids.add(props["schema"]["const"])
-    assert ids == {f"afbws.deal.{op}.v2" for op in _OPS - {"event"}}
-    event_ids = {schema["$defs"][b["$ref"].split("/")[-1]]["properties"]["schema"]["const"]
-                 for b in schema["$defs"]["event"]["oneOf"]}
-    assert event_ids == {"afbws.deal.event.v2"}
+    assert ids == {f"afbws.deal.{op}.v2" for op in _OPS}
+    # event items carry no channel/schema: they live inside `events[]`
+    for b in schema["$defs"]["eventItem"]["oneOf"]:
+        props = schema["$defs"][b["$ref"].split("/")[-1]]["properties"]
+        assert "schema" not in props and "channel" not in props
     root = [b["$ref"].split("/")[-1] for b in schema["oneOf"]]
     assert set(root) == _OPS and len(root) == len(_OPS)
     text = json.dumps(schema)
     assert "deal.channel.v1" not in text and "deal.record.v1" not in text
     assert "deal.event.v1" not in text and "deal.pnl.v1" not in text
     assert "details" not in schema["$defs"]["error"]["properties"]
+    assert "item" not in schema["$defs"]["error"]["properties"]
     # one convention for $ref: afbws-local files without `../`, spec/schemas files with it
     for ref in _collect_refs(schema):
         file_part = ref.split("#")[0]
@@ -150,7 +157,7 @@ def test_deal_v2_shared_enums_match_deal_state():
     assert d["dealSummary"]["properties"]["status"] == {"$ref": "../common.v1.json#/$defs/dealStatus"}
     assert d["dealDetail"]["properties"]["execution_phase"] == {"$ref": "../common.v1.json#/$defs/executionPhase"}
     assert d["statusChangedData"]["properties"]["status"] == {"$ref": "../common.v1.json#/$defs/dealStatus"}
-    assert d["amend"]["properties"]["status"] == {"$ref": "../common.v1.json#/$defs/dealStatus"}
+    assert d["amendResult"]["properties"]["status"] == {"$ref": "../common.v1.json#/$defs/dealStatus"}
     order = deal_state["$defs"]["order"]["properties"]
     assert set(order["role"]["enum"]) <= set(d["orderRole"]["enum"])
     assert set(d["orderRole"]["enum"]) - set(order["role"]["enum"]) == {"external_close"}
@@ -190,21 +197,42 @@ def test_deal_v2_summary_and_detail(registry):
     _invalid(d, _with(_DETAIL, source_refs={}))
 
 
-def test_deal_v2_get_list(registry):
-    v = _v("get", registry)
-    v.validate(_m("get", request_id="r", deal_id="d1"))
-    v.validate(_m("get", request_id="r", item=_DETAIL))
-    _invalid(v, _m("get", deal_id="d1"))
-    _invalid(v, _m("get", request_id="r"))
-    _invalid(v, _m("get", request_id="r", deal_id="d1", item=_DETAIL))
-    _invalid(v, _m("get", request_id="r", item=_SUMMARY))
+def test_deal_v2_item(registry):
+    v = _v("dealItem", registry)
+    v.validate(_SUMMARY)
+    v.validate(_DETAIL)
+    _invalid(v, _with(_SUMMARY, deal=_DETAIL["deal"]))  # deal and editable_fields come together
+    _invalid(v, _with(_SUMMARY, editable_fields=["stop_loss"]))
+    _invalid(v, _with(_DETAIL, source_refs={}))
+    _invalid(v, _with(_DETAIL, editable_fields=["instrument"]))
+
+
+def test_deal_v2_list(registry):
     v = _v("list", registry)
     v.validate(_m("list", request_id="r"))
-    v.validate(_m("list", request_id="r", items=[_SUMMARY]))
+    v.validate(_m("list", request_id="r", ids=["d1", "d2"]))
+    v.validate(_m("list", request_id="r", instrument_keys=["MISX:TQBR:SBER"]))
+    v.validate(_m("list", request_id="r", tradeplan_ids=["tp1"]))
+    v.validate(_m("list", request_id="r", ids=["d1"], instrument_keys=["MISX:TQBR:SBER"], tradeplan_ids=["tp1"],
+                  detail=True))
+    v.validate(_m("list", request_id="r", detail=False))
+    v.validate(_m("list", request_id="r", items=[_SUMMARY, _SUMMARY]))
+    v.validate(_m("list", request_id="r", items=[_DETAIL, _DETAIL2]))  # detail rows
+    v.validate(_m("list", request_id="r", items=[_SUMMARY, _DETAIL]))
     v.validate(_m("list", request_id="r", items=[]))
     _invalid(v, _m("list"))
+    _invalid(v, _m("list", request_id="r", deal_id="d1"))  # no single-id form (there is no get)
     _invalid(v, _m("list", request_id="r", tradeplan_id="tp1"))
-    _invalid(v, _m("list", request_id="r", items=[_DETAIL]))
+    for field in ("ids", "instrument_keys", "tradeplan_ids"):
+        _invalid(v, _m("list", request_id="r", **{field: []}))
+    _invalid(v, _m("list", request_id="r", ids=["d1", "d1"]))
+    _invalid(v, _m("list", request_id="r", tradeplan_ids=[""]))
+    _invalid(v, _m("list", request_id="r", detail="yes"))
+    _invalid(v, _m("list", request_id="r", ids=["d1"], items=[_SUMMARY]))  # response carries no filter
+    _invalid(v, _m("list", request_id="r", detail=True, items=[_DETAIL]))
+    _invalid(v, _m("list", request_id="r", items=[_with(_SUMMARY, status="deleted")]))
+    _invalid(_root(registry), _m("get", request_id="r", deal_id="d1"))
+    _invalid(_root(registry), _m("get", request_id="r", item=_DETAIL))
 
 
 def test_deal_v2_result(registry):
@@ -225,21 +253,33 @@ def test_deal_v2_result(registry):
 
 def test_deal_v2_publish_rebind(registry):
     row = {"deal_id": "d1", "bf_id": "bf1", "status": "published", "accepted": True}
+    bad = {"deal_id": "d2", "accepted": False, "message": "no"}
+    p1 = {"tradeplan_id": "tp1", "bf_id": "bf1"}
+    p2 = {"tradeplan_id": "tp2", "bf_id": "bf1"}
     v = _v("publish", registry)
-    v.validate(_m("publish", request_id="r", tradeplan_id="tp1", bf_id="bf1"))
-    v.validate(_m("publish", request_id="r", results=[row], accepted=True))
-    _invalid(v, _m("publish", tradeplan_id="tp1", bf_id="bf1"))
-    _invalid(v, _m("publish", request_id="r", tradeplan_id="tp1"))
+    v.validate(_m("publish", request_id="r", items=[p1]))
+    v.validate(_m("publish", request_id="r", items=[p1, p2]))
+    v.validate(_m("publish", request_id="r", results=[row, bad], accepted=True))
+    _invalid(v, _m("publish", items=[p1]))
+    _invalid(v, _m("publish", request_id="r"))
+    _invalid(v, _m("publish", request_id="r", items=[]))
+    _invalid(v, _m("publish", request_id="r", items=[{"tradeplan_id": "tp1"}]))
+    _invalid(v, _m("publish", request_id="r", items=[{**p1, "bf_ids": ["x"]}]))
+    _invalid(v, _m("publish", request_id="r", items=[{**p1, "tradeplan_id": ""}]))
+    _invalid(v, _m("publish", request_id="r", tradeplan_id="tp1", bf_id="bf1"))  # single form
     _invalid(v, _m("publish", request_id="r", results=[row]))
-    _invalid(v, _m("publish", request_id="r", tradeplan_id="tp1", bf_id="bf1", results=[row], accepted=True))
-    _invalid(v, _m("publish", request_id="r", tradeplan_id="tp1", bf_id="bf1", accepted=True))
-    _invalid(v, _m("publish", request_id="r", tradeplan_id="", bf_id="bf1"))
+    _invalid(v, _m("publish", request_id="r", items=[p1], results=[row], accepted=True))
+    _invalid(v, _m("publish", request_id="r", items=[p1], accepted=True))
     v = _v("rebind", registry)
-    v.validate(_m("rebind", request_id="r", deal_id="d1", bf_id="bf1"))
-    v.validate(_m("rebind", request_id="r", results=[row], accepted=True))
-    _invalid(v, _m("rebind", request_id="r", deal_id="d1"))
+    r1 = {"deal_id": "d1", "bf_id": "bf1"}
+    v.validate(_m("rebind", request_id="r", items=[r1]))
+    v.validate(_m("rebind", request_id="r", items=[r1, {"deal_id": "d2", "bf_id": "bf2"}]))
+    v.validate(_m("rebind", request_id="r", results=[row, bad], accepted=True))
+    _invalid(v, _m("rebind", request_id="r", items=[]))
+    _invalid(v, _m("rebind", request_id="r", items=[{"deal_id": "d1"}]))
+    _invalid(v, _m("rebind", request_id="r", deal_id="d1", bf_id="bf1"))  # single form
     _invalid(v, _m("rebind", request_id="r", results=[row]))
-    _invalid(v, _m("rebind", request_id="r", deal_id="d1", bf_id="bf1", results=[row], accepted=True))
+    _invalid(v, _m("rebind", request_id="r", items=[r1], results=[row], accepted=True))
 
 
 def test_deal_v2_operation(registry):
@@ -269,21 +309,54 @@ def test_deal_v2_amend(registry):
                   "removed_indices": [1], "reset_indices": [2], "new_legs": [{"condition": _COND}]},
         "stop_loss": {}, "sizing": {"mode": "lots", "value": "2"}, "execution_policy": {"margin_trading": True},
     }
+    ok = {"deal_id": "d1", "accepted": True, "revision": 3, "status": "active", "item": _DETAIL}
+    no = {"deal_id": "d2", "accepted": False, "message": "gate"}
+    conflict = {"deal_id": "d2", "accepted": False, "code": "conflict", "message": "stale", "item": _DETAIL2}
     v = _v("amend", registry)
-    v.validate(_m("amend", request_id="r", deal_id="d1"))
-    v.validate(_m("amend", request_id="r", deal_id="d1", base_revision=2, deal_edit=edit))
-    v.validate(_m("amend", request_id="r", item=_DETAIL, revision=3, status="active", accepted=True))
-    _invalid(v, _m("amend", deal_id="d1"))
+    v.validate(_m("amend", request_id="r", items=[{"deal_id": "d1"}]))
+    v.validate(_m("amend", request_id="r", items=[{"deal_id": "d1", "base_revision": 2, "deal_edit": edit},
+                                                  {"deal_id": "d2", "deal_edit": edit}]))
+    v.validate(_m("amend", request_id="r", results=[ok, no, conflict], accepted=True))
+    v.validate(_m("amend", request_id="r", results=[no], accepted=False))
+    _invalid(v, _m("amend", items=[{"deal_id": "d1"}]))
     _invalid(v, _m("amend", request_id="r"))
-    _invalid(v, _m("amend", request_id="r", item=_DETAIL, revision=3, status="active"))
-    _invalid(v, _m("amend", request_id="r", item=_DETAIL, revision=3, status="deleted", accepted=True))
-    _invalid(v, _m("amend", request_id="r", item=_DETAIL, revision=3, status="active", accepted=True,
-                   base_revision=2))
-    _invalid(v, _m("amend", request_id="r", deal_id="d1", accepted=True))
-    _invalid(v, _m("amend", request_id="r", deal_id="d1", base_revision=0))
-    _invalid(v, _m("amend", request_id="r", deal_id="d1", deal_edit={"instrument": {}}))
-    _invalid(v, _m("amend", request_id="r", deal_id="d1", deal_edit={"entry": {"edited": [{"condition": _COND}]}}))
-    _invalid(v, _m("amend", request_id="r", deal_id="d1", deal_edit={"entry": {"new_legs": [{"percent": "1"}]}}))
+    _invalid(v, _m("amend", request_id="r", items=[]))
+    _invalid(v, _m("amend", request_id="r", deal_id="d1"))  # single form
+    _invalid(v, _m("amend", request_id="r", results=[ok]))
+    _invalid(v, _m("amend", request_id="r", items=[{"deal_id": "d1"}], results=[ok], accepted=True))
+    _invalid(v, _m("amend", request_id="r", item=_DETAIL, revision=3, status="active", accepted=True))
+    _invalid(v, _m("amend", request_id="r", items=[{"base_revision": 2}]))
+    _invalid(v, _m("amend", request_id="r", items=[{"deal_id": "d1", "base_revision": 0}]))
+    _invalid(v, _m("amend", request_id="r", items=[{"deal_id": "d1", "revision": 2}]))
+    _invalid(v, _m("amend", request_id="r", items=[{"deal_id": "d1", "deal_edit": {"instrument": {}}}]))
+    _invalid(v, _m("amend", request_id="r", items=[{"deal_id": "d1", "deal_edit": {"entry": {"edited": [
+        {"condition": _COND}]}}}]))
+    _invalid(v, _m("amend", request_id="r", items=[{"deal_id": "d1", "deal_edit": {"entry": {"new_legs": [
+        {"percent": "1"}]}}}]))
+
+
+def test_deal_v2_amend_result(registry):
+    v = _v("amendResult", registry)
+    v.validate({"deal_id": "d1", "accepted": True, "revision": 3, "status": "active", "item": _DETAIL})
+    v.validate({"deal_id": "d1", "accepted": False, "message": "gate"})
+    v.validate({"deal_id": "d1", "accepted": False, "message": "gate", "code": "validation_error"})
+    v.validate({"deal_id": "d1", "accepted": False, "message": "stale", "code": "conflict"})
+    v.validate({"deal_id": "d1", "accepted": False, "message": "stale", "code": "conflict", "item": _DETAIL})
+    base = {"deal_id": "d1", "accepted": True, "revision": 3, "status": "active", "item": _DETAIL}
+    for field in ("revision", "status", "item"):
+        _invalid(v, {k: x for k, x in base.items() if k != field})
+    _invalid(v, {**base, "status": "deleted"})
+    _invalid(v, {**base, "item": _SUMMARY})
+    _invalid(v, {**base, "message": "x"})
+    _invalid(v, {**base, "code": "conflict"})
+    _invalid(v, {"deal_id": "d1", "accepted": False})
+    _invalid(v, {"deal_id": "d1", "accepted": False, "message": ""})
+    _invalid(v, {"deal_id": "d1", "accepted": False, "message": "x", "revision": 1})
+    _invalid(v, {"deal_id": "d1", "accepted": False, "message": "x", "status": "active"})
+    _invalid(v, {"deal_id": "d1", "accepted": False, "message": "x", "code": "weird"})
+    _invalid(v, {"deal_id": "d1", "accepted": False, "message": "x", "item": _DETAIL})  # item only with conflict
+    _invalid(v, {"deal_id": "d1", "accepted": False, "message": "x", "code": "conflict", "item": _SUMMARY})
+    _invalid(v, {k: x for k, x in {"deal_id": "d1", "accepted": False, "message": "x"}.items() if k != "deal_id"})
 
 
 def test_deal_v2_ack(registry):
@@ -304,60 +377,81 @@ def test_deal_v2_ack(registry):
 def test_deal_v2_error(registry):
     v = _v("error", registry)
     v.validate(_m("error", request_id="r", code="not_found", message="x"))
-    v.validate(_m("error", request_id="r", code="conflict", message="x"))
-    v.validate(_m("error", request_id="r", code="conflict", message="x", item=_DETAIL))
     for code in ("invalid_schema", "invalid_channel", "validation_error", "internal_error", "forbidden",
-                 "bf_offline"):
+                 "bf_offline", "conflict"):
         v.validate(_m("error", request_id="r", code=code, message="x"))
     _invalid(v, _m("error", code="not_found", message="x"))
     _invalid(v, _m("error", request_id="r", code="nope", message="x"))
     _invalid(v, _m("error", request_id="r", code="not_found", message=""))
-    # the authoritative record only comes with `conflict`; no code carries `details`
-    _invalid(v, _m("error", request_id="r", code="not_found", message="x", item=_DETAIL))
-    _invalid(v, _m("error", request_id="r", code="conflict", message="x", item=_SUMMARY))
+    # whole-request only: the conflicting record travels in amend results[].item, no code carries details
+    _invalid(v, _m("error", request_id="r", code="conflict", message="x", item=_DETAIL))
     _invalid(v, _m("error", request_id="r", code="conflict", message="x", details={}))
     _invalid(v, _m("error", request_id="r", code="not_found", message="x", details={"deal_ids": ["d1"]}))
 
 
 def test_deal_v2_record(registry):
     v = _v("record", registry)
-    v.validate(_m("record", deal_id="d1", bf_id="bf1", item=_DETAIL))
-    _invalid(v, _m("record", request_id="r", deal_id="d1", bf_id="bf1", item=_DETAIL))  # push only
-    _invalid(v, _m("record", deal_id="d1", bf_id="bf1", item=_SUMMARY))
-    _invalid(v, _m("record", deal_id="d1", bf_id="bf1"))
+    v.validate(_m("record", items=[_DETAIL]))
+    v.validate(_m("record", items=[_DETAIL, _DETAIL2]))  # one batch mutation = one push
+    _invalid(v, _m("record", request_id="r", items=[_DETAIL]))  # push only
+    _invalid(v, _m("record", items=[]))
+    _invalid(v, _m("record"))
+    _invalid(v, _m("record", items=[_SUMMARY]))
+    _invalid(v, _m("record", items=[_DETAIL, _SUMMARY]))
+    _invalid(v, _m("record", item=_DETAIL))  # single form
+    _invalid(v, _m("record", deal_id="d1", bf_id="bf1", items=[_DETAIL]))
     # the outcome is a separate push
-    _invalid(v, _m("record", deal_id="d1", bf_id="bf1", item=_DETAIL,
-                   outcome={"command": "deal.amend", "result": "accepted"}))
+    _invalid(v, _m("record", items=[_DETAIL], outcome={"command": "deal.amend", "result": "accepted"}))
 
 
 def test_deal_v2_outcome(registry):
     base = {"deal_id": "d1", "bf_id": "bf1"}
+    acc = {**base, "command": "deal.amend", "result": "accepted"}
+    rej = {**base, "command": "deal.amend", "result": "rejected", "code": "x", "message": "m"}
     v = _v("outcome", registry)
-    v.validate(_m("outcome", **base, command="deal.amend", result="accepted"))
-    v.validate(_m("outcome", **base, command="deal.amend", result="rejected", code="x", message="m"))
-    v.validate(_m("outcome", **base, command=None, result="rejected", code="x", message=None))
-    v.validate(_m("outcome", **base, command=None, result="rejected", code="x",
-                  broker_error={"kind": "insufficient_funds", "native_code": "145", "native_message": "m"}))
-    _invalid(v, _m("outcome", request_id="r", **base, command="deal.amend", result="accepted"))
-    _invalid(v, _m("outcome", **base, result="accepted"))  # command is mandatory (nullable)
-    _invalid(v, _m("outcome", **base, command="deal.operation", result="accepted"))
-    _invalid(v, _m("outcome", **base, command=None, result="accepted"))
-    _invalid(v, _m("outcome", **base, command="deal.amend", result="accepted", code="x"))
-    _invalid(v, _m("outcome", **base, command="deal.amend", result="accepted", message=None))
-    _invalid(v, _m("outcome", **base, command="deal.amend", result="rejected"))  # code required
-    _invalid(v, _m("outcome", **base, command="deal.amend", result="rejected", code=""))
-    _invalid(v, _m("outcome", **base, command="deal.amend", result="pending"))
-    _invalid(v, _m("outcome", **base, command="deal.amend", result="rejected", code="x", broker_error={}))
+    v.validate(_m("outcome", items=[acc]))
+    v.validate(_m("outcome", items=[acc, rej, {**base, "deal_id": "d2", "command": None, "result": "rejected",
+                                               "code": "x", "message": None}]))
+    v.validate(_m("outcome", items=[{**base, "command": None, "result": "rejected", "code": "x",
+                                     "broker_error": {"kind": "insufficient_funds", "native_code": "145",
+                                                      "native_message": "m"}}]))
+    _invalid(v, _m("outcome", request_id="r", items=[acc]))
+    _invalid(v, _m("outcome", items=[]))
+    _invalid(v, _m("outcome"))
+    _invalid(v, _m("outcome", **acc))  # single form
+    # the rules hold for every element of a batch
+    for bad in (
+        {**base, "result": "accepted"},  # command is mandatory (nullable)
+        {**base, "command": "deal.operation", "result": "accepted"},
+        {**base, "command": None, "result": "accepted"},
+        {**acc, "code": "x"},
+        {**acc, "message": None},
+        {**base, "command": "deal.amend", "result": "rejected"},  # code required
+        {**base, "command": "deal.amend", "result": "rejected", "code": ""},
+        {**base, "command": "deal.amend", "result": "pending"},
+        {**base, "command": "deal.amend", "result": "rejected", "code": "x", "broker_error": {}},
+        {k: x for k, x in acc.items() if k != "deal_id"},
+        {k: x for k, x in acc.items() if k != "bf_id"},
+    ):
+        _invalid(v, _m("outcome", items=[bad]))
+        _invalid(v, _m("outcome", items=[acc, bad]))
 
 
 def test_deal_v2_pnl(registry):
     data = {"unrealized": "1.5", "currency": "RUB", "qty": 2, "avg_price": "10", "last_price": "11",
             "as_of": "t"}
+    item = {"deal_id": "d1", "bf_id": "bf1", **data}
     v = _v("pnl", registry)
-    v.validate(_m("pnl", deal_id="d1", bf_id="bf1", data=data))
-    _invalid(v, _m("pnl", request_id="r", deal_id="d1", bf_id="bf1", data=data))
-    _invalid(v, _m("pnl", deal_id="d1", bf_id="bf1", data={**data, "trend": "up"}))
-    _invalid(v, _m("pnl", deal_id="d1", bf_id="bf1", data={k: x for k, x in data.items() if k != "qty"}))
+    v.validate(_m("pnl", items=[item]))
+    v.validate(_m("pnl", items=[item, {**item, "deal_id": "d2"}]))  # one tick = one push for all deals
+    _invalid(v, _m("pnl", request_id="r", items=[item]))
+    _invalid(v, _m("pnl", items=[]))
+    _invalid(v, _m("pnl"))
+    _invalid(v, _m("pnl", deal_id="d1", bf_id="bf1", data=data))  # single form
+    _invalid(v, _m("pnl", items=[{**item, "trend": "up"}]))
+    _invalid(v, _m("pnl", items=[{**item, "data": data}]))
+    for field in ("deal_id", "bf_id", *data):
+        _invalid(v, _m("pnl", items=[item, {k: x for k, x in item.items() if k != field}]))
 
 
 def test_deal_v2_triggered(registry):
@@ -386,16 +480,34 @@ def test_deal_v2_triggered(registry):
 def test_deal_v2_event_branches_cover_each_event_once():
     schema = _schema()
     seen = []
-    for branch in schema["$defs"]["event"]["oneOf"]:
+    for branch in schema["$defs"]["eventItem"]["oneOf"]:
         d = schema["$defs"][branch["$ref"].split("/")[-1]]
         props = d["properties"]
-        assert props["schema"] == {"const": "afbws.deal.event.v2"}
-        assert set(d["required"]) == {"channel", "schema", "deal_id", "bf_id", "category", "event", "logged_at",
-                                      "data"}
+        assert set(d["required"]) == {"deal_id", "bf_id", "category", "event", "logged_at", "data"}
         assert "$ref" in props["data"]
         seen.append((props["category"]["const"], props["event"]["const"]))
     assert len(seen) == len(set(seen))
     assert set(seen) == _EVENTS
+    event = schema["$defs"]["event"]
+    assert event["required"] == ["channel", "schema", "events"]
+    assert event["properties"]["events"] == {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/eventItem"}}
+
+
+def test_deal_v2_event_batch(registry):
+    v = _v("event", registry)
+    a = _ev("deal", "created", {"revision": 1})
+    b = _ev("order", "filled", {"order_id": "o1", "side": "buy", "role": "entry", "quantity": 1, "price": "10",
+                                "status": "filled", "filled_quantity": 1, "at": "2026-10-21T10:00:00+03:00"},
+            deal_id="d2")
+    v.validate(_m("event", events=[a]))
+    v.validate(_m("event", events=[a, b]))  # events of different deals/branches in one push
+    _invalid(v, _m("event", events=[]))
+    _invalid(v, _m("event"))
+    _invalid(v, _m("event", events=[a, {**b, "data": {"revision": 1}}]))  # every element is typed
+    _invalid(v, _m("event", request_id="r", events=[a]))
+    _invalid(v, _m("event", **a))  # single form
+    _invalid(v, _m("event", events=[{**a, "channel": "deal", "schema": "afbws.deal.event.v2"}]))
+    _invalid(v, _m("event", events=[{k: x for k, x in a.items() if k != "deal_id"}]))
 
 
 def test_deal_v2_event_data(registry):
@@ -492,23 +604,23 @@ def test_deal_v2_event_data(registry):
     _invalid(root, _event("order", "report", {"status": "closed"}))
     _invalid(root, _event("deal", "created", {"revision": 1}, request_id="r"))
     _invalid(root, _event("trade", "created", {"revision": 1}))
-    _invalid(root, _with(_event("deal", "created", {"revision": 1}), data=None))
-    _invalid(root, _with(_event("deal", "created", {"revision": 1}), logged_at=None))
+    for field in ("data", "logged_at"):
+        _invalid(root, _m("event", events=[_with(_ev("deal", "created", {"revision": 1}), **{field: None})]))
 
 
 def test_deal_v2_root_dispatch(registry):
     root = _root(registry)
-    root.validate(_m("get", request_id="r", deal_id="d1"))
-    root.validate(_m("record", deal_id="d1", bf_id="bf1", item=_DETAIL))
+    root.validate(_m("list", request_id="r", ids=["d1"], detail=True))
+    root.validate(_m("record", items=[_DETAIL]))
     root.validate(_m("operation", request_id="r", items=[{"deal_id": "d1", "action": "pause"}]))
     # v1 ids and suffixed ids are rejected
-    for schema in ("afbws.deal.get.request.v1", "afbws.deal.get.response.v1", "afbws.deal.record.push.v1",
+    for schema in ("afbws.deal.get.v2", "afbws.deal.get.request.v1", "afbws.deal.get.response.v1", "afbws.deal.record.push.v1",
                    "afbws.deal.event.push.v1", "afbws.deal.pnl.push.v1", "afbws.deal.triggered.push.v1",
                    "afbws.deal.error.response.v1", "afbws.deal.get.request.v2", "afbws.deal.record.push.v2",
                    "afbws.deal.archive.v2"):
         _invalid(root, {"channel": "deal", "schema": schema, "request_id": "r", "deal_id": "d1"})
-    _invalid(root, _m("get", request_id="r", deal_id="d1", unexpected=1))
-    _invalid(root, {**_m("get", request_id="r", deal_id="d1"), "channel": "alarm"})
+    _invalid(root, _m("list", request_id="r", unexpected=1))
+    _invalid(root, {**_m("list", request_id="r"), "channel": "alarm"})
 
 
 def test_deal_v2_examples_validate(registry):
@@ -522,14 +634,25 @@ def test_deal_v2_examples_validate(registry):
         root.validate(message)
         seen.add(message["schema"])
         if message["schema"] == "afbws.deal.event.v2":
-            events.add((message["category"], message["event"]))
-            assert path.name == f"event.{message['category']}.{message['event']}.push.json"
+            for ev in message["events"]:
+                events.add((ev["category"], ev["event"]))
+            if len(message["events"]) == 1:
+                ev = message["events"][0]
+                assert path.name == f"event.{ev['category']}.{ev['event']}.push.json"
         # pushes carry no request_id
         if message["schema"].split(".")[2] in _PUSHES:
             assert "request_id" not in message, path.name
     assert seen == {f"afbws.deal.{op}.v2" for op in _OPS}
     assert events == _EVENTS
     # every example item is a valid deal.public projection (checked through dealDetail's $ref)
-    for name in ("get.response", "record.push", "error.conflict"):
+    assert not list(_EXAMPLES.glob("get.*")) and not list(_EXAMPLES.glob("error.conflict*"))
+    for name in ("list.response.detail", "record.push", "amend.response", "publish.response"):
         message = json.loads((_EXAMPLES / f"{name}.json").read_text())
         assert "source_refs" not in json.dumps(message)
+    # batch semantics of the examples
+    load = lambda n: json.loads((_EXAMPLES / n).read_text())
+    assert len(load("record.push.json")["items"]) >= 2 and len(load("pnl.push.json")["items"]) >= 2
+    assert len(load("amend.request.json")["items"]) >= 2 and len(load("publish.request.json")["items"]) >= 2
+    results = load("amend.response.json")["results"]
+    assert any(r.get("code") == "conflict" and r["item"] for r in results)
+    assert len(load("event.batch.push.json")["events"]) >= 2 and len(load("outcome.batch.push.json")["items"]) >= 2

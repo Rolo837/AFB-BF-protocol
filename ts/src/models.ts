@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 8be25755c5b8322e74dab78a663714fa45229ce8be6d4ca07811088431579ebf
+ * source-hash: 018edd44c4fc02bf6dc1120b10a7a583ce61a6149fd73730eae73e49a13cfa87
  */
 
 /**
@@ -656,13 +656,12 @@ export type DealOperationItem = {
   cancel_open_orders?: boolean;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.deal.channel.v2). Same convention as afbws.alarm/account/tradeplan v2: ONE schema id per message (`afbws.deal.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`); server pushes (`record`, `outcome`, `event`, `pnl`, `triggered`) are the same kind of message without `request_id`. State and facts are split: `record` is the authoritative state of a deal, `outcome` the result of a command, `event` a thin allow-listed fact for the feed (typed per event, see $defs/event), `pnl` the periodic unrealized P&L, `triggered` the guaranteed notifications (acked with `ack`). Strict (additionalProperties:false), no legacy forms: `status`/`execution_phase` are the shared enums (common.v1.json#/$defs/dealStatus, executionPhase), `error.details` does not exist (the server populates none). `item`/`items`/`results` never carry the persisted DealState file shape (source_refs, status_history, event_journal, raw orders/positions, observed) — see $defs/dealSummary and $defs/dealDetail, explicit allow-list projections built by backend/trade/public_views.py. publish/rebind/amend resolve the source tradeplan only via the deal's own link (deal.public.v1.json source.tradeplan_id); they never accept an inline plan-like draft. See AFB/docs/ws/deal.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.deal.channel.v2). Same convention as afbws.alarm/account/tradeplan v2: ONE schema id per message (`afbws.deal.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`); server pushes (`record`, `outcome`, `event`, `pnl`, `triggered`) are the same kind of message without `request_id`. Collections are arrays (`items[]`, `ids[]`, `results[]`, `events[]`), so bulk operations and pushes are single messages (one batch mutation / one tick = one push); a per-deal failure of a batch is a row with accepted=false in `results[]`, `error` is only for a whole request. There is no separate `get`: use `list` with `ids` and `detail: true`. State and facts are split: `record` is the authoritative state of a deal, `outcome` the result of a command, `event` a thin allow-listed fact for the feed (typed per event, see $defs/event), `pnl` the periodic unrealized P&L, `triggered` the guaranteed notifications (acked with `ack`). Strict (additionalProperties:false), no legacy forms: `status`/`execution_phase` are the shared enums (common.v1.json#/$defs/dealStatus, executionPhase), `error.details` does not exist (the server populates none). `item`/`items`/`results[].item` never carry the persisted DealState file shape (source_refs, status_history, event_journal, raw orders/positions, observed) — see $defs/dealSummary and $defs/dealDetail, explicit allow-list projections built by backend/trade/public_views.py. publish/rebind/amend resolve the source tradeplan only via the deal's own link (deal.public.v1.json source.tradeplan_id); they never accept an inline plan-like draft. See AFB/docs/ws/deal.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealChannelV2Message".
  */
 export type DealChannelV2Message =
-  | DealV2Get
   | DealV2List
   | DealV2Publish
   | DealV2Rebind
@@ -680,6 +679,13 @@ export type DealChannelV2Message =
  * via the `definition` "DealV2Id".
  */
 export type DealV2Id = string;
+/**
+ * Id of an AFB tradeplan (state/tradeplans/<user_id>/<id>.yaml). Opaque, case-sensitive. Shared by tradeplan.v2.json, afbws/tradeplan.channel.v2.json and gp.v2.json (`tradeplan_id`, the owning plan of a primitive).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanId".
+ */
+export type TradeplanId = string;
 /**
  * Deal status — the single vocabulary of deal_state.v2.json `status` (kept equal by a test) used by the afbws deal/tradeplan channels. Deletion is not a status.
  *
@@ -700,13 +706,6 @@ export type DealExecutionPhase = 'idle' | 'awaiting_entry' | 'entry_working' | '
  * via the `definition` "DealV2BfId".
  */
 export type DealV2BfId = string;
-/**
- * Id of an AFB tradeplan (state/tradeplans/<user_id>/<id>.yaml). Opaque, case-sensitive. Shared by tradeplan.v2.json, afbws/tradeplan.channel.v2.json and gp.v2.json (`tradeplan_id`, the owning plan of a primitive).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanId".
- */
-export type TradeplanId = string;
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2AmendField".
@@ -741,9 +740,9 @@ export type DealV2Ack = {
  * A thin, allow-listed event for the event feed, the order/position patches and the chart markers — never a state snapshot (state: `afbws.deal.record.v2`) and never a raw BF payload: only the fields a consumer reads or that make up the meaning of the event are listed, everything else BF sends (`broker_instrument`, `validation`, `execution_legs`, `target_instrument_patch`, `binding`, `snapshot`, `observed`, `deal.snapshot` altogether) is dropped. `data` is determined by `event` within `category`; `category` is fixed per event.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV2Event".
+ * via the `definition` "DealV2EventItem".
  */
-export type DealV2Event =
+export type DealV2EventItem =
   | DealV2EventDealCreated
   | DealV2EventDealAmended
   | DealV2EventDealAccepted
@@ -1388,19 +1387,33 @@ export type TradeplanV2_ConditionRight =
  */
 export type TradeplanV2_TpExitList = TradeplanV2_TpLeg[];
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v2). Same convention as afbws.alarm/account/market v2: ONE schema id per message (`afbws.tradeplan.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`), and the server push `sync` is the same kind of message without `request_id`. Two plan shapes: `planInput` (what the client sends in `set` — the plan the user edits, NOT server-owned fields) and `planItem` (what the server returns — the stored plan minus `delivery_at`/`archived_components`/`archived_at`/`editor`, plus `instrument_missing`). Both are projections of the AFB-internal storage schema `../tradeplan.v2.json` (afb.tradeplan.v2), which stays the single source for the condition vocabulary; this channel schema is strict (additionalProperties:false) and carries no legacy forms: `leg_id` is never the synthetic `legacy:{role}:{index}`, `op` is mandatory on every condition, `schema` is mandatory, `instrument_key` is mandatory on input and on output either present or replaced by `instrument_missing:true`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v2). Same convention as afbws.alarm/account/market v2: ONE schema id per message (`afbws.tradeplan.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`), and the server push `sync` is the same kind of message without `request_id`. Collections are arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; per-plan failures of a batch come back in `rejected[]`, `error` is only for a whole request. There is no separate `get`: use `list` with `ids`. Two plan shapes: `planInput` (what the client sends in `set` — the plan the user edits, NOT server-owned fields) and `planItem` (what the server returns — the stored plan minus `delivery_at`/`archived_components`/`archived_at`/`editor`, plus `instrument_missing`). Both are projections of the AFB-internal storage schema `../tradeplan.v2.json` (afb.tradeplan.v2), which stays the single source for the condition vocabulary; this channel schema is strict (additionalProperties:false) and carries no legacy forms: `leg_id` is never the synthetic `legacy:{role}:{index}`, `op` is mandatory on every condition, `schema` is mandatory, `instrument_key` is mandatory on input and on output either present or replaced by `instrument_missing:true`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanChannelV2Message".
  */
 export type TradeplanChannelV2Message =
-  | TradeplanV2Get
-  | TradeplanV2List
-  | TradeplanV2Set
-  | TradeplanV2Delete
-  | TradeplanV2Archive
-  | TradeplanV2Sync
-  | TradeplanV2Error;
+  TradeplanV2List | TradeplanV2Set | TradeplanV2Delete | TradeplanV2Archive | TradeplanV2Sync | TradeplanV2Error;
+/**
+ * Request: `ids[]` (at least one). Response (same `request_id`): `items[]` — the archived plans (status `archived`) — and `rejected[]` (a plan with a live deal that already entered a position is rejected with `conflict` and its current `item`). Exactly one of `ids` / `items`. Archival is also delivered as a single `sync` push (all archived plans in one message) to the user's other connections.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanV2Archive".
+ */
+export type TradeplanV2Archive = {
+  channel: 'tradeplan';
+  schema: 'afbws.tradeplan.archive.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * @minItems 1
+   */
+  ids?: [TradeplanId, ...TradeplanId[]];
+  items?: TradeplanV2PlanItem[];
+  rejected?: TradeplanV2Rejection[];
+} & TradeplanV2Archive1;
+export type TradeplanV2Archive1 = {
+  [k: string]: unknown;
+};
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AlarmV1_AlarmConditionNode".
@@ -2895,25 +2908,37 @@ export interface DealAckResultItem {
   status: 'ok' | 'not_found';
 }
 /**
- * Request: `deal_id`. Response (same `request_id`): `item`. Exactly one of the two.
+ * Request: optional filters `ids[]`, `instrument_keys[]` and/or `tradeplan_ids[]` (all given = intersection; none = every deal of the caller) and optional `detail` (true = rows carry the full editor payload `deal` + `editable_fields`, i.e. a dealDetail; default false = summary rows). Response (same `request_id`): `items[]` (dealItem). There is no separate `get`: use `ids` with `detail: true`. A request carrying `items` is invalid, as is a response carrying a filter.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV2Get".
+ * via the `definition` "DealV2List".
  */
-export interface DealV2Get {
+export interface DealV2List {
   channel: 'deal';
-  schema: 'afbws.deal.get.v2';
+  schema: 'afbws.deal.list.v2';
   request_id: AfbwsCommonV1_RequestId;
-  deal_id?: DealV2Id;
-  item?: DealV2Detail;
+  /**
+   * @minItems 1
+   */
+  ids?: [DealV2Id, ...DealV2Id[]];
+  /**
+   * @minItems 1
+   */
+  instrument_keys?: [AfbwsCommonV1_InstrumentKey, ...AfbwsCommonV1_InstrumentKey[]];
+  /**
+   * @minItems 1
+   */
+  tradeplan_ids?: [TradeplanId, ...TradeplanId[]];
+  detail?: boolean;
+  items?: DealV2Item[];
 }
 /**
- * Allow-list built by backend/trade/public_views.py::deal_detail. `deal` is the public afb.deal.v2 projection (deal.public.v1.json). `editable_fields` lists what the current status/execution_phase allows to amend.
+ * Same allow-list as dealSummary (see there); with `detail: true` each row additionally carries `deal` (the public afb.deal.v2 projection) and `editable_fields` — together, i.e. a dealDetail. Rows of a list without `detail` never carry them.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV2Detail".
+ * via the `definition` "DealV2Item".
  */
-export interface DealV2Detail {
+export interface DealV2Item {
   deal_id: DealV2Id;
   revision: number;
   status: DealStatus;
@@ -2934,8 +2959,8 @@ export interface DealV2Detail {
   position?: DealV2OpenPosition;
   created_at: string;
   updated_at: string;
-  deal: DealPublicV1;
-  editable_fields: DealV2AmendField[];
+  deal?: DealPublicV1;
+  editable_fields?: DealV2AmendField[];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2983,24 +3008,55 @@ export interface DealV2OpenPosition {
   as_of: string;
 }
 /**
- * Request: no filters (the plan->deals grouping is built from `tradeplan_id` of each row, not a server-side filter). Response (same `request_id`): `items[]`.
+ * Request: `items[]` (at least one) of `{tradeplan_id, bf_id}` (no inline plan draft, 1:1 per row). Response (same `request_id`): `results[]` (one per item; a failed row is accepted=false) and `accepted`. Distinguished by `items` vs `results`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV2List".
+ * via the `definition` "DealV2Publish".
  */
-export interface DealV2List {
+export interface DealV2Publish {
   channel: 'deal';
-  schema: 'afbws.deal.list.v2';
+  schema: 'afbws.deal.publish.v2';
   request_id: AfbwsCommonV1_RequestId;
-  items?: DealV2Summary[];
+  /**
+   * @minItems 1
+   */
+  items?: [DealV2PublishItem, ...DealV2PublishItem[]];
+  results?: DealV2Result[];
+  /**
+   * any(result.accepted for result in results)
+   */
+  accepted?: boolean;
 }
 /**
- * Explicit allow-list built by backend/trade/public_views.py::deal_summary, never a serialization of the persisted DealState (source_refs, status_history, event_journal, raw orders/positions, observed, owner_user_id never appear). `sizing` is the user-set {mode,value} from the «Риск и объём» block — NOT the broker_sizing projection, see `broker_sizing`.
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2PublishItem".
+ */
+export interface DealV2PublishItem {
+  tradeplan_id: TradeplanId;
+  bf_id: DealV2BfId;
+}
+/**
+ * accepted=true: `bf_id` and `status` are set (status is `deleted` after a delete), `revision` is the deal's revision and `item` the authoritative record when the deal still exists. accepted=false: only `message` (why) — the command did not touch the deal, so there is no status/revision. When a rebind changes the deal id, `deal_id`/`item` carry the NEW id — the client must drop the old cache key.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV2Summary".
+ * via the `definition` "DealV2Result".
  */
-export interface DealV2Summary {
+export interface DealV2Result {
+  deal_id: DealV2Id;
+  bf_id?: DealV2BfId;
+  status?: DealV2ResultStatus;
+  accepted: boolean;
+  revision?: number;
+  item?: DealV2Detail;
+  message?: string;
+}
+/**
+ * Allow-list built by backend/trade/public_views.py::deal_detail. `deal` is the public afb.deal.v2 projection (deal.public.v1.json). `editable_fields` lists what the current status/execution_phase allows to amend.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Detail".
+ */
+export interface DealV2Detail {
   deal_id: DealV2Id;
   revision: number;
   status: DealStatus;
@@ -3021,39 +3077,11 @@ export interface DealV2Summary {
   position?: DealV2OpenPosition;
   created_at: string;
   updated_at: string;
+  deal: DealPublicV1;
+  editable_fields: DealV2AmendField[];
 }
 /**
- * Request: `tradeplan_id` + `bf_id` (no inline plan draft, no plural bf_ids — 1:1). Response (same `request_id`): `results[]` (batch-shaped, at most one element today) and `accepted`. Distinguished by `results`: present => response, absent => request.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV2Publish".
- */
-export interface DealV2Publish {
-  channel: 'deal';
-  schema: 'afbws.deal.publish.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  tradeplan_id?: TradeplanId;
-  bf_id?: DealV2BfId;
-  results?: DealV2Result[];
-  accepted?: boolean;
-}
-/**
- * accepted=true: `bf_id` and `status` are set (status is `deleted` after a delete), `revision` is the deal's revision and `item` the authoritative record when the deal still exists. accepted=false: only `message` (why) — the command did not touch the deal, so there is no status/revision. When a rebind changes the deal id, `deal_id`/`item` carry the NEW id — the client must drop the old cache key.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "DealV2Result".
- */
-export interface DealV2Result {
-  deal_id: DealV2Id;
-  bf_id?: DealV2BfId;
-  status?: DealV2ResultStatus;
-  accepted: boolean;
-  revision?: number;
-  item?: DealV2Detail;
-  message?: string;
-}
-/**
- * Request: `deal_id` + `bf_id` (the backend resolves the source tradeplan via the deal's own link). Response (same `request_id`): `results[]` and `accepted`; if the new target changes the deal id, `results[0].deal_id`/`item` carry the NEW id. Distinguished by `results`.
+ * Request: `items[]` (at least one) of `{deal_id, bf_id}` (the backend resolves the source tradeplan via the deal's own link). Response (same `request_id`): `results[]` and `accepted`; if the new target changes a deal id, that row's `deal_id`/`item` carry the NEW id. Distinguished by `items` vs `results`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2Rebind".
@@ -3062,10 +3090,23 @@ export interface DealV2Rebind {
   channel: 'deal';
   schema: 'afbws.deal.rebind.v2';
   request_id: AfbwsCommonV1_RequestId;
-  deal_id?: DealV2Id;
-  bf_id?: DealV2BfId;
+  /**
+   * @minItems 1
+   */
+  items?: [DealV2RebindItem, ...DealV2RebindItem[]];
   results?: DealV2Result[];
+  /**
+   * any(result.accepted for result in results)
+   */
   accepted?: boolean;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2RebindItem".
+ */
+export interface DealV2RebindItem {
+  deal_id: DealV2Id;
+  bf_id: DealV2BfId;
 }
 /**
  * Request: `items[]` (at least one). Response (same `request_id`): `results[]` (one per item, partial failures are rows with accepted=false) and `accepted`. Distinguished by `items` vs `results`.
@@ -3100,7 +3141,7 @@ export interface DealV2OperationItem {
   cancel_open_orders?: boolean;
 }
 /**
- * Request: `deal_id`, optional `deal_edit` (only the legs/fields overridden on the deal side; anything omitted keeps following the linked tradeplan) and optional `base_revision` (optimistic concurrency: a mismatch is a `conflict` error carrying the current `item`). Response (same `request_id`): `item` (authoritative record), `revision`, `status`, `accepted`. The outcome of the BF confirmation arrives later as `outcome` and `event` pushes. Distinguished by `item`.
+ * Request: `items[]` (at least one) of `{deal_id, deal_edit?, base_revision?}`. Response (same `request_id`): `results[]` (amendResult, one per item; a rejected or conflicting row never fails the batch) and `accepted` (any row accepted). Distinguished by `items` vs `results`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2Amend".
@@ -3109,13 +3150,26 @@ export interface DealV2Amend {
   channel: 'deal';
   schema: 'afbws.deal.amend.v2';
   request_id: AfbwsCommonV1_RequestId;
-  deal_id?: DealV2Id;
+  /**
+   * @minItems 1
+   */
+  items?: [DealV2AmendItem, ...DealV2AmendItem[]];
+  results?: DealV2AmendResult[];
+  /**
+   * any(result.accepted for result in results)
+   */
+  accepted?: boolean;
+}
+/**
+ * Optional `deal_edit` (only the legs/fields overridden on the deal side; anything omitted keeps following the linked tradeplan) and optional `base_revision` (optimistic concurrency: a mismatch rejects this row with `conflict` and the current `item`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2AmendItem".
+ */
+export interface DealV2AmendItem {
+  deal_id: DealV2Id;
   deal_edit?: DealV2Edit;
   base_revision?: number;
-  item?: DealV2Detail;
-  revision?: number;
-  status?: DealStatus;
-  accepted?: boolean;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -3163,6 +3217,21 @@ export interface DealV2NewLeg {
   logic?: DealV2_LegJoin;
 }
 /**
+ * accepted=true: `revision` (the new revision), `status` and `item` (the authoritative record) are set; no message/code. accepted=false: the deal is unchanged, `message` says why and `code` is the machine-readable reason when there is one; `item` (the authoritative current record) is present only with `conflict` — a stale `base_revision` — so the client can adopt it instead of retrying blind. The outcome of the BF confirmation arrives later as `outcome` and `event` pushes.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2AmendResult".
+ */
+export interface DealV2AmendResult {
+  deal_id: DealV2Id;
+  accepted: boolean;
+  revision?: number;
+  status?: DealStatus;
+  item?: DealV2Detail;
+  message?: string;
+  code?: AfbwsCommonV1_ErrorCode;
+}
+/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2AckEvent".
  */
@@ -3180,7 +3249,7 @@ export interface DealV2AckResultItem {
   status: 'ok' | 'not_found';
 }
 /**
- * `item` (the authoritative current record) is only present with `conflict` — a stale `base_revision` on amend — so the client can adopt it instead of retrying blind; a `conflict` may also come without it (lifecycle/amend gate, deal id taken). No other code carries `item`, and no code carries `details`: the server populates none for the deal channel.
+ * Only for a whole request (invalid_schema, invalid_channel, forbidden, internal_error, ...). Per-deal failures of a batched publish/rebind/operation/amend are rows with accepted=false in that response's `results[]` (a stale `base_revision` is `code: conflict` with the current `item` there); no code carries `item` or `details`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2Error".
@@ -3191,10 +3260,9 @@ export interface DealV2Error {
   request_id: AfbwsCommonV1_RequestId;
   code: AfbwsCommonV1_ErrorCode;
   message: string;
-  item?: DealV2Detail;
 }
 /**
- * REPLACE of the public projection identified by deal_id: the client overwrites its cached copy, never merges. One push per mutation of the record. It carries NO command outcome — that is `afbws.deal.outcome.v2`; and no thin events are merged into it — see `afbws.deal.event.v2`.
+ * REPLACE per deal: for every item the client overwrites its cached copy identified by `item.deal_id`, never merges. One mutation (one batch command) = ONE push carrying all deals it changed. It carries NO command outcome — that is `afbws.deal.outcome.v2`; and no thin events are merged into it — see `afbws.deal.event.v2`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2Record".
@@ -3202,12 +3270,13 @@ export interface DealV2Error {
 export interface DealV2Record {
   channel: 'deal';
   schema: 'afbws.deal.record.v2';
-  deal_id: DealV2Id;
-  bf_id: DealV2BfId;
-  item: DealV2Detail;
+  /**
+   * @minItems 1
+   */
+  items: [DealV2Detail, ...DealV2Detail[]];
 }
 /**
- * A separate push, so the client does not need the whole record just to show a toast. AFB composes no user-facing texts: it passes through what BF returned, the text is built on the frontend. result=rejected: any BF rejection (`code` required). result=accepted: only the confirmation of `deal.amend` (the one accepted outcome the server reports), without code/message/broker_error.
+ * A separate push, so the client does not need the whole record just to show a toast; `items[]` (at least one), each is an independent outcome (see outcomeItem).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2Outcome".
@@ -3215,6 +3284,18 @@ export interface DealV2Record {
 export interface DealV2Outcome {
   channel: 'deal';
   schema: 'afbws.deal.outcome.v2';
+  /**
+   * @minItems 1
+   */
+  items: [DealV2OutcomeItem, ...DealV2OutcomeItem[]];
+}
+/**
+ * A separate push, so the client does not need the whole record just to show a toast. AFB composes no user-facing texts: it passes through what BF returned, the text is built on the frontend. result=rejected: any BF rejection (`code` required). result=accepted: only the confirmation of `deal.amend` (the one accepted outcome the server reports), without code/message/broker_error.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2OutcomeItem".
+ */
+export interface DealV2OutcomeItem {
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   /**
@@ -3233,12 +3314,24 @@ export interface DealV2Outcome {
   broker_error?: PayloadsDealRejected_BrokerError;
 }
 /**
+ * `events[]` (at least one) in order of occurrence, each a typed eventItem (a thin, allow-listed fact — never a state snapshot or a raw BF payload).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Event".
+ */
+export interface DealV2Event {
+  channel: 'deal';
+  schema: 'afbws.deal.event.v2';
+  /**
+   * @minItems 1
+   */
+  events: [DealV2EventItem, ...DealV2EventItem[]];
+}
+/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2EventDealCreated".
  */
 export interface DealV2EventDealCreated {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'deal';
@@ -3260,8 +3353,6 @@ export interface DealV2CreatedData {
  * via the `definition` "DealV2EventDealAmended".
  */
 export interface DealV2EventDealAmended {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'deal';
@@ -3283,8 +3374,6 @@ export interface DealV2AmendedData {
  * via the `definition` "DealV2EventDealAccepted".
  */
 export interface DealV2EventDealAccepted {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'deal';
@@ -3314,8 +3403,6 @@ export interface DealV2AcceptedData {
  * via the `definition` "DealV2EventDealRejected".
  */
 export interface DealV2EventDealRejected {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'deal';
@@ -3351,8 +3438,6 @@ export interface DealV2RejectedData {
  * via the `definition` "DealV2EventDealStatusChanged".
  */
 export interface DealV2EventDealStatusChanged {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'deal';
@@ -3391,8 +3476,6 @@ export interface DealV2StatusChangedData {
  * via the `definition` "DealV2EventDealDeleted".
  */
 export interface DealV2EventDealDeleted {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'deal';
@@ -3421,8 +3504,6 @@ export interface DealV2DeletedData {
  * via the `definition` "DealV2EventDealReport".
  */
 export interface DealV2EventDealReport {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'deal';
@@ -3470,8 +3551,6 @@ export interface DealV2ReportFill {
  * via the `definition` "DealV2EventDealOrdersSynced".
  */
 export interface DealV2EventDealOrdersSynced {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'deal';
@@ -3496,8 +3575,6 @@ export interface DealV2OrdersSyncedData {
  * via the `definition` "DealV2EventDealPositionsSynced".
  */
 export interface DealV2EventDealPositionsSynced {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'deal';
@@ -3522,8 +3599,6 @@ export interface DealV2PositionsSyncedData {
  * via the `definition` "DealV2EventOrderCreated".
  */
 export interface DealV2EventOrderCreated {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'order';
@@ -3562,8 +3637,6 @@ export interface DealV2OrderCreatedData {
  * via the `definition` "DealV2EventOrderFilled".
  */
 export interface DealV2EventOrderFilled {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'order';
@@ -3600,8 +3673,6 @@ export interface DealV2OrderData {
  * via the `definition` "DealV2EventOrderPartiallyFilled".
  */
 export interface DealV2EventOrderPartiallyFilled {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'order';
@@ -3614,8 +3685,6 @@ export interface DealV2EventOrderPartiallyFilled {
  * via the `definition` "DealV2EventOrderCancelled".
  */
 export interface DealV2EventOrderCancelled {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'order';
@@ -3628,8 +3697,6 @@ export interface DealV2EventOrderCancelled {
  * via the `definition` "DealV2EventOrderRejected".
  */
 export interface DealV2EventOrderRejected {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'order';
@@ -3642,8 +3709,6 @@ export interface DealV2EventOrderRejected {
  * via the `definition` "DealV2EventPositionOpened".
  */
 export interface DealV2EventPositionOpened {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'position';
@@ -3678,8 +3743,6 @@ export interface DealV2PositionData {
  * via the `definition` "DealV2EventPositionChanged".
  */
 export interface DealV2EventPositionChanged {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'position';
@@ -3692,8 +3755,6 @@ export interface DealV2EventPositionChanged {
  * via the `definition` "DealV2EventPositionClosed".
  */
 export interface DealV2EventPositionClosed {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'position';
@@ -3706,8 +3767,6 @@ export interface DealV2EventPositionClosed {
  * via the `definition` "DealV2EventConditionTriggered".
  */
 export interface DealV2EventConditionTriggered {
-  channel: 'deal';
-  schema: 'afbws.deal.event.v2';
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   category: 'condition';
@@ -3735,7 +3794,7 @@ export interface DealV2ConditionTriggeredData {
   at?: string;
 }
 /**
- * Not persisted. `trend` is deliberately absent — a frontend-only projection computed from consecutive pushes.
+ * Not persisted. ONE push per tick for all open deals of the user: `items[]` (at least one).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2Pnl".
@@ -3743,25 +3802,35 @@ export interface DealV2ConditionTriggeredData {
 export interface DealV2Pnl {
   channel: 'deal';
   schema: 'afbws.deal.pnl.v2';
+  /**
+   * @minItems 1
+   */
+  items: [DealV2PnlItem, ...DealV2PnlItem[]];
+}
+/**
+ * `trend` is deliberately absent — a frontend-only projection computed from consecutive pushes.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2PnlItem".
+ */
+export interface DealV2PnlItem {
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
-  data: {
-    /**
-     * Decimal string
-     */
-    unrealized: string;
-    currency: string;
-    qty: number;
-    /**
-     * Decimal string
-     */
-    avg_price: string;
-    /**
-     * Decimal string
-     */
-    last_price: string;
-    as_of: string;
-  };
+  /**
+   * Decimal string
+   */
+  unrealized: string;
+  currency: string;
+  qty: number;
+  /**
+   * Decimal string
+   */
+  avg_price: string;
+  /**
+   * Decimal string
+   */
+  last_price: string;
+  as_of: string;
 }
 /**
  * Server-initiated; same ack discipline as alarms: a reconnect redelivers events that were not acked (afbws.deal.ack.v2).
@@ -3823,6 +3892,34 @@ export interface DealV2TriggerReport {
 export interface DealV2TriggerReportData {
   status: DealStatus;
   close_reason?: string;
+}
+/**
+ * Explicit allow-list built by backend/trade/public_views.py::deal_summary, never a serialization of the persisted DealState (source_refs, status_history, event_journal, raw orders/positions, observed, owner_user_id never appear). `sizing` is the user-set {mode,value} from the «Риск и объём» block — NOT the broker_sizing projection, see `broker_sizing`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "DealV2Summary".
+ */
+export interface DealV2Summary {
+  deal_id: DealV2Id;
+  revision: number;
+  status: DealStatus;
+  execution_phase: DealExecutionPhase;
+  bf_id: DealV2BfId;
+  tradeplan_id: TradeplanId;
+  ticker: string;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key?: string;
+  market?: 'stock' | 'futures' | 'currency';
+  direction: 'long' | 'short';
+  sizing?: DealSizing;
+  execution_policy?: DealExecutionPolicy;
+  broker_sizing?: DealV2SizingDisplay;
+  realized_pnl?: DealV2RealizedPnl;
+  position?: DealV2OpenPosition;
+  created_at: string;
+  updated_at: string;
 }
 /**
  * Explicit allow-list projector output over afb.deal.v2 (../deal.v2.json), built by backend/trade/public_views.py — never a serialization of the persisted DealState file. Deliberately NOT an allOf+$ref extension of the whole wire root: those wire schemas declare `owner`/`archive_reason` in their own `properties` with no `additionalProperties: false`, so those fields would count as already-'evaluated' and survive an outer `unevaluatedProperties: false` — the only way to actually drop them is to define this object's own shape directly and reuse the wire schemas' field-level $defs (target, sizing, conditions, execution policy) rather than their root. `source` is strict and requires `tradeplan_id` — the single public link back to the owning tradeplan; `source.kind`/`draft_id`, compile snapshots and raw phase-B overrides never appear here. The one internal field that IS projected — per-leg, not on `source` — is `leg_id` (v2 legs only), the plan-leg identity the frontend needs to tell which deal leg still tracks which plan leg.
@@ -4963,17 +5060,24 @@ export interface TradeplanSyncPush {
   items: TradeplanEntity[];
 }
 /**
- * Request: `id`. Response (same `request_id`): `item`. Exactly one of the two.
+ * Request: optional filters `ids[]` and/or `instrument_keys[]` (both = intersection; none = every non-archived plan of the caller; archived plans are returned only when named in `ids`). Response (same `request_id`): `items[]`. There is no separate `get`: use `ids`. A request carrying `items` is invalid, as is a response carrying a filter.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV2Get".
+ * via the `definition` "TradeplanV2List".
  */
-export interface TradeplanV2Get {
+export interface TradeplanV2List {
   channel: 'tradeplan';
-  schema: 'afbws.tradeplan.get.v2';
+  schema: 'afbws.tradeplan.list.v2';
   request_id: AfbwsCommonV1_RequestId;
-  id?: TradeplanId;
-  item?: TradeplanV2PlanItem;
+  /**
+   * @minItems 1
+   */
+  ids?: [TradeplanId, ...TradeplanId[]];
+  /**
+   * @minItems 1
+   */
+  instrument_keys?: [AfbwsCommonV1_InstrumentKey, ...AfbwsCommonV1_InstrumentKey[]];
+  items?: TradeplanV2PlanItem[];
 }
 /**
  * An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is present whenever the server could resolve one; a plan whose instrument is not in the catalog comes with `instrument_missing: true` (and possibly without `ticker`) — at least one of the two is always there. `ticker` is the derived wire ticker. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.
@@ -5030,23 +5134,7 @@ export interface TradeplanV2Condition {
   right: TradeplanV2_ConditionRight;
 }
 /**
- * Request: optional filter `instrument_keys[]` (none = every non-archived plan of the caller; archived plans are not listed, use `get`). Response (same `request_id`): `items[]`. A request carrying `items` is invalid, as is a response carrying a filter.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV2List".
- */
-export interface TradeplanV2List {
-  channel: 'tradeplan';
-  schema: 'afbws.tradeplan.list.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  /**
-   * @minItems 1
-   */
-  instrument_keys?: [AfbwsCommonV1_InstrumentKey, ...AfbwsCommonV1_InstrumentKey[]];
-  items?: TradeplanV2PlanItem[];
-}
-/**
- * Request: `item` is a `planInput` (create or update by `item.id`). Response (same `request_id`): `item` is the saved `planItem` and `amend_results[]` lists the per-deal outcome of re-amending the plan's live deals (always empty for a create). Distinguished by `amend_results`: present => response, absent => request. There is no push on set.
+ * Request: `items[]` (at least one) of `planInput` — create or update by `item.id`, batched. Response (same `request_id`): `items[]` the applied authoritative `planItem`s (possibly empty), `rejected[]` for plans that were not applied (a stale/conflicting plan carries its current `planItem` in `rejected[].item`), and `amend_results[]` — the per-deal outcome of re-amending the live deals of every applied plan (empty for creates only; each row names its `tradeplan_id`). Distinguished by `amend_results`: present => response, absent => request. A failing plan never fails the batch. There is no push on set.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2Set".
@@ -5055,7 +5143,8 @@ export interface TradeplanV2Set {
   channel: 'tradeplan';
   schema: 'afbws.tradeplan.set.v2';
   request_id: AfbwsCommonV1_RequestId;
-  item: TradeplanV2PlanInput | TradeplanV2PlanItem;
+  items: (TradeplanV2PlanInput | TradeplanV2PlanItem)[];
+  rejected?: TradeplanV2Rejection[];
   amend_results?: TradeplanV2AmendResultItem[];
 }
 /**
@@ -5091,13 +5180,26 @@ export interface TradeplanV2LegInput {
   condition: TradeplanV2Condition;
 }
 /**
- * accepted=true: the deal was amended, `revision` is its new revision (integer; null only if the deal did not report one) and `status` its status after the amend. accepted=false: the deal is unchanged, `message` says why (a human-readable gate/validation text) and `code` is set only for the one machine-readable case the server distinguishes: `tradeplan_missing` (the deal's own tradeplan no longer exists — an orphaned deal). `revision`/`status` never appear on a rejection.
+ * `id` is the plan id from the request, `code` a whole-request error code reused per plan (`not_found`, `validation_error`, `conflict`, ...), `message` the human-readable reason. `item` is the authoritative current plan and is present only with `conflict` (a stale or blocked plan: archive/delete blocked by a live deal that already entered a position, `set` over a primitive owned by another plan), so the client can adopt it without a separate read; a `conflict` may also come without it.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanV2Rejection".
+ */
+export interface TradeplanV2Rejection {
+  id: TradeplanId;
+  code: AfbwsCommonV1_ErrorCode;
+  message: string;
+  item?: TradeplanV2PlanItem;
+}
+/**
+ * One row per deal of an applied plan; `tradeplan_id` names that plan, so a batch `set` response can be matched without guessing. accepted=true: the deal was amended, `revision` is its new revision (integer; null only if the deal did not report one) and `status` its status after the amend. accepted=false: the deal is unchanged, `message` says why (a human-readable gate/validation text) and `code` is set only for the one machine-readable case the server distinguishes: `tradeplan_missing` (the deal's own tradeplan no longer exists — an orphaned deal). `revision`/`status` never appear on a rejection.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2AmendResultItem".
  */
 export interface TradeplanV2AmendResultItem {
   schema: 'afbws.tradeplan.amend_result.v2';
+  tradeplan_id: TradeplanId;
   deal_id: string;
   accepted: boolean;
   revision?: number | null;
@@ -5106,7 +5208,7 @@ export interface TradeplanV2AmendResultItem {
   code?: 'tradeplan_missing';
 }
 /**
- * Request and response are the same message: `id` (the response echoes `request_id` and the deleted `id`). Allowed only for a plan that never had a deal; otherwise `conflict` (use archive). The deletion is NOT pushed.
+ * Request: `ids[]` (at least one). Response (same `request_id`): `ids[]` actually deleted (possibly empty) + `rejected[]`. Allowed only for a plan that never had a deal; otherwise that plan is rejected with `conflict` (use archive). The deletion is NOT pushed.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2Delete".
@@ -5115,23 +5217,11 @@ export interface TradeplanV2Delete {
   channel: 'tradeplan';
   schema: 'afbws.tradeplan.delete.v2';
   request_id: AfbwsCommonV1_RequestId;
-  id: TradeplanId;
+  ids: TradeplanId[];
+  rejected?: TradeplanV2Rejection[];
 }
 /**
- * Request: `id`. Response (same `request_id`): `item` — the plan with status `archived`. Blocked while the plan has a live deal that already entered a position -> `error` code `conflict` with `details.current_item`. Archival is also delivered as a `sync` push to the user's other connections.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV2Archive".
- */
-export interface TradeplanV2Archive {
-  channel: 'tradeplan';
-  schema: 'afbws.tradeplan.archive.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  id?: TradeplanId;
-  item?: TradeplanV2PlanItem;
-}
-/**
- * `items[]` (at least one) is a DELTA, not a snapshot: the client upserts plans in its own list by matching id and leaves everything else untouched. The authoritative full list comes only from afbws.tradeplan.list.v2. Sent on plan lifecycle changes (status derived from its deals) and archival. Plan deletion and `set` are NOT conveyed by this push. Never a request: `request_id` is not allowed.
+ * `items[]` (at least one) is a DELTA, not a snapshot: the client upserts plans in its own list by matching id and leaves everything else untouched. The authoritative full list comes only from afbws.tradeplan.list.v2. Sent on plan lifecycle changes (status derived from its deals) and archival (one push per batch). Plan deletion and `set` are NOT conveyed by this push. Never a request: `request_id` is not allowed.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2Sync".
@@ -5145,7 +5235,7 @@ export interface TradeplanV2Sync {
   items: [TradeplanV2PlanItem, ...TradeplanV2PlanItem[]];
 }
 /**
- * `details` is present exactly for `conflict` (see errorDetails) and forbidden for every other code.
+ * Per-plan failures of a batched set/delete/archive are reported in that response's `rejected[]`, not here.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2Error".
@@ -5156,16 +5246,6 @@ export interface TradeplanV2Error {
   request_id: AfbwsCommonV1_RequestId;
   code: AfbwsCommonV1_ErrorCode;
   message: string;
-  details?: TradeplanV2ErrorDetails;
-}
-/**
- * A `conflict` is a delete/archive blocked by a live deal that already entered a position (or by deals in general for delete), or a `set` whose conditions reference a primitive owned by another plan. `current_item` is the plan as the server holds it, so the client can show it without a separate get.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV2ErrorDetails".
- */
-export interface TradeplanV2ErrorDetails {
-  current_item: TradeplanV2PlanItem;
 }
 /**
  * AFB-side user alarm — like afb.tradeplan.v2, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel; it is documented here (rather than only in AFB) because it shares condition.v1.json's operator vocabulary with deal.v2 and tradeplan.v2. Replaces the legacy YAML shape (condition_type/trigger_type/value_type/value/value_ref flat fields, break_up/break_down operator names) with a conditionNode. Legacy alarms are read via a lazy converter (see docs/PROTOCOL.md 'Алармы' mapping table) and rewritten in this format on next save/reactivation; the API layer only accepts/emits this format going forward. `period` is the alarm's overall computation timeframe (legacy default '10min'); when `condition` is a price candle operator, `condition.timeframe` carries the candle timeframe and by construction equals `period`.

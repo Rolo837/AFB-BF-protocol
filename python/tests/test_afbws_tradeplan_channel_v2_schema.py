@@ -17,7 +17,7 @@ import pytest
 _ROOT = Path(__file__).resolve().parents[2]
 _EXAMPLES = _ROOT / "examples" / "tradeplan_channel_v2"
 _ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/tradeplan.channel.v2.json"
-_OPS = {"get", "list", "set", "delete", "archive", "sync", "error"}
+_OPS = {"list", "set", "delete", "archive", "sync", "error"}
 
 _LEG = {"condition": {"op": "touch", "left": {"source": "price"}, "right": {"const": "100"}}}
 _INPUT = {
@@ -85,13 +85,14 @@ def test_tradeplan_v2_one_id_per_message():
     schema = json.loads((_ROOT / "spec" / "schemas" / "afbws" / "tradeplan.channel.v2.json").read_text())
     assert schema["x-afbws-support-id"] == "afbws.tradeplan.channel.v2"
     assert _OPS <= set(schema["$defs"])
-    stale = {"getRequest", "getResponse", "listRequest", "listResponse", "setRequest", "setResponse",
+    stale = {"get", "errorDetails", "getRequest", "getResponse", "listRequest", "listResponse", "setRequest", "setResponse",
              "deleteRequest", "deleteResponse", "archiveRequest", "archiveResponse", "errorResponse",
              "syncPush", "entity"}
     assert not stale & set(schema["$defs"])
     ids = {d["properties"]["schema"]["const"] for d in schema["$defs"].values()
            if "schema" in d.get("properties", {}) and "channel" in d["properties"]}
     assert ids == {f"afbws.tradeplan.{op}.v2" for op in _OPS}
+    assert "details" not in schema["$defs"]["error"]["properties"]
     assert "tradeplan.channel.v1" not in json.dumps(schema)
     assert "legacy:" not in json.dumps(schema["$defs"]["legInput"]) + json.dumps(schema["$defs"]["planInput"])
 
@@ -177,52 +178,87 @@ def test_tradeplan_v2_plan_item(registry):
                                                                        "right": {"const": "1"}}}]))
 
 
-def test_tradeplan_v2_get(registry):
-    v = _v("get", registry)
-    v.validate(_m("get", request_id="r", id="tp1"))
-    v.validate(_m("get", request_id="r", item=_ITEM))
-    _invalid(v, _m("get", id="tp1"))  # no push
-    _invalid(v, _m("get", request_id="r"))
-    _invalid(v, _m("get", request_id="r", id="tp1", item=_ITEM))
-    _invalid(v, _m("get", request_id="r", item=_INPUT))
-    _invalid(v, _m("get", request_id="r", id=""))
-
-
 def test_tradeplan_v2_list(registry):
     v = _v("list", registry)
     v.validate(_m("list", request_id="r"))
     v.validate(_m("list", request_id="r", instrument_keys=["MISX:TQBR:SBER"]))
-    v.validate(_m("list", request_id="r", items=[_ITEM]))
+    v.validate(_m("list", request_id="r", ids=["tp1", "tp2"]))
+    v.validate(_m("list", request_id="r", ids=["tp1"], instrument_keys=["MISX:TQBR:SBER"]))  # intersection
+    v.validate(_m("list", request_id="r", items=[_ITEM, _with(_ITEM, id="tp2")]))
     v.validate(_m("list", request_id="r", items=[]))
     _invalid(v, _m("list"))
+    _invalid(v, _m("list", request_id="r", id="tp1"))  # no single-id form (there is no get)
     _invalid(v, _m("list", request_id="r", ticker="SBER"))  # the filter is by instrument_key only
+    _invalid(v, _m("list", request_id="r", ids=[]))
+    _invalid(v, _m("list", request_id="r", ids=["tp1", "tp1"]))
+    _invalid(v, _m("list", request_id="r", ids=[""]))
     _invalid(v, _m("list", request_id="r", instrument_keys=[]))
     _invalid(v, _m("list", request_id="r", instrument_keys=["a", "a"]))
     _invalid(v, _m("list", request_id="r", instrument_keys=["MISX:TQBR:SBER"], items=[_ITEM]))
+    _invalid(v, _m("list", request_id="r", ids=["tp1"], items=[_ITEM]))
     _invalid(v, _m("list", request_id="r", items=[_INPUT]))
+
+
+def test_tradeplan_v2_no_get(registry):
+    root = _root(registry)
+    for message in (_m("get", request_id="r", id="tp1"), _m("get", request_id="r", item=_ITEM)):
+        _invalid(root, message)
+
+
+def test_tradeplan_v2_rejection(registry):
+    v = _v("rejection", registry)
+    v.validate({"id": "tp1", "code": "not_found", "message": "x"})
+    v.validate({"id": "tp1", "code": "validation_error", "message": "x"})
+    v.validate({"id": "tp1", "code": "conflict", "message": "x"})
+    v.validate({"id": "tp1", "code": "conflict", "message": "x", "item": _ITEM})
+    for field in ("id", "code", "message"):
+        _invalid(v, {k: x for k, x in {"id": "tp1", "code": "conflict", "message": "x"}.items() if k != field})
+    _invalid(v, {"id": "tp1", "code": "nope", "message": "x"})
+    _invalid(v, {"id": "tp1", "code": "conflict", "message": ""})
+    _invalid(v, {"id": "", "code": "conflict", "message": "x"})
+    _invalid(v, {"id": "tp1", "code": "conflict", "message": "x", "item": _INPUT})  # planItem only
+    _invalid(v, {"id": "tp1", "code": "not_found", "message": "x", "item": _ITEM})  # item only with conflict
+    _invalid(v, {"id": "tp1", "code": "conflict", "message": "x", "details": {}})
+    _invalid(v, {"id": "tp1", "code": "conflict", "message": "x", "extra": 1})
+
+
+_OK = {"schema": "afbws.tradeplan.amend_result.v2", "tradeplan_id": "tp1", "deal_id": "d1", "accepted": True,
+       "revision": 3, "status": "active"}
+_NO = {"schema": "afbws.tradeplan.amend_result.v2", "tradeplan_id": "tp2", "deal_id": "d2", "accepted": False,
+       "message": "x"}
+_REJ = {"id": "tp3", "code": "conflict", "message": "x", "item": _ITEM}
 
 
 def test_tradeplan_v2_set(registry):
     v = _v("set", registry)
-    v.validate(_m("set", request_id="r", item=_INPUT))  # request
-    v.validate(_m("set", request_id="r", item=_ITEM, amend_results=[]))  # response, create
-    ok = {"schema": "afbws.tradeplan.amend_result.v2", "deal_id": "d1", "accepted": True,
-          "revision": 3, "status": "active"}
-    no = {"schema": "afbws.tradeplan.amend_result.v2", "deal_id": "d2", "accepted": False, "message": "x"}
-    v.validate(_m("set", request_id="r", item=_ITEM, amend_results=[ok, no]))
+    other = _with(_INPUT, id="tp2")
+    v.validate(_m("set", request_id="r", items=[_INPUT]))  # request
+    v.validate(_m("set", request_id="r", items=[_INPUT, other]))  # batch request
+    v.validate(_m("set", request_id="r", items=[_ITEM], amend_results=[]))  # response, create
+    v.validate(_m("set", request_id="r", items=[_ITEM, _with(_ITEM, id="tp2")], amend_results=[_OK, _NO]))
+    v.validate(_m("set", request_id="r", items=[_ITEM], rejected=[_REJ], amend_results=[_OK]))
+    v.validate(_m("set", request_id="r", items=[], rejected=[_REJ], amend_results=[]))  # all rejected
     # no push on set
-    _invalid(v, _m("set", item=_ITEM, amend_results=[]))
-    _invalid(v, _m("set", item=_INPUT))
-    # request carries a planInput, response a planItem
-    _invalid(v, _m("set", request_id="r", item=_ITEM))
-    _invalid(v, _m("set", request_id="r", item=_INPUT, amend_results=[]))
-    _invalid(v, _m("set", request_id="r", item=_with(_INPUT, status="draft")))
+    _invalid(v, _m("set", items=[_ITEM], amend_results=[]))
+    _invalid(v, _m("set", items=[_INPUT]))
+    # request: at least one planInput; response: planItems
     _invalid(v, _m("set", request_id="r"))
+    _invalid(v, _m("set", request_id="r", items=[]))
+    _invalid(v, _m("set", request_id="r", items=[_INPUT, _ITEM]))
+    _invalid(v, _m("set", request_id="r", items=[_ITEM]))
+    _invalid(v, _m("set", request_id="r", items=[_INPUT], amend_results=[]))
+    _invalid(v, _m("set", request_id="r", items=[_with(_INPUT, status="draft")]))
+    _invalid(v, _m("set", request_id="r", item=_INPUT))  # v2 single form
+    # rejected only in a response; amend_results rows name their plan
+    _invalid(v, _m("set", request_id="r", items=[_INPUT], rejected=[_REJ]))
+    _invalid(v, _m("set", request_id="r", items=[_ITEM], rejected=[_with(_REJ, id=None)], amend_results=[]))
+    _invalid(v, _m("set", request_id="r", items=[_ITEM],
+                   amend_results=[{k: x for k, x in _OK.items() if k != "tradeplan_id"}]))
 
 
 def test_tradeplan_v2_amend_result(registry):
     v = _v("amendResultItem", registry)
-    base = {"schema": "afbws.tradeplan.amend_result.v2", "deal_id": "d1"}
+    base = {"schema": "afbws.tradeplan.amend_result.v2", "tradeplan_id": "tp1", "deal_id": "d1"}
     v.validate({**base, "accepted": True, "revision": 2, "status": "published"})
     v.validate({**base, "accepted": True, "revision": None, "status": "paused"})
     v.validate({**base, "accepted": False, "message": "gate"})
@@ -239,21 +275,40 @@ def test_tradeplan_v2_amend_result(registry):
     _invalid(v, {**base, "accepted": False, "message": "x", "code": "weird"})
     _invalid(v, {**base, "accepted": False, "message": ""})
     _invalid(v, {k: x for k, x in {**base, "accepted": False, "message": "x"}.items() if k != "schema"})
+    _invalid(v, {k: x for k, x in {**base, "accepted": False, "message": "x"}.items() if k != "tradeplan_id"})
     _invalid(v, {**base, "accepted": False, "message": "x", "extra": 1})
 
 
-def test_tradeplan_v2_delete_and_archive(registry):
+def test_tradeplan_v2_delete(registry):
     v = _v("delete", registry)
-    v.validate(_m("delete", request_id="r", id="tp1"))
-    _invalid(v, _m("delete", id="tp1"))
+    v.validate(_m("delete", request_id="r", ids=["tp1"]))
+    v.validate(_m("delete", request_id="r", ids=["tp1", "tp2"]))
+    v.validate(_m("delete", request_id="r", ids=["tp2"], rejected=[_REJ]))  # response
+    v.validate(_m("delete", request_id="r", ids=[], rejected=[_REJ]))  # all rejected
+    _invalid(v, _m("delete", ids=["tp1"]))  # no push
     _invalid(v, _m("delete", request_id="r"))
-    _invalid(v, _m("delete", request_id="r", id="tp1", item=_ITEM))
+    _invalid(v, _m("delete", request_id="r", ids=[]))
+    _invalid(v, _m("delete", request_id="r", ids=["tp1", "tp1"]))
+    _invalid(v, _m("delete", request_id="r", id="tp1"))  # single form
+    _invalid(v, _m("delete", request_id="r", ids=["tp1"], items=[_ITEM]))
+
+
+def test_tradeplan_v2_archive(registry):
     v = _v("archive", registry)
-    v.validate(_m("archive", request_id="r", id="tp1"))
-    v.validate(_m("archive", request_id="r", item=_with(_ITEM, status="archived")))
-    _invalid(v, _m("archive", id="tp1"))
+    archived = _with(_ITEM, status="archived")
+    v.validate(_m("archive", request_id="r", ids=["tp1"]))
+    v.validate(_m("archive", request_id="r", ids=["tp1", "tp2", "tp3"]))
+    v.validate(_m("archive", request_id="r", items=[archived]))
+    v.validate(_m("archive", request_id="r", items=[archived], rejected=[_REJ]))
+    v.validate(_m("archive", request_id="r", items=[], rejected=[_REJ]))
+    _invalid(v, _m("archive", ids=["tp1"]))
     _invalid(v, _m("archive", request_id="r"))
-    _invalid(v, _m("archive", request_id="r", id="tp1", item=_ITEM))
+    _invalid(v, _m("archive", request_id="r", ids=[]))
+    _invalid(v, _m("archive", request_id="r", id="tp1"))  # single form
+    _invalid(v, _m("archive", request_id="r", item=archived))  # single form
+    _invalid(v, _m("archive", request_id="r", ids=["tp1"], items=[archived]))
+    _invalid(v, _m("archive", request_id="r", ids=["tp1"], rejected=[_REJ]))  # rejected only in a response
+    _invalid(v, _m("archive", request_id="r", items=[_INPUT]))
 
 
 def test_tradeplan_v2_sync(registry):
@@ -268,41 +323,37 @@ def test_tradeplan_v2_sync(registry):
 def test_tradeplan_v2_error(registry):
     v = _v("error", registry)
     v.validate(_m("error", request_id="r", code="not_found", message="x"))
-    v.validate(_m("error", request_id="r", code="conflict", message="x", details={"current_item": _ITEM}))
-    for code in ("invalid_schema", "invalid_channel", "validation_error", "internal_error"):
+    for code in ("invalid_schema", "invalid_channel", "validation_error", "internal_error", "forbidden"):
         v.validate(_m("error", request_id="r", code=code, message="x"))
     _invalid(v, _m("error", code="not_found", message="x"))
     _invalid(v, _m("error", request_id="r", code="nope", message="x"))
+    _invalid(v, _m("error", request_id="r", code="not_found", message=""))
     _invalid(v, _m("error", request_id="r", code="not_found", message="x", extra=1))
-    # conflict carries the current plan, other codes carry no details
-    _invalid(v, _m("error", request_id="r", code="conflict", message="x"))
-    _invalid(v, _m("error", request_id="r", code="conflict", message="x", details={}))
-    _invalid(v, _m("error", request_id="r", code="conflict", message="x", details={"current_item": _INPUT}))
-    _invalid(v, _m("error", request_id="r", code="conflict", message="x",
-                   details={"current_item": _ITEM, "extra": 1}))
-    _invalid(v, _m("error", request_id="r", code="not_found", message="x", details={"current_item": _ITEM}))
-    _invalid(v, _m("error", request_id="r", code="not_found", message="x", item=_ITEM))  # v1 form
+    # whole-request only: the conflicting plan travels in rejected[].item, never here
+    _invalid(v, _m("error", request_id="r", code="conflict", message="x", details={"current_item": _ITEM}))
+    _invalid(v, _m("error", request_id="r", code="conflict", message="x", item=_ITEM))
 
 
 def test_tradeplan_v2_root_dispatch(registry):
     root = _root(registry)
-    root.validate(_m("get", request_id="r", id="tp1"))
-    root.validate(_m("set", request_id="r", item=_INPUT))
+    root.validate(_m("list", request_id="r", ids=["tp1"]))
+    root.validate(_m("set", request_id="r", items=[_INPUT]))
     root.validate(_m("sync", items=[_ITEM]))
     # v1 ids and the old suffixed ids are rejected
-    for schema in ("afbws.tradeplan.get.request.v1", "afbws.tradeplan.get.response.v1",
+    for schema in ("afbws.tradeplan.get.v2", "afbws.tradeplan.get.request.v1", "afbws.tradeplan.get.response.v1",
                    "afbws.tradeplan.set.request.v1", "afbws.tradeplan.sync.push.v1",
                    "afbws.tradeplan.error.response.v1", "afbws.tradeplan.get.request.v2",
                    "afbws.tradeplan.sync.push.v2"):
         _invalid(root, {"channel": "tradeplan", "schema": schema, "request_id": "r", "id": "tp1"})
-    _invalid(root, _m("get", request_id="r", id="tp1", unexpected=1))
-    _invalid(root, {**_m("get", request_id="r", id="tp1"), "channel": "alarm"})
+    _invalid(root, _m("list", request_id="r", unexpected=1))
+    _invalid(root, {**_m("list", request_id="r"), "channel": "alarm"})
 
 
 def test_tradeplan_v2_examples_validate(registry):
     root = _root(registry)
     files = sorted(_EXAMPLES.glob("*.json"))
-    assert len(files) >= 14
+    assert len(files) >= 13
+    assert not list(_EXAMPLES.glob("get.*"))
     seen = set()
     for path in files:
         message = json.loads(path.read_text(encoding="utf-8"))
@@ -315,7 +366,11 @@ def test_tradeplan_v2_examples_validate(registry):
     storage = Draft202012Validator(
         {"$ref": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/tradeplan.v2.json"}, registry=registry
     )
-    for name in ("set.request", "get.response"):
-        message = json.loads((_EXAMPLES / f"{name}.json").read_text())
-        plan = {**message["item"], "status": "draft", "delivery_at": ""}
-        storage.validate(plan)
+    message = json.loads((_EXAMPLES / "set.request.json").read_text())
+    assert len(message["items"]) >= 2  # a real batch
+    for item in message["items"]:
+        storage.validate({**item, "status": "draft", "delivery_at": ""})
+    # batch semantics of the examples: a partial failure is rejected[], not error
+    response = json.loads((_EXAMPLES / "set.response.json").read_text())
+    assert response["rejected"] and response["rejected"][0]["item"]["id"] == message["items"][1]["id"]
+    assert {r["tradeplan_id"] for r in response["amend_results"]} == {i["id"] for i in response["items"]}

@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 8be25755c5b8322e74dab78a663714fa45229ce8be6d4ca07811088431579ebf
+# source-hash: 018edd44c4fc02bf6dc1120b10a7a583ce61a6149fd73730eae73e49a13cfa87
 
 from __future__ import annotations
 
@@ -2624,24 +2624,44 @@ class DealV2AckResultItem(TypedDict):
 
 class DealV2Amend(TypedDict):
     """
-    Request: `deal_id`, optional `deal_edit` (only the legs/fields overridden on the deal side; anything omitted keeps following the linked tradeplan) and optional `base_revision` (optimistic concurrency: a mismatch is a `conflict` error carrying the current `item`). Response (same `request_id`): `item` (authoritative record), `revision`, `status`, `accepted`. The outcome of the BF confirmation arrives later as `outcome` and `event` pushes. Distinguished by `item`.
+    Request: `items[]` (at least one) of `{deal_id, deal_edit?, base_revision?}`. Response (same `request_id`): `results[]` (amendResult, one per item; a rejected or conflicting row never fails the batch) and `accepted` (any row accepted). Distinguished by `items` vs `results`.
     """
 
     channel: Literal["deal"]
     schema: Literal["afbws.deal.amend.v2"]
     request_id: AfbwsCommonV1RequestId
-    deal_id: NotRequired[DealV2Id]
-    deal_edit: NotRequired[DealV2Edit]
-    base_revision: NotRequired[int]
-    item: NotRequired[DealV2Detail]
-    revision: NotRequired[int]
-    status: NotRequired[DealStatus]
+    items: NotRequired[list[DealV2AmendItem]]
+    results: NotRequired[list[DealV2AmendResult]]
     accepted: NotRequired[bool]
 
 
 DealV2AmendField: TypeAlias = Literal[
     "entry", "sizing", "stop_loss", "take_profit", "execution_policy"
 ]
+
+
+class DealV2AmendItem(TypedDict):
+    """
+    Optional `deal_edit` (only the legs/fields overridden on the deal side; anything omitted keeps following the linked tradeplan) and optional `base_revision` (optimistic concurrency: a mismatch rejects this row with `conflict` and the current `item`).
+    """
+
+    deal_id: DealV2Id
+    deal_edit: NotRequired[DealV2Edit]
+    base_revision: NotRequired[int]
+
+
+class DealV2AmendResult(TypedDict):
+    """
+    accepted=true: `revision` (the new revision), `status` and `item` (the authoritative record) are set; no message/code. accepted=false: the deal is unchanged, `message` says why and `code` is the machine-readable reason when there is one; `item` (the authoritative current record) is present only with `conflict` — a stale `base_revision` — so the client can adopt it instead of retrying blind. The outcome of the BF confirmation arrives later as `outcome` and `event` pushes.
+    """
+
+    deal_id: DealV2Id
+    accepted: bool
+    revision: NotRequired[int]
+    status: NotRequired[DealStatus]
+    item: NotRequired[DealV2Detail]
+    message: NotRequired[str]
+    code: NotRequired[AfbwsCommonV1ErrorCode]
 
 
 class DealV2AmendedData(TypedDict):
@@ -2847,7 +2867,7 @@ class DealV2Edit(TypedDict):
 
 class DealV2Error(TypedDict):
     """
-    `item` (the authoritative current record) is only present with `conflict` — a stale `base_revision` on amend — so the client can adopt it instead of retrying blind; a `conflict` may also come without it (lifecycle/amend gate, deal id taken). No other code carries `item`, and no code carries `details`: the server populates none for the deal channel.
+    Only for a whole request (invalid_schema, invalid_channel, forbidden, internal_error, ...). Per-deal failures of a batched publish/rebind/operation/amend are rows with accepted=false in that response's `results[]` (a stale `base_revision` is `code: conflict` with the current `item` there); no code carries `item` or `details`.
     """
 
     channel: Literal["deal"]
@@ -2855,12 +2875,19 @@ class DealV2Error(TypedDict):
     request_id: AfbwsCommonV1RequestId
     code: AfbwsCommonV1ErrorCode
     message: str
-    item: NotRequired[DealV2Detail]
+
+
+class DealV2Event(TypedDict):
+    """
+    `events[]` (at least one) in order of occurrence, each a typed eventItem (a thin, allow-listed fact — never a state snapshot or a raw BF payload).
+    """
+
+    channel: Literal["deal"]
+    schema: Literal["afbws.deal.event.v2"]
+    events: list[DealV2EventItem]
 
 
 class DealV2EventConditionTriggered(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["condition"]
@@ -2870,8 +2897,6 @@ class DealV2EventConditionTriggered(TypedDict):
 
 
 class DealV2EventDealAccepted(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["deal"]
@@ -2881,8 +2906,6 @@ class DealV2EventDealAccepted(TypedDict):
 
 
 class DealV2EventDealAmended(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["deal"]
@@ -2892,8 +2915,6 @@ class DealV2EventDealAmended(TypedDict):
 
 
 class DealV2EventDealCreated(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["deal"]
@@ -2903,8 +2924,6 @@ class DealV2EventDealCreated(TypedDict):
 
 
 class DealV2EventDealDeleted(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["deal"]
@@ -2914,8 +2933,6 @@ class DealV2EventDealDeleted(TypedDict):
 
 
 class DealV2EventDealOrdersSynced(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["deal"]
@@ -2925,8 +2942,6 @@ class DealV2EventDealOrdersSynced(TypedDict):
 
 
 class DealV2EventDealPositionsSynced(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["deal"]
@@ -2936,8 +2951,6 @@ class DealV2EventDealPositionsSynced(TypedDict):
 
 
 class DealV2EventDealRejected(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["deal"]
@@ -2947,8 +2960,6 @@ class DealV2EventDealRejected(TypedDict):
 
 
 class DealV2EventDealReport(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["deal"]
@@ -2958,8 +2969,6 @@ class DealV2EventDealReport(TypedDict):
 
 
 class DealV2EventDealStatusChanged(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["deal"]
@@ -2969,8 +2978,6 @@ class DealV2EventDealStatusChanged(TypedDict):
 
 
 class DealV2EventOrderCancelled(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["order"]
@@ -2980,8 +2987,6 @@ class DealV2EventOrderCancelled(TypedDict):
 
 
 class DealV2EventOrderCreated(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["order"]
@@ -2991,8 +2996,6 @@ class DealV2EventOrderCreated(TypedDict):
 
 
 class DealV2EventOrderFilled(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["order"]
@@ -3002,8 +3005,6 @@ class DealV2EventOrderFilled(TypedDict):
 
 
 class DealV2EventOrderPartiallyFilled(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["order"]
@@ -3013,8 +3014,6 @@ class DealV2EventOrderPartiallyFilled(TypedDict):
 
 
 class DealV2EventOrderRejected(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["order"]
@@ -3024,8 +3023,6 @@ class DealV2EventOrderRejected(TypedDict):
 
 
 class DealV2EventPositionChanged(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["position"]
@@ -3035,8 +3032,6 @@ class DealV2EventPositionChanged(TypedDict):
 
 
 class DealV2EventPositionClosed(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["position"]
@@ -3046,8 +3041,6 @@ class DealV2EventPositionClosed(TypedDict):
 
 
 class DealV2EventPositionOpened(TypedDict):
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.event.v2"]
     deal_id: DealV2Id
     bf_id: DealV2BfId
     category: Literal["position"]
@@ -3056,7 +3049,7 @@ class DealV2EventPositionOpened(TypedDict):
     data: DealV2PositionData
 
 
-DealV2Event: TypeAlias = (
+DealV2EventItem: TypeAlias = (
     DealV2EventDealCreated
     | DealV2EventDealAmended
     | DealV2EventDealAccepted
@@ -3088,19 +3081,33 @@ class DealV2ExitListItem(TypedDict):
 DealV2ExitList: TypeAlias = list[DealV2ExitListItem]
 
 
-class DealV2Get(TypedDict):
-    """
-    Request: `deal_id`. Response (same `request_id`): `item`. Exactly one of the two.
-    """
-
-    channel: Literal["deal"]
-    schema: Literal["afbws.deal.get.v2"]
-    request_id: AfbwsCommonV1RequestId
-    deal_id: NotRequired[DealV2Id]
-    item: NotRequired[DealV2Detail]
-
-
 DealV2Id: TypeAlias = str
+
+
+class DealV2Item(TypedDict):
+    """
+    Same allow-list as dealSummary (see there); with `detail: true` each row additionally carries `deal` (the public afb.deal.v2 projection) and `editable_fields` — together, i.e. a dealDetail. Rows of a list without `detail` never carry them.
+    """
+
+    deal_id: DealV2Id
+    revision: int
+    status: DealStatus
+    execution_phase: DealExecutionPhase
+    bf_id: DealV2BfId
+    tradeplan_id: TradeplanId
+    ticker: str
+    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    market: NotRequired[Literal["stock", "futures", "currency"]]
+    direction: Literal["long", "short"]
+    sizing: NotRequired[DealSizing]
+    execution_policy: NotRequired[DealExecutionPolicy]
+    broker_sizing: NotRequired[DealV2SizingDisplay]
+    realized_pnl: NotRequired[DealV2RealizedPnl]
+    position: NotRequired[DealV2OpenPosition]
+    created_at: str
+    updated_at: str
+    deal: NotRequired[DealPublicV1]
+    editable_fields: NotRequired[list[DealV2AmendField]]
 
 
 class DealV2LegEdit(TypedDict):
@@ -3118,13 +3125,17 @@ DealV2LegSource: TypeAlias = Literal["tradeplan", "deal"]
 
 class DealV2List(TypedDict):
     """
-    Request: no filters (the plan->deals grouping is built from `tradeplan_id` of each row, not a server-side filter). Response (same `request_id`): `items[]`.
+    Request: optional filters `ids[]`, `instrument_keys[]` and/or `tradeplan_ids[]` (all given = intersection; none = every deal of the caller) and optional `detail` (true = rows carry the full editor payload `deal` + `editable_fields`, i.e. a dealDetail; default false = summary rows). Response (same `request_id`): `items[]` (dealItem). There is no separate `get`: use `ids` with `detail: true`. A request carrying `items` is invalid, as is a response carrying a filter.
     """
 
     channel: Literal["deal"]
     schema: Literal["afbws.deal.list.v2"]
     request_id: AfbwsCommonV1RequestId
-    items: NotRequired[list[DealV2Summary]]
+    ids: NotRequired[list[DealV2Id]]
+    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
+    tradeplan_ids: NotRequired[list[TradeplanId]]
+    detail: NotRequired[bool]
+    items: NotRequired[list[DealV2Item]]
 
 
 class DealV2NewLeg(TypedDict):
@@ -3215,11 +3226,19 @@ class DealV2OrdersSyncedData(TypedDict):
 
 class DealV2Outcome(TypedDict):
     """
-    A separate push, so the client does not need the whole record just to show a toast. AFB composes no user-facing texts: it passes through what BF returned, the text is built on the frontend. result=rejected: any BF rejection (`code` required). result=accepted: only the confirmation of `deal.amend` (the one accepted outcome the server reports), without code/message/broker_error.
+    A separate push, so the client does not need the whole record just to show a toast; `items[]` (at least one), each is an independent outcome (see outcomeItem).
     """
 
     channel: Literal["deal"]
     schema: Literal["afbws.deal.outcome.v2"]
+    items: list[DealV2OutcomeItem]
+
+
+class DealV2OutcomeItem(TypedDict):
+    """
+    A separate push, so the client does not need the whole record just to show a toast. AFB composes no user-facing texts: it passes through what BF returned, the text is built on the frontend. result=rejected: any BF rejection (`code` required). result=accepted: only the confirmation of `deal.amend` (the one accepted outcome the server reports), without code/message/broker_error.
+    """
+
     deal_id: DealV2Id
     bf_id: DealV2BfId
     command: str | None
@@ -3231,14 +3250,27 @@ class DealV2Outcome(TypedDict):
 
 class DealV2Pnl(TypedDict):
     """
-    Not persisted. `trend` is deliberately absent — a frontend-only projection computed from consecutive pushes.
+    Not persisted. ONE push per tick for all open deals of the user: `items[]` (at least one).
     """
 
     channel: Literal["deal"]
     schema: Literal["afbws.deal.pnl.v2"]
+    items: list[DealV2PnlItem]
+
+
+class DealV2PnlItem(TypedDict):
+    """
+    `trend` is deliberately absent — a frontend-only projection computed from consecutive pushes.
+    """
+
     deal_id: DealV2Id
     bf_id: DealV2BfId
-    data: Data1
+    unrealized: str
+    currency: str
+    qty: int
+    avg_price: str
+    last_price: str
+    as_of: str
 
 
 class DealV2PositionData(TypedDict):
@@ -3258,16 +3290,20 @@ class DealV2PositionsSyncedData(TypedDict):
 
 class DealV2Publish(TypedDict):
     """
-    Request: `tradeplan_id` + `bf_id` (no inline plan draft, no plural bf_ids — 1:1). Response (same `request_id`): `results[]` (batch-shaped, at most one element today) and `accepted`. Distinguished by `results`: present => response, absent => request.
+    Request: `items[]` (at least one) of `{tradeplan_id, bf_id}` (no inline plan draft, 1:1 per row). Response (same `request_id`): `results[]` (one per item; a failed row is accepted=false) and `accepted`. Distinguished by `items` vs `results`.
     """
 
     channel: Literal["deal"]
     schema: Literal["afbws.deal.publish.v2"]
     request_id: AfbwsCommonV1RequestId
-    tradeplan_id: NotRequired[TradeplanId]
-    bf_id: NotRequired[DealV2BfId]
+    items: NotRequired[list[DealV2PublishItem]]
     results: NotRequired[list[DealV2Result]]
     accepted: NotRequired[bool]
+
+
+class DealV2PublishItem(TypedDict):
+    tradeplan_id: TradeplanId
+    bf_id: DealV2BfId
 
 
 class DealV2RealizedPnl(TypedDict):
@@ -3281,28 +3317,30 @@ class DealV2RealizedPnl(TypedDict):
 
 class DealV2Rebind(TypedDict):
     """
-    Request: `deal_id` + `bf_id` (the backend resolves the source tradeplan via the deal's own link). Response (same `request_id`): `results[]` and `accepted`; if the new target changes the deal id, `results[0].deal_id`/`item` carry the NEW id. Distinguished by `results`.
+    Request: `items[]` (at least one) of `{deal_id, bf_id}` (the backend resolves the source tradeplan via the deal's own link). Response (same `request_id`): `results[]` and `accepted`; if the new target changes a deal id, that row's `deal_id`/`item` carry the NEW id. Distinguished by `items` vs `results`.
     """
 
     channel: Literal["deal"]
     schema: Literal["afbws.deal.rebind.v2"]
     request_id: AfbwsCommonV1RequestId
-    deal_id: NotRequired[DealV2Id]
-    bf_id: NotRequired[DealV2BfId]
+    items: NotRequired[list[DealV2RebindItem]]
     results: NotRequired[list[DealV2Result]]
     accepted: NotRequired[bool]
 
 
+class DealV2RebindItem(TypedDict):
+    deal_id: DealV2Id
+    bf_id: DealV2BfId
+
+
 class DealV2Record(TypedDict):
     """
-    REPLACE of the public projection identified by deal_id: the client overwrites its cached copy, never merges. One push per mutation of the record. It carries NO command outcome — that is `afbws.deal.outcome.v2`; and no thin events are merged into it — see `afbws.deal.event.v2`.
+    REPLACE per deal: for every item the client overwrites its cached copy identified by `item.deal_id`, never merges. One mutation (one batch command) = ONE push carrying all deals it changed. It carries NO command outcome — that is `afbws.deal.outcome.v2`; and no thin events are merged into it — see `afbws.deal.event.v2`.
     """
 
     channel: Literal["deal"]
     schema: Literal["afbws.deal.record.v2"]
-    deal_id: DealV2Id
-    bf_id: DealV2BfId
-    item: DealV2Detail
+    items: list[DealV2Detail]
 
 
 class DealV2RejectedData(TypedDict):
@@ -3452,8 +3490,7 @@ class DealV2Triggered(TypedDict):
 
 
 DealChannelV2Message: TypeAlias = (
-    DealV2Get
-    | DealV2List
+    DealV2List
     | DealV2Publish
     | DealV2Rebind
     | DealV2Operation
@@ -4940,10 +4977,11 @@ TradeplanChannelV1Message: TypeAlias = (
 
 class TradeplanV2AmendResultItem(TypedDict):
     """
-    accepted=true: the deal was amended, `revision` is its new revision (integer; null only if the deal did not report one) and `status` its status after the amend. accepted=false: the deal is unchanged, `message` says why (a human-readable gate/validation text) and `code` is set only for the one machine-readable case the server distinguishes: `tradeplan_missing` (the deal's own tradeplan no longer exists — an orphaned deal). `revision`/`status` never appear on a rejection.
+    One row per deal of an applied plan; `tradeplan_id` names that plan, so a batch `set` response can be matched without guessing. accepted=true: the deal was amended, `revision` is its new revision (integer; null only if the deal did not report one) and `status` its status after the amend. accepted=false: the deal is unchanged, `message` says why (a human-readable gate/validation text) and `code` is set only for the one machine-readable case the server distinguishes: `tradeplan_missing` (the deal's own tradeplan no longer exists — an orphaned deal). `revision`/`status` never appear on a rejection.
     """
 
     schema: Literal["afbws.tradeplan.amend_result.v2"]
+    tradeplan_id: TradeplanId
     deal_id: str
     accepted: bool
     revision: NotRequired[int | None]
@@ -4952,16 +4990,33 @@ class TradeplanV2AmendResultItem(TypedDict):
     code: NotRequired[Literal["tradeplan_missing"]]
 
 
-class TradeplanV2Archive(TypedDict):
+class TradeplanV2Archive1(TypedDict):
     """
-    Request: `id`. Response (same `request_id`): `item` — the plan with status `archived`. Blocked while the plan has a live deal that already entered a position -> `error` code `conflict` with `details.current_item`. Archival is also delivered as a `sync` push to the user's other connections.
+    Request: `ids[]` (at least one). Response (same `request_id`): `items[]` — the archived plans (status `archived`) — and `rejected[]` (a plan with a live deal that already entered a position is rejected with `conflict` and its current `item`). Exactly one of `ids` / `items`. Archival is also delivered as a single `sync` push (all archived plans in one message) to the user's other connections.
     """
 
     channel: Literal["tradeplan"]
     schema: Literal["afbws.tradeplan.archive.v2"]
     request_id: AfbwsCommonV1RequestId
-    id: NotRequired[TradeplanId]
-    item: NotRequired[TradeplanV2PlanItem]
+    ids: list[TradeplanId]
+    items: NotRequired[list[TradeplanV2PlanItem]]
+    rejected: NotRequired[list[TradeplanV2Rejection]]
+
+
+class TradeplanV2Archive2(TypedDict):
+    """
+    Request: `ids[]` (at least one). Response (same `request_id`): `items[]` — the archived plans (status `archived`) — and `rejected[]` (a plan with a live deal that already entered a position is rejected with `conflict` and its current `item`). Exactly one of `ids` / `items`. Archival is also delivered as a single `sync` push (all archived plans in one message) to the user's other connections.
+    """
+
+    channel: Literal["tradeplan"]
+    schema: Literal["afbws.tradeplan.archive.v2"]
+    request_id: AfbwsCommonV1RequestId
+    ids: NotRequired[list[TradeplanId]]
+    items: list[TradeplanV2PlanItem]
+    rejected: NotRequired[list[TradeplanV2Rejection]]
+
+
+TradeplanV2Archive: TypeAlias = TradeplanV2Archive1 | TradeplanV2Archive2
 
 
 class TradeplanV2ArchivedComponents(TypedDict):
@@ -5008,18 +5063,19 @@ TradeplanV2ConditionOp: TypeAlias = Literal[
 
 class TradeplanV2Delete(TypedDict):
     """
-    Request and response are the same message: `id` (the response echoes `request_id` and the deleted `id`). Allowed only for a plan that never had a deal; otherwise `conflict` (use archive). The deletion is NOT pushed.
+    Request: `ids[]` (at least one). Response (same `request_id`): `ids[]` actually deleted (possibly empty) + `rejected[]`. Allowed only for a plan that never had a deal; otherwise that plan is rejected with `conflict` (use archive). The deletion is NOT pushed.
     """
 
     channel: Literal["tradeplan"]
     schema: Literal["afbws.tradeplan.delete.v2"]
     request_id: AfbwsCommonV1RequestId
-    id: TradeplanId
+    ids: list[TradeplanId]
+    rejected: NotRequired[list[TradeplanV2Rejection]]
 
 
 class TradeplanV2Error(TypedDict):
     """
-    `details` is present exactly for `conflict` (see errorDetails) and forbidden for every other code.
+    Per-plan failures of a batched set/delete/archive are reported in that response's `rejected[]`, not here.
     """
 
     channel: Literal["tradeplan"]
@@ -5027,27 +5083,6 @@ class TradeplanV2Error(TypedDict):
     request_id: AfbwsCommonV1RequestId
     code: AfbwsCommonV1ErrorCode
     message: str
-    details: NotRequired[TradeplanV2ErrorDetails]
-
-
-class TradeplanV2ErrorDetails(TypedDict):
-    """
-    A `conflict` is a delete/archive blocked by a live deal that already entered a position (or by deals in general for delete), or a `set` whose conditions reference a primitive owned by another plan. `current_item` is the plan as the server holds it, so the client can show it without a separate get.
-    """
-
-    current_item: TradeplanV2PlanItem
-
-
-class TradeplanV2Get(TypedDict):
-    """
-    Request: `id`. Response (same `request_id`): `item`. Exactly one of the two.
-    """
-
-    channel: Literal["tradeplan"]
-    schema: Literal["afbws.tradeplan.get.v2"]
-    request_id: AfbwsCommonV1RequestId
-    id: NotRequired[TradeplanId]
-    item: NotRequired[TradeplanV2PlanItem]
 
 
 class TradeplanV2LegInput(TypedDict):
@@ -5070,12 +5105,13 @@ class TradeplanV2LegItem(TypedDict):
 
 class TradeplanV2List(TypedDict):
     """
-    Request: optional filter `instrument_keys[]` (none = every non-archived plan of the caller; archived plans are not listed, use `get`). Response (same `request_id`): `items[]`. A request carrying `items` is invalid, as is a response carrying a filter.
+    Request: optional filters `ids[]` and/or `instrument_keys[]` (both = intersection; none = every non-archived plan of the caller; archived plans are returned only when named in `ids`). Response (same `request_id`): `items[]`. There is no separate `get`: use `ids`. A request carrying `items` is invalid, as is a response carrying a filter.
     """
 
     channel: Literal["tradeplan"]
     schema: Literal["afbws.tradeplan.list.v2"]
     request_id: AfbwsCommonV1RequestId
+    ids: NotRequired[list[TradeplanId]]
     instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
     items: NotRequired[list[TradeplanV2PlanItem]]
 
@@ -5140,21 +5176,33 @@ class TradeplanV2Publish(TypedDict):
     account_id: NotRequired[str]
 
 
+class TradeplanV2Rejection(TypedDict):
+    """
+    `id` is the plan id from the request, `code` a whole-request error code reused per plan (`not_found`, `validation_error`, `conflict`, ...), `message` the human-readable reason. `item` is the authoritative current plan and is present only with `conflict` (a stale or blocked plan: archive/delete blocked by a live deal that already entered a position, `set` over a primitive owned by another plan), so the client can adopt it without a separate read; a `conflict` may also come without it.
+    """
+
+    id: TradeplanId
+    code: AfbwsCommonV1ErrorCode
+    message: str
+    item: NotRequired[TradeplanV2PlanItem]
+
+
 class TradeplanV2Set(TypedDict):
     """
-    Request: `item` is a `planInput` (create or update by `item.id`). Response (same `request_id`): `item` is the saved `planItem` and `amend_results[]` lists the per-deal outcome of re-amending the plan's live deals (always empty for a create). Distinguished by `amend_results`: present => response, absent => request. There is no push on set.
+    Request: `items[]` (at least one) of `planInput` — create or update by `item.id`, batched. Response (same `request_id`): `items[]` the applied authoritative `planItem`s (possibly empty), `rejected[]` for plans that were not applied (a stale/conflicting plan carries its current `planItem` in `rejected[].item`), and `amend_results[]` — the per-deal outcome of re-amending the live deals of every applied plan (empty for creates only; each row names its `tradeplan_id`). Distinguished by `amend_results`: present => response, absent => request. A failing plan never fails the batch. There is no push on set.
     """
 
     channel: Literal["tradeplan"]
     schema: Literal["afbws.tradeplan.set.v2"]
     request_id: AfbwsCommonV1RequestId
-    item: TradeplanV2PlanInput | TradeplanV2PlanItem
+    items: list[TradeplanV2PlanInput | TradeplanV2PlanItem]
+    rejected: NotRequired[list[TradeplanV2Rejection]]
     amend_results: NotRequired[list[TradeplanV2AmendResultItem]]
 
 
 class TradeplanV2Sync(TypedDict):
     """
-    `items[]` (at least one) is a DELTA, not a snapshot: the client upserts plans in its own list by matching id and leaves everything else untouched. The authoritative full list comes only from afbws.tradeplan.list.v2. Sent on plan lifecycle changes (status derived from its deals) and archival. Plan deletion and `set` are NOT conveyed by this push. Never a request: `request_id` is not allowed.
+    `items[]` (at least one) is a DELTA, not a snapshot: the client upserts plans in its own list by matching id and leaves everything else untouched. The authoritative full list comes only from afbws.tradeplan.list.v2. Sent on plan lifecycle changes (status derived from its deals) and archival (one push per batch). Plan deletion and `set` are NOT conveyed by this push. Never a request: `request_id` is not allowed.
     """
 
     channel: Literal["tradeplan"]
@@ -5163,8 +5211,7 @@ class TradeplanV2Sync(TypedDict):
 
 
 TradeplanChannelV2Message: TypeAlias = (
-    TradeplanV2Get
-    | TradeplanV2List
+    TradeplanV2List
     | TradeplanV2Set
     | TradeplanV2Delete
     | TradeplanV2Archive

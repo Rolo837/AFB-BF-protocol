@@ -1,20 +1,24 @@
 {
   "channel": "deal",
   "schema": "afbws.deal.event.v2",
-  "deal_id": "deal-71a4-4d3e-8f56",
-  "bf_id": "finam-arena-316",
-  "category": "order",
-  "event": "cancelled",
-  "logged_at": "2026-10-21T11:42:07+03:00",
-  "data": {
-    "order_id": "deal-71a4-4d3e-8f56:take_profit:3:0",
-    "side": "sell",
-    "role": "stop_loss",
-    "quantity": 10,
-    "price": "300",
-    "status": "cancelled",
-    "filled_quantity": 0,
-    "leg_index": 0,
-    "at": "2026-10-21T11:42:07.331+03:00"
-  }
+  "events": [
+    {
+      "deal_id": "deal-71a4-4d3e-8f56",
+      "bf_id": "finam-arena-316",
+      "category": "order",
+      "event": "cancelled",
+      "logged_at": "2026-10-21T11:42:07+03:00",
+      "data": {
+        "order_id": "deal-71a4-4d3e-8f56:take_profit:3:0",
+        "side": "sell",
+        "role": "stop_loss",
+        "quantity": 10,
+        "price": "300",
+        "status": "cancelled",
+        "filled_quantity": 0,
+        "leg_index": 0,
+        "at": "2026-10-21T11:42:07.331+03:00"
+      }
+    }
+  ]
 }

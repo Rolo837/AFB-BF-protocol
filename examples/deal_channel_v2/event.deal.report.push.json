@@ -1,34 +1,38 @@
 {
   "channel": "deal",
   "schema": "afbws.deal.event.v2",
-  "deal_id": "deal-71a4-4d3e-8f56",
-  "bf_id": "finam-arena-316",
-  "category": "deal",
-  "event": "report",
-  "logged_at": "2026-10-21T11:42:07+03:00",
-  "data": {
-    "status": "closed",
-    "close_reason": "take_profit",
-    "at": "2026-10-21T11:42:07.331+03:00",
-    "fills": [
-      {
-        "trade_id": "t-1",
-        "order_id": "deal-71a4-4d3e-8f56:entry:3:0",
-        "role": "entry",
-        "side": "buy",
-        "price": "310.5",
-        "quantity": 10,
-        "timestamp": "2026-10-21T10:31:00+03:00"
-      },
-      {
-        "trade_id": "t-2",
-        "order_id": "deal-71a4-4d3e-8f56:take_profit:3:0",
-        "role": "take_profit",
-        "side": "sell",
-        "price": "330",
-        "quantity": 10,
-        "timestamp": "2026-10-21T11:42:07.331+03:00"
+  "events": [
+    {
+      "deal_id": "deal-71a4-4d3e-8f56",
+      "bf_id": "finam-arena-316",
+      "category": "deal",
+      "event": "report",
+      "logged_at": "2026-10-21T11:42:07+03:00",
+      "data": {
+        "status": "closed",
+        "close_reason": "take_profit",
+        "at": "2026-10-21T11:42:07.331+03:00",
+        "fills": [
+          {
+            "trade_id": "t-1",
+            "order_id": "deal-71a4-4d3e-8f56:entry:3:0",
+            "role": "entry",
+            "side": "buy",
+            "price": "310.5",
+            "quantity": 10,
+            "timestamp": "2026-10-21T10:31:00+03:00"
+          },
+          {
+            "trade_id": "t-2",
+            "order_id": "deal-71a4-4d3e-8f56:take_profit:3:0",
+            "role": "take_profit",
+            "side": "sell",
+            "price": "330",
+            "quantity": 10,
+            "timestamp": "2026-10-21T11:42:07.331+03:00"
+          }
+        ]
       }
-    ]
-  }
+    }
+  ]
 }

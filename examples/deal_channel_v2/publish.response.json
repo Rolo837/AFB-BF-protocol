@@ -121,6 +121,11 @@
           "execution_policy"
         ]
       }
+    },
+    {
+      "deal_id": "tradeplan-c0de-4a11",
+      "accepted": false,
+      "message": "Торговый план не найден"
     }
   ]
 }

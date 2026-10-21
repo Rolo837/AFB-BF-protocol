@@ -1,0 +1,51 @@
+{
+  "channel": "deal",
+  "schema": "afbws.deal.event.v2",
+  "events": [
+    {
+      "deal_id": "deal-71a4-4d3e-8f56",
+      "bf_id": "finam-arena-316",
+      "category": "order",
+      "event": "filled",
+      "logged_at": "2026-10-21T11:42:07+03:00",
+      "data": {
+        "order_id": "deal-71a4-4d3e-8f56:take_profit:3:0",
+        "side": "sell",
+        "role": "take_profit",
+        "quantity": 10,
+        "price": "330",
+        "status": "filled",
+        "filled_quantity": 10,
+        "leg_index": 0,
+        "at": "2026-10-21T11:42:07.331+03:00"
+      }
+    },
+    {
+      "deal_id": "deal-71a4-4d3e-8f56",
+      "bf_id": "finam-arena-316",
+      "category": "position",
+      "event": "closed",
+      "logged_at": "2026-10-21T11:42:07+03:00",
+      "data": {
+        "symbol": "SBER@MISX",
+        "quantity": 0,
+        "average_price": null,
+        "at": "2026-10-21T11:42:07.331+03:00"
+      }
+    },
+    {
+      "deal_id": "deal-71a4-4d3e-8f56",
+      "bf_id": "finam-arena-316",
+      "category": "deal",
+      "event": "status_changed",
+      "logged_at": "2026-10-21T11:42:07+03:00",
+      "data": {
+        "status": "active",
+        "execution_phase": "entry_working",
+        "last_price": "310.2",
+        "quantity": 10,
+        "at": "2026-10-21T11:42:07.331+03:00"
+      }
+    }
+  ]
+}

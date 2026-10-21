@@ -3,12 +3,9 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/deal.channel.v2.json",
   "x-afbws-support-id": "afbws.deal.channel.v2",
   "title": "deal channel v2 — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.deal.channel.v2). Same convention as afbws.alarm/account/tradeplan v2: ONE schema id per message (`afbws.deal.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`); server pushes (`record`, `outcome`, `event`, `pnl`, `triggered`) are the same kind of message without `request_id`. State and facts are split: `record` is the authoritative state of a deal, `outcome` the result of a command, `event` a thin allow-listed fact for the feed (typed per event, see $defs/event), `pnl` the periodic unrealized P&L, `triggered` the guaranteed notifications (acked with `ack`). Strict (additionalProperties:false), no legacy forms: `status`/`execution_phase` are the shared enums (common.v1.json#/$defs/dealStatus, executionPhase), `error.details` does not exist (the server populates none). `item`/`items`/`results` never carry the persisted DealState file shape (source_refs, status_history, event_journal, raw orders/positions, observed) — see $defs/dealSummary and $defs/dealDetail, explicit allow-list projections built by backend/trade/public_views.py. publish/rebind/amend resolve the source tradeplan only via the deal's own link (deal.public.v1.json source.tradeplan_id); they never accept an inline plan-like draft. See AFB/docs/ws/deal.md.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.deal.channel.v2). Same convention as afbws.alarm/account/tradeplan v2: ONE schema id per message (`afbws.deal.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`); server pushes (`record`, `outcome`, `event`, `pnl`, `triggered`) are the same kind of message without `request_id`. Collections are arrays (`items[]`, `ids[]`, `results[]`, `events[]`), so bulk operations and pushes are single messages (one batch mutation / one tick = one push); a per-deal failure of a batch is a row with accepted=false in `results[]`, `error` is only for a whole request. There is no separate `get`: use `list` with `ids` and `detail: true`. State and facts are split: `record` is the authoritative state of a deal, `outcome` the result of a command, `event` a thin allow-listed fact for the feed (typed per event, see $defs/event), `pnl` the periodic unrealized P&L, `triggered` the guaranteed notifications (acked with `ack`). Strict (additionalProperties:false), no legacy forms: `status`/`execution_phase` are the shared enums (common.v1.json#/$defs/dealStatus, executionPhase), `error.details` does not exist (the server populates none). `item`/`items`/`results[].item` never carry the persisted DealState file shape (source_refs, status_history, event_journal, raw orders/positions, observed) — see $defs/dealSummary and $defs/dealDetail, explicit allow-list projections built by backend/trade/public_views.py. publish/rebind/amend resolve the source tradeplan only via the deal's own link (deal.public.v1.json source.tradeplan_id); they never accept an inline plan-like draft. See AFB/docs/ws/deal.md.",
   "type": "object",
   "oneOf": [
-    {
-      "$ref": "#/$defs/get"
-    },
     {
       "$ref": "#/$defs/list"
     },
@@ -329,6 +326,103 @@
             "$ref": "#/$defs/amendField"
           }
         }
+      }
+    },
+    "dealItem": {
+      "type": "object",
+      "title": "Row of `list`: dealSummary, plus the full editor payload when `detail: true` was requested.",
+      "description": "Same allow-list as dealSummary (see there); with `detail: true` each row additionally carries `deal` (the public afb.deal.v2 projection) and `editable_fields` — together, i.e. a dealDetail. Rows of a list without `detail` never carry them.",
+      "required": [
+        "deal_id",
+        "revision",
+        "status",
+        "execution_phase",
+        "bf_id",
+        "tradeplan_id",
+        "ticker",
+        "direction",
+        "created_at",
+        "updated_at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "deal_id": {
+          "$ref": "#/$defs/dealId"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "status": {
+          "$ref": "../common.v1.json#/$defs/dealStatus"
+        },
+        "execution_phase": {
+          "$ref": "../common.v1.json#/$defs/executionPhase"
+        },
+        "bf_id": {
+          "$ref": "#/$defs/bfId"
+        },
+        "tradeplan_id": {
+          "$ref": "../common.v1.json#/$defs/tradeplanId"
+        },
+        "ticker": {
+          "type": "string"
+        },
+        "instrument_key": {
+          "$ref": "common.v1.json#/$defs/instrumentKey",
+          "description": "Full catalog key of the deal's instrument. Optional: absent on deals stored before the key existed."
+        },
+        "market": {
+          "enum": [
+            "stock",
+            "futures",
+            "currency"
+          ]
+        },
+        "direction": {
+          "enum": [
+            "long",
+            "short"
+          ]
+        },
+        "sizing": {
+          "$ref": "../common.v1.json#/$defs/sizing"
+        },
+        "execution_policy": {
+          "$ref": "../common.v1.json#/$defs/executionPolicy"
+        },
+        "broker_sizing": {
+          "$ref": "#/$defs/dealSizingDisplay"
+        },
+        "realized_pnl": {
+          "$ref": "#/$defs/dealRealizedPnl"
+        },
+        "position": {
+          "$ref": "#/$defs/dealOpenPosition"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "deal": {
+          "$ref": "deal.public.v1.json"
+        },
+        "editable_fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/amendField"
+          }
+        }
+      },
+      "dependentRequired": {
+        "deal": [
+          "editable_fields"
+        ],
+        "editable_fields": [
+          "deal"
+        ]
       }
     },
     "dealLegEdit": {
@@ -934,10 +1028,8 @@
     },
     "eventDealCreated": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — deal.created",
+      "title": "deal.created",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -947,12 +1039,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -976,10 +1062,8 @@
     },
     "eventDealAmended": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — deal.amended",
+      "title": "deal.amended",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -989,12 +1073,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1018,10 +1096,8 @@
     },
     "eventDealAccepted": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — deal.accepted",
+      "title": "deal.accepted",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1031,12 +1107,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1060,10 +1130,8 @@
     },
     "eventDealRejected": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — deal.rejected",
+      "title": "deal.rejected",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1073,12 +1141,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1102,10 +1164,8 @@
     },
     "eventDealStatusChanged": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — deal.status_changed",
+      "title": "deal.status_changed",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1115,12 +1175,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1144,10 +1198,8 @@
     },
     "eventDealDeleted": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — deal.deleted",
+      "title": "deal.deleted",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1157,12 +1209,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1186,10 +1232,8 @@
     },
     "eventDealReport": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — deal.report",
+      "title": "deal.report",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1199,12 +1243,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1228,10 +1266,8 @@
     },
     "eventDealOrdersSynced": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — deal.orders_synced",
+      "title": "deal.orders_synced",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1241,12 +1277,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1270,10 +1300,8 @@
     },
     "eventDealPositionsSynced": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — deal.positions_synced",
+      "title": "deal.positions_synced",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1283,12 +1311,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1312,10 +1334,8 @@
     },
     "eventOrderCreated": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — order.created",
+      "title": "order.created",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1325,12 +1345,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1354,10 +1368,8 @@
     },
     "eventOrderFilled": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — order.filled",
+      "title": "order.filled",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1367,12 +1379,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1396,10 +1402,8 @@
     },
     "eventOrderPartiallyFilled": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — order.partially_filled",
+      "title": "order.partially_filled",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1409,12 +1413,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1438,10 +1436,8 @@
     },
     "eventOrderCancelled": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — order.cancelled",
+      "title": "order.cancelled",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1451,12 +1447,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1480,10 +1470,8 @@
     },
     "eventOrderRejected": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — order.rejected",
+      "title": "order.rejected",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1493,12 +1481,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1522,10 +1504,8 @@
     },
     "eventPositionOpened": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — position.opened",
+      "title": "position.opened",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1535,12 +1515,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1564,10 +1538,8 @@
     },
     "eventPositionChanged": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — position.changed",
+      "title": "position.changed",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1577,12 +1549,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1606,10 +1572,8 @@
     },
     "eventPositionClosed": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — position.closed",
+      "title": "position.closed",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1619,12 +1583,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1648,10 +1606,8 @@
     },
     "eventConditionTriggered": {
       "type": "object",
-      "title": "afbws.deal.event.v2 — condition.triggered",
+      "title": "condition.triggered",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
         "category",
@@ -1661,12 +1617,6 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.event.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -1689,64 +1639,30 @@
       }
     },
     "event": {
-      "title": "afbws.deal.event.v2 — one trading/lifecycle event of a deal (server push, no request_id), typed by (category, event).",
-      "description": "A thin, allow-listed event for the event feed, the order/position patches and the chart markers — never a state snapshot (state: `afbws.deal.record.v2`) and never a raw BF payload: only the fields a consumer reads or that make up the meaning of the event are listed, everything else BF sends (`broker_instrument`, `validation`, `execution_legs`, `target_instrument_patch`, `binding`, `snapshot`, `observed`, `deal.snapshot` altogether) is dropped. `data` is determined by `event` within `category`; `category` is fixed per event.",
-      "oneOf": [
-        {
-          "$ref": "#/$defs/eventDealCreated"
+      "type": "object",
+      "title": "afbws.deal.event.v2 — trading/lifecycle events of deals (server push, no request_id).",
+      "description": "`events[]` (at least one) in order of occurrence, each a typed eventItem (a thin, allow-listed fact — never a state snapshot or a raw BF payload).",
+      "required": [
+        "channel",
+        "schema",
+        "events"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "deal"
         },
-        {
-          "$ref": "#/$defs/eventDealAmended"
+        "schema": {
+          "const": "afbws.deal.event.v2"
         },
-        {
-          "$ref": "#/$defs/eventDealAccepted"
-        },
-        {
-          "$ref": "#/$defs/eventDealRejected"
-        },
-        {
-          "$ref": "#/$defs/eventDealStatusChanged"
-        },
-        {
-          "$ref": "#/$defs/eventDealDeleted"
-        },
-        {
-          "$ref": "#/$defs/eventDealReport"
-        },
-        {
-          "$ref": "#/$defs/eventDealOrdersSynced"
-        },
-        {
-          "$ref": "#/$defs/eventDealPositionsSynced"
-        },
-        {
-          "$ref": "#/$defs/eventOrderCreated"
-        },
-        {
-          "$ref": "#/$defs/eventOrderFilled"
-        },
-        {
-          "$ref": "#/$defs/eventOrderPartiallyFilled"
-        },
-        {
-          "$ref": "#/$defs/eventOrderCancelled"
-        },
-        {
-          "$ref": "#/$defs/eventOrderRejected"
-        },
-        {
-          "$ref": "#/$defs/eventPositionOpened"
-        },
-        {
-          "$ref": "#/$defs/eventPositionChanged"
-        },
-        {
-          "$ref": "#/$defs/eventPositionClosed"
-        },
-        {
-          "$ref": "#/$defs/eventConditionTriggered"
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/eventItem"
+          }
         }
-      ]
+      }
     },
     "operationItem": {
       "type": "object",
@@ -1976,55 +1892,10 @@
         }
       }
     },
-    "get": {
-      "type": "object",
-      "title": "afbws.deal.get.v2 — read one deal (request / response).",
-      "description": "Request: `deal_id`. Response (same `request_id`): `item`. Exactly one of the two.",
-      "required": [
-        "channel",
-        "schema",
-        "request_id"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.get.v2"
-        },
-        "request_id": {
-          "$ref": "common.v1.json#/$defs/requestId"
-        },
-        "deal_id": {
-          "$ref": "#/$defs/dealId"
-        },
-        "item": {
-          "$ref": "#/$defs/dealDetail"
-        }
-      },
-      "if": {
-        "required": [
-          "deal_id"
-        ]
-      },
-      "then": {
-        "not": {
-          "required": [
-            "item"
-          ]
-        }
-      },
-      "else": {
-        "required": [
-          "item"
-        ]
-      }
-    },
     "list": {
       "type": "object",
-      "title": "afbws.deal.list.v2 — read the caller's deals (request / response).",
-      "description": "Request: no filters (the plan->deals grouping is built from `tradeplan_id` of each row, not a server-side filter). Response (same `request_id`): `items[]`.",
+      "title": "afbws.deal.list.v2 — read deals (request / response).",
+      "description": "Request: optional filters `ids[]`, `instrument_keys[]` and/or `tradeplan_ids[]` (all given = intersection; none = every deal of the caller) and optional `detail` (true = rows carry the full editor payload `deal` + `editable_fields`, i.e. a dealDetail; default false = summary rows). Response (same `request_id`): `items[]` (dealItem). There is no separate `get`: use `ids` with `detail: true`. A request carrying `items` is invalid, as is a response carrying a filter.",
       "required": [
         "channel",
         "schema",
@@ -2041,18 +1912,72 @@
         "request_id": {
           "$ref": "common.v1.json#/$defs/requestId"
         },
+        "ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/dealId"
+          }
+        },
+        "instrument_keys": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.v1.json#/$defs/instrumentKey"
+          }
+        },
+        "tradeplan_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "../common.v1.json#/$defs/tradeplanId"
+          }
+        },
+        "detail": {
+          "type": "boolean"
+        },
         "items": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/dealSummary"
+            "$ref": "#/$defs/dealItem"
           }
         }
+      },
+      "not": {
+        "required": [
+          "items"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "ids"
+            ]
+          },
+          {
+            "required": [
+              "instrument_keys"
+            ]
+          },
+          {
+            "required": [
+              "tradeplan_ids"
+            ]
+          },
+          {
+            "required": [
+              "detail"
+            ]
+          }
+        ]
       }
     },
     "publish": {
       "type": "object",
-      "title": "afbws.deal.publish.v2 — publish an already-saved tradeplan as a deal (request / response).",
-      "description": "Request: `tradeplan_id` + `bf_id` (no inline plan draft, no plural bf_ids — 1:1). Response (same `request_id`): `results[]` (batch-shaped, at most one element today) and `accepted`. Distinguished by `results`: present => response, absent => request.",
+      "title": "afbws.deal.publish.v2 — publish already-saved tradeplans as deals (request / response).",
+      "description": "Request: `items[]` (at least one) of `{tradeplan_id, bf_id}` (no inline plan draft, 1:1 per row). Response (same `request_id`): `results[]` (one per item; a failed row is accepted=false) and `accepted`. Distinguished by `items` vs `results`.",
       "required": [
         "channel",
         "schema",
@@ -2069,11 +1994,12 @@
         "request_id": {
           "$ref": "common.v1.json#/$defs/requestId"
         },
-        "tradeplan_id": {
-          "$ref": "../common.v1.json#/$defs/tradeplanId"
-        },
-        "bf_id": {
-          "$ref": "#/$defs/bfId"
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/publishItem"
+          }
         },
         "results": {
           "type": "array",
@@ -2082,28 +2008,26 @@
           }
         },
         "accepted": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "any(result.accepted for result in results)"
         }
       },
       "if": {
         "required": [
-          "results"
+          "items"
         ]
       },
       "then": {
-        "required": [
-          "accepted"
-        ],
         "not": {
           "anyOf": [
             {
               "required": [
-                "tradeplan_id"
+                "results"
               ]
             },
             {
               "required": [
-                "bf_id"
+                "accepted"
               ]
             }
           ]
@@ -2111,20 +2035,15 @@
       },
       "else": {
         "required": [
-          "tradeplan_id",
-          "bf_id"
-        ],
-        "not": {
-          "required": [
-            "accepted"
-          ]
-        }
+          "results",
+          "accepted"
+        ]
       }
     },
     "rebind": {
       "type": "object",
-      "title": "afbws.deal.rebind.v2 — move a deal to another connector (request / response).",
-      "description": "Request: `deal_id` + `bf_id` (the backend resolves the source tradeplan via the deal's own link). Response (same `request_id`): `results[]` and `accepted`; if the new target changes the deal id, `results[0].deal_id`/`item` carry the NEW id. Distinguished by `results`.",
+      "title": "afbws.deal.rebind.v2 — move deals to another connector (request / response).",
+      "description": "Request: `items[]` (at least one) of `{deal_id, bf_id}` (the backend resolves the source tradeplan via the deal's own link). Response (same `request_id`): `results[]` and `accepted`; if the new target changes a deal id, that row's `deal_id`/`item` carry the NEW id. Distinguished by `items` vs `results`.",
       "required": [
         "channel",
         "schema",
@@ -2141,11 +2060,12 @@
         "request_id": {
           "$ref": "common.v1.json#/$defs/requestId"
         },
-        "deal_id": {
-          "$ref": "#/$defs/dealId"
-        },
-        "bf_id": {
-          "$ref": "#/$defs/bfId"
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/rebindItem"
+          }
         },
         "results": {
           "type": "array",
@@ -2154,28 +2074,26 @@
           }
         },
         "accepted": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "any(result.accepted for result in results)"
         }
       },
       "if": {
         "required": [
-          "results"
+          "items"
         ]
       },
       "then": {
-        "required": [
-          "accepted"
-        ],
         "not": {
           "anyOf": [
             {
               "required": [
-                "deal_id"
+                "results"
               ]
             },
             {
               "required": [
-                "bf_id"
+                "accepted"
               ]
             }
           ]
@@ -2183,14 +2101,9 @@
       },
       "else": {
         "required": [
-          "deal_id",
-          "bf_id"
-        ],
-        "not": {
-          "required": [
-            "accepted"
-          ]
-        }
+          "results",
+          "accepted"
+        ]
       }
     },
     "operation": {
@@ -2261,8 +2174,8 @@
     },
     "amend": {
       "type": "object",
-      "title": "afbws.deal.amend.v2 — per-leg amend of a deal (request / response).",
-      "description": "Request: `deal_id`, optional `deal_edit` (only the legs/fields overridden on the deal side; anything omitted keeps following the linked tradeplan) and optional `base_revision` (optimistic concurrency: a mismatch is a `conflict` error carrying the current `item`). Response (same `request_id`): `item` (authoritative record), `revision`, `status`, `accepted`. The outcome of the BF confirmation arrives later as `outcome` and `event` pushes. Distinguished by `item`.",
+      "title": "afbws.deal.amend.v2 — per-leg amend of deals (request / response).",
+      "description": "Request: `items[]` (at least one) of `{deal_id, deal_edit?, base_revision?}`. Response (same `request_id`): `results[]` (amendResult, one per item; a rejected or conflicting row never fails the batch) and `accepted` (any row accepted). Distinguished by `items` vs `results`.",
       "required": [
         "channel",
         "schema",
@@ -2279,33 +2192,27 @@
         "request_id": {
           "$ref": "common.v1.json#/$defs/requestId"
         },
-        "deal_id": {
-          "$ref": "#/$defs/dealId"
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/amendItem"
+          }
         },
-        "deal_edit": {
-          "$ref": "#/$defs/dealEdit"
-        },
-        "base_revision": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "item": {
-          "$ref": "#/$defs/dealDetail"
-        },
-        "revision": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "status": {
-          "$ref": "../common.v1.json#/$defs/dealStatus"
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/amendResult"
+          }
         },
         "accepted": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "any(result.accepted for result in results)"
         }
       },
       "if": {
         "required": [
-          "deal_id"
+          "items"
         ]
       },
       "then": {
@@ -2313,17 +2220,7 @@
           "anyOf": [
             {
               "required": [
-                "item"
-              ]
-            },
-            {
-              "required": [
-                "revision"
-              ]
-            },
-            {
-              "required": [
-                "status"
+                "results"
               ]
             },
             {
@@ -2336,25 +2233,9 @@
       },
       "else": {
         "required": [
-          "item",
-          "revision",
-          "status",
+          "results",
           "accepted"
-        ],
-        "not": {
-          "anyOf": [
-            {
-              "required": [
-                "deal_edit"
-              ]
-            },
-            {
-              "required": [
-                "base_revision"
-              ]
-            }
-          ]
-        }
+        ]
       }
     },
     "ack": {
@@ -2421,7 +2302,7 @@
     "error": {
       "type": "object",
       "title": "afbws.deal.error.v2 — typed error for a whole request (server -> client).",
-      "description": "`item` (the authoritative current record) is only present with `conflict` — a stale `base_revision` on amend — so the client can adopt it instead of retrying blind; a `conflict` may also come without it (lifecycle/amend gate, deal id taken). No other code carries `item`, and no code carries `details`: the server populates none for the deal channel.",
+      "description": "Only for a whole request (invalid_schema, invalid_channel, forbidden, internal_error, ...). Per-deal failures of a batched publish/rebind/operation/amend are rows with accepted=false in that response's `results[]` (a stale `base_revision` is `code: conflict` with the current `item` there); no code carries `item` or `details`.",
       "required": [
         "channel",
         "schema",
@@ -2446,39 +2327,17 @@
         "message": {
           "type": "string",
           "minLength": 1
-        },
-        "item": {
-          "$ref": "#/$defs/dealDetail"
-        }
-      },
-      "if": {
-        "properties": {
-          "code": {
-            "const": "conflict"
-          }
-        },
-        "required": [
-          "code"
-        ]
-      },
-      "else": {
-        "not": {
-          "required": [
-            "item"
-          ]
         }
       }
     },
     "record": {
       "type": "object",
-      "title": "afbws.deal.record.v2 — authoritative state of one deal (server push, no request_id).",
-      "description": "REPLACE of the public projection identified by deal_id: the client overwrites its cached copy, never merges. One push per mutation of the record. It carries NO command outcome — that is `afbws.deal.outcome.v2`; and no thin events are merged into it — see `afbws.deal.event.v2`.",
+      "title": "afbws.deal.record.v2 — authoritative state of deals (server push, no request_id).",
+      "description": "REPLACE per deal: for every item the client overwrites its cached copy identified by `item.deal_id`, never merges. One mutation (one batch command) = ONE push carrying all deals it changed. It carries NO command outcome — that is `afbws.deal.outcome.v2`; and no thin events are merged into it — see `afbws.deal.event.v2`.",
       "required": [
         "channel",
         "schema",
-        "deal_id",
-        "bf_id",
-        "item"
+        "items"
       ],
       "additionalProperties": false,
       "properties": {
@@ -2488,28 +2347,23 @@
         "schema": {
           "const": "afbws.deal.record.v2"
         },
-        "deal_id": {
-          "$ref": "#/$defs/dealId"
-        },
-        "bf_id": {
-          "$ref": "#/$defs/bfId"
-        },
-        "item": {
-          "$ref": "#/$defs/dealDetail"
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/dealDetail"
+          }
         }
       }
     },
     "outcome": {
       "type": "object",
-      "title": "afbws.deal.outcome.v2 — outcome of a command or an execution step (server push, no request_id).",
-      "description": "A separate push, so the client does not need the whole record just to show a toast. AFB composes no user-facing texts: it passes through what BF returned, the text is built on the frontend. result=rejected: any BF rejection (`code` required). result=accepted: only the confirmation of `deal.amend` (the one accepted outcome the server reports), without code/message/broker_error.",
+      "title": "afbws.deal.outcome.v2 — outcomes of commands or execution steps (server push, no request_id).",
+      "description": "A separate push, so the client does not need the whole record just to show a toast; `items[]` (at least one), each is an independent outcome (see outcomeItem).",
       "required": [
         "channel",
         "schema",
-        "deal_id",
-        "bf_id",
-        "command",
-        "result"
+        "items"
       ],
       "additionalProperties": false,
       "properties": {
@@ -2519,6 +2373,296 @@
         "schema": {
           "const": "afbws.deal.outcome.v2"
         },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/outcomeItem"
+          }
+        }
+      }
+    },
+    "pnl": {
+      "type": "object",
+      "title": "afbws.deal.pnl.v2 — periodic unrealized P&L of open deals (server push, no request_id).",
+      "description": "Not persisted. ONE push per tick for all open deals of the user: `items[]` (at least one).",
+      "required": [
+        "channel",
+        "schema",
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "deal"
+        },
+        "schema": {
+          "const": "afbws.deal.pnl.v2"
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/pnlItem"
+          }
+        }
+      }
+    },
+    "triggered": {
+      "type": "object",
+      "title": "afbws.deal.triggered.v2 — guaranteed deal notifications (server push, no request_id).",
+      "description": "Server-initiated; same ack discipline as alarms: a reconnect redelivers events that were not acked (afbws.deal.ack.v2).",
+      "required": [
+        "channel",
+        "schema",
+        "events"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "deal"
+        },
+        "schema": {
+          "const": "afbws.deal.triggered.v2"
+        },
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/triggerEvent"
+          }
+        }
+      }
+    },
+    "eventItem": {
+      "title": "One trading/lifecycle event of a deal, typed by (category, event).",
+      "description": "A thin, allow-listed event for the event feed, the order/position patches and the chart markers — never a state snapshot (state: `afbws.deal.record.v2`) and never a raw BF payload: only the fields a consumer reads or that make up the meaning of the event are listed, everything else BF sends (`broker_instrument`, `validation`, `execution_legs`, `target_instrument_patch`, `binding`, `snapshot`, `observed`, `deal.snapshot` altogether) is dropped. `data` is determined by `event` within `category`; `category` is fixed per event.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/eventDealCreated"
+        },
+        {
+          "$ref": "#/$defs/eventDealAmended"
+        },
+        {
+          "$ref": "#/$defs/eventDealAccepted"
+        },
+        {
+          "$ref": "#/$defs/eventDealRejected"
+        },
+        {
+          "$ref": "#/$defs/eventDealStatusChanged"
+        },
+        {
+          "$ref": "#/$defs/eventDealDeleted"
+        },
+        {
+          "$ref": "#/$defs/eventDealReport"
+        },
+        {
+          "$ref": "#/$defs/eventDealOrdersSynced"
+        },
+        {
+          "$ref": "#/$defs/eventDealPositionsSynced"
+        },
+        {
+          "$ref": "#/$defs/eventOrderCreated"
+        },
+        {
+          "$ref": "#/$defs/eventOrderFilled"
+        },
+        {
+          "$ref": "#/$defs/eventOrderPartiallyFilled"
+        },
+        {
+          "$ref": "#/$defs/eventOrderCancelled"
+        },
+        {
+          "$ref": "#/$defs/eventOrderRejected"
+        },
+        {
+          "$ref": "#/$defs/eventPositionOpened"
+        },
+        {
+          "$ref": "#/$defs/eventPositionChanged"
+        },
+        {
+          "$ref": "#/$defs/eventPositionClosed"
+        },
+        {
+          "$ref": "#/$defs/eventConditionTriggered"
+        }
+      ]
+    },
+    "publishItem": {
+      "type": "object",
+      "title": "One deal to publish: a saved tradeplan onto one connector (1:1).",
+      "required": [
+        "tradeplan_id",
+        "bf_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "tradeplan_id": {
+          "$ref": "../common.v1.json#/$defs/tradeplanId"
+        },
+        "bf_id": {
+          "$ref": "#/$defs/bfId"
+        }
+      }
+    },
+    "rebindItem": {
+      "type": "object",
+      "title": "One deal to move to another connector.",
+      "required": [
+        "deal_id",
+        "bf_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "deal_id": {
+          "$ref": "#/$defs/dealId"
+        },
+        "bf_id": {
+          "$ref": "#/$defs/bfId"
+        }
+      }
+    },
+    "amendItem": {
+      "type": "object",
+      "title": "One per-leg amend of a deal.",
+      "description": "Optional `deal_edit` (only the legs/fields overridden on the deal side; anything omitted keeps following the linked tradeplan) and optional `base_revision` (optimistic concurrency: a mismatch rejects this row with `conflict` and the current `item`).",
+      "required": [
+        "deal_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "deal_id": {
+          "$ref": "#/$defs/dealId"
+        },
+        "deal_edit": {
+          "$ref": "#/$defs/dealEdit"
+        },
+        "base_revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "amendResult": {
+      "type": "object",
+      "title": "Per-deal outcome of an amend row.",
+      "description": "accepted=true: `revision` (the new revision), `status` and `item` (the authoritative record) are set; no message/code. accepted=false: the deal is unchanged, `message` says why and `code` is the machine-readable reason when there is one; `item` (the authoritative current record) is present only with `conflict` — a stale `base_revision` — so the client can adopt it instead of retrying blind. The outcome of the BF confirmation arrives later as `outcome` and `event` pushes.",
+      "required": [
+        "deal_id",
+        "accepted"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "deal_id": {
+          "$ref": "#/$defs/dealId"
+        },
+        "accepted": {
+          "type": "boolean"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "status": {
+          "$ref": "../common.v1.json#/$defs/dealStatus"
+        },
+        "item": {
+          "$ref": "#/$defs/dealDetail"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "code": {
+          "$ref": "common.v1.json#/$defs/errorCode"
+        }
+      },
+      "if": {
+        "properties": {
+          "accepted": {
+            "const": true
+          }
+        },
+        "required": [
+          "accepted"
+        ]
+      },
+      "then": {
+        "required": [
+          "revision",
+          "status",
+          "item"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "message"
+              ]
+            },
+            {
+              "required": [
+                "code"
+              ]
+            }
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "message"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "revision"
+              ]
+            },
+            {
+              "required": [
+                "status"
+              ]
+            }
+          ]
+        },
+        "if": {
+          "properties": {
+            "code": {
+              "const": "conflict"
+            }
+          },
+          "required": [
+            "code"
+          ]
+        },
+        "else": {
+          "not": {
+            "required": [
+              "item"
+            ]
+          }
+        }
+      }
+    },
+    "outcomeItem": {
+      "type": "object",
+      "title": "Outcome of one command or execution step of a deal.",
+      "description": "A separate push, so the client does not need the whole record just to show a toast. AFB composes no user-facing texts: it passes through what BF returned, the text is built on the frontend. result=rejected: any BF rejection (`code` required). result=accepted: only the confirmation of `deal.amend` (the one accepted outcome the server reports), without code/message/broker_error.",
+      "required": [
+        "deal_id",
+        "bf_id",
+        "command",
+        "result"
+      ],
+      "additionalProperties": false,
+      "properties": {
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
@@ -2596,91 +2740,48 @@
         }
       }
     },
-    "pnl": {
+    "pnlItem": {
       "type": "object",
-      "title": "afbws.deal.pnl.v2 — periodic unrealized P&L of an open deal (server push, no request_id).",
-      "description": "Not persisted. `trend` is deliberately absent — a frontend-only projection computed from consecutive pushes.",
+      "title": "Unrealized P&L of one open deal.",
+      "description": "`trend` is deliberately absent — a frontend-only projection computed from consecutive pushes.",
       "required": [
-        "channel",
-        "schema",
         "deal_id",
         "bf_id",
-        "data"
+        "unrealized",
+        "currency",
+        "qty",
+        "avg_price",
+        "last_price",
+        "as_of"
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "deal"
-        },
-        "schema": {
-          "const": "afbws.deal.pnl.v2"
-        },
         "deal_id": {
           "$ref": "#/$defs/dealId"
         },
         "bf_id": {
           "$ref": "#/$defs/bfId"
         },
-        "data": {
-          "type": "object",
-          "required": [
-            "unrealized",
-            "currency",
-            "qty",
-            "avg_price",
-            "last_price",
-            "as_of"
-          ],
-          "additionalProperties": false,
-          "properties": {
-            "unrealized": {
-              "type": "string",
-              "description": "Decimal string"
-            },
-            "currency": {
-              "type": "string"
-            },
-            "qty": {
-              "type": "integer"
-            },
-            "avg_price": {
-              "type": "string",
-              "description": "Decimal string"
-            },
-            "last_price": {
-              "type": "string",
-              "description": "Decimal string"
-            },
-            "as_of": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    "triggered": {
-      "type": "object",
-      "title": "afbws.deal.triggered.v2 — guaranteed deal notifications (server push, no request_id).",
-      "description": "Server-initiated; same ack discipline as alarms: a reconnect redelivers events that were not acked (afbws.deal.ack.v2).",
-      "required": [
-        "channel",
-        "schema",
-        "events"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "channel": {
-          "const": "deal"
+        "unrealized": {
+          "type": "string",
+          "description": "Decimal string"
         },
-        "schema": {
-          "const": "afbws.deal.triggered.v2"
+        "currency": {
+          "type": "string"
         },
-        "events": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "$ref": "#/$defs/triggerEvent"
-          }
+        "qty": {
+          "type": "integer"
+        },
+        "avg_price": {
+          "type": "string",
+          "description": "Decimal string"
+        },
+        "last_price": {
+          "type": "string",
+          "description": "Decimal string"
+        },
+        "as_of": {
+          "type": "string"
         }
       }
     }
