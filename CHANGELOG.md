@@ -8,6 +8,12 @@
 
 ## Unreleased
 
+## v2.9.1 — 2026-10-21
+
+- **`deal.rejected.broker_error`** (необязательный объект `{kind, native_code, native_message}`, `$defs/brokerError` в `payloads/deal.rejected.json`): структурированная ошибка брокера для USER-ошибок (`insufficient_funds`, `invalid_order`, `instrument_not_found`, `instrument_not_tradable`, `permission_denied`, `auth_failed`, `rejected`, `unknown`). Словарь `kind` — часть контракта (по нему фронтенд подбирает текст); `native_code`/`native_message` — как отдал брокер. DAEMON-ошибки (`unavailable`, `timeout`, `rate_limited`, `session_closed`, `trading_halted`, `auction_only`, `auth_expired`) отказом не становятся и сюда не попадают. `kind` намеренно `string` (перечень в description + examples), а не `enum`: словарь будет расти, а старый AFB не должен отбрасывать отказ из-за нового значения; потребитель обязан терпимо относиться к неизвестному `kind` (показать `native_message`). AFB payload `deal.rejected` по схеме не валидирует (только форму конверта), но тот же принцип сохранён для любых валидаторов.
+- **`deal.rejected.command_type` больше не обязателен**: у отказов исполнения (брокер отклонил входной ордер) команды AFB нет.
+- **`afbws/deal.record.v1.json`: необязательное `outcome`** `{command, result: accepted|rejected, code, message, broker_error}` (заменяет внесхемное `notify`; `broker_error` — `$ref` на `brokerError`). AFB не формирует пользовательских текстов, только пробрасывает; текст — на фронтенде.
+
 ## v2.9.0 — 2026-10-19
 
 **Ломающие изменения (MAJOR по `VERSIONING.md` §2; разрешены владельцем, окна совместимости со старым BF нет — AFB и BF выкатываются парой). Версию, тег и пины ставит пользователь.**

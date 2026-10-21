@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: eb7b34cf0449db4654c04fd70cfb892cf66afb20a4d189d234056de0c07abe99
+ * source-hash: a4c2fae05428e4c37a821667c1489bbf9513817f7a802c96468dad194b3b8bb7
  */
 
 /**
@@ -2581,6 +2581,46 @@ export interface DealRecordPush {
   deal_id: DealId;
   bf_id: BfId;
   item: DealDetail;
+  /**
+   * Result of the last command/event for this deal, replacing the former out-of-schema `notify`. AFB composes no user-facing texts: it only passes through what BF returned (`message`, `broker_error`); the text is built on the frontend. Optional: absent for pushes that carry no outcome.
+   */
+  outcome?: {
+    /**
+     * Command type this outcome refers to (e.g. `deal.amend`), null for outcomes not caused by a command.
+     */
+    command?: string | null;
+    result: 'accepted' | 'rejected';
+    /**
+     * Rejection code from BF `deal.rejected.code`.
+     */
+    code?: string | null;
+    /**
+     * Message exactly as received from BF.
+     */
+    message?: string | null;
+    broker_error?: PayloadsDealRejected_BrokerError | null;
+  };
+}
+/**
+ * Structured broker error behind the rejection. BF sends it only for USER-kind errors (those that must reach the user). Dictionary of `kind` is part of the contract: the frontend picks the user text by it. DAEMON-kind errors (unavailable, timeout, rate_limited, session_closed, trading_halted, auction_only, auth_expired) are handled by the BF daemon itself, never become a rejection and are never sent here. `native_code`/`native_message` are exactly as the broker returned them, unprocessed.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "PayloadsDealRejected_BrokerError".
+ */
+export interface PayloadsDealRejected_BrokerError {
+  /**
+   * BF error dictionary (USER kinds): `insufficient_funds`, `invalid_order`, `instrument_not_found`, `instrument_not_tradable`, `permission_denied`, `auth_failed`, `rejected` (broker refused for an unknown reason), `unknown`. The set may grow: a consumer MUST tolerate an unknown value (show native_message, fall back to `code`/`message`).
+   */
+  kind: string;
+  /**
+   * Broker's own error code as a string (e.g. `145`), null if the broker gave none.
+   */
+  native_code?: string | null;
+  /**
+   * Broker's own error text, unprocessed; null if none.
+   */
+  native_message?: string | null;
+  [k: string]: unknown;
 }
 /**
  * See AFB/docs/WS_EXECUTION_CHANNELS.md#deal--pnl. Periodic unrealized-P&L push, not persisted. `trend` is deliberately absent — it is a frontend-only projection computed from consecutive pushes, never sent by the backend.
@@ -4987,9 +5027,13 @@ export interface DealRejectedPayload {
    * Machine-readable rejection code. Instrument-resolution codes: `instrument_unresolvable` (no broker symbol in the binding or target.instrument.broker_symbol, or the broker does not know it), `instrument_mismatch` (the broker asset behind broker_symbol disagrees with the deal's exchange/board/ticker), `instrument_delisted` (the instrument was delisted/archived at the broker), `unsupported` (the BF/connector cannot execute this deal, e.g. an unsupported mode/market).
    */
   code: string;
-  command_type: string;
+  /**
+   * Command type of the AFB command that was rejected. Absent for rejections not caused by an AFB command (e.g. execution: the broker rejected the entry order).
+   */
+  command_type?: string;
   deal_id?: string | number | boolean | {} | unknown[] | null;
   message?: string;
+  broker_error?: PayloadsDealRejected_BrokerError;
   [k: string]: unknown;
 }
 /**

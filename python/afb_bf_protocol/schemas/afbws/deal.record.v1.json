@@ -4,13 +4,76 @@
   "title": "deal/record push (AFB backend -> AFB frontend only; not part of afb.execution.v1 wire)",
   "description": "Authoritative REPLACE of the public deal projection identified by deal_id — the frontend must overwrite its cached copy, never merge partial fields from thin `event` pushes, and never merge-patch this either. `item` is the same public projection as afbws.deal.get.response.v1's item (deal.channel.v1.json#/$defs/dealDetail) — an explicit allow-list built by backend/trade/public_views.py, NOT a serialization of the persisted DealState file (deal_state.v2.json): source_refs, status_history, event_journal, raw orders/positions and observed never appear here.",
   "type": "object",
-  "required": ["channel", "schema", "deal_id", "bf_id", "item"],
+  "required": [
+    "channel",
+    "schema",
+    "deal_id",
+    "bf_id",
+    "item"
+  ],
   "additionalProperties": false,
   "properties": {
-    "channel": { "const": "deal" },
-    "schema": { "const": "afbws.deal.record.push.v1" },
-    "deal_id": { "$ref": "deal.channel.v1.json#/$defs/dealId" },
-    "bf_id": { "$ref": "deal.channel.v1.json#/$defs/bfId" },
-    "item": { "$ref": "deal.channel.v1.json#/$defs/dealDetail" }
+    "channel": {
+      "const": "deal"
+    },
+    "schema": {
+      "const": "afbws.deal.record.push.v1"
+    },
+    "deal_id": {
+      "$ref": "deal.channel.v1.json#/$defs/dealId"
+    },
+    "bf_id": {
+      "$ref": "deal.channel.v1.json#/$defs/bfId"
+    },
+    "item": {
+      "$ref": "deal.channel.v1.json#/$defs/dealDetail"
+    },
+    "outcome": {
+      "type": "object",
+      "description": "Result of the last command/event for this deal, replacing the former out-of-schema `notify`. AFB composes no user-facing texts: it only passes through what BF returned (`message`, `broker_error`); the text is built on the frontend. Optional: absent for pushes that carry no outcome.",
+      "required": [
+        "result"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Command type this outcome refers to (e.g. `deal.amend`), null for outcomes not caused by a command."
+        },
+        "result": {
+          "enum": [
+            "accepted",
+            "rejected"
+          ]
+        },
+        "code": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Rejection code from BF `deal.rejected.code`."
+        },
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Message exactly as received from BF."
+        },
+        "broker_error": {
+          "anyOf": [
+            {
+              "$ref": "../payloads/deal.rejected.json#/$defs/brokerError"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
   }
 }
