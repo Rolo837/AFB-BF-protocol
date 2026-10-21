@@ -1,0 +1,12 @@
+{
+  "channel": "deal",
+  "schema": "afbws.deal.outcome.v2",
+  "items": [
+    {
+      "deal_id": "deal-71a4-4d3e-8f56",
+      "bf_id": "finam-arena-316",
+      "command": "deal.amend",
+      "result": "accepted"
+    }
+  ]
+}

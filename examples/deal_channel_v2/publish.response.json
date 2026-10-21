@@ -1,0 +1,131 @@
+{
+  "channel": "deal",
+  "schema": "afbws.deal.publish.v2",
+  "request_id": "req-3",
+  "accepted": true,
+  "results": [
+    {
+      "deal_id": "deal-71a4-4d3e-8f56",
+      "bf_id": "finam-arena-316",
+      "status": "publishing",
+      "accepted": true,
+      "revision": 1,
+      "item": {
+        "deal_id": "deal-71a4-4d3e-8f56",
+        "revision": 1,
+        "status": "publishing",
+        "execution_phase": "idle",
+        "bf_id": "finam-arena-316",
+        "tradeplan_id": "tradeplan-9c40-4b7e",
+        "ticker": "SBER",
+        "instrument_key": "MISX:TQBR:SBER",
+        "market": "stock",
+        "direction": "long",
+        "sizing": {
+          "mode": "lots",
+          "value": "10"
+        },
+        "broker_sizing": {
+          "lots": 10,
+          "required_cash": "3105.00",
+          "resolved_lots": 10
+        },
+        "realized_pnl": {
+          "value": null,
+          "degraded": null
+        },
+        "position": {
+          "qty": 10,
+          "avg_price": "310.5",
+          "as_of": "2026-10-21T11:42:07+03:00"
+        },
+        "created_at": "2026-10-21T10:00:00+03:00",
+        "updated_at": "2026-10-21T11:42:07+03:00",
+        "deal": {
+          "schema": "afb.deal.v2",
+          "deal_id": "deal-71a4-4d3e-8f56",
+          "revision": 3,
+          "target": {
+            "bf_id": "finam-arena-316",
+            "broker": "finam-arena",
+            "instrument": {
+              "exchange": "MOEX",
+              "board": "TQBR",
+              "ticker": "SBER",
+              "market": "stock",
+              "instrument_key": "MISX:TQBR:SBER"
+            }
+          },
+          "direction": "long",
+          "entry": [
+            {
+              "leg_id": "leg-1a2b3c4d",
+              "condition": {
+                "node_type": "event",
+                "op": "above",
+                "left": {
+                  "source": "price",
+                  "field": "last"
+                },
+                "right": {
+                  "const": "310.5"
+                }
+              }
+            }
+          ],
+          "stop_loss": [
+            {
+              "leg_id": "leg-5e6f7a8b",
+              "condition": {
+                "node_type": "event",
+                "op": "below",
+                "left": {
+                  "source": "price",
+                  "field": "last"
+                },
+                "right": {
+                  "const": "300"
+                }
+              }
+            }
+          ],
+          "take_profit": [
+            {
+              "leg_id": "leg-9f0e1d01",
+              "condition": {
+                "node_type": "event",
+                "op": "above",
+                "left": {
+                  "source": "price",
+                  "field": "last"
+                },
+                "right": {
+                  "const": "330"
+                }
+              }
+            }
+          ],
+          "sizing": {
+            "mode": "lots",
+            "value": "10"
+          },
+          "source": {
+            "tradeplan_id": "tradeplan-9c40-4b7e"
+          }
+        },
+        "editable_fields": [
+          "entry",
+          "sizing",
+          "stop_loss",
+          "take_profit",
+          "execution_policy"
+        ]
+      }
+    },
+    {
+      "deal_id": "tradeplan-c0de-4a11",
+      "accepted": false,
+      "message": "Торговый план не найден"
+    }
+  ]
+}

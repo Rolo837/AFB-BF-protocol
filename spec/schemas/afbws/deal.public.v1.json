@@ -6,7 +6,7 @@
   "$ref": "#/$defs/v2",
   "$defs": {
     "legId": {
-      "$ref": "../tradeplan.v2.json#/$defs/legId",
+      "$ref": "../common.v1.json#/$defs/legId",
       "description": "Identity of the TRADEPLAN leg this deal leg follows, projected out of the internal `deal.source.leg_ids[role][i]` (see common.v1.json#/$defs/source) so the frontend can look the plan leg up — e.g. to tell that this leg's price came from a chart line (`right.primitive_id` on the plan side, already resolved to a `const` here) and must not be drawn a second time as an overlay level. Absent for a leg added directly on the deal (no plan counterpart) and for every v1-bodied deal (afb.deal.v1 predates leg identity entirely). Never a deal-side identity: leg matching within a deal stays positional (see afbws/deal.amend.request.v1.json)."
     },
     "source": {

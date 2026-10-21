@@ -410,6 +410,8 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/schemas/gp.v1.json` / `gp.v2.json` | Графический примитив AFB v1 / v2 (см. §11.1) |
 | `spec/schemas/afbws/{alarm,gp}.channel.v2.json` | Каналы alarm/gp v2 (capability `afbws.alarm.channel.v2`, `afbws.gp.channel.v2`) |
 | `spec/schemas/config.v1.json` | Настройки пользователя AFB (`settings`: `profile`/`interface`/`dataset`/`dashboard`/`trade`) и платформенные дефолты (`$defs/defaults`), AFB↔фронтенд |
+| `spec/schemas/afbws/tradeplan.channel.v2.json` | Канал `tradeplan` v2 (capability `afbws.tradeplan.channel.v2`): `list`/`set`/`delete`/`archive`/`sync`/`error` — всё списками (`items[]`/`ids[]`/`rejected[]`), без `get`; один schema id на сообщение (`afbws.tradeplan.<op>.v2`), пуш `sync` без `request_id`; `planInput` (что принимает `set`) и `planItem` (что отдаёт сервер), строгие, без legacy-форм (см. §11.1) |
+| `spec/schemas/afbws/deal.channel.v2.json` | Канал `deal` v2 (capability `afbws.deal.channel.v2`): `list`/`publish`/`rebind`/`operation`/`amend`/`ack`/`error` (запрос/ответ одной схемой, всё пакетами, без `get`) и пуши без `request_id`, тоже списками — `record` (`items[]` состояний), `outcome` (`items[]` исходов), `event` (`events[]`, каждый типизирован по `(category, event)`: 18 событий, у каждого своя форма `data`), `pnl` (`items[]`), `triggered`; `status`/`execution_phase` — общие enum `common.v1.json#/$defs/dealStatus`/`executionPhase`, `error.v2` без `details`/`item` (см. §11.2) |
 | `spec/schemas/afbws/account.channel.v2.json` | Канал `account` v2 (capability `afbws.account.channel.v2`): `list`/`orders`/`events`/`error`, один schema id на сообщение (`afbws.account.<op>.v2`), пуш без `request_id` у `list` (полный список счетов одного `bf_id`) и `orders`; одиночный счёт — `list` с `bf_id`+`account_id` |
 | `spec/schemas/afbws/config.channel.v1.json` | Канал `config` (capability `afbws.config.channel.v1`): `settings`/`defaults`/`help`/`roles`/`token`, один schema id на сообщение, `afbws.config.error.v1` с `item` вместо флага `rejected`; заменяет legacy-каналы `settings`/`help`/`setup` |
 | `spec/schemas/afbws/catalog.channel.v1.json` | Канал `catalog` (capability `afbws.catalog.channel.v1`), только менеджер: `snapshot`/`symbols`/`support`/`commit`/`refresh`, один schema id на сообщение, списки ≤100, пуш итога обновления `refresh` без `request_id`; заменяет менеджерскую половину `afbws.instrument` (`catalog`/`pool`/`inventory`/`commit`/`refresh`) |
@@ -419,6 +421,8 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `examples/tradeplans/` | Примеры шаблонов ТП (не конверты, не подписываются) |
 | `examples/alarms/` | Примеры алармов (не конверты, не подписываются) |
 | `examples/alarms_v2/` | Примеры алармов `afb.alarm.v2` |
+| `examples/deal_channel_v2/` | Примеры сообщений канала `deal` v2 (пакетные запросы/ответы, пуши списками, по одному примеру на каждое событие `event` и пакетные `event.batch`/`outcome.batch`) |
+| `examples/tradeplan_channel_v2/` | Примеры сообщений канала `tradeplan` v2 (запрос/ответ/пуш по сообщению) |
 | `python/afb_bf_protocol/` | Python-пакет: модели, подпись, валидация |
 | `python/afb_bf_protocol/payload_validation.py` | Рантайм-валидация deal/tradeplan/alarm payload'ов (extra `[validation]`) |
 | `python/afb_bf_protocol/condition_semantics.py` | Эталонный evaluator операторов условия (см. §12) |
@@ -554,6 +558,79 @@ Top-level `period` — общий таймфрейм вычисления ала
     нет, `request_id` обязателен), `error`. Операции `get` нет: счёт — `list` с
     `bf_id` и `account_id`. Формы `accountSnapshot`/`order`/`eventRecord` определены в самом файле; мультивалютность — через `cash[]`, у виртуального
     счёта заполняется `as_of`. Запрос не несёт `items`; ответ не несёт полей запроса.
+  - `tradeplan.channel.v2`: все коллекции — массивы (как в `alarm`/`account` v2), `get` нет.
+    `list` (запрос — фильтры `ids[]` и/или `instrument_keys[]`, оба = пересечение, пусто = все
+    неархивные планы пользователя, архивный план отдаётся, только если назван в `ids`; ответ —
+    `items[]`), `set` (запрос — `items[]` из `planInput`, ≥1; ответ — `items[]` применённых
+    `planItem` + `rejected[]` не применённых + `amend_results[]` с итогом переамендинга живых
+    сделок всех применённых планов, каждая строка несёт `tradeplan_id`; ответ отличается от
+    запроса наличием `amend_results`; пуша на `set` нет), `delete` (`ids[]`, ≥1 → `ids[]`
+    удалённых + `rejected[]`; только для ни разу не публиковавшегося черновика, удаление не
+    пушится), `archive` (`ids[]`, ≥1 → `items[]` архивированных + `rejected[]`; архивация пакета
+    уходит остальным соединениям ОДНИМ `sync`), `sync` (push без `request_id`: `items[]`, ≥1 —
+    дельта планов по `id`, не снимок), `error` (только отказ всего запроса: `invalid_schema`,
+    `forbidden`, `internal_error`, ...; `details` нет). Поштучный отказ пакета — элемент
+    `rejected[]`: `{id, code, message, item?}`, где `code` — тот же enum кодов ошибок, а `item`
+    (актуальный `planItem`) бывает только при `conflict` (ревизия/блокировка архива и удаления
+    живой сделкой/примитив чужого плана). Отказ плана пакет не роняет. Состав:
+    - `planInput` — только редактируемая часть плана: `schema` (`afb.tradeplan.v2`), `id`,
+      `instrument_key` (обязателен; `ticker` сервер выводит сам), `direction`, `entries[]`,
+      `stop_loss[]`, `take_profit[]`, `sizing`, `publish?`. Серверных полей (`status`,
+      `activated_at`/`closed_at`/`created_at`/`updated_at`, `delivery_at`, `archived_*`,
+      `instrument_missing`) во входе нет — сервер хранит их у себя (создание начинается с `draft`).
+    - `planItem` — то, что отдаёт сервер: `planInput` + `ticker?`, `status`, `activated_at`,
+      `closed_at`, `created_at`, `updated_at`, `instrument_missing?`; у каждой ноги есть `leg_id`.
+      `delivery_at`, `archived_components`, `archived_at`, `editor` наружу не уходят. Инструмент:
+      либо `instrument_key`, либо `instrument_missing: true`.
+    - Условие ноги — `op` обязателен всегда; `leg_id` — только настоящий (синтетического
+      `legacy:{role}:{index}` в канале нет). Общие `legId`/`tradeplanId` живут в
+      `common.v1.json`. Внутренняя схема хранилища `tradeplan.v2.json` закрыта
+      (`additionalProperties: false`) и содержит серверные поля (`delivery_at`,
+      `archived_components`) и помеченные `deprecated` остатки старых форматов
+      (`connector`, `account_id`, `deal_id`), которые канал не пропускает.
+  - `deal.channel.v2` (capability `afbws.deal.channel.v2`; v1 остаётся рядом, оба канала не
+    пересекаются файлами): один schema id на сообщение `afbws.deal.<op>.v2`, запрос/ответ одной
+    схемой, пуши — те же сообщения без `request_id`. Везде списки, `get` нет (полное тело —
+    `list` с `ids` и `detail: true`). Запросы: `list` (фильтры `ids[]`, `instrument_keys[]`,
+    `tradeplan_ids[]` — пересечение, пусто = все сделки пользователя; `detail?` → `items[]`
+    `dealItem` = сводка `dealSummary`, при `detail: true` вместе с `deal` и `editable_fields`),
+    `publish` (`items[{tradeplan_id, bf_id}]`, ≥1 → `results[]`, `accepted`), `rebind`
+    (`items[{deal_id, bf_id}]` → `results[]`, `accepted`), `operation` (`items[]` с `action`
+    `activate|pause|resume|cancel|reconcile|delete` → `results[]`, `accepted`), `amend`
+    (`items[{deal_id, deal_edit?, base_revision?}]`, ≥1 → `results[]` (`amendResult`:
+    `deal_id`, `accepted`; при accepted — `revision`, `status`, `item`; при отказе — `message`,
+    `code?`, при `conflict` ещё актуальный `item`), `accepted`), `ack` (`events[]` → `results[]`),
+    `error` (только отказ всего запроса; `item`/`details` в канале нет). Отказ строки пакета —
+    строка `accepted: false`, пакет не падает. Состояние и факты разделены:
+    - `record` — авторитетные состояния (`items[]` = `dealDetail`, замена кэша по `deal_id`, без
+      `outcome`; одна мутация, в т.ч. пакетная команда, = один push); `outcome` — `items[]` исходов
+      команд или шагов исполнения (элемент: `deal_id`, `bf_id`, `command` (nullable), `result`
+      `accepted|rejected`; при `rejected` обязателен `code`, возможны `message`, `broker_error`;
+      `accepted` бывает только для `deal.amend`); `pnl` — `items[]` нереализованного P&L
+      (`deal_id`, `bf_id`, `unrealized`, `currency`, `qty`, `avg_price`, `last_price`, `as_of`;
+      один push на тик для всех открытых сделок); `triggered` — гарантированные уведомления
+      (`events[]`, типизированы по `event`: `status_changed`, `rejected`, `report`; подтверждаются
+      `ack`).
+    - `event` — `events[]` (≥1): тонкие факты для ленты событий, патча ордеров/позиций и маркеров графика;
+      элемент (`deal_id`, `bf_id`, `category`, `event`, `logged_at`, `data`) типизирован
+      парой `(category, event)`: у каждого из 18 событий своя форма `data` и фиксированная
+      `category`. `deal`: `created {revision}`, `amended {revision}` (оба лёгкие, без снимка),
+      `accepted {command_type, revision?}`, `rejected {code, message?, command_type?, broker_error?}`,
+      `status_changed {status, execution_phase?, last_price?, cancel_reason?, quantity?}`,
+      `deleted {reason?, archived_at?, revision?}` (вместо `status_changed{status:deleted}`),
+      `report {status, close_reason?, fills[]}`, `orders_synced`, `positions_synced`; `order`:
+      `created`, `filled`, `partially_filled`, `cancelled`, `rejected` (`order_id`, `side`, `role`,
+      `status` + `quantity`, `price`, `filled_quantity`, ...); `position`: `opened`, `changed`,
+      `closed` (`symbol`, `quantity`, `average_price`); `condition`: `triggered {condition_id,
+      price?, phase}`. Сырые payload'ы BF (`broker_instrument`, `validation`, `execution_legs`,
+      `target_instrument_patch`, `binding`, `snapshot`, `observed`) в канал не попадают; BF-события
+      несут `at` (время события BF), события, рождённые в AFB (`created`, `amended`), — нет.
+    - `status` и `execution_phase` везде — общие enum `common.v1.json#/$defs/dealStatus` и
+      `executionPhase` (совпадают с `deal_state.v2.json`, это проверяет тест); удаление — не статус:
+      в строке результата `operation` после `delete` статус `deleted`, в событии — `deleted`.
+    - `dealSummary`/`dealDetail` — allow-list `backend/trade/public_views.py` (без `source_refs`,
+      `event_journal`, `status_history`, `orders`, `owner_user_id`, `broker_instrument`);
+      `dealDetail.deal` — `deal.public.v1.json`.
   - `gp.channel.v2`: `list`, `set` (`items[]`; без `request_id` — push владения),
     `delete` (`ids[]` и/или `instrument_keys[]` — «удалить все свободные примитивы
     инструмента» одним сообщением; примитивы плана в `rejected[]` с `conflict`;

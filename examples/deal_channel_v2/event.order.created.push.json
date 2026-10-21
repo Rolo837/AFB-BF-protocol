@@ -1,0 +1,23 @@
+{
+  "channel": "deal",
+  "schema": "afbws.deal.event.v2",
+  "events": [
+    {
+      "deal_id": "deal-71a4-4d3e-8f56",
+      "bf_id": "finam-arena-316",
+      "category": "order",
+      "event": "created",
+      "logged_at": "2026-10-21T11:42:07+03:00",
+      "data": {
+        "order_id": "deal-71a4-4d3e-8f56:entry:3:0",
+        "broker_order_id": "7788991",
+        "side": "buy",
+        "role": "entry",
+        "quantity": 10,
+        "price": "310.5",
+        "status": "new",
+        "at": "2026-10-21T11:42:07.331+03:00"
+      }
+    }
+  ]
+}

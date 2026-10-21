@@ -1,0 +1,19 @@
+{
+  "channel": "deal",
+  "schema": "afbws.deal.outcome.v2",
+  "items": [
+    {
+      "deal_id": "deal-71a4-4d3e-8f56",
+      "bf_id": "finam-arena-316",
+      "command": null,
+      "result": "rejected",
+      "code": "order_rejected",
+      "message": "Недостаточно средств",
+      "broker_error": {
+        "kind": "insufficient_funds",
+        "native_code": "145",
+        "native_message": "Not enough funds"
+      }
+    }
+  ]
+}

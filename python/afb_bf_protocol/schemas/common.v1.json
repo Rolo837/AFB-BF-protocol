@@ -5,6 +5,24 @@
   "description": "Building blocks reused across deal.v2.json/tradeplan.v2.json/condition.v1.json/instrument.v1.json and payloads/dataset.*.json. Extracted from the former deal.v1.json (2026-08-11); deal.v1/tradeplan.v1 have since been removed.",
   "$defs": {
     "decimalString": {"type": "string", "pattern": "^-?[0-9]+(\\.[0-9]+)?$"},
+    "dealStatus": {
+      "enum": ["draft", "publishing", "published", "active", "paused", "closed", "cancelled", "orphaned"],
+      "description": "Deal status — the single vocabulary of deal_state.v2.json `status` (kept equal by a test) used by the afbws deal/tradeplan channels. Deletion is not a status."
+    },
+    "executionPhase": {
+      "enum": ["idle", "awaiting_entry", "entry_working", "holding", "exit_working"],
+      "description": "Execution phase of a deal — the single vocabulary of deal_state.v2.json `execution_phase` (kept equal by a test)."
+    },
+    "legId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identity of a tradeplan leg across edits — the key overrides/carry-over (tradeplan/deal separation Фаза B2) use to match a plan leg to its compiled deal leg, never array position. Assigned once when a leg is created and never reused/reassigned. Shared by tradeplan.v2.json (stored/channel legs) and afbws/deal.public.v1.json (the plan-leg identity projected onto deal legs). Legacy synthetic ids (`legacy:{role}:{index}`) are NOT part of the contract: a plan leg without `leg_id` exists only in an input message (the server assigns one on save) or in an old stored file (the server back-fills it on the next write)."
+    },
+    "tradeplanId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Id of an AFB tradeplan (state/tradeplans/<user_id>/<id>.yaml). Opaque, case-sensitive. Shared by tradeplan.v2.json, afbws/tradeplan.channel.v2.json and gp.v2.json (`tradeplan_id`, the owning plan of a primitive)."
+    },
     "source": {
       "type": "object",
       "description": "Provenance of this deal's compiled definition. The AFB compiler writes only `tradeplan_id` — the single source of truth for deal->tradeplan linkage (see the tradeplan/deal separation plan). `kind`/`draft_id` are a deprecated pre-separation pair: new AFB never writes them, they may still appear on persisted records created before the deal-channel-migration offline backfill ran. Left open (no additionalProperties restriction, matching the rest of this wire schema) since AFB may carry extra compile metadata here (e.g. `compiled_at`, `primitive_snapshot`, and — Фаза B2 — `leg_ids` [{entry,stop_loss,take_profit}: [leg_id|null, ...], parallel to the matching deal.v2.json leg array] and `removed_plan_leg_ids` [string[], tombstoned plan leg_ids]) that BF does not interpret; AFB's own public projection reduces this object to `tradeplan_id` alone (afbws/deal.public.v1.json#/$defs/source) — the only piece that survives elsewhere is `leg_ids`, re-projected per leg as `leg_id` on the public v2 legs (afbws/deal.public.v1.json#/$defs/legId), never as part of `source`.",

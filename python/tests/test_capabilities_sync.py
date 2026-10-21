@@ -12,11 +12,13 @@ from afb_bf_protocol import (
     CATALOG_CHANNEL_V1,
     CONFIG_CHANNEL_V1,
     DEAL_CHANNEL_V1,
+    DEAL_CHANNEL_V2,
     GP_CHANNEL_V2,
     INSTRUMENT_CHANNEL_V2,
     LINK_CHANNEL_V1,
     MARKET_CHANNEL_V1,
     TRADEPLAN_CHANNEL_V1,
+    TRADEPLAN_CHANNEL_V2,
 )
 from afb_bf_protocol.capabilities import __file__ as capabilities_file
 from afb_bf_protocol.tools.generate import (
@@ -35,9 +37,11 @@ def test_capability_ids_match_schema_declarations():
     assert collect_afbws_capability_ids() == {
         ALARM_CHANNEL_V2: "ALARM_CHANNEL_V2",
         TRADEPLAN_CHANNEL_V1: "TRADEPLAN_CHANNEL_V1",
+        TRADEPLAN_CHANNEL_V2: "TRADEPLAN_CHANNEL_V2",
         LINK_CHANNEL_V1: "LINK_CHANNEL_V1",
         GP_CHANNEL_V2: "GP_CHANNEL_V2",
         DEAL_CHANNEL_V1: "DEAL_CHANNEL_V1",
+        DEAL_CHANNEL_V2: "DEAL_CHANNEL_V2",
         INSTRUMENT_CHANNEL_V2: "INSTRUMENT_CHANNEL_V2",
         ACCOUNT_CHANNEL_V2: "ACCOUNT_CHANNEL_V2",
         MARKET_CHANNEL_V1: "MARKET_CHANNEL_V1",
@@ -47,9 +51,11 @@ def test_capability_ids_match_schema_declarations():
     assert ALL_CAPABILITY_IDS == {
         ALARM_CHANNEL_V2,
         TRADEPLAN_CHANNEL_V1,
+        TRADEPLAN_CHANNEL_V2,
         LINK_CHANNEL_V1,
         GP_CHANNEL_V2,
         DEAL_CHANNEL_V1,
+        DEAL_CHANNEL_V2,
         INSTRUMENT_CHANNEL_V2,
         ACCOUNT_CHANNEL_V2,
         MARKET_CHANNEL_V1,
