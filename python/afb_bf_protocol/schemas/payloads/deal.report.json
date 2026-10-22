@@ -1,6 +1,11 @@
 {
   "type": "object",
   "properties": {
+    "deal_seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Per-deal monotonic event number assigned by BF (persisted with the deal; survives restart). Present on events BF writes to the deal's event journal; a gap seen by AFB means a lost event, healed on the next session.resync (BF replays the journal tail above the `applied_deal_seq` AFB reports). On deal.snapshot it is the last number issued at snapshot time and is not itself consumed. Optional: an older BF omits it, an older AFB ignores it."
+    },
     "at": {
       "type": "string",
       "description": "ISO-8601 BF event-occurrence time (same value as the BF journal entry `at`)."
@@ -19,7 +24,7 @@
     },
     "fills": {
       "type": "array",
-      "description": "Trade-based fill log: one element per broker trade, not per order — an order filled in several trades (e.g. Finam SubscribeTrades) yields one element per trade, all sharing the same order_id. `order_id` remains the reference to the parent order (for role/leg); commission/summary are not part of this payload (removed in v2.0.10, see below).",
+      "description": "Trade-based fill log: one element per broker trade, not per order — an order filled in several trades (e.g. Finam SubscribeTrades) yields one element per trade, all sharing the same order_id. `order_id` remains the reference to the parent order (for role/leg); `summary` and the aggregate commission fields are not part of this payload (removed in v2.0.10, see below); the per-trade exchange fee is the optional `exchange_fee`.",
       "items": {
         "type": "object",
         "properties": {
@@ -43,6 +48,16 @@
           },
           "quantity": {
             "type": "integer"
+          },
+          "exchange_fee": {
+            "type": "object",
+            "description": "Exchange fee (Finam `AccountTrade.commission`, the BUYSELLFEE part) charged for this very trade. The broker books it after clearing, so it is absent in the closing report and arrives later in a repeated deal.report (same fills, new `deal_seq`) — consumers merge it by `trade_id`. The BROKER commission is deliberately NOT part of this payload: it depends on the tariff (per contract, % of daily turnover, side-dependent) and cannot be attributed to a single deal; it travels per account in broker.accounts `broker_fees`.",
+            "properties": {
+              "value": { "type": "string", "description": "Decimal string, positive = charged." },
+              "currency": { "type": "string" }
+            },
+            "required": ["value", "currency"],
+            "additionalProperties": false
           },
           "role": {
             "type": "string"
@@ -81,5 +96,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/payloads/deal.report.json",
   "title": "payload: deal.report",
-  "description": "Report attached to deal.status_changed(closed) with the trade-based fill log for the just-closed deal. `trade_id` is not required — tolerant of older BF versions that predate it. The `summary` block (entry/exit_avg_price, realized_pnl, total_commission) was removed in v2.0.10: it had no consumers (AFB computes realized PnL itself from fills/order events), was never in `required`, and `additionalProperties: true` keeps old and new payloads mutually valid — a PATCH, not a breaking change. `fills[].commission` was removed in the same step for the same reason."
+  "description": "Report attached to deal.status_changed(closed) with the trade-based fill log for the just-closed deal. It may be sent again for the same deal as a PATCH (same fills, enriched with data the broker books later, e.g. `fills[].exchange_fee`; every send gets a new `deal_seq` and idempotency key) — a consumer merges by `trade_id` and must not treat the repeat as a second close. `trade_id` is not required — tolerant of older BF versions that predate it. The `summary` block (entry/exit_avg_price, realized_pnl, total_commission) was removed in v2.0.10: it had no consumers (AFB computes realized PnL itself from fills/order events), was never in `required`, and `additionalProperties: true` keeps old and new payloads mutually valid — a PATCH, not a breaking change. `fills[].commission` was removed in the same step for the same reason; it is replaced by the optional per-trade `fills[].exchange_fee` (a real consumer exists now: realized P&L after exchange fee) — BROKER commission is intentionally not carried per deal."
 }

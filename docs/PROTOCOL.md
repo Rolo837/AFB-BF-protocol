@@ -108,6 +108,8 @@ AFB сравнивает инвентарь BF с хранилищем и при
 | Ревизия отличается, BF-статус активный/паузированный | `ignore_unsafe_revision` — не трогаем |
 | deal_id присутствует в `deal_archived` | исключается из resync_response, архивируется на AFB |
 
+**Терминальный статус принадлежит BF.** Если у BF сделка `closed`/`cancelled`/`orphaned`, а у AFB статус другой (AFB пропустил закрытие при разрыве связи), AFB **не** выравнивает BF своим статусом (`deal.operation{status}`/`deal.resync`/`deal.publish` не отправляются), а BF отвечает на такую команду настоящим `deal.status_changed`. Исключение — перевыпуск (`publishing`/`draft` у AFB). Содержимое определения и пропущенные события исполнения выравниваются полями `definition_hash`/`deal_seq` — см. §19.
+
 ---
 
 ## 3. Жизненный цикл сделки
@@ -1183,3 +1185,28 @@ AFB сам собирает календарь и **пушит** его BF со�
 брокера вне торговых окон) и вычисление `backend.is_market_open()`/
 `backend.market_phase` на стороне AFB — отдельные этапы плана «Торговый
 календарь MOEX» (см. `.claude/plans/`), не входят в это изменение.
+
+---
+
+## 19. Сверка при resync: `definition_hash`, `deal_seq`, комиссии
+
+Resync по ревизии и статусу не показывает, что могло произойти со сделкой, пока не было связи. Добавлены необязательные поля (аддитивно: старая сторона их игнорирует, новая без поля собеседника работает по прежней сверке ревизия+статус).
+
+### `definition_hash` — определение сделки (владелец AFB)
+
+- Считает **только AFB**: SHA-256 (hex, 64 символа) от канонического JSON (`afb_bf_protocol.envelope.canonical_json`, десятичные строки в нормальной форме) allowlist-подмножества определения сделки. Передаётся в payload `deal.publish`, `deal.amend` и в элемент `deal.resync` (рядом с `deal`).
+- **В хэш входит:** `revision`, `direction`, `target.bf_id`, `target.broker`, `target.instrument.{exchange, board, ticker, market}`, для `entry`/`stop_loss`/`take_profit` у каждой ноги `condition`, `percent`, `logic`; `sizing`; `execution_policy` в том виде, как его задал AFB (без дефолтов BF).
+- **Не входит (AFB-only или BF-обогащение):** `owner`, `source` сделки и `source` ноги, `archive_reason`, `schema`; вся «обвязка» состояния AFB (`source_refs` с почтовыми уведомлениями, `afb_pnl`, `status_history`, `event_journal`, `orders`, `positions`, `observed`); всё, что пишет BF (`broker_instrument`, `broker_sizing`, `binding`, `conditions`, `validation`, `execution_legs`, цена/шаг/`broker_symbol`/`instrument_key` в `target.instrument`).
+- BF **хранит присланное значение как есть и не пересчитывает**: он обогащает тело сделки, и свой хэш расходился бы с AFB без потери сообщений. В `session.resync_request` BF возвращает последнее принятое значение; расхождение при равных ревизиях — «потеряна/откатана правка», лечится существующими правилами (`resync_deal`, AFB авторитетен).
+- Состав списка нормативен для AFB; BF его не использует.
+
+### `deal_seq` — события исполнения (владелец BF)
+
+- BF присваивает каждому событию сделки, которое пишет в журнал сделки (`order.*`, `position.*`, `condition.triggered`, `deal.status_changed`, `deal.report`, ...), монотонный номер и пишет его в **payload** (не в конверт: конверт закрыт схемой, а подпись покрывает только `payload_hash`). Номер хранится вместе со сделкой и переживает рестарт; на `deal.snapshot` — последний выданный, сам снимок номер не расходует.
+- AFB хранит `applied_deal_seq`. Пропуск (пришёл 14 после 12) — потерянное событие. `session.resync_request.deals[id]` несёт `deal_seq` и `definition_hash` BF; `session.resync_response.deals[id]` — `applied_deal_seq` и `definition_hash` AFB.
+- Если `deal_seq` BF больше `applied_deal_seq`, BF после `resync_response` повторно отправляет хвост журнала (номера выше применённого) с исходными ключами идемпотентности; повторы безопасны (AFB дедуплицирует по ключам и `trade_id`). Если хвост журнала обрезан — запасной путь: `deal.snapshot` + `deal.status_changed` + `deal.report`.
+
+### Комиссии
+
+- **Биржевой сбор** (Finam `AccountTrade.commission`, `BUYSELLFEE`) привязан к трейду → необязательное `deal.report.fills[].exchange_fee {value, currency}`. Брокер начисляет его после клиринга, поэтому закрывающий отчёт идёт без него, а позже BF отправляет **повторный `deal.report`** (те же fills, новый `deal_seq`/ключ идемпотентности) — получатель сливает по `trade_id` и не считает повтор вторым закрытием.
+- **Брокерская комиссия** зависит от тарифа (за контракт, % от оборота за день, разные ставки по сторонам) и не делится по сделкам → только по счёту: `broker.accounts.accounts[].broker_fees[] {date, value, currency, transaction_id?}`, **скользящее окно последних дней** (полный снимок, а не дельта — потерянный пуш лечится следующим; AFB делает upsert по `(account_id, date)` и копит историю сам). `date` — торговый день в `market.timezone` BF; `value` положительное число = удержано.

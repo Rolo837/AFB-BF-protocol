@@ -2,11 +2,15 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
-Новые записи дописываются в секцию `## Unreleased` **без версии и даты**.
+Новые записи дописываются в секцию `## Unreleased`
+- **Поля для сверки при resync и комиссий (аддитивно, wire `afb.execution.v1` не меняется; версию и пины делает релизный скрипт):** `deal_seq` (целое ≥ 1, необязательное) в payload'ах событий сделки — `condition.triggered`, `deal.status_changed`, `deal.report`, `order.created`, `order.filled`, `position.opened`, `deal.positions_synced`, `deal.snapshot`; `definition_hash` (SHA-256 hex, считает только AFB) в `deal.publish` и `deal.amend` (и в элементе `deal.resync` — по документации); в `session.resync_request.deals[id]` — `definition_hash`, `deal_seq`; в `session.resync_response.deals[id]` — `definition_hash`, `applied_deal_seq`; `deal.report.fills[].exchange_fee {value, currency}` (биржевой сбор по трейду; отчёт может уходить повторно как PATCH); `broker.accounts.accounts[].broker_fees[] {date, value, currency, transaction_id?}` (новый `$defs/brokerFee`, скользящее окно брокерской комиссии по дням). Терминальный статус сделки принадлежит BF и не выравнивается статусом AFB. Описание — `PROTOCOL.md` §2, §19. Тесты — `test_deal_seq_hash_fees_schema.py`; TS/Python-модели перегенерированы.
+ **без версии и даты**.
 
 `run/version.sh {patch|minor}` переносит их под `## vX.Y.Z — YYYY-MM-DD` и заводит новую пустую `## Unreleased`.
 
 ## Unreleased
+
+## v2.9.3 — 2026-10-22
 
 ## v2.9.2 — 2026-10-22
 

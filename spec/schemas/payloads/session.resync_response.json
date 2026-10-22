@@ -10,6 +10,8 @@
           "revision": { "type": "integer" },
           "status": { "type": "string" },
           "execution_phase": { "type": "string" },
+          "definition_hash": { "type": "string", "description": "AFB's current definition_hash of this deal (absent: not computed)." },
+          "applied_deal_seq": { "type": "integer", "minimum": 0, "description": "Highest deal_seq AFB applied for this deal (0/absent: none). BF replays its journal entries above it." },
           "archived": { "type": "boolean" }
         },
         "required": ["revision", "status", "archived"]

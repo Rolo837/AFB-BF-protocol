@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 018edd44c4fc02bf6dc1120b10a7a583ce61a6149fd73730eae73e49a13cfa87
+ * source-hash: d53f9ab8fc65db4b47858c59dbaab9ad51783c2d23cdc1ee5665e099e94bae81
  */
 
 /**
@@ -5878,6 +5878,10 @@ export interface PayloadsBrokerAccounts_Account {
   equity: string | null;
   cash: PayloadsBrokerAccounts_CashBalance[];
   positions: PayloadsBrokerAccounts_Position[];
+  /**
+   * Broker commission booked on this account per trading day, a ROLLING WINDOW of the most recent days (a complete snapshot, not a delta — a lost push is healed by the next one; AFB upserts by (account_id, date) and keeps the older history itself). Absent: BF does not collect it (or the broker has no such data yet). The tariff-dependent broker commission cannot be attributed to a single deal (per contract, % of daily turnover, side-dependent), so it is account-level only; the per-trade exchange fee travels in deal.report `fills[].exchange_fee`.
+   */
+  broker_fees?: PayloadsBrokerAccounts_BrokerFee[];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -5898,6 +5902,25 @@ export interface PayloadsBrokerAccounts_Position {
      */
     symbol: string;
   };
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "PayloadsBrokerAccounts_BrokerFee".
+ */
+export interface PayloadsBrokerAccounts_BrokerFee {
+  /**
+   * Trading day, YYYY-MM-DD in BF's market.timezone (derived from the broker transaction timestamp).
+   */
+  date: string;
+  /**
+   * Decimal string; positive = charged to the client (the broker's COMMISSION transactions are negative changes — BF flips the sign).
+   */
+  value: string;
+  currency: string;
+  /**
+   * Broker transaction id when the day is a single transaction; omitted when several were summed.
+   */
+  transaction_id?: string;
 }
 /**
  * NACK for any broker.* command (get_accounts/get_orders/resolve_instrument). Correlated to the request via correlation_id.
@@ -6139,6 +6162,10 @@ export interface CalendarUpdatePayload {
  */
 export interface ConditionTriggeredPayload {
   /**
+   * Per-deal monotonic event number assigned by BF (persisted with the deal; survives restart). Present on events BF writes to the deal's event journal; a gap seen by AFB means a lost event, healed on the next session.resync (BF replays the journal tail above the `applied_deal_seq` AFB reports). On deal.snapshot it is the last number issued at snapshot time and is not itself consumed. Optional: an older BF omits it, an older AFB ignores it.
+   */
+  deal_seq?: number;
+  /**
    * ISO-8601 BF event-occurrence time (same value as the BF journal entry `at`).
    */
   at?: string;
@@ -6366,6 +6393,10 @@ export interface DealAmendPayload {
   deal_id: string;
   base_revision: number;
   deal: DealV2;
+  /**
+   * SHA-256 (hex) of the canonical JSON of the deal DEFINITION as AFB defined it — computed ONLY by AFB, over an AFB-owned allowlist (see docs/PROTOCOL.md, 'definition_hash'). BF stores the received value verbatim and never recomputes it (BF enriches the deal body — broker_instrument, broker_sizing, binding — so a BF-side hash would differ without any lost message); it echoes it in session.resync_request so AFB can see 'same revision, different content'. Optional: an older AFB omits it.
+   */
+  definition_hash?: string;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -6401,6 +6432,10 @@ export interface DealOperationPayload {
  */
 export interface DealPositionsSyncedPayload {
   /**
+   * Per-deal monotonic event number assigned by BF (persisted with the deal; survives restart). Present on events BF writes to the deal's event journal; a gap seen by AFB means a lost event, healed on the next session.resync (BF replays the journal tail above the `applied_deal_seq` AFB reports). On deal.snapshot it is the last number issued at snapshot time and is not itself consumed. Optional: an older BF omits it, an older AFB ignores it.
+   */
+  deal_seq?: number;
+  /**
    * ISO-8601 BF event-occurrence time (same value as the BF journal entry `at`).
    */
   at?: string;
@@ -6419,6 +6454,10 @@ export interface DealPositionsSyncedPayload {
  */
 export interface DealPublishPayload {
   deal: DealV2;
+  /**
+   * SHA-256 (hex) of the canonical JSON of the deal DEFINITION as AFB defined it — computed ONLY by AFB, over an AFB-owned allowlist (see docs/PROTOCOL.md, 'definition_hash'). BF stores the received value verbatim and never recomputes it (BF enriches the deal body — broker_instrument, broker_sizing, binding — so a BF-side hash would differ without any lost message); it echoes it in session.resync_request so AFB can see 'same revision, different content'. Optional: an older AFB omits it.
+   */
+  definition_hash?: string;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -6443,12 +6482,16 @@ export interface DealRejectedPayload {
   [k: string]: unknown;
 }
 /**
- * Report attached to deal.status_changed(closed) with the trade-based fill log for the just-closed deal. `trade_id` is not required — tolerant of older BF versions that predate it. The `summary` block (entry/exit_avg_price, realized_pnl, total_commission) was removed in v2.0.10: it had no consumers (AFB computes realized PnL itself from fills/order events), was never in `required`, and `additionalProperties: true` keeps old and new payloads mutually valid — a PATCH, not a breaking change. `fills[].commission` was removed in the same step for the same reason.
+ * Report attached to deal.status_changed(closed) with the trade-based fill log for the just-closed deal. It may be sent again for the same deal as a PATCH (same fills, enriched with data the broker books later, e.g. `fills[].exchange_fee`; every send gets a new `deal_seq` and idempotency key) — a consumer merges by `trade_id` and must not treat the repeat as a second close. `trade_id` is not required — tolerant of older BF versions that predate it. The `summary` block (entry/exit_avg_price, realized_pnl, total_commission) was removed in v2.0.10: it had no consumers (AFB computes realized PnL itself from fills/order events), was never in `required`, and `additionalProperties: true` keeps old and new payloads mutually valid — a PATCH, not a breaking change. `fills[].commission` was removed in the same step for the same reason; it is replaced by the optional per-trade `fills[].exchange_fee` (a real consumer exists now: realized P&L after exchange fee) — BROKER commission is intentionally not carried per deal.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealReportPayload".
  */
 export interface DealReportPayload {
+  /**
+   * Per-deal monotonic event number assigned by BF (persisted with the deal; survives restart). Present on events BF writes to the deal's event journal; a gap seen by AFB means a lost event, healed on the next session.resync (BF replays the journal tail above the `applied_deal_seq` AFB reports). On deal.snapshot it is the last number issued at snapshot time and is not itself consumed. Optional: an older BF omits it, an older AFB ignores it.
+   */
+  deal_seq?: number;
   /**
    * ISO-8601 BF event-occurrence time (same value as the BF journal entry `at`).
    */
@@ -6458,7 +6501,7 @@ export interface DealReportPayload {
   revision: number;
   status: string;
   /**
-   * Trade-based fill log: one element per broker trade, not per order — an order filled in several trades (e.g. Finam SubscribeTrades) yields one element per trade, all sharing the same order_id. `order_id` remains the reference to the parent order (for role/leg); commission/summary are not part of this payload (removed in v2.0.10, see below).
+   * Trade-based fill log: one element per broker trade, not per order — an order filled in several trades (e.g. Finam SubscribeTrades) yields one element per trade, all sharing the same order_id. `order_id` remains the reference to the parent order (for role/leg); `summary` and the aggregate commission fields are not part of this payload (removed in v2.0.10, see below); the per-trade exchange fee is the optional `exchange_fee`.
    */
   fills?: {
     /**
@@ -6468,6 +6511,16 @@ export interface DealReportPayload {
     order_id: string;
     price?: string | number | boolean | {} | unknown[] | null;
     quantity?: number;
+    /**
+     * Exchange fee (Finam `AccountTrade.commission`, the BUYSELLFEE part) charged for this very trade. The broker books it after clearing, so it is absent in the closing report and arrives later in a repeated deal.report (same fills, new `deal_seq`) — consumers merge it by `trade_id`. The BROKER commission is deliberately NOT part of this payload: it depends on the tariff (per contract, % of daily turnover, side-dependent) and cannot be attributed to a single deal; it travels per account in broker.accounts `broker_fees`.
+     */
+    exchange_fee?: {
+      /**
+       * Decimal string, positive = charged.
+       */
+      value: string;
+      currency: string;
+    };
     role: string;
     side: string;
     /**
@@ -6483,6 +6536,10 @@ export interface DealReportPayload {
  * via the `definition` "DealSnapshotPayload".
  */
 export interface DealSnapshotPayload {
+  /**
+   * Per-deal monotonic event number assigned by BF (persisted with the deal; survives restart). Present on events BF writes to the deal's event journal; a gap seen by AFB means a lost event, healed on the next session.resync (BF replays the journal tail above the `applied_deal_seq` AFB reports). On deal.snapshot it is the last number issued at snapshot time and is not itself consumed. Optional: an older BF omits it, an older AFB ignores it.
+   */
+  deal_seq?: number;
   deal_id: string;
   execution_phase?: string;
   observed?: {};
@@ -6506,6 +6563,10 @@ export interface DealSnapshotPayload {
  */
 export interface DealStatusChangedPayload {
   /**
+   * Per-deal monotonic event number assigned by BF (persisted with the deal; survives restart). Present on events BF writes to the deal's event journal; a gap seen by AFB means a lost event, healed on the next session.resync (BF replays the journal tail above the `applied_deal_seq` AFB reports). On deal.snapshot it is the last number issued at snapshot time and is not itself consumed. Optional: an older BF omits it, an older AFB ignores it.
+   */
+  deal_seq?: number;
+  /**
    * ISO-8601 BF event-occurrence time (same value as the BF journal entry `at`).
    */
   at?: string;
@@ -6525,6 +6586,10 @@ export interface DealStatusChangedPayload {
  * via the `definition` "OrderCreatedPayload".
  */
 export interface OrderCreatedPayload {
+  /**
+   * Per-deal monotonic event number assigned by BF (persisted with the deal; survives restart). Present on events BF writes to the deal's event journal; a gap seen by AFB means a lost event, healed on the next session.resync (BF replays the journal tail above the `applied_deal_seq` AFB reports). On deal.snapshot it is the last number issued at snapshot time and is not itself consumed. Optional: an older BF omits it, an older AFB ignores it.
+   */
+  deal_seq?: number;
   /**
    * ISO-8601 BF event-occurrence time (same value as the BF journal entry `at`).
    */
@@ -6551,6 +6616,10 @@ export interface OrderCreatedPayload {
  */
 export interface OrderFilledPayload {
   /**
+   * Per-deal monotonic event number assigned by BF (persisted with the deal; survives restart). Present on events BF writes to the deal's event journal; a gap seen by AFB means a lost event, healed on the next session.resync (BF replays the journal tail above the `applied_deal_seq` AFB reports). On deal.snapshot it is the last number issued at snapshot time and is not itself consumed. Optional: an older BF omits it, an older AFB ignores it.
+   */
+  deal_seq?: number;
+  /**
    * ISO-8601 BF event-occurrence time (same value as the BF journal entry `at`).
    */
   at?: string;
@@ -6570,6 +6639,10 @@ export interface OrderFilledPayload {
  * via the `definition` "PositionOpenedPayload".
  */
 export interface PositionOpenedPayload {
+  /**
+   * Per-deal monotonic event number assigned by BF (persisted with the deal; survives restart). Present on events BF writes to the deal's event journal; a gap seen by AFB means a lost event, healed on the next session.resync (BF replays the journal tail above the `applied_deal_seq` AFB reports). On deal.snapshot it is the last number issued at snapshot time and is not itself consumed. Optional: an older BF omits it, an older AFB ignores it.
+   */
+  deal_seq?: number;
   /**
    * ISO-8601 BF event-occurrence time (same value as the BF journal entry `at`).
    */
@@ -6702,6 +6775,14 @@ export interface SessionResyncRequestPayload {
       revision: number;
       status: string;
       execution_phase?: string;
+      /**
+       * The definition_hash BF last accepted for this deal (verbatim from deal.publish/deal.amend/deal.resync; absent if AFB never sent one).
+       */
+      definition_hash?: string;
+      /**
+       * Last deal_seq BF issued for this deal (0/absent: none).
+       */
+      deal_seq?: number;
       archived: boolean;
     };
   };
@@ -6736,6 +6817,14 @@ export interface SessionResyncResponsePayload {
       revision: number;
       status: string;
       execution_phase?: string;
+      /**
+       * AFB's current definition_hash of this deal (absent: not computed).
+       */
+      definition_hash?: string;
+      /**
+       * Highest deal_seq AFB applied for this deal (0/absent: none). BF replays its journal entries above it.
+       */
+      applied_deal_seq?: number;
       archived: boolean;
     };
   };

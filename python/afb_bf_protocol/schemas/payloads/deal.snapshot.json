@@ -1,6 +1,11 @@
 {
   "type": "object",
   "properties": {
+    "deal_seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Per-deal monotonic event number assigned by BF (persisted with the deal; survives restart). Present on events BF writes to the deal's event journal; a gap seen by AFB means a lost event, healed on the next session.resync (BF replays the journal tail above the `applied_deal_seq` AFB reports). On deal.snapshot it is the last number issued at snapshot time and is not itself consumed. Optional: an older BF omits it, an older AFB ignores it."
+    },
     "deal_id": {
       "type": "string"
     },
