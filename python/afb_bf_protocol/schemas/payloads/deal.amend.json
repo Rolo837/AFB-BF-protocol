@@ -8,7 +8,8 @@
   "properties": {
     "deal_id": {"type": "string", "minLength": 1},
     "base_revision": {"type": "integer", "minimum": 1},
-    "deal": {"$ref": "../deal.v2.json"}
+    "deal": {"$ref": "../deal.v2.json"},
+    "definition_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 (hex) of the canonical JSON of the deal DEFINITION as AFB defined it — computed ONLY by AFB, over an AFB-owned allowlist (see docs/PROTOCOL.md, 'definition_hash'). BF stores the received value verbatim and never recomputes it (BF enriches the deal body — broker_instrument, broker_sizing, binding — so a BF-side hash would differ without any lost message); it echoes it in session.resync_request so AFB can see 'same revision, different content'. Optional: an older AFB omits it."}
   },
   "additionalProperties": false
 }

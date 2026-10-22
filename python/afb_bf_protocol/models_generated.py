@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 018edd44c4fc02bf6dc1120b10a7a583ce61a6149fd73730eae73e49a13cfa87
+# source-hash: d53f9ab8fc65db4b47858c59dbaab9ad51783c2d23cdc1ee5665e099e94bae81
 
 from __future__ import annotations
 
@@ -1612,6 +1612,7 @@ ConditionNode: TypeAlias = (
 
 
 class ConditionTriggeredPayload(TypedDict):
+    deal_seq: NotRequired[int]
     at: NotRequired[str]
     condition_id: str
     deal_id: str
@@ -2067,6 +2068,7 @@ class DealAmendPayload(TypedDict):
     deal_id: str
     base_revision: int
     deal: DealV2
+    definition_hash: NotRequired[str]
 
 
 class DealAmendRequest(TypedDict):
@@ -2257,6 +2259,7 @@ class DealPnlPush(TypedDict):
 
 
 class DealPositionsSyncedPayload(TypedDict):
+    deal_seq: NotRequired[int]
     at: NotRequired[str]
     changed: NotRequired[list[ChangedItem]]
     deal_id: str
@@ -2296,6 +2299,7 @@ DealPublicV1: TypeAlias = DealPublicDealV2
 
 class DealPublishPayload(TypedDict):
     deal: DealV2
+    definition_hash: NotRequired[str]
 
 
 class DealPublishRequest(TypedDict):
@@ -2354,9 +2358,10 @@ class DealRejectedPayload(TypedDict):
 
 class DealReportPayload(TypedDict):
     """
-    Report attached to deal.status_changed(closed) with the trade-based fill log for the just-closed deal. `trade_id` is not required — tolerant of older BF versions that predate it. The `summary` block (entry/exit_avg_price, realized_pnl, total_commission) was removed in v2.0.10: it had no consumers (AFB computes realized PnL itself from fills/order events), was never in `required`, and `additionalProperties: true` keeps old and new payloads mutually valid — a PATCH, not a breaking change. `fills[].commission` was removed in the same step for the same reason.
+    Report attached to deal.status_changed(closed) with the trade-based fill log for the just-closed deal. It may be sent again for the same deal as a PATCH (same fills, enriched with data the broker books later, e.g. `fills[].exchange_fee`; every send gets a new `deal_seq` and idempotency key) — a consumer merges by `trade_id` and must not treat the repeat as a second close. `trade_id` is not required — tolerant of older BF versions that predate it. The `summary` block (entry/exit_avg_price, realized_pnl, total_commission) was removed in v2.0.10: it had no consumers (AFB computes realized PnL itself from fills/order events), was never in `required`, and `additionalProperties: true` keeps old and new payloads mutually valid — a PATCH, not a breaking change. `fills[].commission` was removed in the same step for the same reason; it is replaced by the optional per-trade `fills[].exchange_fee` (a real consumer exists now: realized P&L after exchange fee) — BROKER commission is intentionally not carried per deal.
     """
 
+    deal_seq: NotRequired[int]
     at: NotRequired[str]
     close_reason: NotRequired[str]
     deal_id: str
@@ -2395,6 +2400,7 @@ class DealSizingDisplay(TypedDict):
 
 
 class DealSnapshotPayload(TypedDict):
+    deal_seq: NotRequired[int]
     deal_id: str
     execution_phase: NotRequired[str]
     observed: NotRequired[dict[str, Any]]
@@ -2493,6 +2499,7 @@ DealStatus: TypeAlias = Literal[
 
 
 class DealStatusChangedPayload(TypedDict):
+    deal_seq: NotRequired[int]
     at: NotRequired[str]
     deal_id: str
     execution_phase: NotRequired[str]
@@ -3509,6 +3516,17 @@ class Deals(TypedDict):
     revision: int
     status: str
     execution_phase: NotRequired[str]
+    definition_hash: NotRequired[str]
+    deal_seq: NotRequired[int]
+    archived: bool
+
+
+class Deals1(TypedDict):
+    revision: int
+    status: str
+    execution_phase: NotRequired[str]
+    definition_hash: NotRequired[str]
+    applied_deal_seq: NotRequired[int]
     archived: bool
 
 
@@ -3608,6 +3626,15 @@ class Error(TypedDict):
     message: str
 
 
+class ExchangeFee(TypedDict):
+    """
+    Exchange fee (Finam `AccountTrade.commission`, the BUYSELLFEE part) charged for this very trade. The broker books it after clearing, so it is absent in the closing report and arrives later in a repeated deal.report (same fills, new `deal_seq`) — consumers merge it by `trade_id`. The BROKER commission is deliberately NOT part of this payload: it depends on the tariff (per contract, % of daily turnover, side-dependent) and cannot be attributed to a single deal; it travels per account in broker.accounts `broker_fees`.
+    """
+
+    value: str
+    currency: str
+
+
 class Features(TypedDict):
     dry_run: NotRequired[bool]
     server_sltp: NotRequired[bool]
@@ -3621,6 +3648,7 @@ class Fill(TypedDict):
     order_id: str
     price: NotRequired[str | float | int | bool | dict[str, Any] | list[Any] | None]
     quantity: NotRequired[int]
+    exchange_fee: NotRequired[ExchangeFee]
     role: str
     side: str
     timestamp: NotRequired[str | float | int | bool | dict[str, Any] | list[Any] | None]
@@ -4506,6 +4534,7 @@ class Operation(TypedDict):
 
 
 class OrderCreatedPayload(TypedDict):
+    deal_seq: NotRequired[int]
     at: NotRequired[str]
     deal_id: str
     order_id: str
@@ -4518,6 +4547,7 @@ class OrderCreatedPayload(TypedDict):
 
 
 class OrderFilledPayload(TypedDict):
+    deal_seq: NotRequired[int]
     at: NotRequired[str]
     deal_id: str
     filled_quantity: NotRequired[int]
@@ -4550,6 +4580,14 @@ class PayloadsBrokerAccountsAccount(TypedDict):
     equity: str | None
     cash: list[PayloadsBrokerAccountsCashBalance]
     positions: list[PayloadsBrokerAccountsPosition]
+    broker_fees: NotRequired[list[PayloadsBrokerAccountsBrokerFee]]
+
+
+class PayloadsBrokerAccountsBrokerFee(TypedDict):
+    date: str
+    value: str
+    currency: str
+    transaction_id: NotRequired[str]
 
 
 class PayloadsBrokerAccountsCashBalance(TypedDict):
@@ -4610,6 +4648,7 @@ class Position(TypedDict):
 
 
 class PositionOpenedPayload(TypedDict):
+    deal_seq: NotRequired[int]
     at: NotRequired[str]
     average_price: NotRequired[str]
     deal_id: str
@@ -4709,7 +4748,7 @@ class SessionResyncRequestPayload(TypedDict):
 
 
 class SessionResyncResponsePayload(TypedDict):
-    deals: NotRequired[dict[str, Deals]]
+    deals: NotRequired[dict[str, Deals1]]
     deal_revisions: NotRequired[dict[str, int]]
     deal_statuses: NotRequired[dict[str, str]]
 

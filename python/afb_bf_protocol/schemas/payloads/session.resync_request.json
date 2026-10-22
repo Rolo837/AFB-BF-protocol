@@ -10,6 +10,8 @@
           "revision": { "type": "integer" },
           "status": { "type": "string" },
           "execution_phase": { "type": "string" },
+          "definition_hash": { "type": "string", "description": "The definition_hash BF last accepted for this deal (verbatim from deal.publish/deal.amend/deal.resync; absent if AFB never sent one)." },
+          "deal_seq": { "type": "integer", "minimum": 0, "description": "Last deal_seq BF issued for this deal (0/absent: none)." },
           "archived": { "type": "boolean" }
         },
         "required": ["revision", "status", "archived"]
