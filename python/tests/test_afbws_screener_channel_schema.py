@@ -203,3 +203,124 @@ def test_root_rejects_foreign_channel(registry):
 
     with pytest.raises(ValidationError):
         _root_validator(registry).validate(_list_response(channel="market"))
+
+
+# --- participants -----------------------------------------------------------
+
+_NUM_FIELDS = [
+    "fiz_long", "fiz_short", "fiz_net", "fiz_persons_long", "fiz_persons_short",
+    "yur_long", "yur_short", "yur_net", "yur_persons_long", "yur_persons_short",
+    "openinterest", "volume",
+]
+
+
+def _participants_item(**overrides):
+    item = {
+        "derivative": "MISX:Si",
+        "name": "Si",
+        "active_instrument_key": "MISX:SiZ6",
+        "collection_id": "currencies",
+        "collection_name": "Валюты",
+        "collection_color": "blue",
+    }
+    item.update({k: 1.5 for k in _NUM_FIELDS})
+    item.update(overrides)
+    return item
+
+
+def _participants_response(**overrides):
+    lists = [
+        {
+            "key": key,
+            "trading_day": "2026-10-22",
+            "asof": "2026-10-22T11:30:00",
+            "source": "intraday" if key == "now" else "daily",
+            "items": [_participants_item()],
+        }
+        for key in ("now", "d1", "d2", "w1")
+    ]
+    msg = {
+        "channel": "screener",
+        "schema": "afbws.screener.participants.v1",
+        "request_id": "req-3",
+        "received_at": "2026-10-22T11:31:02+03:00",
+        "tz": "Europe/Moscow",
+        "lists": lists,
+    }
+    msg.update(overrides)
+    return msg
+
+
+def test_participants_request_valid(registry):
+    _validator("participants", registry).validate(
+        {"channel": "screener", "schema": "afbws.screener.participants.v1", "request_id": "r"}
+    )
+
+
+def test_participants_request_id_required(registry):
+    from jsonschema import ValidationError
+
+    push = _participants_response()
+    del push["request_id"]
+    for msg in ({"channel": "screener", "schema": "afbws.screener.participants.v1"}, push):
+        with pytest.raises(ValidationError):
+            _validator("participants", registry).validate(msg)
+
+
+def test_participants_request_rejects_extra_params(registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator("participants", registry).validate(
+            {"channel": "screener", "schema": "afbws.screener.participants.v1", "request_id": "r", "day": "x"}
+        )
+
+
+def test_participants_response_valid(registry):
+    _validator("participants", registry).validate(_participants_response())
+    _validator("participants", registry).validate(_participants_response(lists=[]))
+
+
+def test_participants_item_nulls_extra_fields_and_colorless(registry):
+    msg = _participants_response()
+    msg["lists"][0]["items"] = [
+        _participants_item(
+            collection_id=None, collection_name=None, collection_color=None,
+            name=None, active_instrument_key=None, extra_field={"a": 1},
+            **{k: None for k in _NUM_FIELDS},
+        )
+    ]
+    _validator("participants", registry).validate(msg)
+
+
+def test_participants_item_bad_color_and_number_rejected(registry):
+    from jsonschema import ValidationError
+
+    for bad in ({"collection_color": "magenta"}, {"fiz_net": "12"}, {"volume": True}):
+        msg = _participants_response()
+        msg["lists"][0]["items"] = [_participants_item(**bad)]
+        with pytest.raises(ValidationError):
+            _validator("participants", registry).validate(msg)
+
+
+def test_participants_list_key_and_source_enums(registry):
+    from jsonschema import ValidationError
+
+    for field, value in (("key", "m1"), ("source", "live")):
+        msg = _participants_response()
+        msg["lists"][0][field] = value
+        with pytest.raises(ValidationError):
+            _validator("participants", registry).validate(msg)
+
+
+def test_participants_partial_response_rejected(registry):
+    from jsonschema import ValidationError
+
+    msg = _participants_response()
+    del msg["tz"]
+    with pytest.raises(ValidationError):
+        _validator("participants", registry).validate(msg)
+
+
+def test_root_dispatches_participants(registry):
+    _root_validator(registry).validate(_participants_response())

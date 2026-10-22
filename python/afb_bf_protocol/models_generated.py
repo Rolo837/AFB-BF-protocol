@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 1507c9978de7396ed5048fa3b4989ca2e934e77ab8391a1abe511a182ecdf441
+# source-hash: e165aff7fd0e049e6f38b79aff609e2fb1b550e20e9540bf2f636b93d3171d31
 
 from __future__ import annotations
 
@@ -1049,6 +1049,11 @@ AfbwsScreenerChannelV1ExportKind: TypeAlias = Literal["night", "intraday"]
 
 
 AfbwsScreenerChannelV1ExportRef: TypeAlias = str
+
+
+AfbwsScreenerChannelV1FavoriteColor: TypeAlias = Literal[
+    "yellow", "red", "blue", "green", "gray", "orange", "cyan", "purple", "pink", "teal"
+]
 
 
 class AfbwsScreenerChannelV1ListItem(TypedDict):
@@ -4732,7 +4737,55 @@ class ScreenerV1List(TypedDict):
     intraday_latest: NotRequired[str | None]
 
 
-ScreenerChannelV1Message: TypeAlias = ScreenerV1List | ScreenerV1Get | ScreenerV1Error
+class ScreenerV1Participants(TypedDict):
+    """
+    Request is an empty command (no parameters in this version). Response carries `received_at`, `tz` and `lists` (four lists: now, d1, d2, w1). Same capability as list/get: `screener` of the user's role, otherwise `forbidden`. Non-manager sees only derivatives visible to their tier.
+    """
+
+    channel: Literal["screener"]
+    schema: Literal["afbws.screener.participants.v1"]
+    request_id: AfbwsCommonV1RequestId
+    received_at: NotRequired[str]
+    tz: NotRequired[str]
+    lists: NotRequired[list[ScreenerV1ParticipantsList]]
+
+
+ScreenerChannelV1Message: TypeAlias = (
+    ScreenerV1List | ScreenerV1Get | ScreenerV1Participants | ScreenerV1Error
+)
+
+
+class ScreenerV1ParticipantsItem(TypedDict):
+    """
+    One derivative row. Open object: extra fields allowed. A missing value is null.
+    """
+
+    derivative: str
+    name: NotRequired[str | None]
+    active_instrument_key: NotRequired[str | None]
+    collection_id: NotRequired[str | None]
+    collection_name: NotRequired[str | None]
+    collection_color: NotRequired[AfbwsScreenerChannelV1FavoriteColor | None]
+    fiz_long: NotRequired[float | None]
+    fiz_short: NotRequired[float | None]
+    fiz_net: NotRequired[float | None]
+    fiz_persons_long: NotRequired[float | None]
+    fiz_persons_short: NotRequired[float | None]
+    yur_long: NotRequired[float | None]
+    yur_short: NotRequired[float | None]
+    yur_net: NotRequired[float | None]
+    yur_persons_long: NotRequired[float | None]
+    yur_persons_short: NotRequired[float | None]
+    openinterest: NotRequired[float | None]
+    volume: NotRequired[float | None]
+
+
+class ScreenerV1ParticipantsList(TypedDict):
+    key: Literal["now", "d1", "d2", "w1"]
+    trading_day: str
+    asof: str
+    source: Literal["intraday", "daily"]
+    items: list[ScreenerV1ParticipantsItem]
 
 
 class Section(TypedDict):

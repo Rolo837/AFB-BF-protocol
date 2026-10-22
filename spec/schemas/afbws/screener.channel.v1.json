@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/screener.channel.v1.json",
   "x-afbws-support-id": "afbws.screener.channel.v1",
   "title": "screener channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.screener.channel.v1). Read-only access to the screener's published JSON exports (contract v1, see AFB/docs/SCREENER_RESULTS.md); the backend never opens the screener database. Same convention as afbws.market/afbws.config: ONE schema id per message (`afbws.screener.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response. `request_id` is required everywhere: there are no server pushes in this version (the client refreshes on demand). A failed request is answered with `afbws.screener.error.v1`. Operations: `list` (available exports, newest first, content not read) and `get` (one export by id). Export ids: `night:YYYY-MM-DD` (night result of a trading day), `intraday:YYYY-MM-DDTHHMM` (intraday snapshot), or the aliases `latest` (newest night export) and `intraday_latest` (newest intraday snapshot). Access requires the `screener` capability of the user's role; otherwise `forbidden`. The exported document is intentionally an open object: only `contract_version` is relied upon; the screener's fields (signals, reliability, models, errors) evolve and are described in AFB/docs/SCREENER_RESULTS.md. A document with an unsupported `contract_version` is answered with `unsupported_action`. See AFB/docs/ws/screener.md.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.screener.channel.v1). Read-only access to the screener's published JSON exports (contract v1, see AFB/docs/SCREENER_RESULTS.md); the backend never opens the screener database. Same convention as afbws.market/afbws.config: ONE schema id per message (`afbws.screener.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response. `request_id` is required everywhere: there are no server pushes in this version (the client refreshes on demand). A failed request is answered with `afbws.screener.error.v1`. Operations: `list` (available exports, newest first, content not read), `get` (one export by id) and `participants` (market participants snapshot: four lists now/d1/d2/w1 of derivatives with fiz/yur positions, open interest and volume, computed by the backend from market_cache). Export ids: `night:YYYY-MM-DD` (night result of a trading day), `intraday:YYYY-MM-DDTHHMM` (intraday snapshot), or the aliases `latest` (newest night export) and `intraday_latest` (newest intraday snapshot). Access requires the `screener` capability of the user's role; otherwise `forbidden`. The exported document is intentionally an open object: only `contract_version` is relied upon; the screener's fields (signals, reliability, models, errors) evolve and are described in AFB/docs/SCREENER_RESULTS.md. A document with an unsupported `contract_version` is answered with `unsupported_action`. See AFB/docs/ws/screener.md.",
   "type": "object",
   "oneOf": [
     {
@@ -11,6 +11,9 @@
     },
     {
       "$ref": "#/$defs/get"
+    },
+    {
+      "$ref": "#/$defs/participants"
     },
     {
       "$ref": "#/$defs/error"
@@ -193,6 +196,255 @@
           "then": {
             "required": [
               "kind"
+            ]
+          }
+        }
+      ]
+    },
+    "favoriteColor": {
+      "enum": [
+        "yellow",
+        "red",
+        "blue",
+        "green",
+        "gray",
+        "orange",
+        "cyan",
+        "purple",
+        "pink",
+        "teal"
+      ],
+      "description": "Same list and order as afbws.instrument.channel.v2 favoriteColor (kept in lockstep; no cross-reference on purpose)."
+    },
+    "participantsItem": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "derivative"
+      ],
+      "description": "One derivative row. Open object: extra fields allowed. A missing value is null.",
+      "properties": {
+        "derivative": {
+          "type": "string",
+          "description": "Derivative key, e.g. `MISX:Si`."
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "active_instrument_key": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Nearest unexpired contract instrument_key (to open a chart)."
+        },
+        "collection_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Root catalog collection of the asset."
+        },
+        "collection_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "collection_color": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/favoriteColor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fiz_long": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fiz_short": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fiz_net": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fiz_persons_long": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fiz_persons_short": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "yur_long": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "yur_short": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "yur_net": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "yur_persons_long": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "yur_persons_short": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "openinterest": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Sum of pos_long over fiz+yur."
+        },
+        "volume": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "participantsList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "trading_day",
+        "asof",
+        "source",
+        "items"
+      ],
+      "properties": {
+        "key": {
+          "enum": [
+            "now",
+            "d1",
+            "d2",
+            "w1"
+          ],
+          "description": "now = current moment; d1 = previous trading day close; d2 = trading day before d1; w1 = last trading day <= today - 7 calendar days."
+        },
+        "trading_day": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "asof": {
+          "type": "string",
+          "description": "Moment of the values (MSK, no zone); for `now` the intraday slot."
+        },
+        "source": {
+          "enum": [
+            "intraday",
+            "daily"
+          ],
+          "description": "`daily`: daily-only derivatives and fallback."
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/participantsItem"
+          }
+        }
+      }
+    },
+    "participants": {
+      "type": "object",
+      "title": "afbws.screener.participants.v1 — market participants snapshot (request / response).",
+      "description": "Request is an empty command (no parameters in this version). Response carries `received_at`, `tz` and `lists` (four lists: now, d1, d2, w1). Same capability as list/get: `screener` of the user's role, otherwise `forbidden`. Non-manager sees only derivatives visible to their tier.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "screener"
+        },
+        "schema": {
+          "const": "afbws.screener.participants.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "received_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Response only."
+        },
+        "tz": {
+          "type": "string",
+          "description": "Response only. Time zone of asof, e.g. Europe/Moscow."
+        },
+        "lists": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/participantsList"
+          },
+          "description": "Response only."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "anyOf": [
+              {
+                "required": [
+                  "received_at"
+                ]
+              },
+              {
+                "required": [
+                  "tz"
+                ]
+              },
+              {
+                "required": [
+                  "lists"
+                ]
+              }
+            ]
+          },
+          "then": {
+            "required": [
+              "received_at",
+              "tz",
+              "lists"
             ]
           }
         }

@@ -241,6 +241,9 @@ const NAMED_DEF_SCHEMAS = {
   "afbws/screener.channel.v1.json": {
     list: "ScreenerV1List",
     get: "ScreenerV1Get",
+    participants: "ScreenerV1Participants",
+    participantsList: "ScreenerV1ParticipantsList",
+    participantsItem: "ScreenerV1ParticipantsItem",
     error: "ScreenerV1Error",
   },
   "afbws/market.channel.v1.json": {
