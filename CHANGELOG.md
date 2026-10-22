@@ -10,6 +10,8 @@
 
 ## Unreleased
 
+## v2.9.4 — 2026-10-22
+
 - **Канал `screener`: операция `afbws.screener.participants.v1` (аддитивно, capability прежняя `afbws.screener.channel.v1`, wire `afb.execution.v1` не меняется):** запрос `{}` (+`request_id`), ответ — `received_at`, `tz`, `lists[]` с `key` ∈ `now|d1|d2|w1`, `trading_day`, `asof`, `source` ∈ `intraday|daily`, `items[]` (дериватив, коллекция и цвет, fiz/yur long/short/net и число участников, `openinterest`, `volume`; значения `number|null`, строки открытые). Новые `$defs`: `participants`, `participantsList`, `participantsItem`, `favoriteColor`. Модели `ScreenerV1Participants*`, тесты, `PROTOCOL.md`.
 - **Канал `screener` (аддитивно, wire `afb.execution.v1` не меняется; только AFB backend<->frontend):** схема `spec/schemas/afbws/screener.channel.v1.json`, capability `afbws.screener.channel.v1` (`SCREENER_CHANNEL_V1`). Операции `afbws.screener.list.v1` (список выгрузок скринера, `latest`/`intraday_latest`) и `afbws.screener.get.v1` (содержимое выгрузки по id `night:YYYY-MM-DD` / `intraday:YYYY-MM-DDTHHMM` или алиасу; `document` — открытый объект контракта v1), ошибка `afbws.screener.error.v1`. Модели TS/Python и `docs/PROTOCOL.md` обновлены.
 
