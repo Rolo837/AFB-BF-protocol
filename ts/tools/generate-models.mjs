@@ -243,7 +243,8 @@ const NAMED_DEF_SCHEMAS = {
     get: "ScreenerV1Get",
     participants: "ScreenerV1Participants",
     participantsList: "ScreenerV1ParticipantsList",
-    participantsItem: "ScreenerV1ParticipantsItem",
+    participantsDerivatives: "ScreenerV1ParticipantsDerivatives",
+    participantsCollection: "ScreenerV1ParticipantsCollection",
     error: "ScreenerV1Error",
   },
   "afbws/market.channel.v1.json": {

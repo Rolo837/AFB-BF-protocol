@@ -214,20 +214,6 @@ _NUM_FIELDS = [
 ]
 
 
-def _participants_item(**overrides):
-    item = {
-        "derivative": "MISX:Si",
-        "name": "Si",
-        "active_instrument_key": "MISX:SiZ6",
-        "collection_id": "currencies",
-        "collection_name": "Валюты",
-        "collection_color": "blue",
-    }
-    item.update({k: 1.5 for k in _NUM_FIELDS})
-    item.update(overrides)
-    return item
-
-
 def _participants_response(**overrides):
     lists = [
         {
@@ -235,7 +221,8 @@ def _participants_response(**overrides):
             "trading_day": "2026-10-22",
             "asof": "2026-10-22T11:30:00",
             "source": "intraday" if key == "now" else "daily",
-            "items": [_participants_item()],
+            "columns": ["derivative", *_NUM_FIELDS],
+            "rows": [["MISX:Si", *[1.5] * len(_NUM_FIELDS)]],
         }
         for key in ("now", "d1", "d2", "w1")
     ]
@@ -245,6 +232,11 @@ def _participants_response(**overrides):
         "request_id": "req-3",
         "received_at": "2026-10-22T11:31:02+03:00",
         "tz": "Europe/Moscow",
+        "collections": [{"id": "currencies", "name": "Валюты", "color": "blue"}],
+        "derivatives": {
+            "columns": ["derivative", "name", "active_instrument_key", "collection_id"],
+            "rows": [["MISX:Si", "Si", "MISX:SiZ6", "currencies"]],
+        },
         "lists": lists,
     }
     msg.update(overrides)
@@ -281,24 +273,36 @@ def test_participants_response_valid(registry):
     _validator("participants", registry).validate(_participants_response(lists=[]))
 
 
-def test_participants_item_nulls_extra_fields_and_colorless(registry):
+def test_participants_nulls_subset_columns_and_colorless(registry):
     msg = _participants_response()
-    msg["lists"][0]["items"] = [
-        _participants_item(
-            collection_id=None, collection_name=None, collection_color=None,
-            name=None, active_instrument_key=None, extra_field={"a": 1},
-            **{k: None for k in _NUM_FIELDS},
-        )
-    ]
+    msg["lists"][0]["columns"] = ["derivative", "fiz_net", "volume"]
+    msg["lists"][0]["rows"] = [["MISX:Si", None, None], ["MISX:GD", -3, 10.5]]
+    msg["collections"] = [{"id": "x", "name": "X", "color": None}]
+    msg["derivatives"]["rows"] = [["MISX:Si", None, None, None]]
     _validator("participants", registry).validate(msg)
 
 
-def test_participants_item_bad_color_and_number_rejected(registry):
+def test_participants_bad_color_column_and_cell_rejected(registry):
     from jsonschema import ValidationError
 
-    for bad in ({"collection_color": "magenta"}, {"fiz_net": "12"}, {"volume": True}):
+    def bad_color(m):
+        m["collections"][0]["color"] = "magenta"
+
+    def unknown_column(m):
+        m["lists"][0]["columns"] = ["derivative", "fiz_foo"]
+        m["lists"][0]["rows"] = [["MISX:Si", 1]]
+
+    def first_not_derivative(m):
+        m["lists"][0]["columns"] = ["fiz_net", "derivative"]
+        m["lists"][0]["rows"] = [[1, "MISX:Si"]]
+
+    def bool_cell(m):
+        m["lists"][0]["rows"] = [["MISX:Si", True]]
+        m["lists"][0]["columns"] = ["derivative", "volume"]
+
+    for mutate in (bad_color, unknown_column, first_not_derivative, bool_cell):
         msg = _participants_response()
-        msg["lists"][0]["items"] = [_participants_item(**bad)]
+        mutate(msg)
         with pytest.raises(ValidationError):
             _validator("participants", registry).validate(msg)
 

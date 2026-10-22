@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: e165aff7fd0e049e6f38b79aff609e2fb1b550e20e9540bf2f636b93d3171d31
+ * source-hash: 3e59fb00904b043b4dfa0146bb25bf0ba1b61f4b5e0cdd978a7633d73e901db5
  */
 
 /**
@@ -1355,7 +1355,7 @@ export type ScreenerV1Get = {
   };
 };
 /**
- * Request is an empty command (no parameters in this version). Response carries `received_at`, `tz` and `lists` (four lists: now, d1, d2, w1). Same capability as list/get: `screener` of the user's role, otherwise `forbidden`. Non-manager sees only derivatives visible to their tier.
+ * Request is an empty command (no parameters in this version). Response carries `received_at`, `tz`, `collections`, `derivatives` (reference table) and `lists` (four columnar snapshots: now, d1, d2, w1). Same capability as list/get: `screener` of the user's role, otherwise `forbidden`. Non-manager sees only derivatives visible to their tier.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "ScreenerV1Participants".
@@ -1374,6 +1374,11 @@ export type ScreenerV1Participants = {
    * Response only. Time zone of asof, e.g. Europe/Moscow.
    */
   tz?: string;
+  /**
+   * Response only.
+   */
+  collections?: ScreenerV1ParticipantsCollection[];
+  derivatives?: ScreenerV1ParticipantsDerivatives;
   /**
    * Response only.
    */
@@ -4999,12 +5004,44 @@ export interface AfbwsScreenerChannelV1_ListItem {
   size: number;
 }
 /**
+ * Root catalog collection (color source for the bubbles).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ScreenerV1ParticipantsCollection".
+ */
+export interface ScreenerV1ParticipantsCollection {
+  id: string;
+  name: string;
+  color: AfbwsScreenerChannelV1_FavoriteColor | null;
+}
+/**
+ * Derivative reference table (columnar, like afbws.market.series.v1 tables): `columns` start with `derivative` (e.g. `MISX:Si`) and may list any subset of the other fields; read by column name. `name`; `active_instrument_key` = nearest unexpired contract (to open a chart); `collection_id` references `collections[].id` (null = no collection). Shared by all four lists.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ScreenerV1ParticipantsDerivatives".
+ */
+export interface ScreenerV1ParticipantsDerivatives {
+  /**
+   * @minItems 1
+   */
+  columns: [
+    'derivative' | 'name' | 'active_instrument_key' | 'collection_id',
+    ...('derivative' | 'name' | 'active_instrument_key' | 'collection_id')[]
+  ];
+  /**
+   * Each row has the same length and order as `columns`; a missing value is null (never NaN).
+   */
+  rows: (number | string | null)[][];
+}
+/**
+ * One snapshot. `rows` are columnar (`columns` begin with `derivative`; the other columns are a subset of the fiz_/yur_ position fields, openinterest and volume). Only derivatives that have data in this snapshot get a row; the rest are absent (join with `derivatives` by key). `source`: `intraday` if at least one row is the intraday slot of the day, otherwise `daily`.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "ScreenerV1ParticipantsList".
  */
 export interface ScreenerV1ParticipantsList {
   /**
-   * now = current moment; d1 = previous trading day close; d2 = trading day before d1; w1 = last trading day <= today - 7 calendar days.
+   * now = latest trading day that has started (the current session once it has data, otherwise the previous trading day's close); d1 = close of the trading day before `now`; d2 = the one before d1; w1 = last trading day <= (`now` day - 7 calendar days).
    */
   key: 'now' | 'd1' | 'd2' | 'w1';
   trading_day: string;
@@ -5016,46 +5053,45 @@ export interface ScreenerV1ParticipantsList {
    * `daily`: daily-only derivatives and fallback.
    */
   source: 'intraday' | 'daily';
-  items: ScreenerV1ParticipantsItem[];
-}
-/**
- * One derivative row. Open object: extra fields allowed. A missing value is null.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "ScreenerV1ParticipantsItem".
- */
-export interface ScreenerV1ParticipantsItem {
   /**
-   * Derivative key, e.g. `MISX:Si`.
+   * @minItems 1
    */
-  derivative: string;
-  name?: string | null;
+  columns: [
+    (
+      | 'derivative'
+      | 'fiz_long'
+      | 'fiz_short'
+      | 'fiz_net'
+      | 'fiz_persons_long'
+      | 'fiz_persons_short'
+      | 'yur_long'
+      | 'yur_short'
+      | 'yur_net'
+      | 'yur_persons_long'
+      | 'yur_persons_short'
+      | 'openinterest'
+      | 'volume'
+    ),
+    ...(
+      | 'derivative'
+      | 'fiz_long'
+      | 'fiz_short'
+      | 'fiz_net'
+      | 'fiz_persons_long'
+      | 'fiz_persons_short'
+      | 'yur_long'
+      | 'yur_short'
+      | 'yur_net'
+      | 'yur_persons_long'
+      | 'yur_persons_short'
+      | 'openinterest'
+      | 'volume'
+    )[]
+  ];
   /**
-   * Nearest unexpired contract instrument_key (to open a chart).
+   * Each row has the same length and order as `columns`; a missing value is null (never NaN).
    */
-  active_instrument_key?: string | null;
-  /**
-   * Root catalog collection of the asset.
-   */
-  collection_id?: string | null;
-  collection_name?: string | null;
-  collection_color?: AfbwsScreenerChannelV1_FavoriteColor | null;
-  fiz_long?: number | null;
-  fiz_short?: number | null;
-  fiz_net?: number | null;
-  fiz_persons_long?: number | null;
-  fiz_persons_short?: number | null;
-  yur_long?: number | null;
-  yur_short?: number | null;
-  yur_net?: number | null;
-  yur_persons_long?: number | null;
-  yur_persons_short?: number | null;
-  /**
-   * Sum of pos_long over fiz+yur.
-   */
-  openinterest?: number | null;
-  volume?: number | null;
-  [k: string]: unknown;
+  rows: (number | string | null)[][];
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

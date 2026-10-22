@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: e165aff7fd0e049e6f38b79aff609e2fb1b550e20e9540bf2f636b93d3171d31
+# source-hash: 3e59fb00904b043b4dfa0146bb25bf0ba1b61f4b5e0cdd978a7633d73e901db5
 
 from __future__ import annotations
 
@@ -4739,7 +4739,7 @@ class ScreenerV1List(TypedDict):
 
 class ScreenerV1Participants(TypedDict):
     """
-    Request is an empty command (no parameters in this version). Response carries `received_at`, `tz` and `lists` (four lists: now, d1, d2, w1). Same capability as list/get: `screener` of the user's role, otherwise `forbidden`. Non-manager sees only derivatives visible to their tier.
+    Request is an empty command (no parameters in this version). Response carries `received_at`, `tz`, `collections`, `derivatives` (reference table) and `lists` (four columnar snapshots: now, d1, d2, w1). Same capability as list/get: `screener` of the user's role, otherwise `forbidden`. Non-manager sees only derivatives visible to their tier.
     """
 
     channel: Literal["screener"]
@@ -4747,6 +4747,8 @@ class ScreenerV1Participants(TypedDict):
     request_id: AfbwsCommonV1RequestId
     received_at: NotRequired[str]
     tz: NotRequired[str]
+    collections: NotRequired[list[ScreenerV1ParticipantsCollection]]
+    derivatives: NotRequired[ScreenerV1ParticipantsDerivatives]
     lists: NotRequired[list[ScreenerV1ParticipantsList]]
 
 
@@ -4755,37 +4757,56 @@ ScreenerChannelV1Message: TypeAlias = (
 )
 
 
-class ScreenerV1ParticipantsItem(TypedDict):
+class ScreenerV1ParticipantsCollection(TypedDict):
     """
-    One derivative row. Open object: extra fields allowed. A missing value is null.
+    Root catalog collection (color source for the bubbles).
     """
 
-    derivative: str
-    name: NotRequired[str | None]
-    active_instrument_key: NotRequired[str | None]
-    collection_id: NotRequired[str | None]
-    collection_name: NotRequired[str | None]
-    collection_color: NotRequired[AfbwsScreenerChannelV1FavoriteColor | None]
-    fiz_long: NotRequired[float | None]
-    fiz_short: NotRequired[float | None]
-    fiz_net: NotRequired[float | None]
-    fiz_persons_long: NotRequired[float | None]
-    fiz_persons_short: NotRequired[float | None]
-    yur_long: NotRequired[float | None]
-    yur_short: NotRequired[float | None]
-    yur_net: NotRequired[float | None]
-    yur_persons_long: NotRequired[float | None]
-    yur_persons_short: NotRequired[float | None]
-    openinterest: NotRequired[float | None]
-    volume: NotRequired[float | None]
+    id: str
+    name: str
+    color: AfbwsScreenerChannelV1FavoriteColor | None
+
+
+class ScreenerV1ParticipantsDerivatives(TypedDict):
+    """
+    Derivative reference table (columnar, like afbws.market.series.v1 tables): `columns` start with `derivative` (e.g. `MISX:Si`) and may list any subset of the other fields; read by column name. `name`; `active_instrument_key` = nearest unexpired contract (to open a chart); `collection_id` references `collections[].id` (null = no collection). Shared by all four lists.
+    """
+
+    columns: list[
+        Literal["derivative"]
+        | Literal["derivative", "name", "active_instrument_key", "collection_id"]
+    ]
+    rows: list[list[float | str | None]]
 
 
 class ScreenerV1ParticipantsList(TypedDict):
+    """
+    One snapshot. `rows` are columnar (`columns` begin with `derivative`; the other columns are a subset of the fiz_/yur_ position fields, openinterest and volume). Only derivatives that have data in this snapshot get a row; the rest are absent (join with `derivatives` by key). `source`: `intraday` if at least one row is the intraday slot of the day, otherwise `daily`.
+    """
+
     key: Literal["now", "d1", "d2", "w1"]
     trading_day: str
     asof: str
     source: Literal["intraday", "daily"]
-    items: list[ScreenerV1ParticipantsItem]
+    columns: list[
+        Literal["derivative"]
+        | Literal[
+            "derivative",
+            "fiz_long",
+            "fiz_short",
+            "fiz_net",
+            "fiz_persons_long",
+            "fiz_persons_short",
+            "yur_long",
+            "yur_short",
+            "yur_net",
+            "yur_persons_long",
+            "yur_persons_short",
+            "openinterest",
+            "volume",
+        ]
+    ]
+    rows: list[list[float | str | None]]
 
 
 class Section(TypedDict):
