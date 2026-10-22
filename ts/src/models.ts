@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: d53f9ab8fc65db4b47858c59dbaab9ad51783c2d23cdc1ee5665e099e94bae81
+ * source-hash: 1507c9978de7396ed5048fa3b4989ca2e934e77ab8391a1abe511a182ecdf441
  */
 
 /**
@@ -1274,6 +1274,93 @@ export type MarketTable = {
 export type MarketSnapshotTable = MarketTable & {
   kind?: 'quote' | 'oi' | 'oi_daily';
 };
+/**
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.screener.channel.v1). Read-only access to the screener's published JSON exports (contract v1, see AFB/docs/SCREENER_RESULTS.md); the backend never opens the screener database. Same convention as afbws.market/afbws.config: ONE schema id per message (`afbws.screener.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response. `request_id` is required everywhere: there are no server pushes in this version (the client refreshes on demand). A failed request is answered with `afbws.screener.error.v1`. Operations: `list` (available exports, newest first, content not read) and `get` (one export by id). Export ids: `night:YYYY-MM-DD` (night result of a trading day), `intraday:YYYY-MM-DDTHHMM` (intraday snapshot), or the aliases `latest` (newest night export) and `intraday_latest` (newest intraday snapshot). Access requires the `screener` capability of the user's role; otherwise `forbidden`. The exported document is intentionally an open object: only `contract_version` is relied upon; the screener's fields (signals, reliability, models, errors) evolve and are described in AFB/docs/SCREENER_RESULTS.md. A document with an unsupported `contract_version` is answered with `unsupported_action`. See AFB/docs/ws/screener.md.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ScreenerChannelV1Message".
+ */
+export type ScreenerChannelV1Message = ScreenerV1List | ScreenerV1Get | ScreenerV1Error;
+/**
+ * Request carries only optional filters. Response carries `items` (newest first) and the ids of the newest exports: `latest` (newest night export) and `intraday_latest` (newest intraday snapshot), each null when there is none. Both are computed from file names, not from the screener's latest*.json copies.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ScreenerV1List".
+ */
+export type ScreenerV1List = {
+  [k: string]: unknown;
+} & {
+  channel: 'screener';
+  schema: 'afbws.screener.list.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Request: only exports of this kind.
+   */
+  kind?: 'night' | 'intraday';
+  /**
+   * Request: at most this many newest items.
+   */
+  limit?: number;
+  /**
+   * Response only.
+   */
+  items?: AfbwsScreenerChannelV1_ListItem[];
+  /**
+   * Response only.
+   */
+  latest?: string | null;
+  /**
+   * Response only.
+   */
+  intraday_latest?: string | null;
+};
+/**
+ * Concrete export id: `night:YYYY-MM-DD` or `intraday:YYYY-MM-DDTHHMM` (trading day and MSK moment, no separators in the time).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsScreenerChannelV1_ExportId".
+ */
+export type AfbwsScreenerChannelV1_ExportId = string;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsScreenerChannelV1_ExportKind".
+ */
+export type AfbwsScreenerChannelV1_ExportKind = 'night' | 'intraday';
+/**
+ * Request carries `id` (export id or alias). Response echoes the concrete `id` (aliases resolved) and `kind`, and carries `document`: the export content as is (contract v1), an open object. Unknown export: error `not_found`; malformed id: `invalid_schema`; unreadable file: `internal_error`; unsupported `contract_version`: `unsupported_action`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ScreenerV1Get".
+ */
+export type ScreenerV1Get = {
+  [k: string]: unknown;
+} & {
+  channel: 'screener';
+  schema: 'afbws.screener.get.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Request: export id or alias. Response: concrete export id.
+   */
+  id: string;
+  /**
+   * Response only.
+   */
+  kind?: 'night' | 'intraday';
+  /**
+   * Response only. Screener export content as is; see AFB/docs/SCREENER_RESULTS.md.
+   */
+  document?: {
+    contract_version?: number;
+    [k: string]: unknown;
+  };
+};
+/**
+ * Export id or alias: `latest` (newest night export) / `intraday_latest` (newest intraday snapshot).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsScreenerChannelV1_ExportRef".
+ */
+export type AfbwsScreenerChannelV1_ExportRef = string;
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v1). Replaces bulk settings/get_plans+set_plans and mail/plans for clients that negotiated this capability; legacy stays available as fallback. `entity` carries afb.tradeplan.v2 (afb.tradeplan.v1 was removed). See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
@@ -4856,6 +4943,38 @@ export interface MarketErrorResponse {
    * code=busy only: seconds the client should wait before retrying the same request once.
    */
   retry_after_sec?: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsScreenerChannelV1_ListItem".
+ */
+export interface AfbwsScreenerChannelV1_ListItem {
+  id: AfbwsScreenerChannelV1_ExportId;
+  kind: AfbwsScreenerChannelV1_ExportKind;
+  trading_day: string;
+  /**
+   * Moment of the export's signals (MSK, no zone), derived from the file name; `night`: 19:00 of trading_day.
+   */
+  asof: string;
+  /**
+   * File modification time (ISO 8601 with zone); the content is not read for the list.
+   */
+  generated_at: string;
+  /**
+   * File size in bytes.
+   */
+  size: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ScreenerV1Error".
+ */
+export interface ScreenerV1Error {
+  channel: 'screener';
+  schema: 'afbws.screener.error.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  code: AfbwsCommonV1_ErrorCode;
+  message: string;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

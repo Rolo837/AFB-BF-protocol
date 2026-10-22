@@ -83,6 +83,7 @@ function namedRootSchemas() {
     "afbws/market.channel.v1.json": "MarketChannelV1Message",
     "config.v1.json": "ConfigSettingsV1",
     "afbws/config.channel.v1.json": "ConfigChannelV1Message",
+    "afbws/screener.channel.v1.json": "ScreenerChannelV1Message",
   };
   for (const file of readdirSync(payloadsDir).sort()) {
     if (!file.endsWith(".json")) continue;
@@ -236,6 +237,11 @@ const NAMED_DEF_SCHEMAS = {
     roleTier: "ConfigRoleTier",
     token: "ConfigToken",
     error: "ConfigError",
+  },
+  "afbws/screener.channel.v1.json": {
+    list: "ScreenerV1List",
+    get: "ScreenerV1Get",
+    error: "ScreenerV1Error",
   },
   "afbws/market.channel.v1.json": {
     table: "MarketTable",

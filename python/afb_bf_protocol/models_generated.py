@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: d53f9ab8fc65db4b47858c59dbaab9ad51783c2d23cdc1ee5665e099e94bae81
+# source-hash: 1507c9978de7396ed5048fa3b4989ca2e934e77ab8391a1abe511a182ecdf441
 
 from __future__ import annotations
 
@@ -1040,6 +1040,24 @@ class AfbwsMarketChannelV1SourceStatusEntry(TypedDict):
     state: Literal["ok", "degraded", "down"]
     since: str
     reason: NotRequired[str]
+
+
+AfbwsScreenerChannelV1ExportId: TypeAlias = str
+
+
+AfbwsScreenerChannelV1ExportKind: TypeAlias = Literal["night", "intraday"]
+
+
+AfbwsScreenerChannelV1ExportRef: TypeAlias = str
+
+
+class AfbwsScreenerChannelV1ListItem(TypedDict):
+    id: AfbwsScreenerChannelV1ExportId
+    kind: AfbwsScreenerChannelV1ExportKind
+    trading_day: str
+    asof: str
+    generated_at: str
+    size: int
 
 
 class AfbwsTradeplanChannelV1ArchiveRequest(TypedDict):
@@ -3559,6 +3577,14 @@ class Display2(TypedDict):
     text: NotRequired[str]
 
 
+class Document(TypedDict):
+    """
+    Response only. Screener export content as is; see AFB/docs/SCREENER_RESULTS.md.
+    """
+
+    contract_version: NotRequired[int]
+
+
 class Entry(TypedDict):
     entry_id: str
     account_id: NotRequired[str]
@@ -4668,6 +4694,45 @@ class PresetTimeframes(TypedDict):
 
 class Primitives(TypedDict):
     confirm_delete: NotRequired[bool]
+
+
+class ScreenerV1Error(TypedDict):
+    channel: Literal["screener"]
+    schema: Literal["afbws.screener.error.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    code: AfbwsCommonV1ErrorCode
+    message: str
+
+
+class ScreenerV1Get(TypedDict):
+    """
+    Request carries `id` (export id or alias). Response echoes the concrete `id` (aliases resolved) and `kind`, and carries `document`: the export content as is (contract v1), an open object. Unknown export: error `not_found`; malformed id: `invalid_schema`; unreadable file: `internal_error`; unsupported `contract_version`: `unsupported_action`.
+    """
+
+    channel: Literal["screener"]
+    schema: Literal["afbws.screener.get.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: AfbwsScreenerChannelV1ExportRef
+    kind: NotRequired[AfbwsScreenerChannelV1ExportKind]
+    document: NotRequired[Document]
+
+
+class ScreenerV1List(TypedDict):
+    """
+    Request carries only optional filters. Response carries `items` (newest first) and the ids of the newest exports: `latest` (newest night export) and `intraday_latest` (newest intraday snapshot), each null when there is none. Both are computed from file names, not from the screener's latest*.json copies.
+    """
+
+    channel: Literal["screener"]
+    schema: Literal["afbws.screener.list.v1"]
+    request_id: AfbwsCommonV1RequestId
+    kind: NotRequired[AfbwsScreenerChannelV1ExportKind]
+    limit: NotRequired[int]
+    items: NotRequired[list[AfbwsScreenerChannelV1ListItem]]
+    latest: NotRequired[str | None]
+    intraday_latest: NotRequired[str | None]
+
+
+ScreenerChannelV1Message: TypeAlias = ScreenerV1List | ScreenerV1Get | ScreenerV1Error
 
 
 class Section(TypedDict):

@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/screener.channel.v1.json",
+  "x-afbws-support-id": "afbws.screener.channel.v1",
+  "title": "screener channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.screener.channel.v1). Read-only access to the screener's published JSON exports (contract v1, see AFB/docs/SCREENER_RESULTS.md); the backend never opens the screener database. Same convention as afbws.market/afbws.config: ONE schema id per message (`afbws.screener.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response. `request_id` is required everywhere: there are no server pushes in this version (the client refreshes on demand). A failed request is answered with `afbws.screener.error.v1`. Operations: `list` (available exports, newest first, content not read) and `get` (one export by id). Export ids: `night:YYYY-MM-DD` (night result of a trading day), `intraday:YYYY-MM-DDTHHMM` (intraday snapshot), or the aliases `latest` (newest night export) and `intraday_latest` (newest intraday snapshot). Access requires the `screener` capability of the user's role; otherwise `forbidden`. The exported document is intentionally an open object: only `contract_version` is relied upon; the screener's fields (signals, reliability, models, errors) evolve and are described in AFB/docs/SCREENER_RESULTS.md. A document with an unsupported `contract_version` is answered with `unsupported_action`. See AFB/docs/ws/screener.md.",
+  "type": "object",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/list"
+    },
+    {
+      "$ref": "#/$defs/get"
+    },
+    {
+      "$ref": "#/$defs/error"
+    }
+  ],
+  "$defs": {
+    "exportId": {
+      "type": "string",
+      "pattern": "^(night:\\d{4}-\\d{2}-\\d{2}|intraday:\\d{4}-\\d{2}-\\d{2}T\\d{4})$",
+      "description": "Concrete export id: `night:YYYY-MM-DD` or `intraday:YYYY-MM-DDTHHMM` (trading day and MSK moment, no separators in the time)."
+    },
+    "exportRef": {
+      "type": "string",
+      "pattern": "^(latest|intraday_latest|night:\\d{4}-\\d{2}-\\d{2}|intraday:\\d{4}-\\d{2}-\\d{2}T\\d{4})$",
+      "description": "Export id or alias: `latest` (newest night export) / `intraday_latest` (newest intraday snapshot)."
+    },
+    "exportKind": {
+      "enum": [
+        "night",
+        "intraday"
+      ]
+    },
+    "listItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "trading_day",
+        "asof",
+        "generated_at",
+        "size"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/exportId"
+        },
+        "kind": {
+          "$ref": "#/$defs/exportKind"
+        },
+        "trading_day": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "asof": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}$",
+          "description": "Moment of the export's signals (MSK, no zone), derived from the file name; `night`: 19:00 of trading_day."
+        },
+        "generated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "File modification time (ISO 8601 with zone); the content is not read for the list."
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "File size in bytes."
+        }
+      }
+    },
+    "list": {
+      "type": "object",
+      "title": "afbws.screener.list.v1 — available exports (request / response).",
+      "description": "Request carries only optional filters. Response carries `items` (newest first) and the ids of the newest exports: `latest` (newest night export) and `intraday_latest` (newest intraday snapshot), each null when there is none. Both are computed from file names, not from the screener's latest*.json copies.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "screener"
+        },
+        "schema": {
+          "const": "afbws.screener.list.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "kind": {
+          "$ref": "#/$defs/exportKind",
+          "description": "Request: only exports of this kind."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "Request: at most this many newest items."
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/listItem"
+          },
+          "description": "Response only."
+        },
+        "latest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^night:\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Response only."
+        },
+        "intraday_latest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^intraday:\\d{4}-\\d{2}-\\d{2}T\\d{4}$",
+          "description": "Response only."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "items"
+            ]
+          },
+          "then": {
+            "required": [
+              "items",
+              "latest",
+              "intraday_latest"
+            ]
+          }
+        }
+      ]
+    },
+    "get": {
+      "type": "object",
+      "title": "afbws.screener.get.v1 — one export (request / response).",
+      "description": "Request carries `id` (export id or alias). Response echoes the concrete `id` (aliases resolved) and `kind`, and carries `document`: the export content as is (contract v1), an open object. Unknown export: error `not_found`; malformed id: `invalid_schema`; unreadable file: `internal_error`; unsupported `contract_version`: `unsupported_action`.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "screener"
+        },
+        "schema": {
+          "const": "afbws.screener.get.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "id": {
+          "$ref": "#/$defs/exportRef",
+          "description": "Request: export id or alias. Response: concrete export id."
+        },
+        "kind": {
+          "$ref": "#/$defs/exportKind",
+          "description": "Response only."
+        },
+        "document": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "contract_version": {
+              "type": "integer"
+            }
+          },
+          "description": "Response only. Screener export content as is; see AFB/docs/SCREENER_RESULTS.md."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "document"
+            ]
+          },
+          "then": {
+            "required": [
+              "kind"
+            ]
+          }
+        }
+      ]
+    },
+    "error": {
+      "type": "object",
+      "title": "afbws.screener.error.v1 — typed error for a whole request (server -> client).",
+      "required": [
+        "channel",
+        "schema",
+        "code",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "screener"
+        },
+        "schema": {
+          "const": "afbws.screener.error.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "code": {
+          "$ref": "common.v1.json#/$defs/errorCode"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

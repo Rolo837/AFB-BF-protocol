@@ -10,6 +10,8 @@
 
 ## Unreleased
 
+- **Канал `screener` (аддитивно, wire `afb.execution.v1` не меняется; только AFB backend<->frontend):** схема `spec/schemas/afbws/screener.channel.v1.json`, capability `afbws.screener.channel.v1` (`SCREENER_CHANNEL_V1`). Операции `afbws.screener.list.v1` (список выгрузок скринера, `latest`/`intraday_latest`) и `afbws.screener.get.v1` (содержимое выгрузки по id `night:YYYY-MM-DD` / `intraday:YYYY-MM-DDTHHMM` или алиасу; `document` — открытый объект контракта v1), ошибка `afbws.screener.error.v1`. Модели TS/Python и `docs/PROTOCOL.md` обновлены.
+
 ## v2.9.3 — 2026-10-22
 
 ## v2.9.2 — 2026-10-22
