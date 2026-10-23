@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: d53f9ab8fc65db4b47858c59dbaab9ad51783c2d23cdc1ee5665e099e94bae81
+ * source-hash: 1a5c93e6ec983af7b9dc723f2e74d57fb74f54a9837a699f0725a5eba6003370
  */
 
 /**
@@ -1275,6 +1275,131 @@ export type MarketSnapshotTable = MarketTable & {
   kind?: 'quote' | 'oi' | 'oi_daily';
 };
 /**
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.screener.channel.v1). Read-only access to the screener's published JSON exports (contract v1, see AFB/docs/SCREENER_RESULTS.md); the backend never opens the screener database. Same convention as afbws.market/afbws.config: ONE schema id per message (`afbws.screener.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response. `request_id` is required everywhere: there are no server pushes in this version (the client refreshes on demand). A failed request is answered with `afbws.screener.error.v1`. Operations: `list` (available exports, newest first, content not read), `get` (one export by id) and `participants` (market participants snapshot: four lists now/d1/d2/w1 of derivatives with fiz/yur positions, open interest and volume, computed by the backend from market_cache). Export ids: `night:YYYY-MM-DD` (night result of a trading day), `intraday:YYYY-MM-DDTHHMM` (intraday snapshot), or the aliases `latest` (newest night export) and `intraday_latest` (newest intraday snapshot). Access requires the `screener` capability of the user's role; otherwise `forbidden`. The exported document is intentionally an open object: only `contract_version` is relied upon; the screener's fields (signals, reliability, models, errors) evolve and are described in AFB/docs/SCREENER_RESULTS.md. A document with an unsupported `contract_version` is answered with `unsupported_action`. See AFB/docs/ws/screener.md.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ScreenerChannelV1Message".
+ */
+export type ScreenerChannelV1Message = ScreenerV1List | ScreenerV1Get | ScreenerV1Participants | ScreenerV1Error;
+/**
+ * Request carries only optional filters. Response carries `items` (newest first) and the ids of the newest exports: `latest` (newest night export) and `intraday_latest` (newest intraday snapshot), each null when there is none. Both are computed from file names, not from the screener's latest*.json copies.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ScreenerV1List".
+ */
+export type ScreenerV1List = {
+  [k: string]: unknown;
+} & {
+  channel: 'screener';
+  schema: 'afbws.screener.list.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Request: only exports of this kind.
+   */
+  kind?: 'night' | 'intraday';
+  /**
+   * Request: at most this many newest items.
+   */
+  limit?: number;
+  /**
+   * Response only.
+   */
+  items?: AfbwsScreenerChannelV1_ListItem[];
+  /**
+   * Response only.
+   */
+  latest?: string | null;
+  /**
+   * Response only.
+   */
+  intraday_latest?: string | null;
+};
+/**
+ * Concrete export id: `night:YYYY-MM-DD` or `intraday:YYYY-MM-DDTHHMM` (trading day and MSK moment, no separators in the time).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsScreenerChannelV1_ExportId".
+ */
+export type AfbwsScreenerChannelV1_ExportId = string;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsScreenerChannelV1_ExportKind".
+ */
+export type AfbwsScreenerChannelV1_ExportKind = 'night' | 'intraday';
+/**
+ * Request carries `id` (export id or alias). Response echoes the concrete `id` (aliases resolved) and `kind`, and carries `document`: the export content as is (contract v1), an open object. Unknown export: error `not_found`; malformed id: `invalid_schema`; unreadable file: `internal_error`; unsupported `contract_version`: `unsupported_action`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ScreenerV1Get".
+ */
+export type ScreenerV1Get = {
+  [k: string]: unknown;
+} & {
+  channel: 'screener';
+  schema: 'afbws.screener.get.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Request: export id or alias. Response: concrete export id.
+   */
+  id: string;
+  /**
+   * Response only.
+   */
+  kind?: 'night' | 'intraday';
+  /**
+   * Response only. Screener export content as is; see AFB/docs/SCREENER_RESULTS.md.
+   */
+  document?: {
+    contract_version?: number;
+    [k: string]: unknown;
+  };
+};
+/**
+ * Request is an empty command (no parameters in this version). Response carries `received_at`, `tz`, `collections`, `derivatives` (reference table) and `lists` (four columnar snapshots: now, d1, d2, w1). Same capability as list/get: `screener` of the user's role, otherwise `forbidden`. Non-manager sees only derivatives visible to their tier.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ScreenerV1Participants".
+ */
+export type ScreenerV1Participants = {
+  [k: string]: unknown;
+} & {
+  channel: 'screener';
+  schema: 'afbws.screener.participants.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Response only.
+   */
+  received_at?: string;
+  /**
+   * Response only. Time zone of asof, e.g. Europe/Moscow.
+   */
+  tz?: string;
+  /**
+   * Response only.
+   */
+  collections?: ScreenerV1ParticipantsCollection[];
+  derivatives?: ScreenerV1ParticipantsDerivatives;
+  /**
+   * Response only.
+   */
+  lists?: ScreenerV1ParticipantsList[];
+};
+/**
+ * Same list and order as afbws.instrument.channel.v2 favoriteColor (kept in lockstep; no cross-reference on purpose).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsScreenerChannelV1_FavoriteColor".
+ */
+export type AfbwsScreenerChannelV1_FavoriteColor =
+  'yellow' | 'red' | 'blue' | 'green' | 'gray' | 'orange' | 'cyan' | 'purple' | 'pink' | 'teal';
+/**
+ * Export id or alias: `latest` (newest night export) / `intraday_latest` (newest intraday snapshot).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsScreenerChannelV1_ExportRef".
+ */
+export type AfbwsScreenerChannelV1_ExportRef = string;
+/**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v1). Replaces bulk settings/get_plans+set_plans and mail/plans for clients that negotiated this capability; legacy stays available as fallback. `entity` carries afb.tradeplan.v2 (afb.tradeplan.v1 was removed). See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1945,7 +2070,7 @@ export interface AfbwsCommonV1_Root {
   [k: string]: unknown;
 }
 /**
- * Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard`/`form` are deep-merged, `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
+ * Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard`/`form`/`participants` are deep-merged (arrays such as `participants.columns` are replaced whole), `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "ConfigSettingsV1".
@@ -1957,6 +2082,7 @@ export interface ConfigSettingsV1 {
   dashboard?: ConfigDashboard;
   trade?: ConfigTrade;
   form?: ConfigV1_Form;
+  participants?: ConfigV1_Participants;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2187,6 +2313,35 @@ export interface ConfigV1_Form {
      * Show the 'Risk and volume' section first in the plan modal (default true).
      */
     risk_top?: boolean;
+  };
+  participants?: {
+    /**
+     * Use the recommended column set and order in the 'Market participants' service (default true); when false the user's `participants.columns` apply.
+     */
+    use_recommended?: boolean;
+  };
+}
+/**
+ * Stored here when `interface.settings_storage` is `server`; otherwise the same structure lives in localStorage. Sort and bubble axes are kept always; `columns` order applies only when `form.participants.use_recommended` is false.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigV1_Participants".
+ */
+export interface ConfigV1_Participants {
+  /**
+   * Visible table columns in display order (column ids of `afbws.screener.participants.v1`).
+   */
+  columns?: string[];
+  sort?: {
+    column?: string;
+    direction?: 'asc' | 'desc';
+  };
+  /**
+   * Selected axes of the bubble chart.
+   */
+  bubble?: {
+    x?: string;
+    y?: string;
   };
 }
 /**
@@ -4856,6 +5011,128 @@ export interface MarketErrorResponse {
    * code=busy only: seconds the client should wait before retrying the same request once.
    */
   retry_after_sec?: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsScreenerChannelV1_ListItem".
+ */
+export interface AfbwsScreenerChannelV1_ListItem {
+  id: AfbwsScreenerChannelV1_ExportId;
+  kind: AfbwsScreenerChannelV1_ExportKind;
+  trading_day: string;
+  /**
+   * Moment of the export's signals (MSK, no zone), derived from the file name; `night`: 19:00 of trading_day.
+   */
+  asof: string;
+  /**
+   * File modification time (ISO 8601 with zone); the content is not read for the list.
+   */
+  generated_at: string;
+  /**
+   * File size in bytes.
+   */
+  size: number;
+}
+/**
+ * Root catalog collection (color source for the bubbles).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ScreenerV1ParticipantsCollection".
+ */
+export interface ScreenerV1ParticipantsCollection {
+  id: string;
+  name: string;
+  color: AfbwsScreenerChannelV1_FavoriteColor | null;
+}
+/**
+ * Derivative reference table (columnar, like afbws.market.series.v1 tables): `columns` start with `derivative` (e.g. `MISX:Si`) and may list any subset of the other fields; read by column name. `name`; `active_instrument_key` = nearest unexpired contract (to open a chart); `collection_id` references `collections[].id` (null = no collection). Shared by all four lists.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ScreenerV1ParticipantsDerivatives".
+ */
+export interface ScreenerV1ParticipantsDerivatives {
+  /**
+   * @minItems 1
+   */
+  columns: [
+    'derivative' | 'name' | 'active_instrument_key' | 'collection_id',
+    ...('derivative' | 'name' | 'active_instrument_key' | 'collection_id')[]
+  ];
+  /**
+   * Each row has the same length and order as `columns`; a missing value is null (never NaN).
+   */
+  rows: (number | string | null)[][];
+}
+/**
+ * One snapshot. `rows` are columnar (`columns` begin with `derivative`; the other columns are a subset of the fiz_/yur_ position fields, openinterest and volume). Only derivatives that have data in this snapshot get a row; the rest are absent (join with `derivatives` by key). `source`: `intraday` if at least one row is the intraday slot of the day, otherwise `daily`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ScreenerV1ParticipantsList".
+ */
+export interface ScreenerV1ParticipantsList {
+  /**
+   * now = latest trading day that has started (the current session once it has data, otherwise the previous trading day's close); d1 = close of the trading day before `now`; d2 = the one before d1; w1 = last trading day <= (`now` day - 7 calendar days).
+   */
+  key: 'now' | 'd1' | 'd2' | 'w1';
+  trading_day: string;
+  /**
+   * Moment of the values (MSK, no zone); for `now` the intraday slot.
+   */
+  asof: string;
+  /**
+   * `daily`: daily-only derivatives and fallback.
+   */
+  source: 'intraday' | 'daily';
+  /**
+   * @minItems 1
+   */
+  columns: [
+    (
+      | 'derivative'
+      | 'fiz_long'
+      | 'fiz_short'
+      | 'fiz_net'
+      | 'fiz_persons_long'
+      | 'fiz_persons_short'
+      | 'yur_long'
+      | 'yur_short'
+      | 'yur_net'
+      | 'yur_persons_long'
+      | 'yur_persons_short'
+      | 'openinterest'
+      | 'volume'
+    ),
+    ...(
+      | 'derivative'
+      | 'fiz_long'
+      | 'fiz_short'
+      | 'fiz_net'
+      | 'fiz_persons_long'
+      | 'fiz_persons_short'
+      | 'yur_long'
+      | 'yur_short'
+      | 'yur_net'
+      | 'yur_persons_long'
+      | 'yur_persons_short'
+      | 'openinterest'
+      | 'volume'
+    )[]
+  ];
+  /**
+   * Each row has the same length and order as `columns`; a missing value is null (never NaN).
+   */
+  rows: (number | string | null)[][];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ScreenerV1Error".
+ */
+export interface ScreenerV1Error {
+  channel: 'screener';
+  schema: 'afbws.screener.error.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  code: AfbwsCommonV1_ErrorCode;
+  message: string;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

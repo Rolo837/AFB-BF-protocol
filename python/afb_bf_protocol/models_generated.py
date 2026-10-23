@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: d53f9ab8fc65db4b47858c59dbaab9ad51783c2d23cdc1ee5665e099e94bae81
+# source-hash: 1a5c93e6ec983af7b9dc723f2e74d57fb74f54a9837a699f0725a5eba6003370
 
 from __future__ import annotations
 
@@ -1042,6 +1042,29 @@ class AfbwsMarketChannelV1SourceStatusEntry(TypedDict):
     reason: NotRequired[str]
 
 
+AfbwsScreenerChannelV1ExportId: TypeAlias = str
+
+
+AfbwsScreenerChannelV1ExportKind: TypeAlias = Literal["night", "intraday"]
+
+
+AfbwsScreenerChannelV1ExportRef: TypeAlias = str
+
+
+AfbwsScreenerChannelV1FavoriteColor: TypeAlias = Literal[
+    "yellow", "red", "blue", "green", "gray", "orange", "cyan", "purple", "pink", "teal"
+]
+
+
+class AfbwsScreenerChannelV1ListItem(TypedDict):
+    id: AfbwsScreenerChannelV1ExportId
+    kind: AfbwsScreenerChannelV1ExportKind
+    trading_day: str
+    asof: str
+    generated_at: str
+    size: int
+
+
 class AfbwsTradeplanChannelV1ArchiveRequest(TypedDict):
     channel: Literal["tradeplan"]
     schema: Literal["afbws.tradeplan.archive.request.v1"]
@@ -1493,6 +1516,15 @@ class BrokerSizing(TypedDict):
     estimated: NotRequired[bool]
 
 
+class Bubble(TypedDict):
+    """
+    Selected axes of the bubble chart.
+    """
+
+    x: NotRequired[str]
+    y: NotRequired[str]
+
+
 class CalendarUpdatePayload(TypedDict):
     """
     AFB-pushed MOEX trading calendar snapshot, so BF can gate execution and background polling on real trading-session boundaries (holidays, weekend sessions, per-board session phases) instead of a fixed off-hours window. SNAPSHOT SEMANTICS: `sections` is the FULL current calendar this AFB wants this BF to hold, never a diff — on receipt BF REPLACES its entire calendar cache for the connection with this array (replace-all, not merge); a section/day/window absent from a later calendar.update is gone, not merely unchanged. Sent only to a BF that has declared `features.market_calendar` in `daemon.capabilities` (see payloads/daemon.capabilities.json) — a BF that has not declared it never receives this message and continues to gate on its own local config.
@@ -1801,7 +1833,7 @@ class ConfigSettings(TypedDict):
 
 class ConfigSettingsV1(TypedDict):
     """
-    Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard`/`form` are deep-merged, `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
+    Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard`/`form`/`participants` are deep-merged (arrays such as `participants.columns` are replaced whole), `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
     """
 
     profile: NotRequired[ConfigProfile]
@@ -1810,6 +1842,7 @@ class ConfigSettingsV1(TypedDict):
     dashboard: NotRequired[ConfigDashboard]
     trade: NotRequired[ConfigTrade]
     form: NotRequired[ConfigV1Form]
+    participants: NotRequired[ConfigV1Participants]
 
 
 class ConfigToken1(TypedDict):
@@ -1886,6 +1919,17 @@ class ConfigV1Form(TypedDict):
     alarms: NotRequired[Alarms1]
     primitives: NotRequired[Primitives]
     plans: NotRequired[Plans1]
+    participants: NotRequired[Participants]
+
+
+class ConfigV1Participants(TypedDict):
+    """
+    Stored here when `interface.settings_storage` is `server`; otherwise the same structure lives in localStorage. Sort and bubble axes are kept always; `columns` order applies only when `form.participants.use_recommended` is false.
+    """
+
+    columns: NotRequired[list[Column]]
+    sort: NotRequired[Sort]
+    bubble: NotRequired[Bubble]
 
 
 class ConfigV1ServicesFilters(TypedDict):
@@ -3559,6 +3603,14 @@ class Display2(TypedDict):
     text: NotRequired[str]
 
 
+class Document(TypedDict):
+    """
+    Response only. Screener export content as is; see AFB/docs/SCREENER_RESULTS.md.
+    """
+
+    contract_version: NotRequired[int]
+
+
 class Entry(TypedDict):
     entry_id: str
     account_id: NotRequired[str]
@@ -4572,6 +4624,10 @@ class Outcome(TypedDict):
     broker_error: NotRequired[PayloadsDealRejectedBrokerError | None]
 
 
+class Participants(TypedDict):
+    use_recommended: NotRequired[bool]
+
+
 class PayloadsBrokerAccountsAccount(TypedDict):
     account_id: str
     tradable: bool
@@ -4670,6 +4726,114 @@ class Primitives(TypedDict):
     confirm_delete: NotRequired[bool]
 
 
+class ScreenerV1Error(TypedDict):
+    channel: Literal["screener"]
+    schema: Literal["afbws.screener.error.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    code: AfbwsCommonV1ErrorCode
+    message: str
+
+
+class ScreenerV1Get(TypedDict):
+    """
+    Request carries `id` (export id or alias). Response echoes the concrete `id` (aliases resolved) and `kind`, and carries `document`: the export content as is (contract v1), an open object. Unknown export: error `not_found`; malformed id: `invalid_schema`; unreadable file: `internal_error`; unsupported `contract_version`: `unsupported_action`.
+    """
+
+    channel: Literal["screener"]
+    schema: Literal["afbws.screener.get.v1"]
+    request_id: AfbwsCommonV1RequestId
+    id: AfbwsScreenerChannelV1ExportRef
+    kind: NotRequired[AfbwsScreenerChannelV1ExportKind]
+    document: NotRequired[Document]
+
+
+class ScreenerV1List(TypedDict):
+    """
+    Request carries only optional filters. Response carries `items` (newest first) and the ids of the newest exports: `latest` (newest night export) and `intraday_latest` (newest intraday snapshot), each null when there is none. Both are computed from file names, not from the screener's latest*.json copies.
+    """
+
+    channel: Literal["screener"]
+    schema: Literal["afbws.screener.list.v1"]
+    request_id: AfbwsCommonV1RequestId
+    kind: NotRequired[AfbwsScreenerChannelV1ExportKind]
+    limit: NotRequired[int]
+    items: NotRequired[list[AfbwsScreenerChannelV1ListItem]]
+    latest: NotRequired[str | None]
+    intraday_latest: NotRequired[str | None]
+
+
+class ScreenerV1Participants(TypedDict):
+    """
+    Request is an empty command (no parameters in this version). Response carries `received_at`, `tz`, `collections`, `derivatives` (reference table) and `lists` (four columnar snapshots: now, d1, d2, w1). Same capability as list/get: `screener` of the user's role, otherwise `forbidden`. Non-manager sees only derivatives visible to their tier.
+    """
+
+    channel: Literal["screener"]
+    schema: Literal["afbws.screener.participants.v1"]
+    request_id: AfbwsCommonV1RequestId
+    received_at: NotRequired[str]
+    tz: NotRequired[str]
+    collections: NotRequired[list[ScreenerV1ParticipantsCollection]]
+    derivatives: NotRequired[ScreenerV1ParticipantsDerivatives]
+    lists: NotRequired[list[ScreenerV1ParticipantsList]]
+
+
+ScreenerChannelV1Message: TypeAlias = (
+    ScreenerV1List | ScreenerV1Get | ScreenerV1Participants | ScreenerV1Error
+)
+
+
+class ScreenerV1ParticipantsCollection(TypedDict):
+    """
+    Root catalog collection (color source for the bubbles).
+    """
+
+    id: str
+    name: str
+    color: AfbwsScreenerChannelV1FavoriteColor | None
+
+
+class ScreenerV1ParticipantsDerivatives(TypedDict):
+    """
+    Derivative reference table (columnar, like afbws.market.series.v1 tables): `columns` start with `derivative` (e.g. `MISX:Si`) and may list any subset of the other fields; read by column name. `name`; `active_instrument_key` = nearest unexpired contract (to open a chart); `collection_id` references `collections[].id` (null = no collection). Shared by all four lists.
+    """
+
+    columns: list[
+        Literal["derivative"]
+        | Literal["derivative", "name", "active_instrument_key", "collection_id"]
+    ]
+    rows: list[list[float | str | None]]
+
+
+class ScreenerV1ParticipantsList(TypedDict):
+    """
+    One snapshot. `rows` are columnar (`columns` begin with `derivative`; the other columns are a subset of the fiz_/yur_ position fields, openinterest and volume). Only derivatives that have data in this snapshot get a row; the rest are absent (join with `derivatives` by key). `source`: `intraday` if at least one row is the intraday slot of the day, otherwise `daily`.
+    """
+
+    key: Literal["now", "d1", "d2", "w1"]
+    trading_day: str
+    asof: str
+    source: Literal["intraday", "daily"]
+    columns: list[
+        Literal["derivative"]
+        | Literal[
+            "derivative",
+            "fiz_long",
+            "fiz_short",
+            "fiz_net",
+            "fiz_persons_long",
+            "fiz_persons_short",
+            "yur_long",
+            "yur_short",
+            "yur_net",
+            "yur_persons_long",
+            "yur_persons_short",
+            "openinterest",
+            "volume",
+        ]
+    ]
+    rows: list[list[float | str | None]]
+
+
 class Section(TypedDict):
     exchange: str
     section: Literal["stock", "futures", "currency"]
@@ -4751,6 +4915,11 @@ class SessionResyncResponsePayload(TypedDict):
     deals: NotRequired[dict[str, Deals1]]
     deal_revisions: NotRequired[dict[str, int]]
     deal_statuses: NotRequired[dict[str, str]]
+
+
+class Sort(TypedDict):
+    column: NotRequired[str]
+    direction: NotRequired[Literal["asc", "desc"]]
 
 
 class Subscription(TypedDict):

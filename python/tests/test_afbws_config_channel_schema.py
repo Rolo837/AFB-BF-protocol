@@ -36,7 +36,12 @@ _SETTINGS = {
     "dataset": {"positions": {"longColor": "#00ff00", "longPanel": 1}},
     "dashboard": {"cols": 12, "layouts": {"lg": [{"widget": "deals", "x": 0, "y": 0, "w": 4, "h": 3}]}},
     "trade": {"default_risk_pct": 0.5, "notify": {"link": True}, "chart_deal_markers": True},
-    "form": {"alarms": {"confirm_delete": False}, "plans": {"risk_top": True, "editor_left": True}},
+    "form": {"alarms": {"confirm_delete": False}, "plans": {"risk_top": True, "editor_left": True}, "participants": {"use_recommended": False}},
+    "participants": {
+        "columns": ["derivative", "fiz_net", "yur_net"],
+        "sort": {"column": "fiz_net", "direction": "desc"},
+        "bubble": {"x": "fiz_net", "y": "yur_net"},
+    },
 }
 
 
@@ -58,6 +63,27 @@ def test_settings_form_block_is_strict(registry):
         {"form": {"plans": {"risk_top": "yes"}}},
         {"form": {"plans": {"no_such": True}}},
         {"interface": {"settings_storage": "cloud"}},
+    ):
+        with pytest.raises(Exception):
+            v.validate(_msg("settings", request_id="r1", settings=bad))
+
+
+def test_settings_participants_block_is_strict(registry):
+    v = _validator("settings", registry)
+    v.validate(_msg("settings", request_id="r1", settings={"participants": {}}))
+    v.validate(_msg("settings", request_id="r1", settings={"participants": {"sort": {"direction": "asc"}}}))
+    v.validate(_msg("settings", request_id="r1", settings={"form": {"participants": {"use_recommended": True}}}))
+    for bad in (
+        {"participants": {"unknown": 1}},
+        {"participants": {"columns": ["a", "a"]}},
+        {"participants": {"columns": [""]}},
+        {"participants": {"columns": "a"}},
+        {"participants": {"sort": {"column": "a", "direction": "up"}}},
+        {"participants": {"sort": {"column": "a", "extra": 1}}},
+        {"participants": {"bubble": {"x": "a", "z": "b"}}},
+        {"participants": {"bubble": {"x": 1}}},
+        {"form": {"participants": {"use_recommended": "yes"}}},
+        {"form": {"participants": {"other": True}}},
     ):
         with pytest.raises(Exception):
             v.validate(_msg("settings", request_id="r1", settings=bad))
