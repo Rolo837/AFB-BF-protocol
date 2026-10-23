@@ -10,6 +10,8 @@
 
 ## Unreleased
 
+## v2.9.5 — 2026-10-23
+
 - **Настройки сервиса «Участники рынка» (`config.v1.json`, аддитивно, wire `afb.execution.v1` не меняется):** `form.participants.use_recommended` (boolean) и новая секция настроек `participants` — `columns` (уникальные непустые строки), `sort {column, direction: asc|desc}`, `bubble {x, y}` (оси пузырьковой диаграммы); все части необязательны, `additionalProperties:false`; новый `$defs/participants`, секция глубоко сливается при записи (массив `columns` заменяется целиком). Тест — `test_afbws_config_channel_schema.py`; модели перегенерированы.
 
 ## v2.9.4 — 2026-10-22
