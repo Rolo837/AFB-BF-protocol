@@ -73,7 +73,20 @@ def test_settings_participants_block_is_strict(registry):
     v.validate(_msg("settings", request_id="r1", settings={"participants": {}}))
     v.validate(_msg("settings", request_id="r1", settings={"participants": {"sort": {"direction": "asc"}}}))
     v.validate(_msg("settings", request_id="r1", settings={"form": {"participants": {"use_recommended": True}}}))
+    v.validate(
+        _msg(
+            "settings",
+            request_id="r1",
+            settings={
+                "form": {"participants": {"collection_colors": True, "size_by_volume": False}},
+                "participants": {"widths": {"volume": 120}},
+            },
+        )
+    )
     for bad in (
+        {"participants": {"widths": {"volume": "wide"}}},
+        {"participants": {"widths": {"volume": 5}}},
+        {"form": {"participants": {"size_by_volume": "yes"}}},
         {"participants": {"unknown": 1}},
         {"participants": {"columns": ["a", "a"]}},
         {"participants": {"columns": [""]}},

@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 1a5c93e6ec983af7b9dc723f2e74d57fb74f54a9837a699f0725a5eba6003370
+ * source-hash: 727345fe99fb6dec3e835df04115e1ba328a8b5f26b8d3b6203db8102eafec01
  */
 
 /**
@@ -2316,9 +2316,17 @@ export interface ConfigV1_Form {
   };
   participants?: {
     /**
-     * Use the recommended column set and order in the 'Market participants' service (default true); when false the user's `participants.columns` apply.
+     * Use the recommended column set and order in the 'Market participants' service (default true); when false the user's `participants.columns` and `participants.widths` apply.
      */
     use_recommended?: boolean;
+    /**
+     * Bubble chart of the 'Market participants' service: true - bubbles use the colour of their catalog collection; false (default) - each collection gets its own colour from the project palette in order.
+     */
+    collection_colors?: boolean;
+    /**
+     * Bubble chart of the 'Market participants' service: true (default) - bubble size is the traded volume; false - all bubbles have one size.
+     */
+    size_by_volume?: boolean;
   };
 }
 /**
@@ -2332,6 +2340,12 @@ export interface ConfigV1_Participants {
    * Visible table columns in display order (column ids of `afbws.screener.participants.v1`).
    */
   columns?: string[];
+  /**
+   * Table column widths in px by column id (deep-merged). Applies only when `form.participants.use_recommended` is false.
+   */
+  widths?: {
+    [k: string]: number;
+  };
   sort?: {
     column?: string;
     direction?: 'asc' | 'desc';

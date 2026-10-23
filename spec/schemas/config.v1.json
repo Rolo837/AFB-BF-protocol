@@ -235,7 +235,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "use_recommended": { "type": "boolean", "description": "Use the recommended column set and order in the 'Market participants' service (default true); when false the user's `participants.columns` apply." }
+            "use_recommended": { "type": "boolean", "description": "Use the recommended column set and order in the 'Market participants' service (default true); when false the user's `participants.columns` and `participants.widths` apply." },
+            "collection_colors": { "type": "boolean", "description": "Bubble chart of the 'Market participants' service: true - bubbles use the colour of their catalog collection; false (default) - each collection gets its own colour from the project palette in order." },
+            "size_by_volume": { "type": "boolean", "description": "Bubble chart of the 'Market participants' service: true (default) - bubble size is the traded volume; false - all bubbles have one size." }
           }
         }
       }
@@ -251,6 +253,11 @@
           "uniqueItems": true,
           "items": { "type": "string", "minLength": 1 },
           "description": "Visible table columns in display order (column ids of `afbws.screener.participants.v1`)."
+        },
+        "widths": {
+          "type": "object",
+          "description": "Table column widths in px by column id (deep-merged). Applies only when `form.participants.use_recommended` is false.",
+          "additionalProperties": { "type": "integer", "minimum": 30, "maximum": 2000 }
         },
         "sort": {
           "type": "object",

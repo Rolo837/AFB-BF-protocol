@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 1a5c93e6ec983af7b9dc723f2e74d57fb74f54a9837a699f0725a5eba6003370
+# source-hash: 727345fe99fb6dec3e835df04115e1ba328a8b5f26b8d3b6203db8102eafec01
 
 from __future__ import annotations
 
@@ -1928,6 +1928,7 @@ class ConfigV1Participants(TypedDict):
     """
 
     columns: NotRequired[list[Column]]
+    widths: NotRequired[dict[str, int]]
     sort: NotRequired[Sort]
     bubble: NotRequired[Bubble]
 
@@ -4626,6 +4627,8 @@ class Outcome(TypedDict):
 
 class Participants(TypedDict):
     use_recommended: NotRequired[bool]
+    collection_colors: NotRequired[bool]
+    size_by_volume: NotRequired[bool]
 
 
 class PayloadsBrokerAccountsAccount(TypedDict):

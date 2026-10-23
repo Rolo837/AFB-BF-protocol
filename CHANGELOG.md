@@ -12,6 +12,7 @@
 
 ## v2.9.5 — 2026-10-23
 
+- **«Участники рынка»: цвета коллекций, размер пузыря, ширины колонок (`config.v1.json`, аддитивно):** `form.participants.collection_colors` (boolean, цвет по коллекции или по порядку палитры) и `size_by_volume` (boolean, размер пузыря = объём); `participants.widths` — карта «id колонки → ширина px» (30..2000, глубоко сливается). Тест — `test_afbws_config_channel_schema.py`; модели перегенерированы.
 - **Настройки сервиса «Участники рынка» (`config.v1.json`, аддитивно, wire `afb.execution.v1` не меняется):** `form.participants.use_recommended` (boolean) и новая секция настроек `participants` — `columns` (уникальные непустые строки), `sort {column, direction: asc|desc}`, `bubble {x, y}` (оси пузырьковой диаграммы); все части необязательны, `additionalProperties:false`; новый `$defs/participants`, секция глубоко сливается при записи (массив `columns` заменяется целиком). Тест — `test_afbws_config_channel_schema.py`; модели перегенерированы.
 
 ## v2.9.4 — 2026-10-22
