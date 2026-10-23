@@ -10,6 +10,8 @@
 
 ## Unreleased
 
+- **Настройки сервиса «Участники рынка» (`config.v1.json`, аддитивно, wire `afb.execution.v1` не меняется):** `form.participants.use_recommended` (boolean) и новая секция настроек `participants` — `columns` (уникальные непустые строки), `sort {column, direction: asc|desc}`, `bubble {x, y}` (оси пузырьковой диаграммы); все части необязательны, `additionalProperties:false`; новый `$defs/participants`, секция глубоко сливается при записи (массив `columns` заменяется целиком). Тест — `test_afbws_config_channel_schema.py`; модели перегенерированы.
+
 ## v2.9.4 — 2026-10-22
 
 - **Канал `screener`: операция `afbws.screener.participants.v1` (аддитивно, capability прежняя `afbws.screener.channel.v1`, wire `afb.execution.v1` не меняется):** запрос `{}` (+`request_id`), ответ — `received_at`, `tz`, `collections[]` (корневые коллекции: `id`, `name`, `color`), `derivatives` (колоночная таблица `columns`/`rows`: `derivative`, `name`, `active_instrument_key`, `collection_id`) и `lists[]` с `key` ∈ `now|d1|d2|w1`, `trading_day`, `asof`, `source` ∈ `intraday|daily` и колоночными `columns`/`rows` (первая колонка `derivative`, далее подмножество fiz/yur long/short/net и числа участников, `openinterest`, `volume`; ячейки `number|string|null`) — как таблицы `afbws.market.series.v1`, без повторения имён полей в каждой строке. Новые `$defs`: `participants`, `participantsList`, `participantsDerivatives`, `participantsCollection`, `favoriteColor`. Модели `ScreenerV1Participants*`, тесты, `PROTOCOL.md`.

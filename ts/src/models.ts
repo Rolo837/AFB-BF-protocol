@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 3e59fb00904b043b4dfa0146bb25bf0ba1b61f4b5e0cdd978a7633d73e901db5
+ * source-hash: 1a5c93e6ec983af7b9dc723f2e74d57fb74f54a9837a699f0725a5eba6003370
  */
 
 /**
@@ -2070,7 +2070,7 @@ export interface AfbwsCommonV1_Root {
   [k: string]: unknown;
 }
 /**
- * Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard`/`form` are deep-merged, `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
+ * Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard`/`form`/`participants` are deep-merged (arrays such as `participants.columns` are replaced whole), `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "ConfigSettingsV1".
@@ -2082,6 +2082,7 @@ export interface ConfigSettingsV1 {
   dashboard?: ConfigDashboard;
   trade?: ConfigTrade;
   form?: ConfigV1_Form;
+  participants?: ConfigV1_Participants;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2312,6 +2313,35 @@ export interface ConfigV1_Form {
      * Show the 'Risk and volume' section first in the plan modal (default true).
      */
     risk_top?: boolean;
+  };
+  participants?: {
+    /**
+     * Use the recommended column set and order in the 'Market participants' service (default true); when false the user's `participants.columns` apply.
+     */
+    use_recommended?: boolean;
+  };
+}
+/**
+ * Stored here when `interface.settings_storage` is `server`; otherwise the same structure lives in localStorage. Sort and bubble axes are kept always; `columns` order applies only when `form.participants.use_recommended` is false.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigV1_Participants".
+ */
+export interface ConfigV1_Participants {
+  /**
+   * Visible table columns in display order (column ids of `afbws.screener.participants.v1`).
+   */
+  columns?: string[];
+  sort?: {
+    column?: string;
+    direction?: 'asc' | 'desc';
+  };
+  /**
+   * Selected axes of the bubble chart.
+   */
+  bubble?: {
+    x?: string;
+    y?: string;
   };
 }
 /**

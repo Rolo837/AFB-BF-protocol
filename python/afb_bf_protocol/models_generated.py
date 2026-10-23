@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 3e59fb00904b043b4dfa0146bb25bf0ba1b61f4b5e0cdd978a7633d73e901db5
+# source-hash: 1a5c93e6ec983af7b9dc723f2e74d57fb74f54a9837a699f0725a5eba6003370
 
 from __future__ import annotations
 
@@ -1516,6 +1516,15 @@ class BrokerSizing(TypedDict):
     estimated: NotRequired[bool]
 
 
+class Bubble(TypedDict):
+    """
+    Selected axes of the bubble chart.
+    """
+
+    x: NotRequired[str]
+    y: NotRequired[str]
+
+
 class CalendarUpdatePayload(TypedDict):
     """
     AFB-pushed MOEX trading calendar snapshot, so BF can gate execution and background polling on real trading-session boundaries (holidays, weekend sessions, per-board session phases) instead of a fixed off-hours window. SNAPSHOT SEMANTICS: `sections` is the FULL current calendar this AFB wants this BF to hold, never a diff — on receipt BF REPLACES its entire calendar cache for the connection with this array (replace-all, not merge); a section/day/window absent from a later calendar.update is gone, not merely unchanged. Sent only to a BF that has declared `features.market_calendar` in `daemon.capabilities` (see payloads/daemon.capabilities.json) — a BF that has not declared it never receives this message and continues to gate on its own local config.
@@ -1824,7 +1833,7 @@ class ConfigSettings(TypedDict):
 
 class ConfigSettingsV1(TypedDict):
     """
-    Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard`/`form` are deep-merged, `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
+    Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard`/`form`/`participants` are deep-merged (arrays such as `participants.columns` are replaced whole), `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
     """
 
     profile: NotRequired[ConfigProfile]
@@ -1833,6 +1842,7 @@ class ConfigSettingsV1(TypedDict):
     dashboard: NotRequired[ConfigDashboard]
     trade: NotRequired[ConfigTrade]
     form: NotRequired[ConfigV1Form]
+    participants: NotRequired[ConfigV1Participants]
 
 
 class ConfigToken1(TypedDict):
@@ -1909,6 +1919,17 @@ class ConfigV1Form(TypedDict):
     alarms: NotRequired[Alarms1]
     primitives: NotRequired[Primitives]
     plans: NotRequired[Plans1]
+    participants: NotRequired[Participants]
+
+
+class ConfigV1Participants(TypedDict):
+    """
+    Stored here when `interface.settings_storage` is `server`; otherwise the same structure lives in localStorage. Sort and bubble axes are kept always; `columns` order applies only when `form.participants.use_recommended` is false.
+    """
+
+    columns: NotRequired[list[Column]]
+    sort: NotRequired[Sort]
+    bubble: NotRequired[Bubble]
 
 
 class ConfigV1ServicesFilters(TypedDict):
@@ -4603,6 +4624,10 @@ class Outcome(TypedDict):
     broker_error: NotRequired[PayloadsDealRejectedBrokerError | None]
 
 
+class Participants(TypedDict):
+    use_recommended: NotRequired[bool]
+
+
 class PayloadsBrokerAccountsAccount(TypedDict):
     account_id: str
     tradable: bool
@@ -4890,6 +4915,11 @@ class SessionResyncResponsePayload(TypedDict):
     deals: NotRequired[dict[str, Deals1]]
     deal_revisions: NotRequired[dict[str, int]]
     deal_statuses: NotRequired[dict[str, str]]
+
+
+class Sort(TypedDict):
+    column: NotRequired[str]
+    direction: NotRequired[Literal["asc", "desc"]]
 
 
 class Subscription(TypedDict):
