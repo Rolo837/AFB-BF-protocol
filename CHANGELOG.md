@@ -10,6 +10,8 @@
 
 ## Unreleased
 
+## v2.9.6 — 2026-10-23
+
 - **«Участники рынка»: цвета коллекций, размер пузыря, ширины колонок (`config.v1.json`, аддитивно):** `form.participants.collection_colors` (boolean, цвет по коллекции или по порядку палитры) и `size_by_volume` (boolean, размер пузыря = объём); `participants.widths` — карта «id колонки → ширина px» (30..2000, глубоко сливается). Тест — `test_afbws_config_channel_schema.py`; модели перегенерированы.
 
 ## v2.9.5 — 2026-10-23
