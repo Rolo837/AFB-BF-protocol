@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 727345fe99fb6dec3e835df04115e1ba328a8b5f26b8d3b6203db8102eafec01
+ * source-hash: 64110ab9ef7234c701ef89eb3c40387e581e211ef8d742ee3ea88ad190d09faf
  */
 
 /**
@@ -2118,6 +2118,10 @@ export interface ConfigInterface {
    * Where the per-service form switches (`settings.form.*`) are stored: `server` — in the user file (default), `local` — in the browser's localStorage under identical `form.*` keys. This value itself is always stored on the server.
    */
   settings_storage?: 'server' | 'local';
+  /**
+   * Exchange chart rendering: `candles` — Japanese candlesticks (default), `bars` — OHLC bars.
+   */
+  chart_type?: 'candles' | 'bars';
   smart_alarms?: boolean;
   preset_timeframes?: {
     positions?: string;

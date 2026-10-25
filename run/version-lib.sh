@@ -72,30 +72,51 @@ require_branch() {
     fi
 }
 
-# Оформить накопленную секцию "## Unreleased" под версию релиза: вставляет
-# "## vX.Y.Z — YYYY-MM-DD" сразу под строкой Unreleased, сама Unreleased остаётся
-# сверху пустой. Записи в CHANGELOG.md ведёт разработчик/ассистент по ходу работы,
-# без версии — см. VERSIONING.md. no-op, если файла/секции нет.
+# Оформить накопленную секцию "## Unreleased" под версию релиза: её содержимое
+# (без пустых подразделов) переезжает под "## vX.Y.Z — YYYY-MM-DD", а Unreleased
+# заново получает постоянный скелет подразделов Added/Changed/Fixed/Removed, так что
+# в неё всегда есть куда дописывать. Записи в CHANGELOG.md ведёт разработчик/ассистент
+# по ходу работы, без версии — см. VERSIONING.md.
+# no-op, если файла нет или секции Unreleased нет.
 stamp_changelog() {
     local version="$1"
     [ -f "$CHANGELOG_FILE" ] || return 0
     python3 - "$CHANGELOG_FILE" "$version" "$(date +%Y-%m-%d)" <<'PY'
 import pathlib, re, sys
 path, version, date_str = pathlib.Path(sys.argv[1]), sys.argv[2], sys.argv[3]
-lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
-out, done = [], False
-for line in lines:
-    out.append(line)
-    if not done and re.match(r'(?i)^##\s*\[?unreleased\]?\s*$', line):
-        nl = "\n" if line.endswith("\n") else ""
-        out.append(nl)
-        out.append(f"## v{version} — {date_str}{nl}")
-        done = True
-if done:
-    path.write_text("".join(out), encoding="utf-8")
-    print(f"CHANGELOG: секция Unreleased оформлена как v{version} — {date_str}")
-else:
+lines = path.read_text(encoding="utf-8").splitlines()
+head = next((i for i, l in enumerate(lines) if re.match(r'(?i)^##\s*\[?unreleased\]?\s*$', l)), None)
+if head is None:
     print("CHANGELOG: секция ## Unreleased не найдена — пропуск", file=sys.stderr)
+    sys.exit(0)
+end = next((i for i in range(head + 1, len(lines)) if lines[i].startswith("## ")), len(lines))
+body = lines[head + 1:end]
+# Подразделы "### X": оставляем только непустые.
+sections, cur = [], None
+for l in body:
+    if l.startswith("### "):
+        cur = [l, []]
+        sections.append(cur)
+    elif cur is not None:
+        cur[1].append(l)
+    elif l.strip():
+        sections.append([None, [l]])
+released = []
+for title, content in sections:
+    text = [c for c in content if c.strip()]
+    if not text:
+        continue
+    if title:
+        released += [title, *text, ""]
+    else:
+        released += [*text, ""]
+skeleton = ["### Added", "", "### Changed", "", "### Fixed", "", "### Removed", ""]
+new = lines[:head + 1] + [""] + skeleton + [f"## v{version} — {date_str}", ""] + released
+if released and new[-1] != "":
+    new.append("")
+new += lines[end:]
+path.write_text("\n".join(new) + "\n", encoding="utf-8")
+print(f"CHANGELOG: секция Unreleased оформлена как v{version} — {date_str}")
 PY
 }
 

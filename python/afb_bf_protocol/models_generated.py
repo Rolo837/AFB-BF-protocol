@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 727345fe99fb6dec3e835df04115e1ba328a8b5f26b8d3b6203db8102eafec01
+# source-hash: 64110ab9ef7234c701ef89eb3c40387e581e211ef8d742ee3ea88ad190d09faf
 
 from __future__ import annotations
 
@@ -1774,6 +1774,7 @@ class ConfigInterface(TypedDict):
     layout: NotRequired[ConfigLayout]
     snow_mode: NotRequired[bool]
     settings_storage: NotRequired[Literal["server", "local"]]
+    chart_type: NotRequired[Literal["candles", "bars"]]
     smart_alarms: NotRequired[bool]
     preset_timeframes: NotRequired[PresetTimeframes]
     chart_toolbar: NotRequired[ConfigV1ChartToolbar]

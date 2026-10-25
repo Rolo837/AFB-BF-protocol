@@ -92,6 +92,11 @@
           "enum": ["server", "local"],
           "description": "Where the per-service form switches (`settings.form.*`) are stored: `server` — in the user file (default), `local` — in the browser's localStorage under identical `form.*` keys. This value itself is always stored on the server."
         },
+        "chart_type": {
+          "type": "string",
+          "enum": ["candles", "bars"],
+          "description": "Exchange chart rendering: `candles` — Japanese candlesticks (default), `bars` — OHLC bars."
+        },
         "smart_alarms": { "type": "boolean" },
         "preset_timeframes": {
           "type": "object",
