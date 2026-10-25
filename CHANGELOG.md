@@ -2,13 +2,24 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
-Новые записи дописываются в секцию `## Unreleased`
-- **Поля для сверки при resync и комиссий (аддитивно, wire `afb.execution.v1` не меняется; версию и пины делает релизный скрипт):** `deal_seq` (целое ≥ 1, необязательное) в payload'ах событий сделки — `condition.triggered`, `deal.status_changed`, `deal.report`, `order.created`, `order.filled`, `position.opened`, `deal.positions_synced`, `deal.snapshot`; `definition_hash` (SHA-256 hex, считает только AFB) в `deal.publish` и `deal.amend` (и в элементе `deal.resync` — по документации); в `session.resync_request.deals[id]` — `definition_hash`, `deal_seq`; в `session.resync_response.deals[id]` — `definition_hash`, `applied_deal_seq`; `deal.report.fills[].exchange_fee {value, currency}` (биржевой сбор по трейду; отчёт может уходить повторно как PATCH); `broker.accounts.accounts[].broker_fees[] {date, value, currency, transaction_id?}` (новый `$defs/brokerFee`, скользящее окно брокерской комиссии по дням). Терминальный статус сделки принадлежит BF и не выравнивается статусом AFB. Описание — `PROTOCOL.md` §2, §19. Тесты — `test_deal_seq_hash_fees_schema.py`; TS/Python-модели перегенерированы.
- **без версии и даты**.
+Новые записи дописываются в секцию `## Unreleased` **без версии и даты**, в готовый подраздел `### Added` / `### Changed` / `### Fixed` / `### Removed` — они в Unreleased есть всегда, новые подразделы и версии вручную не заводить.
 
-`run/version.sh {patch|minor}` переносит их под `## vX.Y.Z — YYYY-MM-DD` и заводит новую пустую `## Unreleased`.
+`run/version.sh {patch|minor}` переносит непустые подразделы под `## vX.Y.Z — YYYY-MM-DD` и восстанавливает пустой скелет `## Unreleased`.
 
 ## Unreleased
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## v2.9.7 — 2026-10-25
+
+### Added
+- **Настройки интерфейса: `interface.chart_type` (`config.v1.json`, аддитивно, wire `afb.execution.v1` не меняется):** `candles` | `bars` — тип основного биржевого графика (свечи или OHLC-бары), по умолчанию `candles`; пользовательский файл может ключа не содержать. Модели перегенерированы.
 
 ## v2.9.6 — 2026-10-23
 
@@ -24,6 +35,8 @@
 - **Канал `screener` (аддитивно, wire `afb.execution.v1` не меняется; только AFB backend<->frontend):** схема `spec/schemas/afbws/screener.channel.v1.json`, capability `afbws.screener.channel.v1` (`SCREENER_CHANNEL_V1`). Операции `afbws.screener.list.v1` (список выгрузок скринера, `latest`/`intraday_latest`) и `afbws.screener.get.v1` (содержимое выгрузки по id `night:YYYY-MM-DD` / `intraday:YYYY-MM-DDTHHMM` или алиасу; `document` — открытый объект контракта v1), ошибка `afbws.screener.error.v1`. Модели TS/Python и `docs/PROTOCOL.md` обновлены.
 
 ## v2.9.3 — 2026-10-22
+
+- **Поля для сверки при resync и комиссий (аддитивно, wire `afb.execution.v1` не меняется; версию и пины делает релизный скрипт):** `deal_seq` (целое ≥ 1, необязательное) в payload'ах событий сделки — `condition.triggered`, `deal.status_changed`, `deal.report`, `order.created`, `order.filled`, `position.opened`, `deal.positions_synced`, `deal.snapshot`; `definition_hash` (SHA-256 hex, считает только AFB) в `deal.publish` и `deal.amend` (и в элементе `deal.resync` — по документации); в `session.resync_request.deals[id]` — `definition_hash`, `deal_seq`; в `session.resync_response.deals[id]` — `definition_hash`, `applied_deal_seq`; `deal.report.fills[].exchange_fee {value, currency}` (биржевой сбор по трейду; отчёт может уходить повторно как PATCH); `broker.accounts.accounts[].broker_fees[] {date, value, currency, transaction_id?}` (новый `$defs/brokerFee`, скользящее окно брокерской комиссии по дням). Терминальный статус сделки принадлежит BF и не выравнивается статусом AFB. Описание — `PROTOCOL.md` §2, §19. Тесты — `test_deal_seq_hash_fees_schema.py`; TS/Python-модели перегенерированы.
 
 ## v2.9.2 — 2026-10-22
 
