@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/screener.channel.v1.json",
   "x-afbws-support-id": "afbws.screener.channel.v1",
   "title": "screener channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.screener.channel.v1). Read-only access to the screener's published JSON exports (contract v1, see AFB/docs/SCREENER_RESULTS.md); the backend never opens the screener database. Same convention as afbws.market/afbws.config: ONE schema id per message (`afbws.screener.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response. `request_id` is required everywhere: there are no server pushes in this version (the client refreshes on demand). A failed request is answered with `afbws.screener.error.v1`. Operations: `list` (available exports, newest first, content not read), `get` (one export by id) and `participants` (market participants snapshot: four lists now/d1/d2/w1 of derivatives with fiz/yur positions, open interest and volume, computed by the backend from market_cache). Export ids: `night:YYYY-MM-DD` (night result of a trading day), `intraday:YYYY-MM-DDTHHMM` (intraday snapshot), or the aliases `latest` (newest night export) and `intraday_latest` (newest intraday snapshot). Access requires the `screener` capability of the user's role; otherwise `forbidden`. The exported document is intentionally an open object: only `contract_version` is relied upon; the screener's fields (signals, reliability, models, errors) evolve and are described in AFB/docs/SCREENER_RESULTS.md. A document with an unsupported `contract_version` is answered with `unsupported_action`. See AFB/docs/ws/screener.md.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.screener.channel.v1). Read-only access to the screener's published JSON exports (contract v1, see AFB/docs/SCREENER_RESULTS.md); the backend never opens the screener database. Same convention as afbws.market/afbws.config: ONE schema id per message (`afbws.screener.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response. `request_id` is required in every client request. The only server push is `afbws.screener.participants.v1` without `request_id` (see its description); the other operations are answered on demand. A failed request is answered with `afbws.screener.error.v1`. Operations: `list` (available exports, newest first, content not read), `get` (one export by id) and `participants` (market participants snapshot: four lists now/d1/d2/w1 of derivatives with fiz/yur positions, open interest and volume, computed by the backend from market_cache). Export ids: `night:YYYY-MM-DD` (night result of a trading day), `intraday:YYYY-MM-DDTHHMM` (intraday snapshot), or the aliases `latest` (newest night export) and `intraday_latest` (newest intraday snapshot). Access requires the `screener` capability of the user's role; otherwise `forbidden`. The exported document is intentionally an open object: only `contract_version` is relied upon; the screener's fields (signals, reliability, models, errors) evolve and are described in AFB/docs/SCREENER_RESULTS.md. A document with an unsupported `contract_version` is answered with `unsupported_action`. See AFB/docs/ws/screener.md.",
   "type": "object",
   "oneOf": [
     {
@@ -298,7 +298,7 @@
         "columns",
         "rows"
       ],
-      "description": "One snapshot. `rows` are columnar (`columns` begin with `derivative`; the other columns are a subset of the fiz_/yur_ position fields, openinterest and volume). Only derivatives that have data in this snapshot get a row; the rest are absent (join with `derivatives` by key). `source`: `intraday` if at least one row is the intraday slot of the day, otherwise `daily`.",
+      "description": "One snapshot. `rows` are columnar (`columns` begin with `derivative`; the other columns are a subset of the fiz_/yur_ position fields, openinterest and volume). Only derivatives that have data in this snapshot get a row; the rest are absent (join with `derivatives` by key). `source`: `intraday` if at least one row is the intraday slot of the day, otherwise `daily`. `price` = price of the derivative's active contract (`derivatives.active_instrument_key`): the last quote for `now` when `trading_day` is today, otherwise the close of the last 5-minute slot of `trading_day`; null when there is no price. The same contract is used in all four lists, so price changes between lists are comparable.",
       "properties": {
         "key": {
           "enum": [
@@ -347,7 +347,8 @@
               "yur_persons_long",
               "yur_persons_short",
               "openinterest",
-              "volume"
+              "volume",
+              "price"
             ]
           }
         },
@@ -370,11 +371,10 @@
     "participants": {
       "type": "object",
       "title": "afbws.screener.participants.v1 — market participants snapshot (request / response).",
-      "description": "Request is an empty command (no parameters in this version). Response carries `received_at`, `tz`, `collections`, `derivatives` (reference table) and `lists` (four columnar snapshots: now, d1, d2, w1). Same capability as list/get: `screener` of the user's role, otherwise `forbidden`. Non-manager sees only derivatives visible to their tier.",
+      "description": "Request is an empty command (no parameters in this version; `request_id` is required). Response carries `received_at`, `tz`, `collections`, `derivatives` (reference table) and `lists` (four columnar snapshots: now, d1, d2, w1). Server push: after each refresh of the FORTS positions (about every 5 minutes) the backend sends the same message with the full body and WITHOUT `request_id` to every connection that has requested `participants` at least once; there is no unsubscribe, the subscription ends with the connection. Access: tier `manager` or `user`, otherwise `forbidden`. Non-manager sees only derivatives visible to their tier.",
       "required": [
         "channel",
-        "schema",
-        "request_id"
+        "schema"
       ],
       "additionalProperties": false,
       "properties": {
@@ -452,6 +452,44 @@
               "collections",
               "derivatives",
               "lists"
+            ]
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "received_at"
+                  ]
+                },
+                {
+                  "required": [
+                    "tz"
+                  ]
+                },
+                {
+                  "required": [
+                    "lists"
+                  ]
+                },
+                {
+                  "required": [
+                    "collections"
+                  ]
+                },
+                {
+                  "required": [
+                    "derivatives"
+                  ]
+                }
+              ]
+            }
+          },
+          "then": {
+            "required": [
+              "request_id"
             ]
           }
         }

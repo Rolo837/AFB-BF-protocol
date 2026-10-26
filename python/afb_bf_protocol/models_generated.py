@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 64110ab9ef7234c701ef89eb3c40387e581e211ef8d742ee3ea88ad190d09faf
+# source-hash: 94d8ca8c3a220e007dfb5295efeef6b314be38ab1f5fbb783508a00db7e5bfc8
 
 from __future__ import annotations
 
@@ -4768,12 +4768,12 @@ class ScreenerV1List(TypedDict):
 
 class ScreenerV1Participants(TypedDict):
     """
-    Request is an empty command (no parameters in this version). Response carries `received_at`, `tz`, `collections`, `derivatives` (reference table) and `lists` (four columnar snapshots: now, d1, d2, w1). Same capability as list/get: `screener` of the user's role, otherwise `forbidden`. Non-manager sees only derivatives visible to their tier.
+    Request is an empty command (no parameters in this version; `request_id` is required). Response carries `received_at`, `tz`, `collections`, `derivatives` (reference table) and `lists` (four columnar snapshots: now, d1, d2, w1). Server push: after each refresh of the FORTS positions (about every 5 minutes) the backend sends the same message with the full body and WITHOUT `request_id` to every connection that has requested `participants` at least once; there is no unsubscribe, the subscription ends with the connection. Access: tier `manager` or `user`, otherwise `forbidden`. Non-manager sees only derivatives visible to their tier.
     """
 
     channel: Literal["screener"]
     schema: Literal["afbws.screener.participants.v1"]
-    request_id: AfbwsCommonV1RequestId
+    request_id: NotRequired[AfbwsCommonV1RequestId]
     received_at: NotRequired[str]
     tz: NotRequired[str]
     collections: NotRequired[list[ScreenerV1ParticipantsCollection]]
@@ -4810,7 +4810,7 @@ class ScreenerV1ParticipantsDerivatives(TypedDict):
 
 class ScreenerV1ParticipantsList(TypedDict):
     """
-    One snapshot. `rows` are columnar (`columns` begin with `derivative`; the other columns are a subset of the fiz_/yur_ position fields, openinterest and volume). Only derivatives that have data in this snapshot get a row; the rest are absent (join with `derivatives` by key). `source`: `intraday` if at least one row is the intraday slot of the day, otherwise `daily`.
+    One snapshot. `rows` are columnar (`columns` begin with `derivative`; the other columns are a subset of the fiz_/yur_ position fields, openinterest and volume). Only derivatives that have data in this snapshot get a row; the rest are absent (join with `derivatives` by key). `source`: `intraday` if at least one row is the intraday slot of the day, otherwise `daily`. `price` = price of the derivative's active contract (`derivatives.active_instrument_key`): the last quote for `now` when `trading_day` is today, otherwise the close of the last 5-minute slot of `trading_day`; null when there is no price. The same contract is used in all four lists, so price changes between lists are comparable.
     """
 
     key: Literal["now", "d1", "d2", "w1"]
@@ -4833,6 +4833,7 @@ class ScreenerV1ParticipantsList(TypedDict):
             "yur_persons_short",
             "openinterest",
             "volume",
+            "price",
         ]
     ]
     rows: list[list[float | str | None]]

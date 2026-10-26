@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 64110ab9ef7234c701ef89eb3c40387e581e211ef8d742ee3ea88ad190d09faf
+ * source-hash: 94d8ca8c3a220e007dfb5295efeef6b314be38ab1f5fbb783508a00db7e5bfc8
  */
 
 /**
@@ -1275,7 +1275,7 @@ export type MarketSnapshotTable = MarketTable & {
   kind?: 'quote' | 'oi' | 'oi_daily';
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.screener.channel.v1). Read-only access to the screener's published JSON exports (contract v1, see AFB/docs/SCREENER_RESULTS.md); the backend never opens the screener database. Same convention as afbws.market/afbws.config: ONE schema id per message (`afbws.screener.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response. `request_id` is required everywhere: there are no server pushes in this version (the client refreshes on demand). A failed request is answered with `afbws.screener.error.v1`. Operations: `list` (available exports, newest first, content not read), `get` (one export by id) and `participants` (market participants snapshot: four lists now/d1/d2/w1 of derivatives with fiz/yur positions, open interest and volume, computed by the backend from market_cache). Export ids: `night:YYYY-MM-DD` (night result of a trading day), `intraday:YYYY-MM-DDTHHMM` (intraday snapshot), or the aliases `latest` (newest night export) and `intraday_latest` (newest intraday snapshot). Access requires the `screener` capability of the user's role; otherwise `forbidden`. The exported document is intentionally an open object: only `contract_version` is relied upon; the screener's fields (signals, reliability, models, errors) evolve and are described in AFB/docs/SCREENER_RESULTS.md. A document with an unsupported `contract_version` is answered with `unsupported_action`. See AFB/docs/ws/screener.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.screener.channel.v1). Read-only access to the screener's published JSON exports (contract v1, see AFB/docs/SCREENER_RESULTS.md); the backend never opens the screener database. Same convention as afbws.market/afbws.config: ONE schema id per message (`afbws.screener.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response. `request_id` is required in every client request. The only server push is `afbws.screener.participants.v1` without `request_id` (see its description); the other operations are answered on demand. A failed request is answered with `afbws.screener.error.v1`. Operations: `list` (available exports, newest first, content not read), `get` (one export by id) and `participants` (market participants snapshot: four lists now/d1/d2/w1 of derivatives with fiz/yur positions, open interest and volume, computed by the backend from market_cache). Export ids: `night:YYYY-MM-DD` (night result of a trading day), `intraday:YYYY-MM-DDTHHMM` (intraday snapshot), or the aliases `latest` (newest night export) and `intraday_latest` (newest intraday snapshot). Access requires the `screener` capability of the user's role; otherwise `forbidden`. The exported document is intentionally an open object: only `contract_version` is relied upon; the screener's fields (signals, reliability, models, errors) evolve and are described in AFB/docs/SCREENER_RESULTS.md. A document with an unsupported `contract_version` is answered with `unsupported_action`. See AFB/docs/ws/screener.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "ScreenerChannelV1Message".
@@ -1355,7 +1355,7 @@ export type ScreenerV1Get = {
   };
 };
 /**
- * Request is an empty command (no parameters in this version). Response carries `received_at`, `tz`, `collections`, `derivatives` (reference table) and `lists` (four columnar snapshots: now, d1, d2, w1). Same capability as list/get: `screener` of the user's role, otherwise `forbidden`. Non-manager sees only derivatives visible to their tier.
+ * Request is an empty command (no parameters in this version; `request_id` is required). Response carries `received_at`, `tz`, `collections`, `derivatives` (reference table) and `lists` (four columnar snapshots: now, d1, d2, w1). Server push: after each refresh of the FORTS positions (about every 5 minutes) the backend sends the same message with the full body and WITHOUT `request_id` to every connection that has requested `participants` at least once; there is no unsubscribe, the subscription ends with the connection. Access: tier `manager` or `user`, otherwise `forbidden`. Non-manager sees only derivatives visible to their tier.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "ScreenerV1Participants".
@@ -1365,7 +1365,7 @@ export type ScreenerV1Participants = {
 } & {
   channel: 'screener';
   schema: 'afbws.screener.participants.v1';
-  request_id: AfbwsCommonV1_RequestId;
+  request_id?: AfbwsCommonV1_RequestId;
   /**
    * Response only.
    */
@@ -5082,7 +5082,7 @@ export interface ScreenerV1ParticipantsDerivatives {
   rows: (number | string | null)[][];
 }
 /**
- * One snapshot. `rows` are columnar (`columns` begin with `derivative`; the other columns are a subset of the fiz_/yur_ position fields, openinterest and volume). Only derivatives that have data in this snapshot get a row; the rest are absent (join with `derivatives` by key). `source`: `intraday` if at least one row is the intraday slot of the day, otherwise `daily`.
+ * One snapshot. `rows` are columnar (`columns` begin with `derivative`; the other columns are a subset of the fiz_/yur_ position fields, openinterest and volume). Only derivatives that have data in this snapshot get a row; the rest are absent (join with `derivatives` by key). `source`: `intraday` if at least one row is the intraday slot of the day, otherwise `daily`. `price` = price of the derivative's active contract (`derivatives.active_instrument_key`): the last quote for `now` when `trading_day` is today, otherwise the close of the last 5-minute slot of `trading_day`; null when there is no price. The same contract is used in all four lists, so price changes between lists are comparable.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "ScreenerV1ParticipantsList".
@@ -5119,6 +5119,7 @@ export interface ScreenerV1ParticipantsList {
       | 'yur_persons_short'
       | 'openinterest'
       | 'volume'
+      | 'price'
     ),
     ...(
       | 'derivative'
@@ -5134,6 +5135,7 @@ export interface ScreenerV1ParticipantsList {
       | 'yur_persons_short'
       | 'openinterest'
       | 'volume'
+      | 'price'
     )[]
   ];
   /**

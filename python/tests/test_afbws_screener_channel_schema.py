@@ -210,7 +210,7 @@ def test_root_rejects_foreign_channel(registry):
 _NUM_FIELDS = [
     "fiz_long", "fiz_short", "fiz_net", "fiz_persons_long", "fiz_persons_short",
     "yur_long", "yur_short", "yur_net", "yur_persons_long", "yur_persons_short",
-    "openinterest", "volume",
+    "openinterest", "volume", "price",
 ]
 
 
@@ -249,14 +249,24 @@ def test_participants_request_valid(registry):
     )
 
 
-def test_participants_request_id_required(registry):
+def test_participants_request_id_required_for_request_only(registry):
     from jsonschema import ValidationError
 
+    # Запрос клиента без request_id невалиден; серверный пуш (полное тело) без request_id — валиден.
+    with pytest.raises(ValidationError):
+        _validator("participants", registry).validate(
+            {"channel": "screener", "schema": "afbws.screener.participants.v1"}
+        )
     push = _participants_response()
     del push["request_id"]
-    for msg in ({"channel": "screener", "schema": "afbws.screener.participants.v1"}, push):
-        with pytest.raises(ValidationError):
-            _validator("participants", registry).validate(msg)
+    _validator("participants", registry).validate(push)
+
+
+def test_participants_price_column_nullable(registry):
+    msg = _participants_response()
+    msg["lists"][1]["columns"] = ["derivative", "price", "volume"]
+    msg["lists"][1]["rows"] = [["MISX:Si", 101234.5, 7], ["MISX:GD", None, None]]
+    _validator("participants", registry).validate(msg)
 
 
 def test_participants_request_rejects_extra_params(registry):
