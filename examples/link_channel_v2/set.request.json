@@ -1,0 +1,11 @@
+{
+  "channel": "link",
+  "schema": "afbws.link.set.v2",
+  "request_id": "r3",
+  "items": [
+    {
+      "bf_id": "bf-1",
+      "dry_run": false
+    }
+  ]
+}

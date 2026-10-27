@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 084ba519986a4132a4c5d271ef98486908b0067bc5c3f458dcdc70fb644e3f64
+ * source-hash: 96b3bbf0c27bb434c68ecb2dcc86aace70cc2c8211e1e4e7c9c26103e8c1fe0a
  */
 
 /**
@@ -98,6 +98,7 @@ export type AfbwsCommonV1_ErrorCode =
   | 'forbidden'
   | 'bf_offline'
   | 'unsupported_action'
+  | 'not_paired'
   | 'superseded'
   | 'busy';
 /**
@@ -1050,7 +1051,7 @@ export type AfbwsInstrumentChannelV2_Detail1 = {
   [k: string]: unknown;
 };
 /**
- * Manager view of a BF connector config record — reuses link.user.v1.json#/$defs/sharedFields (via $ref, not redeclared, so the two views can't drift apart) plus ACL/key management fields. Never carries `connected`/`daemon`/session runtime — see link.status.v1.json.
+ * Manager view of a BF connector config record — reuses link.user.v1.json#/$defs/sharedFields (via $ref, not redeclared, so the two views can't drift apart) plus ACL/key management fields. Never carries `connected`/`daemon`/session runtime — see link.channel.v2.json#/$defs/statusItem.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "LinkAdminV1".
@@ -1075,37 +1076,41 @@ export type LinkAdminSetInput = LinkSetInputShared & {
   allowed_users?: string[];
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.link.channel.v1). Replaces legacy channels `connector` (config CRUD) and `bfs` (registry push) for clients that negotiated this capability; legacy stays available as fallback. `entity` carries either afbws.link.user.v1 or afbws.link.admin.v1 depending on the caller's role — the backend chooses which, not the client. `pair`/`restart` are explicit per-id actions, not part of the get/list/set/delete CRUD set. Config (this file + link.user.v1.json/link.admin.v1.json) and runtime status (link.status.v1.json) are delivered as separate push types and never mixed into one item. See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.link.channel.v2). Same convention as afbws.alarm.channel.v2: ONE schema id per message (`afbws.link.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and the server push (no `request_id`). Collections are arrays (`items[]`, `ids[]`), so bulk operations are single messages; per-element failures come back in `rejected[]` (only with `request_id`), a whole-request failure is `afbws.link.error.v2`. Config records are afbws.link.user.v1 / afbws.link.admin.v1 (role-chosen by the backend); runtime status records (`afbws.link.state.v2`, `status` operation) are separate and never mixed into config items. Pushes are deltas: list/set push = upsert by `bf_id`, delete push = removal, status push = only changed statuses (repeated heartbeats without change are silent). See AFB/docs/ws/link.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkChannelV1Message".
+ * via the `definition` "LinkChannelV2Message".
  */
-export type LinkChannelV1Message =
-  | LinkGetRequest
-  | LinkGetResponse
-  | LinkListRequest
-  | LinkListResponse
-  | LinkSetRequest
-  | LinkSetResponse
-  | LinkDeleteRequest
-  | LinkDeleteResponse
-  | LinkPairRequest
-  | LinkPairResponse
-  | LinkRestartRequest
-  | LinkRestartResponse
-  | LinkErrorResponse
-  | LinkSyncPush
-  | LinkStatusSyncPush
-  | LinkStatusPush;
+export type LinkChannelV2Message =
+  LinkV2List | LinkV2Set | LinkV2Delete | LinkV2Pair | LinkV2Restart | LinkV2Status | LinkV2Error;
 /**
- * Role-chosen config view — afbws.link.user.v1 (non-manager, including the synthetic virtual pseudo-connector) or afbws.link.admin.v1 (manager).
+ * Request (`request_id`, no `items`): optional `scope` (usable = default, working accounts the caller may trade on incl. virtual; admin = full registry as admin views, managers only) and `ids[]` filter (none = all of the scope). Response (same `request_id`): `items[]` (afbws.link.user.v1 | afbws.link.admin.v1, role-chosen). Push (no `request_id`, server-initiated): `items[]` (at least one) created/changed connectors — upsert by `bf_id`, never a snapshot; removal is `afbws.link.delete.v2` push. The first list/status request subscribes the connection to link pushes. There is no separate `get`: use `ids`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkEntity".
+ * via the `definition` "LinkV2List".
  */
-export type LinkEntity = LinkUserV1 | LinkAdminV1;
+export type LinkV2List = {
+  [k: string]: unknown;
+} & {
+  channel: 'link';
+  schema: 'afbws.link.list.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  scope?: 'usable' | 'admin';
+  /**
+   * @minItems 1
+   */
+  ids?: [string, ...string[]];
+  items?: LinkV2Entity[];
+};
 /**
- * Caller-scoped BF connector config record for a non-manager viewer (owner: capability trade + user_id in allowed_users, or role-only access — role-only is read-only, enforced by the backend, not this schema). Never carries `connected`/`daemon`/session runtime — see link.status.v1.json for that, delivered on a separate push. The synthetic `virtual` pseudo-connector also uses this exact shape (kind:"virtual") — see link.channel.v1.json. `$defs/sharedFields` is the single source of the fields link.admin.v1.json reuses (via $ref) so the two views can't drift apart independently. `$defs/setInputShared` is the same for set() payloads.
+ * Role-chosen config view — afbws.link.user.v1 (non-manager, including the synthetic virtual pseudo-connector) or afbws.link.admin.v1 (manager). The backend chooses which, never the client.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkV2Entity".
+ */
+export type LinkV2Entity = LinkUserV1 | LinkAdminV1;
+/**
+ * Caller-scoped BF connector config record for a non-manager viewer (owner: capability trade + user_id in allowed_users, or role-only access — role-only is read-only, enforced by the backend, not this schema). Never carries `connected`/`daemon`/session runtime — see link.channel.v2.json#/$defs/statusItem for that, delivered on a separate push. The synthetic `virtual` pseudo-connector also uses this exact shape (kind:"virtual") — see link.channel.v2.json. `$defs/sharedFields` is the single source of the fields link.admin.v1.json reuses (via $ref) so the two views can't drift apart independently. `$defs/setInputShared` is the same for set() payloads.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "LinkUserV1".
@@ -1115,12 +1120,27 @@ export type LinkUserV1 = BfRegistryEntry &
     schema: 'afbws.link.user.v1';
   };
 /**
- * Role-chosen set() item shape — the backend selects which by the authenticated caller's role, never by a client-declared schema id. anyOf, not oneOf: neither shape carries a discriminating `schema` field, and a minimal payload (e.g. {bf_id, dry_run}) is structurally valid under both — oneOf would reject it as ambiguous. The backend, not this schema, decides which fields a given caller is actually allowed to use.
+ * Request (`request_id`, no `rejected`): `items[]` of role-chosen set input, at least one. Response (same `request_id`, `rejected` present): applied `items[]` (authoritative records, possibly empty) + `rejected[]` (per-item failures; `conflict` carries the current `item`). Push (no `request_id`): `items[]` (at least one) created/changed on the server's own initiative — upsert by `bf_id`; `rejected` is not allowed.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkSetInput".
+ * via the `definition` "LinkV2Set".
  */
-export type LinkSetInput = LinkUserSetInput | LinkAdminSetInput;
+export type LinkV2Set = {
+  [k: string]: unknown;
+} & {
+  channel: 'link';
+  schema: 'afbws.link.set.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  items: (LinkV2Entity | LinkV2SetInput)[];
+  rejected?: LinkV2Rejection[];
+};
+/**
+ * Role-chosen set() item shape — the backend selects which by the authenticated caller's role, never by a client-declared schema id. anyOf, not oneOf: neither shape carries a discriminating `schema` field, and a minimal payload (e.g. {bf_id, dry_run}) is structurally valid under both. The backend, not this schema, decides which fields a given caller may actually use.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkV2SetInput".
+ */
+export type LinkV2SetInput = LinkUserSetInput | LinkAdminSetInput;
 /**
  * A non-manager caller may adjust name/enabled/description/dry_run/execution_policy on their own already-existing connector — never broker/protocol/allowed_* /margin_trading, and never create a new entry (bf_id must already exist and be owned by the caller; enforced by the backend, not this schema).
  *
@@ -1128,6 +1148,77 @@ export type LinkSetInput = LinkUserSetInput | LinkAdminSetInput;
  * via the `definition` "LinkUserSetInput".
  */
 export type LinkUserSetInput = LinkSetInputShared;
+/**
+ * Request (`request_id`, no `rejected`): `ids[]`, at least one. Response (same `request_id`, `rejected` present): `ids[]` actually removed (possibly empty) + `rejected[]`. Push (no `request_id`): `ids[]` (at least one) removed from the registry — drop by `bf_id`; `rejected` is not allowed.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkV2Delete".
+ */
+export type LinkV2Delete = {
+  [k: string]: unknown;
+} & {
+  channel: 'link';
+  schema: 'afbws.link.delete.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  ids: string[];
+  rejected?: LinkV2Rejection[];
+};
+/**
+ * Request: `ids[]`, at least one (manager or owner; the virtual connector is rejected with `unsupported_action`). Response (same `request_id`): `items[]` — one `{id, item, pairing_string, expires_at}` per started pairing + `rejected[]`. No server push.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkV2Pair".
+ */
+export type LinkV2Pair = {
+  channel: 'link';
+  schema: 'afbws.link.pair.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  ids?: string[];
+  items?: LinkV2PairItem[];
+  rejected?: LinkV2Rejection[];
+} & LinkV2Pair1;
+export type LinkV2Pair1 =
+  | {
+      ids: {
+        [k: string]: unknown;
+      };
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * Request: explicit `ids[]`, at least one — never implicitly picks the first accessible BF. Response (same `request_id`): `ids[]` for which the restart command was sent + `rejected[]`. No server push.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkV2Restart".
+ */
+export type LinkV2Restart = {
+  [k: string]: unknown;
+} & {
+  channel: 'link';
+  schema: 'afbws.link.restart.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  ids: string[];
+  rejected?: LinkV2Rejection[];
+};
+/**
+ * Request (`request_id`, no `items`): optional `ids[]` (none = every connector visible in the caller's usable view). Response (same `request_id`): `items[]` of status records (afbws.link.state.v2). Push (no `request_id`): `items[]` (at least one) of ONLY the statuses that changed — repeated heartbeats without a state change produce no push. `updated_at` of a record is the moment of its last state change. The first list/status request subscribes the connection to pushes.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "LinkV2Status".
+ */
+export type LinkV2Status = {
+  [k: string]: unknown;
+} & {
+  channel: 'link';
+  schema: 'afbws.link.status.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  /**
+   * @minItems 1
+   */
+  ids?: [string, ...string[]];
+  items?: LinkV2StatusItem[];
+};
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.market.channel.v1). Replaces the legacy `candles` channel (klines + background datasets positions/trades/hhi/orders), `stream/favorites`, `stream/positions`, and `securities/marketdata|futures|positions` for clients that negotiated this capability; legacy stays available as fallback for clients that did not — this migration carries no version-gated behaviour, negotiation is purely by `auth.support`/`auth_ok.support`. Every instrument is addressed by the catalog's full `instrument_key` (see common.v1.json#/$defs/instrumentKey), not a bare SECID. Two data templates cover the subscribable/pushable payload shapes: `series` (candles and every background dataset, keyed by `time`) and `snapshot` (a cross-instrument slice, keyed by `instrument_key`), both columnar (`$defs/table`: `columns` + `rows`). The same schema id serves both as the reply to a `get` (carries `request_id`) and as an unsolicited push to a live subscription (no `request_id`) — deliberately no `.request`/`.response`/`.push` suffix on schema ids. Every data message carries `received_at` (when AFB received the data from its source) and `tz` (the trading venue's IANA zone that row-level `time`/day boundaries are aligned to). Two independent subscription mechanisms exist, deliberately not unified: `subscribe` is explicit and replace-all for the `quotes` (favorites) and `futures` (screener) snapshot scopes — the client states its whole desired scope every time, the server does not diff against a previous statement; the series (candles/dataset) subscription has no separate message at all — a connection has at most one, and it is simply whatever `get` (target=series) was last sent with a live `end_date` (see `get`'s description). There is no client-side calendar lookup at all: a live `series` (`$defs/series`) itself carries an optional `future_times` — AFB derives future (whitespace) bar slots for the chart server-side from its own trading-calendar state and includes them directly in the series answer/push, so the frontend never has to ask separately. `NaN` never appears on the wire — sources that produce it are converted to `null`. Two more optional pieces cover degraded external sources (plan стабильности AFB, Этап 3): `series.data_status` (`$defs/dataStatus`) flags a single reply/push as stale/partial when it did not come from a normal fresh fetch, and `source_status` (`$defs/sourceStatus`, unsolicited push) is a channel-wide health snapshot of AFB's external sources (`moex`/`getcourse`), replacing the removed legacy `stream/loop_status`. See AFB/docs/ws/market.md.
  *
@@ -4023,190 +4114,48 @@ export interface LinkSetInputShared {
   execution_policy?: ConnectorExecutionPolicy;
 }
 /**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkGetRequest".
- */
-export interface LinkGetRequest {
-  channel: 'link';
-  schema: 'afbws.link.get.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  id: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkGetResponse".
- */
-export interface LinkGetResponse {
-  channel: 'link';
-  schema: 'afbws.link.get.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  item: LinkEntity;
-}
-/**
- * scope omitted or "usable": enabled connectors the caller may trade on (allowed_users ACL) plus virtual when permitted — never a manager bypass. scope "admin": full registry as admin views; managers only (backend rejects otherwise). Side-effect status.sync.push after list.response uses the same scope.
+ * `item` (the current authoritative record) is only allowed with code `conflict`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkListRequest".
+ * via the `definition` "LinkV2Rejection".
  */
-export interface LinkListRequest {
-  channel: 'link';
-  schema: 'afbws.link.list.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  /**
-   * usable (default): working accounts for widgets. admin: ConnectorsModal inventory for managers.
-   */
-  scope?: 'usable' | 'admin';
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkListResponse".
- */
-export interface LinkListResponse {
-  channel: 'link';
-  schema: 'afbws.link.list.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  items: LinkEntity[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkSetRequest".
- */
-export interface LinkSetRequest {
-  channel: 'link';
-  schema: 'afbws.link.set.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  item: LinkSetInput;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkSetResponse".
- */
-export interface LinkSetResponse {
-  channel: 'link';
-  schema: 'afbws.link.set.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  item: LinkEntity;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkDeleteRequest".
- */
-export interface LinkDeleteRequest {
-  channel: 'link';
-  schema: 'afbws.link.delete.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
+export interface LinkV2Rejection {
   id: string;
+  code: AfbwsCommonV1_ErrorCode;
+  message?: string;
+  details?: {};
+  item?: LinkV2Entity;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkDeleteResponse".
+ * via the `definition` "LinkV2PairItem".
  */
-export interface LinkDeleteResponse {
-  channel: 'link';
-  schema: 'afbws.link.delete.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
+export interface LinkV2PairItem {
   id: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkPairRequest".
- */
-export interface LinkPairRequest {
-  channel: 'link';
-  schema: 'afbws.link.pair.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  id: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkPairResponse".
- */
-export interface LinkPairResponse {
-  channel: 'link';
-  schema: 'afbws.link.pair.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  item: LinkEntity;
+  item: LinkV2Entity;
   pairing_string: string;
   expires_at: string;
 }
 /**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkRestartRequest".
- */
-export interface LinkRestartRequest {
-  channel: 'link';
-  schema: 'afbws.link.restart.request.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  id: string;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkRestartResponse".
- */
-export interface LinkRestartResponse {
-  channel: 'link';
-  schema: 'afbws.link.restart.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  id: string;
-}
-/**
- * `code` is an open string, not an enum — at least not_found/forbidden/validation_error/conflict/bf_offline/not_paired/unsupported_action (see AFB/docs/ENTITY_WS_PROTOCOL.md) plus the generic invalid_schema/invalid_channel/internal_error every afbws error response can carry, but nothing here enforces that set at the schema level.
+ * Runtime-only BF status — never carries name/broker/ACL/keys/policy/config, see link.user.v1.json/link.admin.v1.json for that. `updated_at` is the moment of the LAST STATE CHANGE (connected, heartbeat_stale, broker/daemon/session state), NOT of the last heartbeat: repeated session.heartbeat without any change neither move `updated_at` nor produce a push. There are no heartbeat timestamp/interval fields — the client only needs `heartbeat_stale`. `daemon` is null until the first daemon.status after connect; `session` is null whenever `connected` is false (disconnect resets both).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkErrorResponse".
+ * via the `definition` "LinkV2StatusItem".
  */
-export interface LinkErrorResponse {
-  channel: 'link';
-  schema: 'afbws.link.error.response.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  code: string;
-  message: string;
-  details?: {};
-  item?: LinkEntity;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkSyncPush".
- */
-export interface LinkSyncPush {
-  channel: 'link';
-  schema: 'afbws.link.sync.push.v1';
-  items: LinkEntity[];
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkStatusSyncPush".
- */
-export interface LinkStatusSyncPush {
-  channel: 'link';
-  schema: 'afbws.link.status.sync.push.v1';
-  items: LinkStatusV1[];
-}
-/**
- * Runtime-only BF status — never carries name/broker/ACL/keys/policy/config overrides, see link.user.v1.json/link.admin.v1.json for that. Sourced from BF register/unregister, daemon.capabilities, daemon.status and session.heartbeat handling in AFB — `updated_at` mirrors the triggering envelope's `created_at`. `daemon` is null until the first daemon.status after connect; `session` is null whenever `connected` is false (disconnect resets both). Heartbeat fields are AFB-derived display/runtime metadata, not part of the afb.execution.v1 wire itself.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkStatusV1".
- */
-export interface LinkStatusV1 {
-  schema: 'afbws.link.status.v1';
+export interface LinkV2StatusItem {
+  schema: 'afbws.link.state.v2';
   bf_id: string;
   connected: boolean;
+  /**
+   * AFB-derived stale flag (no heartbeat within 3x the negotiated interval).
+   */
+  heartbeat_stale: boolean;
+  /**
+   * ISO timestamp of the last change of this status record (not of the last heartbeat).
+   */
   updated_at: string;
-  /**
-   * ISO timestamp of the last verified session.heartbeat observed by AFB for this BF; null when disconnected or before the first heartbeat.
-   */
-  last_heartbeat_at?: null | string;
-  /**
-   * Negotiated at session.hello/hello_ack; used for stale detection (3× interval) and UI display.
-   */
-  heartbeat_interval_sec?: number;
-  /**
-   * AFB-derived stale flag for the last heartbeat observation, carried to the frontend for consistent badge/tooltip rendering.
-   */
-  heartbeat_stale?: boolean;
   daemon: null | DaemonStatusPayload;
-  session: null | LinkSession;
+  session: null | LinkV2Session;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -4235,9 +4184,9 @@ export interface DaemonStatusPayload {
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkSession".
+ * via the `definition` "LinkV2Session".
  */
-export interface LinkSession {
+export interface LinkV2Session {
   account_id: string;
   /**
    * Effective value for this session (AFB override if set, else BF's own).
@@ -4248,13 +4197,18 @@ export interface LinkSession {
   };
 }
 /**
+ * Per-element failures of a batched operation are reported in that response's `rejected[]`, not here. `code` is the closed common errorCode set.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "LinkStatusPush".
+ * via the `definition` "LinkV2Error".
  */
-export interface LinkStatusPush {
+export interface LinkV2Error {
   channel: 'link';
-  schema: 'afbws.link.status.push.v1';
-  item: LinkStatusV1;
+  schema: 'afbws.link.error.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  code: AfbwsCommonV1_ErrorCode;
+  message: string;
+  details?: {};
 }
 /**
  * The client states its whole desired subscription scope every time; the server does not diff against a previous `subscribe`. `quotes` is the favorites price-plaque scope: `instrument_keys` to track. `futures` opts into the futures screener scope: a full quote+oi+oi_daily snapshot of every futures instrument (no per-instrument list — it's all-or-nothing). Neither controls the series (candles/dataset) subscription — that one is driven entirely by `get` (target=series), see its description. An empty body — neither `quotes` nor `futures` present — unsubscribes from both. Reply is `subscription` with the same `request_id`, immediately followed by `snapshot` push(es) with `mode:"full"` for each accepted scope.

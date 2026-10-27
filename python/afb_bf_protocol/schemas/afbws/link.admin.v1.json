@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/link.admin.v1.json",
   "title": "link/admin config record — manager view (AFB-only; not part of afb.execution.v1 wire)",
-  "description": "Manager view of a BF connector config record — reuses link.user.v1.json#/$defs/sharedFields (via $ref, not redeclared, so the two views can't drift apart) plus ACL/key management fields. Never carries `connected`/`daemon`/session runtime — see link.status.v1.json.",
+  "description": "Manager view of a BF connector config record — reuses link.user.v1.json#/$defs/sharedFields (via $ref, not redeclared, so the two views can't drift apart) plus ACL/key management fields. Never carries `connected`/`daemon`/session runtime — see link.channel.v2.json#/$defs/statusItem.",
   "allOf": [
     { "$ref": "bf_registry_entry.v1.json" },
     { "$ref": "link.user.v1.json#/$defs/sharedFields" },

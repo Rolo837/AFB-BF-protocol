@@ -1,0 +1,22 @@
+{
+  "channel": "link",
+  "schema": "afbws.link.status.v2",
+  "request_id": "r7",
+  "items": [
+    {
+      "schema": "afbws.link.state.v2",
+      "bf_id": "bf-1",
+      "connected": true,
+      "heartbeat_stale": false,
+      "updated_at": "2026-10-27T10:00:00Z",
+      "daemon": null,
+      "session": {
+        "account_id": "acc-1",
+        "dry_run": true,
+        "capabilities": {
+          "margin_trading": true
+        }
+      }
+    }
+  ]
+}

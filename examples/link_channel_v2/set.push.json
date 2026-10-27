@@ -1,0 +1,26 @@
+{
+  "channel": "link",
+  "schema": "afbws.link.set.v2",
+  "items": [
+    {
+      "schema": "afbws.link.user.v1",
+      "bf_id": "bf-1",
+      "name": "MyBF",
+      "enabled": true,
+      "broker": "finam-arena",
+      "protocol": "afb.execution.v1",
+      "description": "Demo connector",
+      "dry_run": true,
+      "margin_trading": null,
+      "execution_policy": {
+        "max_spread_steps": 5,
+        "execution_mode": "client"
+      },
+      "paired": true,
+      "pairing_pending": false,
+      "pairing_expires_at": null,
+      "kind": "connector",
+      "editable": true
+    }
+  ]
+}

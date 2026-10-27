@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 084ba519986a4132a4c5d271ef98486908b0067bc5c3f458dcdc70fb644e3f64
+# source-hash: 96b3bbf0c27bb434c68ecb2dcc86aace70cc2c8211e1e4e7c9c26103e8c1fe0a
 
 from __future__ import annotations
 
@@ -571,6 +571,7 @@ AfbwsCommonV1ErrorCode: TypeAlias = Literal[
     "forbidden",
     "bf_offline",
     "unsupported_action",
+    "not_paired",
     "superseded",
     "busy",
 ]
@@ -3709,102 +3710,6 @@ class LimitsTemplate(TypedDict):
     defaults: dict[str, int]
 
 
-class LinkDeleteRequest(TypedDict):
-    channel: Literal["link"]
-    schema: Literal["afbws.link.delete.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    id: str
-
-
-class LinkDeleteResponse(TypedDict):
-    channel: Literal["link"]
-    schema: Literal["afbws.link.delete.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    id: str
-
-
-class LinkErrorResponse(TypedDict):
-    """
-    `code` is an open string, not an enum — at least not_found/forbidden/validation_error/conflict/bf_offline/not_paired/unsupported_action (see AFB/docs/ENTITY_WS_PROTOCOL.md) plus the generic invalid_schema/invalid_channel/internal_error every afbws error response can carry, but nothing here enforces that set at the schema level.
-    """
-
-    channel: Literal["link"]
-    schema: Literal["afbws.link.error.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    code: str
-    message: str
-    details: NotRequired[dict[str, Any]]
-    item: NotRequired[LinkEntity]
-
-
-class LinkGetRequest(TypedDict):
-    channel: Literal["link"]
-    schema: Literal["afbws.link.get.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    id: str
-
-
-class LinkGetResponse(TypedDict):
-    channel: Literal["link"]
-    schema: Literal["afbws.link.get.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    item: LinkEntity
-
-
-class LinkListRequest(TypedDict):
-    """
-    scope omitted or "usable": enabled connectors the caller may trade on (allowed_users ACL) plus virtual when permitted — never a manager bypass. scope "admin": full registry as admin views; managers only (backend rejects otherwise). Side-effect status.sync.push after list.response uses the same scope.
-    """
-
-    channel: Literal["link"]
-    schema: Literal["afbws.link.list.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    scope: NotRequired[Literal["usable", "admin"]]
-
-
-class LinkListResponse(TypedDict):
-    channel: Literal["link"]
-    schema: Literal["afbws.link.list.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    items: list[LinkEntity]
-
-
-class LinkPairRequest(TypedDict):
-    channel: Literal["link"]
-    schema: Literal["afbws.link.pair.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    id: str
-
-
-class LinkPairResponse(TypedDict):
-    channel: Literal["link"]
-    schema: Literal["afbws.link.pair.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    item: LinkEntity
-    pairing_string: str
-    expires_at: str
-
-
-class LinkRestartRequest(TypedDict):
-    channel: Literal["link"]
-    schema: Literal["afbws.link.restart.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    id: str
-
-
-class LinkRestartResponse(TypedDict):
-    channel: Literal["link"]
-    schema: Literal["afbws.link.restart.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    id: str
-
-
-class LinkSession(TypedDict):
-    account_id: str
-    dry_run: bool | None
-    capabilities: dict[str, Any]
-
-
 class LinkSetInputShared(TypedDict):
     """
     Owner-editable connector fields plus bf_id. Admin setInput composes this with broker/ACL/margin extras.
@@ -3829,20 +3734,6 @@ class LinkAdminSetInput(LinkSetInputShared):
     allowed_users: NotRequired[list[str]]
 
 
-class LinkSetRequest(TypedDict):
-    channel: Literal["link"]
-    schema: Literal["afbws.link.set.request.v1"]
-    request_id: AfbwsCommonV1RequestId
-    item: LinkSetInput
-
-
-class LinkSetResponse(TypedDict):
-    channel: Literal["link"]
-    schema: Literal["afbws.link.set.response.v1"]
-    request_id: AfbwsCommonV1RequestId
-    item: LinkEntity
-
-
 class LinkSharedFields(TypedDict):
     description: NotRequired[str]
     dry_run: bool | None
@@ -3857,67 +3748,13 @@ class LinkSharedFields(TypedDict):
 
 class LinkAdminV1(BfRegistryEntry, LinkSharedFields):
     """
-    Manager view of a BF connector config record — reuses link.user.v1.json#/$defs/sharedFields (via $ref, not redeclared, so the two views can't drift apart) plus ACL/key management fields. Never carries `connected`/`daemon`/session runtime — see link.status.v1.json.
+    Manager view of a BF connector config record — reuses link.user.v1.json#/$defs/sharedFields (via $ref, not redeclared, so the two views can't drift apart) plus ACL/key management fields. Never carries `connected`/`daemon`/session runtime — see link.channel.v2.json#/$defs/statusItem.
     """
 
     schema: Literal["afbws.link.admin.v1"]
     allowed_users: list[str]
     public_key_id: str | None
     public_key_file: str | None
-
-
-class LinkStatusPush(TypedDict):
-    channel: Literal["link"]
-    schema: Literal["afbws.link.status.push.v1"]
-    item: LinkStatusV1
-
-
-class LinkStatusSyncPush(TypedDict):
-    channel: Literal["link"]
-    schema: Literal["afbws.link.status.sync.push.v1"]
-    items: list[LinkStatusV1]
-
-
-class LinkStatusV1(TypedDict):
-    """
-    Runtime-only BF status — never carries name/broker/ACL/keys/policy/config overrides, see link.user.v1.json/link.admin.v1.json for that. Sourced from BF register/unregister, daemon.capabilities, daemon.status and session.heartbeat handling in AFB — `updated_at` mirrors the triggering envelope's `created_at`. `daemon` is null until the first daemon.status after connect; `session` is null whenever `connected` is false (disconnect resets both). Heartbeat fields are AFB-derived display/runtime metadata, not part of the afb.execution.v1 wire itself.
-    """
-
-    schema: Literal["afbws.link.status.v1"]
-    bf_id: str
-    connected: bool
-    updated_at: str
-    last_heartbeat_at: NotRequired[str | None]
-    heartbeat_interval_sec: NotRequired[int]
-    heartbeat_stale: NotRequired[bool]
-    daemon: DaemonStatusPayload | None
-    session: LinkSession | None
-
-
-class LinkSyncPush(TypedDict):
-    channel: Literal["link"]
-    schema: Literal["afbws.link.sync.push.v1"]
-    items: list[LinkEntity]
-
-
-LinkChannelV1Message: TypeAlias = (
-    LinkGetRequest
-    | LinkGetResponse
-    | LinkListRequest
-    | LinkListResponse
-    | LinkSetRequest
-    | LinkSetResponse
-    | LinkDeleteRequest
-    | LinkDeleteResponse
-    | LinkPairRequest
-    | LinkPairResponse
-    | LinkRestartRequest
-    | LinkRestartResponse
-    | LinkErrorResponse
-    | LinkSyncPush
-    | LinkStatusSyncPush
-    | LinkStatusPush
-)
 
 
 class LinkUserSetInput(LinkSetInputShared):
@@ -3928,18 +3765,171 @@ class LinkUserSetInput(LinkSetInputShared):
     bf_id: str
 
 
-LinkSetInput: TypeAlias = LinkUserSetInput | LinkAdminSetInput
-
-
 class LinkUserV1(BfRegistryEntry, LinkSharedFields):
     """
-    Caller-scoped BF connector config record for a non-manager viewer (owner: capability trade + user_id in allowed_users, or role-only access — role-only is read-only, enforced by the backend, not this schema). Never carries `connected`/`daemon`/session runtime — see link.status.v1.json for that, delivered on a separate push. The synthetic `virtual` pseudo-connector also uses this exact shape (kind:"virtual") — see link.channel.v1.json. `$defs/sharedFields` is the single source of the fields link.admin.v1.json reuses (via $ref) so the two views can't drift apart independently. `$defs/setInputShared` is the same for set() payloads.
+    Caller-scoped BF connector config record for a non-manager viewer (owner: capability trade + user_id in allowed_users, or role-only access — role-only is read-only, enforced by the backend, not this schema). Never carries `connected`/`daemon`/session runtime — see link.channel.v2.json#/$defs/statusItem for that, delivered on a separate push. The synthetic `virtual` pseudo-connector also uses this exact shape (kind:"virtual") — see link.channel.v2.json. `$defs/sharedFields` is the single source of the fields link.admin.v1.json reuses (via $ref) so the two views can't drift apart independently. `$defs/setInputShared` is the same for set() payloads.
     """
 
     schema: Literal["afbws.link.user.v1"]
 
 
-LinkEntity: TypeAlias = LinkUserV1 | LinkAdminV1
+class LinkV2Delete(TypedDict):
+    """
+    Request (`request_id`, no `rejected`): `ids[]`, at least one. Response (same `request_id`, `rejected` present): `ids[]` actually removed (possibly empty) + `rejected[]`. Push (no `request_id`): `ids[]` (at least one) removed from the registry — drop by `bf_id`; `rejected` is not allowed.
+    """
+
+    channel: Literal["link"]
+    schema: Literal["afbws.link.delete.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    ids: list[Id]
+    rejected: NotRequired[list[LinkV2Rejection]]
+
+
+LinkV2Entity: TypeAlias = LinkUserV1 | LinkAdminV1
+
+
+class LinkV2Error(TypedDict):
+    """
+    Per-element failures of a batched operation are reported in that response's `rejected[]`, not here. `code` is the closed common errorCode set.
+    """
+
+    channel: Literal["link"]
+    schema: Literal["afbws.link.error.v2"]
+    request_id: AfbwsCommonV1RequestId
+    code: AfbwsCommonV1ErrorCode
+    message: str
+    details: NotRequired[dict[str, Any]]
+
+
+class LinkV2List(TypedDict):
+    """
+    Request (`request_id`, no `items`): optional `scope` (usable = default, working accounts the caller may trade on incl. virtual; admin = full registry as admin views, managers only) and `ids[]` filter (none = all of the scope). Response (same `request_id`): `items[]` (afbws.link.user.v1 | afbws.link.admin.v1, role-chosen). Push (no `request_id`, server-initiated): `items[]` (at least one) created/changed connectors — upsert by `bf_id`, never a snapshot; removal is `afbws.link.delete.v2` push. The first list/status request subscribes the connection to link pushes. There is no separate `get`: use `ids`.
+    """
+
+    channel: Literal["link"]
+    schema: Literal["afbws.link.list.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    scope: NotRequired[Literal["usable", "admin"]]
+    ids: NotRequired[list[Id]]
+    items: NotRequired[list[LinkV2Entity]]
+
+
+class LinkV2Pair1(TypedDict):
+    """
+    Request: `ids[]`, at least one (manager or owner; the virtual connector is rejected with `unsupported_action`). Response (same `request_id`): `items[]` — one `{id, item, pairing_string, expires_at}` per started pairing + `rejected[]`. No server push.
+    """
+
+    channel: Literal["link"]
+    schema: Literal["afbws.link.pair.v2"]
+    request_id: AfbwsCommonV1RequestId
+    ids: list[Id]
+    items: NotRequired[list[LinkV2PairItem]]
+    rejected: NotRequired[list[LinkV2Rejection]]
+
+
+class LinkV2Pair2(TypedDict):
+    """
+    Request: `ids[]`, at least one (manager or owner; the virtual connector is rejected with `unsupported_action`). Response (same `request_id`): `items[]` — one `{id, item, pairing_string, expires_at}` per started pairing + `rejected[]`. No server push.
+    """
+
+    channel: Literal["link"]
+    schema: Literal["afbws.link.pair.v2"]
+    request_id: AfbwsCommonV1RequestId
+    ids: NotRequired[list[Id]]
+    items: list[LinkV2PairItem]
+    rejected: list[LinkV2Rejection]
+
+
+LinkV2Pair: TypeAlias = LinkV2Pair1 | LinkV2Pair2
+
+
+class LinkV2PairItem(TypedDict):
+    id: str
+    item: LinkV2Entity
+    pairing_string: str
+    expires_at: str
+
+
+class LinkV2Rejection(TypedDict):
+    """
+    `item` (the current authoritative record) is only allowed with code `conflict`.
+    """
+
+    id: str
+    code: AfbwsCommonV1ErrorCode
+    message: NotRequired[str]
+    details: NotRequired[dict[str, Any]]
+    item: NotRequired[LinkV2Entity]
+
+
+class LinkV2Restart(TypedDict):
+    """
+    Request: explicit `ids[]`, at least one — never implicitly picks the first accessible BF. Response (same `request_id`): `ids[]` for which the restart command was sent + `rejected[]`. No server push.
+    """
+
+    channel: Literal["link"]
+    schema: Literal["afbws.link.restart.v2"]
+    request_id: AfbwsCommonV1RequestId
+    ids: list[Id]
+    rejected: NotRequired[list[LinkV2Rejection]]
+
+
+class LinkV2Session(TypedDict):
+    account_id: str
+    dry_run: bool | None
+    capabilities: dict[str, Any]
+
+
+class LinkV2Set(TypedDict):
+    """
+    Request (`request_id`, no `rejected`): `items[]` of role-chosen set input, at least one. Response (same `request_id`, `rejected` present): applied `items[]` (authoritative records, possibly empty) + `rejected[]` (per-item failures; `conflict` carries the current `item`). Push (no `request_id`): `items[]` (at least one) created/changed on the server's own initiative — upsert by `bf_id`; `rejected` is not allowed.
+    """
+
+    channel: Literal["link"]
+    schema: Literal["afbws.link.set.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    items: list[LinkV2Entity | LinkV2SetInput]
+    rejected: NotRequired[list[LinkV2Rejection]]
+
+
+LinkV2SetInput: TypeAlias = LinkUserSetInput | LinkAdminSetInput
+
+
+class LinkV2Status(TypedDict):
+    """
+    Request (`request_id`, no `items`): optional `ids[]` (none = every connector visible in the caller's usable view). Response (same `request_id`): `items[]` of status records (afbws.link.state.v2). Push (no `request_id`): `items[]` (at least one) of ONLY the statuses that changed — repeated heartbeats without a state change produce no push. `updated_at` of a record is the moment of its last state change. The first list/status request subscribes the connection to pushes.
+    """
+
+    channel: Literal["link"]
+    schema: Literal["afbws.link.status.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    ids: NotRequired[list[Id]]
+    items: NotRequired[list[LinkV2StatusItem]]
+
+
+LinkChannelV2Message: TypeAlias = (
+    LinkV2List
+    | LinkV2Set
+    | LinkV2Delete
+    | LinkV2Pair
+    | LinkV2Restart
+    | LinkV2Status
+    | LinkV2Error
+)
+
+
+class LinkV2StatusItem(TypedDict):
+    """
+    Runtime-only BF status — never carries name/broker/ACL/keys/policy/config, see link.user.v1.json/link.admin.v1.json for that. `updated_at` is the moment of the LAST STATE CHANGE (connected, heartbeat_stale, broker/daemon/session state), NOT of the last heartbeat: repeated session.heartbeat without any change neither move `updated_at` nor produce a push. There are no heartbeat timestamp/interval fields — the client only needs `heartbeat_stale`. `daemon` is null until the first daemon.status after connect; `session` is null whenever `connected` is false (disconnect resets both).
+    """
+
+    schema: Literal["afbws.link.state.v2"]
+    bf_id: str
+    connected: bool
+    heartbeat_stale: bool
+    updated_at: str
+    daemon: DaemonStatusPayload | None
+    session: LinkV2Session | None
 
 
 class MarketData(TypedDict):

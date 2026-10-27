@@ -9,12 +9,15 @@
 ## Unreleased
 
 ### Added
+- **Канал `link` v2 (`afbws/link.channel.v2.json`, capability `afbws.link.channel.v2`):** в стиле `alarm`/`gp` v2 — один `schema`-id на операцию (`afbws.link.{list,set,delete,pair,restart,status,error}.v2`) = запрос = ответ (эхо `request_id`) = пуш (без `request_id`); коллекции массивами (`items[]`, `ids[]`), отказ по элементу — `rejected[]` `{id, code, message?, details?, item?}` (только с `request_id`; `item` — только при `conflict`), отказ запроса целиком — `link.error.v2`. Пуши — дельты: `list`/`set` — upsert `items[]`, `delete` — `ids[]` удалённых, `status` — только изменившиеся статусы (повторные heartbeat без смены состояния не пушатся). Статус-запись `afbws.link.state.v2` (`$defs/statusItem`): `bf_id`, `connected`, `heartbeat_stale`, `updated_at` (момент последней СМЕНЫ состояния), `daemon`, `session` — без `last_heartbeat_at` и `heartbeat_interval_sec`. Записи `link.user.v1`/`link.admin.v1` переиспользованы без изменений. Модели `LinkChannelV2Message`, `LinkV2*`; примеры `examples/link_channel_v2/`.
+- **`common.v1.json#/$defs/errorCode`:** добавлен `not_paired` (его отдаёт AFB для непарных коннекторов).
 
 ### Changed
 
 ### Fixed
 
 ### Removed
+- **Снесён `link.channel.v1`:** схемы `afbws/link.channel.v1.json` и `link.status.v1.json` (и копии в пакете), capability-константа `LINK_CHANNEL_V1` (python и ts), их записи в генераторе моделей; заменены `link.channel.v2` (`LINK_CHANNEL_V2`).
 - **Снесён v1 каналов `tradeplan` и `deal`:** схемы `afbws/tradeplan.channel.v1.json`, `deal.channel.v1.json`, `deal.event.v1.json`, `deal.pnl.v1.json`, `deal.record.v1.json` (и копии в пакете), capability-константы `DEAL_CHANNEL_V1` / `TRADEPLAN_CHANNEL_V1` (python и ts), их записи в генераторе моделей и тесты схем. Остались `deal.channel.v2`, `tradeplan.channel.v2`, `deal.public.v1`. Модели перегенерированы.
 
 ## v2.9.8 — 2026-10-26

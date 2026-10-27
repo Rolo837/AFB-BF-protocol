@@ -1,0 +1,7 @@
+{
+  "channel": "link",
+  "schema": "afbws.link.delete.v2",
+  "ids": [
+    "bf-1"
+  ]
+}

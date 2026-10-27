@@ -1,0 +1,15 @@
+{
+  "channel": "link",
+  "schema": "afbws.link.status.v2",
+  "items": [
+    {
+      "schema": "afbws.link.state.v2",
+      "bf_id": "bf-1",
+      "connected": false,
+      "heartbeat_stale": false,
+      "updated_at": "2026-10-27T10:07:00Z",
+      "daemon": null,
+      "session": null
+    }
+  ]
+}

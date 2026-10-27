@@ -1,0 +1,9 @@
+{
+  "channel": "link",
+  "schema": "afbws.link.restart.v2",
+  "request_id": "r6",
+  "ids": [
+    "bf-1",
+    "virtual"
+  ]
+}

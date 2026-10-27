@@ -21,6 +21,7 @@
         "forbidden",
         "bf_offline",
         "unsupported_action",
+        "not_paired",
         "superseded",
         "busy"
       ]

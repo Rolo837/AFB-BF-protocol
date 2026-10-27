@@ -9,7 +9,7 @@ export const CONFIG_CHANNEL_V1 = "afbws.config.channel.v1";
 export const DEAL_CHANNEL_V2 = "afbws.deal.channel.v2";
 export const GP_CHANNEL_V2 = "afbws.gp.channel.v2";
 export const INSTRUMENT_CHANNEL_V2 = "afbws.instrument.channel.v2";
-export const LINK_CHANNEL_V1 = "afbws.link.channel.v1";
+export const LINK_CHANNEL_V2 = "afbws.link.channel.v2";
 export const MARKET_CHANNEL_V1 = "afbws.market.channel.v1";
 export const SCREENER_CHANNEL_V1 = "afbws.screener.channel.v1";
 export const TRADEPLAN_CHANNEL_V2 = "afbws.tradeplan.channel.v2";
@@ -22,7 +22,7 @@ export const ALL_CAPABILITY_IDS: ReadonlySet<string> = new Set([
   DEAL_CHANNEL_V2,
   GP_CHANNEL_V2,
   INSTRUMENT_CHANNEL_V2,
-  LINK_CHANNEL_V1,
+  LINK_CHANNEL_V2,
   MARKET_CHANNEL_V1,
   SCREENER_CHANNEL_V1,
   TRADEPLAN_CHANNEL_V2,
