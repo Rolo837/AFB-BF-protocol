@@ -1,0 +1,6 @@
+{
+  "channel": "link",
+  "schema": "afbws.link.list.v2",
+  "request_id": "r1",
+  "scope": "usable"
+}

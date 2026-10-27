@@ -1,0 +1,7 @@
+{
+  "channel": "link",
+  "schema": "afbws.link.error.v2",
+  "request_id": "r8",
+  "code": "forbidden",
+  "message": "scope=admin доступен только manager"
+}

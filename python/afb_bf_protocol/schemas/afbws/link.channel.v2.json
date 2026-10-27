@@ -1,0 +1,696 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/link.channel.v2.json",
+  "x-afbws-support-id": "afbws.link.channel.v2",
+  "title": "link channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.link.channel.v2). Same convention as afbws.alarm.channel.v2: ONE schema id per message (`afbws.link.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and the server push (no `request_id`). Collections are arrays (`items[]`, `ids[]`), so bulk operations are single messages; per-element failures come back in `rejected[]` (only with `request_id`), a whole-request failure is `afbws.link.error.v2`. Config records are afbws.link.user.v1 / afbws.link.admin.v1 (role-chosen by the backend); runtime status records (`afbws.link.state.v2`, `status` operation) are separate and never mixed into config items. Pushes are deltas: list/set push = upsert by `bf_id`, delete push = removal, status push = only changed statuses (repeated heartbeats without change are silent). See AFB/docs/ws/link.md.",
+  "type": "object",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/list"
+    },
+    {
+      "$ref": "#/$defs/set"
+    },
+    {
+      "$ref": "#/$defs/delete"
+    },
+    {
+      "$ref": "#/$defs/pair"
+    },
+    {
+      "$ref": "#/$defs/restart"
+    },
+    {
+      "$ref": "#/$defs/status"
+    },
+    {
+      "$ref": "#/$defs/error"
+    }
+  ],
+  "$defs": {
+    "entity": {
+      "description": "Role-chosen config view — afbws.link.user.v1 (non-manager, including the synthetic virtual pseudo-connector) or afbws.link.admin.v1 (manager). The backend chooses which, never the client.",
+      "oneOf": [
+        {
+          "$ref": "link.user.v1.json"
+        },
+        {
+          "$ref": "link.admin.v1.json"
+        }
+      ]
+    },
+    "setInput": {
+      "description": "Role-chosen set() item shape — the backend selects which by the authenticated caller's role, never by a client-declared schema id. anyOf, not oneOf: neither shape carries a discriminating `schema` field, and a minimal payload (e.g. {bf_id, dry_run}) is structurally valid under both. The backend, not this schema, decides which fields a given caller may actually use.",
+      "anyOf": [
+        {
+          "$ref": "link.user.v1.json#/$defs/setInput"
+        },
+        {
+          "$ref": "link.admin.v1.json#/$defs/setInput"
+        }
+      ]
+    },
+    "session": {
+      "type": "object",
+      "title": "Live session.hello capabilities — display-only, not persisted config.",
+      "required": [
+        "account_id",
+        "dry_run",
+        "capabilities"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "account_id": {
+          "type": "string"
+        },
+        "dry_run": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Effective value for this session (AFB override if set, else BF's own)."
+        },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "statusItem": {
+      "type": "object",
+      "title": "link runtime status record (AFB-only; not part of afb.execution.v1 wire)",
+      "description": "Runtime-only BF status — never carries name/broker/ACL/keys/policy/config, see link.user.v1.json/link.admin.v1.json for that. `updated_at` is the moment of the LAST STATE CHANGE (connected, heartbeat_stale, broker/daemon/session state), NOT of the last heartbeat: repeated session.heartbeat without any change neither move `updated_at` nor produce a push. There are no heartbeat timestamp/interval fields — the client only needs `heartbeat_stale`. `daemon` is null until the first daemon.status after connect; `session` is null whenever `connected` is false (disconnect resets both).",
+      "required": [
+        "schema",
+        "bf_id",
+        "connected",
+        "heartbeat_stale",
+        "updated_at",
+        "daemon",
+        "session"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "afbws.link.state.v2"
+        },
+        "bf_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "connected": {
+          "type": "boolean"
+        },
+        "heartbeat_stale": {
+          "type": "boolean",
+          "description": "AFB-derived stale flag (no heartbeat within 3x the negotiated interval)."
+        },
+        "updated_at": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ISO timestamp of the last change of this status record (not of the last heartbeat)."
+        },
+        "daemon": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "../payloads/daemon.status.json"
+            }
+          ]
+        },
+        "session": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/session"
+            }
+          ]
+        }
+      }
+    },
+    "rejection": {
+      "type": "object",
+      "title": "One element that was not applied by set/delete/pair/restart.",
+      "description": "`item` (the current authoritative record) is only allowed with code `conflict`.",
+      "required": [
+        "id",
+        "code"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "code": {
+          "$ref": "common.v1.json#/$defs/errorCode"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "object"
+        },
+        "item": {
+          "$ref": "#/$defs/entity"
+        }
+      },
+      "if": {
+        "required": [
+          "item"
+        ]
+      },
+      "then": {
+        "properties": {
+          "code": {
+            "const": "conflict"
+          }
+        }
+      }
+    },
+    "pairItem": {
+      "type": "object",
+      "title": "One started pairing.",
+      "required": [
+        "id",
+        "item",
+        "pairing_string",
+        "expires_at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "item": {
+          "$ref": "#/$defs/entity"
+        },
+        "pairing_string": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expires_at": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "list": {
+      "type": "object",
+      "title": "afbws.link.list.v2 — read connectors (request / response / server push).",
+      "description": "Request (`request_id`, no `items`): optional `scope` (usable = default, working accounts the caller may trade on incl. virtual; admin = full registry as admin views, managers only) and `ids[]` filter (none = all of the scope). Response (same `request_id`): `items[]` (afbws.link.user.v1 | afbws.link.admin.v1, role-chosen). Push (no `request_id`, server-initiated): `items[]` (at least one) created/changed connectors — upsert by `bf_id`, never a snapshot; removal is `afbws.link.delete.v2` push. The first list/status request subscribes the connection to link pushes. There is no separate `get`: use `ids`.",
+      "required": [
+        "channel",
+        "schema"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "link"
+        },
+        "schema": {
+          "const": "afbws.link.list.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "usable",
+            "admin"
+          ],
+          "default": "usable"
+        },
+        "ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entity"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "items"
+            ],
+            "anyOf": [
+              {
+                "required": [
+                  "scope"
+                ]
+              },
+              {
+                "required": [
+                  "ids"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "request_id"
+            ]
+          },
+          "then": {},
+          "else": {
+            "required": [
+              "items"
+            ],
+            "properties": {
+              "items": {
+                "minItems": 1
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "scope"
+                  ]
+                },
+                {
+                  "required": [
+                    "ids"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "set": {
+      "type": "object",
+      "title": "afbws.link.set.v2 — create/update connectors (request / response / server push).",
+      "description": "Request (`request_id`, no `rejected`): `items[]` of role-chosen set input, at least one. Response (same `request_id`, `rejected` present): applied `items[]` (authoritative records, possibly empty) + `rejected[]` (per-item failures; `conflict` carries the current `item`). Push (no `request_id`): `items[]` (at least one) created/changed on the server's own initiative — upsert by `bf_id`; `rejected` is not allowed.",
+      "required": [
+        "channel",
+        "schema",
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "link"
+        },
+        "schema": {
+          "const": "afbws.link.set.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/entity"
+              },
+              {
+                "$ref": "#/$defs/setInput"
+              }
+            ]
+          }
+        },
+        "rejected": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rejection"
+          }
+        }
+      },
+      "dependentRequired": {
+        "rejected": [
+          "request_id"
+        ]
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "request_id"
+            ]
+          },
+          "then": {
+            "if": {
+              "required": [
+                "rejected"
+              ]
+            },
+            "then": {
+              "properties": {
+                "items": {
+                  "items": {
+                    "$ref": "#/$defs/entity"
+                  }
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "items": {
+                  "minItems": 1,
+                  "items": {
+                    "$ref": "#/$defs/setInput"
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "items": {
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/entity"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "delete": {
+      "type": "object",
+      "title": "afbws.link.delete.v2 — delete connectors (request / response / server push).",
+      "description": "Request (`request_id`, no `rejected`): `ids[]`, at least one. Response (same `request_id`, `rejected` present): `ids[]` actually removed (possibly empty) + `rejected[]`. Push (no `request_id`): `ids[]` (at least one) removed from the registry — drop by `bf_id`; `rejected` is not allowed.",
+      "required": [
+        "channel",
+        "schema",
+        "ids"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "link"
+        },
+        "schema": {
+          "const": "afbws.link.delete.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rejected": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rejection"
+          }
+        }
+      },
+      "dependentRequired": {
+        "rejected": [
+          "request_id"
+        ]
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "request_id"
+            ]
+          },
+          "then": {
+            "if": {
+              "required": [
+                "rejected"
+              ]
+            },
+            "then": {},
+            "else": {
+              "properties": {
+                "ids": {
+                  "minItems": 1
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "ids": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "pair": {
+      "type": "object",
+      "title": "afbws.link.pair.v2 — start/restart pairing (request / response).",
+      "description": "Request: `ids[]`, at least one (manager or owner; the virtual connector is rejected with `unsupported_action`). Response (same `request_id`): `items[]` — one `{id, item, pairing_string, expires_at}` per started pairing + `rejected[]`. No server push.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "link"
+        },
+        "schema": {
+          "const": "afbws.link.pair.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/pairItem"
+          }
+        },
+        "rejected": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rejection"
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "ids"
+          ],
+          "properties": {
+            "ids": {
+              "minItems": 1
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "items"
+                ]
+              },
+              {
+                "required": [
+                  "rejected"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "items",
+            "rejected"
+          ],
+          "not": {
+            "required": [
+              "ids"
+            ]
+          }
+        }
+      ]
+    },
+    "restart": {
+      "type": "object",
+      "title": "afbws.link.restart.v2 — restart BF daemons (request / response).",
+      "description": "Request: explicit `ids[]`, at least one — never implicitly picks the first accessible BF. Response (same `request_id`): `ids[]` for which the restart command was sent + `rejected[]`. No server push.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "ids"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "link"
+        },
+        "schema": {
+          "const": "afbws.link.restart.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rejected": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rejection"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "rejected"
+            ]
+          },
+          "then": {},
+          "else": {
+            "properties": {
+              "ids": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "status": {
+      "type": "object",
+      "title": "afbws.link.status.v2 — runtime statuses (request / response / server push).",
+      "description": "Request (`request_id`, no `items`): optional `ids[]` (none = every connector visible in the caller's usable view). Response (same `request_id`): `items[]` of status records (afbws.link.state.v2). Push (no `request_id`): `items[]` (at least one) of ONLY the statuses that changed — repeated heartbeats without a state change produce no push. `updated_at` of a record is the moment of its last state change. The first list/status request subscribes the connection to pushes.",
+      "required": [
+        "channel",
+        "schema"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "link"
+        },
+        "schema": {
+          "const": "afbws.link.status.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/statusItem"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "items",
+              "ids"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "request_id"
+            ]
+          },
+          "then": {},
+          "else": {
+            "required": [
+              "items"
+            ],
+            "properties": {
+              "items": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "error": {
+      "type": "object",
+      "title": "afbws.link.error.v2 — typed error for a whole request (server -> client).",
+      "description": "Per-element failures of a batched operation are reported in that response's `rejected[]`, not here. `code` is the closed common errorCode set.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "code",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "link"
+        },
+        "schema": {
+          "const": "afbws.link.error.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "code": {
+          "$ref": "common.v1.json#/$defs/errorCode"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "details": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}
