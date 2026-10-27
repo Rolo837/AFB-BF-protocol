@@ -15,14 +15,12 @@ __all__ = [
     "ALARM_CHANNEL_V2",
     "CATALOG_CHANNEL_V1",
     "CONFIG_CHANNEL_V1",
-    "DEAL_CHANNEL_V1",
     "DEAL_CHANNEL_V2",
     "GP_CHANNEL_V2",
     "INSTRUMENT_CHANNEL_V2",
     "LINK_CHANNEL_V1",
     "MARKET_CHANNEL_V1",
     "SCREENER_CHANNEL_V1",
-    "TRADEPLAN_CHANNEL_V1",
     "TRADEPLAN_CHANNEL_V2",
     "ALL_CAPABILITY_IDS",
 ]
@@ -31,14 +29,12 @@ ACCOUNT_CHANNEL_V2 = "afbws.account.channel.v2"
 ALARM_CHANNEL_V2 = "afbws.alarm.channel.v2"
 CATALOG_CHANNEL_V1 = "afbws.catalog.channel.v1"
 CONFIG_CHANNEL_V1 = "afbws.config.channel.v1"
-DEAL_CHANNEL_V1 = "afbws.deal.channel.v1"
 DEAL_CHANNEL_V2 = "afbws.deal.channel.v2"
 GP_CHANNEL_V2 = "afbws.gp.channel.v2"
 INSTRUMENT_CHANNEL_V2 = "afbws.instrument.channel.v2"
 LINK_CHANNEL_V1 = "afbws.link.channel.v1"
 MARKET_CHANNEL_V1 = "afbws.market.channel.v1"
 SCREENER_CHANNEL_V1 = "afbws.screener.channel.v1"
-TRADEPLAN_CHANNEL_V1 = "afbws.tradeplan.channel.v1"
 TRADEPLAN_CHANNEL_V2 = "afbws.tradeplan.channel.v2"
 
 ALL_CAPABILITY_IDS: frozenset[str] = frozenset({
@@ -46,13 +42,11 @@ ALL_CAPABILITY_IDS: frozenset[str] = frozenset({
     ALARM_CHANNEL_V2,
     CATALOG_CHANNEL_V1,
     CONFIG_CHANNEL_V1,
-    DEAL_CHANNEL_V1,
     DEAL_CHANNEL_V2,
     GP_CHANNEL_V2,
     INSTRUMENT_CHANNEL_V2,
     LINK_CHANNEL_V1,
     MARKET_CHANNEL_V1,
     SCREENER_CHANNEL_V1,
-    TRADEPLAN_CHANNEL_V1,
     TRADEPLAN_CHANNEL_V2,
 })

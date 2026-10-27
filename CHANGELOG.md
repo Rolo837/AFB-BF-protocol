@@ -15,6 +15,7 @@
 ### Fixed
 
 ### Removed
+- **Снесён v1 каналов `tradeplan` и `deal`:** схемы `afbws/tradeplan.channel.v1.json`, `deal.channel.v1.json`, `deal.event.v1.json`, `deal.pnl.v1.json`, `deal.record.v1.json` (и копии в пакете), capability-константы `DEAL_CHANNEL_V1` / `TRADEPLAN_CHANNEL_V1` (python и ts), их записи в генераторе моделей и тесты схем. Остались `deal.channel.v2`, `tradeplan.channel.v2`, `deal.public.v1`. Модели перегенерированы.
 
 ## v2.9.8 — 2026-10-26
 

@@ -473,7 +473,7 @@ def test_editable_fields_for_awaiting_entry_excludes_instrument():
 
 def test_editable_fields_for_respects_custom_field_subset():
     """AFB's public deal projection only exposes AMEND_FIELDS minus
-    instrument/side (see afbws.deal.channel.v1's amendField enum) — the
+    instrument/side (see afbws.deal.channel.v2 amendField enum) — the
     `fields` param lets a caller narrow the query to just that subset."""
     subset = ("entry", "sizing", "stop_loss", "take_profit", "execution_policy")
     assert editable_fields_for(_ctx("active", "holding"), fields=subset) == ("stop_loss", "take_profit", "execution_policy")

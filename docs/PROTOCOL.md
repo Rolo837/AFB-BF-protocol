@@ -591,8 +591,8 @@ Top-level `period` — общий таймфрейм вычисления ала
       (`additionalProperties: false`) и содержит серверные поля (`delivery_at`,
       `archived_components`) и помеченные `deprecated` остатки старых форматов
       (`connector`, `account_id`, `deal_id`), которые канал не пропускает.
-  - `deal.channel.v2` (capability `afbws.deal.channel.v2`; v1 остаётся рядом, оба канала не
-    пересекаются файлами): один schema id на сообщение `afbws.deal.<op>.v2`, запрос/ответ одной
+  - `deal.channel.v2` (capability `afbws.deal.channel.v2`; v1 удалён):
+    один schema id на сообщение `afbws.deal.<op>.v2`, запрос/ответ одной
     схемой, пуши — те же сообщения без `request_id`. Везде списки, `get` нет (полное тело —
     `list` с `ids` и `detail: true`). Запросы: `list` (фильтры `ids[]`, `instrument_keys[]`,
     `tradeplan_ids[]` — пересечение, пусто = все сделки пользователя; `detail?` → `items[]`

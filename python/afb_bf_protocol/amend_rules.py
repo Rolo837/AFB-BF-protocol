@@ -400,6 +400,6 @@ def editable_fields_for(ctx: AmendContext, *, fields: Sequence[str] = AMEND_FIEL
     value, unlike ``evaluate_amend`` which only judges fields that actually
     changed between two deal dicts. Used by AFB's public deal projection
     (dealDetail.editable_fields, see AFB-BF-protocol's
-    afbws/deal.channel.v1.json) to tell the editor what it may currently
+    afbws/deal.channel.v2.json) to tell the editor what it may currently
     touch without needing a trial edit first."""
     return tuple(name for name in fields if _field_allowed(name, ctx)[0])

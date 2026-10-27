@@ -212,7 +212,7 @@ def collect_afbws_capability_ids(root: Path | None = None) -> dict[str, str]:
     every spec/schemas/afbws/*.json file, sorted by capability id.
 
     A channel schema advertises its negotiable capability via this extension
-    keyword (see alarm.channel.v1.json / tradeplan.channel.v1.json) — these
+    keyword (see alarm.channel.v2.json / tradeplan.channel.v2.json) — these
     ids are exchanged in the AFB WS handshake (auth.support/auth_ok.support),
     NOT part of the afb.execution.v1 AFB<->BF taxonomy (see taxonomy.py).
     """
