@@ -1,92 +1,120 @@
 {
   "channel": "access",
   "schema": "afbws.access.roles.set.v1",
-  "request_id": "r2",
-  "tiers": {
-    "manager": {
-      "title": "Администраторы",
+  "request_id": "r-2",
+  "tiers": [
+    {
+      "tier": "manager",
+      "title": "Менеджер",
+      "rank": 30,
+      "paid": false,
       "limits": {
-        "max_favorites_tickers": 100,
+        "max_favorites_tickers": 500,
         "max_primitives_per_user": 1000,
         "max_sets": 100,
         "max_favorite_colors": 5
       },
-      "members": [
-        "id_9139066366",
-        "gc_282811589"
-      ]
+      "policy": null
     },
-    "user": {
-      "title": "Пользователи",
+    {
+      "tier": "user",
+      "title": "Подписчик",
+      "rank": 20,
+      "paid": true,
       "limits": {
         "max_favorites_tickers": 42,
         "max_primitives_per_user": 100,
         "max_sets": 20,
         "max_favorite_colors": 5
       },
-      "members": [
-        "gc:666118",
-        "id:club"
-      ]
+      "policy": null
     },
-    "guest": {
-      "title": "Гости",
+    {
+      "tier": "lite",
+      "title": "Лайт",
+      "rank": 15,
+      "paid": true,
       "limits": {
         "max_favorites_tickers": 10,
         "max_primitives_per_user": 20,
         "max_sets": 3,
         "max_favorite_colors": 1
       },
-      "members": [
-        "gc:667093"
-      ]
-    }
-  },
-  "capabilities": {
-    "trade": {
-      "title": "Торговля",
-      "members": [
-        "id_9139066366"
-      ]
+      "policy": {
+        "as_tier": "user",
+        "workday": {
+          "from": "19:00",
+          "to": "23:50"
+        },
+        "weekend": {
+          "from": "00:00",
+          "to": "23:59"
+        }
+      }
     },
-    "screener": {
-      "title": "Скринер",
-      "members": [
-        "id_9139066366",
-        "id_9910336377"
-      ]
-    }
-  },
-  "local_groups": [
     {
-      "id": "club",
-      "title": "Клуб"
+      "tier": "guest",
+      "title": "Гость",
+      "rank": 10,
+      "paid": false,
+      "limits": {
+        "max_favorites_tickers": 10,
+        "max_primitives_per_user": 20,
+        "max_sets": 3,
+        "max_favorite_colors": 1
+      },
+      "policy": {
+        "as_tier": "user",
+        "trial_days": 14,
+        "workday": {
+          "from": "22:00",
+          "to": "02:00"
+        },
+        "weekend": null,
+        "showcase": {
+          "enabled": false,
+          "collection": null
+        }
+      }
     }
+  ],
+  "members": [
+    {
+      "role": "manager",
+      "token": "id_9910336377"
+    },
+    {
+      "role": "user",
+      "token": "gc:3125478"
+    },
+    {
+      "role": "lite",
+      "token": "gc:3125480"
+    },
+    {
+      "role": "trade",
+      "token": "gc_282811500"
+    },
+    {
+      "role": "virtual",
+      "token": "gc:3125478"
+    }
+  ],
+  "capabilities": [
+    "trade",
+    "virtual",
+    "screener",
+    "local"
   ],
   "getcourse_groups": [
     {
-      "id": "666118",
-      "title": "Подписка месяц"
+      "id": "3125478",
+      "title": "Подписка AFB"
     },
     {
-      "id": "667093",
-      "title": "Бесплатный курс"
+      "id": "3125480",
+      "title": "Подписка AFB Лайт"
     }
   ],
-  "getcourse_groups_error": null,
-  "limits_template": {
-    "keys": [
-      "max_favorites_tickers",
-      "max_primitives_per_user",
-      "max_sets",
-      "max_favorite_colors"
-    ],
-    "defaults": {
-      "max_favorites_tickers": 42,
-      "max_primitives_per_user": 100,
-      "max_sets": 20,
-      "max_favorite_colors": 5
-    }
-  },
-  "default_tier": "guest"
+  "getcourse_groups_error": null
 }

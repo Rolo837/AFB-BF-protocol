@@ -33,12 +33,8 @@
     },
     "accessTier": {
       "type": "string",
-      "enum": [
-        "manager",
-        "user",
-        "guest"
-      ],
-      "description": "Who the user is (axis 1 of the access model): `manager` (everything + resource management), `user` (paying GetCourse subscriber), `guest`. Comes from tier members in the backend's access database (GetCourse groups, user ids). Manager functions are gated on `tier == manager` only, independently of `mode`."
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `manager`, `user`, `guest`, a new paid tier `lite`), NOT an enum: a new tier needs no protocol change. Only `manager` is reserved by code (staff, manager functions gated on `tier == manager` independently of `mode`). Comes from tier members (GetCourse groups, user ids) in the backend's access database; the tier with the minimal rank is the default for users not matched by any member."
     },
     "accessMode": {
       "type": "string",
@@ -57,7 +53,7 @@
         "window",
         "none"
       ],
-      "description": "Why the current `mode` holds — display/statistics only, never used for logic. `subscription` — paid tier (user/manager) or the `trade` capability; `grant` — manual extension by a manager; `trial` — guest trial period; `window` — guest inside the workday/weekend time window; `none` — no reason for `full` (always so in `basic`)."
+      "description": "Why the current `mode` holds — display/statistics only, never used for logic. `subscription` — paid tier or the `trade` capability (or a tier without a mode policy); `grant` — manual extension by a manager; `trial` — trial period; `window` — inside the workday/weekend time window of the tier policy; `none` — no reason for `full` (always so in `basic`)."
     },
     "accessLimits": {
       "type": "object",
@@ -91,15 +87,14 @@
     "access": {
       "type": "object",
       "title": "Effective access of one connection (auth.ok.access, access.state.access).",
-      "description": "Three independent axes. (1) `tier` — WHO the user is (manager/user/guest). (2) `capabilities` — personal permissions granted by a manager, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`, ...); holding `trade` ALWAYS yields `mode: full` (`reason: subscription`): real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); logic is decided only by `mode`, while `reason` and `until` are for display and statistics. `until` is the moment of the next mode change known to the server (end of trial/grant/window, start of the next window), null when none is scheduled; the server pushes afbws.access.state.v1 when the mode actually changes. `showcase` — whether the instrument showcase applies to this connection (only possible in `basic`): instruments of the showcase collection work as in `full`, everything else as `basic`.",
+      "description": "Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; manager functions are gated on `tier == manager` only). (2) `capabilities` — personal permissions granted by a manager, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`); holding `trade` ALWAYS yields `mode: full` (`reason: subscription`): real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); logic is decided only by `mode`, while `reason` and `until` are for display (refusal texts, indicator) and statistics. `until` is the moment of the next mode change known to the server (end of trial/grant/window, start of the next window), null when none is scheduled; the server pushes afbws.access.state.v1 when the mode actually changes.",
       "required": [
         "tier",
         "capabilities",
         "limits",
         "mode",
         "reason",
-        "until",
-        "showcase"
+        "until"
       ],
       "additionalProperties": false,
       "properties": {
@@ -113,7 +108,7 @@
             "type": "string",
             "minLength": 1
           },
-          "description": "Personal capability names (e.g. `trade`, `virtual`, `screener`, `local`). Open set: managers may define new ones."
+          "description": "Personal capability names (`trade`, `virtual`, `screener`, `local`; the set is defined by the backend code)."
         },
         "limits": {
           "$ref": "#/$defs/accessLimits"
@@ -131,10 +126,6 @@
           ],
           "format": "date-time",
           "description": "Next known mode change, ISO-8601 with offset; null — none scheduled."
-        },
-        "showcase": {
-          "type": "boolean",
-          "description": "True only in `basic` when the showcase is enabled for this connection."
         }
       },
       "allOf": [
@@ -150,22 +141,6 @@
             "properties": {
               "reason": {
                 "const": "none"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "showcase": {
-                "const": true
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "mode": {
-                "const": "basic"
               }
             }
           }

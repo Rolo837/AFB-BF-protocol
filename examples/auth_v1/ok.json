@@ -24,7 +24,6 @@
     },
     "mode": "full",
     "reason": "subscription",
-    "until": null,
-    "showcase": false
+    "until": null
   }
 }

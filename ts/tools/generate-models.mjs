@@ -114,6 +114,10 @@ const NAMED_DEF_SCHEMAS = {
     sizing: "DealSizing",
     executionPolicy: "DealExecutionPolicy",
     source: "DealSource",
+  },
+  // afbws/common.v1.json — only the access block is exported under a public
+  // name; requestId/errorCode/instrumentKey keep their namespaced keys.
+  "afbws/common.v1.json": {
     accessTier: "AccessTier",
     accessMode: "AccessMode",
     accessReason: "AccessReason",
@@ -232,37 +236,19 @@ const NAMED_DEF_SCHEMAS = {
     error: "AuthV1Error",
   },
   "afbws/access.channel.v1.json": {
-    memberToken: "AccessV1MemberToken",
-    roleTier: "AccessV1RoleTier",
-    roleCapability: "AccessV1RoleCapability",
-    tiers: "AccessV1Tiers",
-    capabilities: "AccessV1Capabilities",
-    localGroup: "AccessV1LocalGroup",
-    getcourseGroup: "AccessV1GetcourseGroup",
-    limitsTemplate: "AccessV1LimitsTemplate",
     window: "AccessV1Window",
-    hhmm: "AccessV1Hhmm",
-    showcase: "AccessV1Showcase",
-    settings: "AccessV1Settings",
-    settingsInput: "AccessV1SettingsInput",
-    userSource: "AccessV1UserSource",
+    policy: "AccessV1Policy",
+    tierRow: "AccessV1TierRow",
+    member: "AccessV1Member",
     userRow: "AccessV1UserRow",
-    subscriptionPeriod: "AccessV1SubscriptionPeriod",
-    trial: "AccessV1Trial",
-    grant: "AccessV1Grant",
-    logEntry: "AccessV1LogEntry",
-    cohort: "AccessV1Cohort",
-    deniedStat: "AccessV1DeniedStat",
-    deniedInstrumentStat: "AccessV1DeniedInstrumentStat",
+    showcase: "AccessV1Showcase",
+    subscription: "AccessV1Subscription",
+    getcourseGroup: "AccessV1GetcourseGroup",
+    statsWeek: "AccessV1StatsWeek",
     rolesGet: "AccessV1RolesGet",
     rolesSet: "AccessV1RolesSet",
-    settingsGet: "AccessV1SettingsGet",
-    settingsSet: "AccessV1SettingsSet",
     usersList: "AccessV1UsersList",
-    userGet: "AccessV1UserGet",
-    trialSet: "AccessV1TrialSet",
-    grantSet: "AccessV1GrantSet",
-    grantRevoke: "AccessV1GrantRevoke",
+    userSet: "AccessV1UserSet",
     stats: "AccessV1Stats",
     state: "AccessV1State",
     denied: "AccessV1Denied",
@@ -462,7 +448,11 @@ function main() {
         // would override our deterministic $defs-key naming (and collides
         // across files — several oneOf branches share titles like "price
         // touch"). `description` is kept — it becomes a useful JSDoc comment.
-        if (k === "title") continue;
+        // Only the `title` KEYWORD (a string) is dropped: inside a
+        // `properties` map a key named `title` is a property whose value is a
+        // schema object (e.g. `{"title": {"type": "string"}}`) and must stay,
+        // otherwise the generated interface silently loses its `title` field.
+        if (k === "title" && typeof v === "string") continue;
         if (k === "$ref" && typeof v === "string") {
           if (v.startsWith("#/$defs/")) {
             out.$ref = `#/$defs/${keyFor(fromRelPath, v.slice("#/$defs/".length))}`;

@@ -1,24 +1,38 @@
 {
   "channel": "access",
   "schema": "afbws.access.users.list.v1",
-  "request_id": "r5",
+  "request_id": "r-3",
   "items": [
     {
       "user_id": "gc_282811500",
-      "display_name": "Иван П.",
-      "source": "gc",
+      "display_name": "Иван Петров",
       "tier": "guest",
       "capabilities": [],
-      "mode": "basic",
-      "reason": "none",
-      "until": "2026-10-29T10:00:00+03:00",
-      "trial_ends_at": "2026-10-20T12:00:00+03:00",
-      "grant_ends_at": null,
-      "subscription_started_at": "2026-08-01T09:00:00+03:00",
-      "subscription_ended_at": "2026-10-01T09:00:00+03:00",
-      "first_seen_at": "2026-08-01T09:00:00+03:00",
-      "last_seen_at": "2026-10-28T18:30:00+03:00"
+      "first_seen_at": "2026-10-01T09:12:00Z",
+      "last_seen_at": "2026-10-28T12:40:00Z",
+      "trial_started_at": "2026-10-01T09:12:00Z",
+      "trial_ends_at": "2026-10-15T09:12:00Z",
+      "grant_until": null,
+      "subscription": {
+        "tier": "user",
+        "started_at": "2026-09-01T08:00:00Z",
+        "ended_at": "2026-10-01T08:00:00Z"
+      }
+    },
+    {
+      "user_id": "id_9910336377",
+      "display_name": null,
+      "tier": "manager",
+      "capabilities": [
+        "trade",
+        "virtual"
+      ],
+      "first_seen_at": "2026-01-10T07:00:00Z",
+      "last_seen_at": "2026-10-28T13:00:00Z",
+      "trial_started_at": null,
+      "trial_ends_at": null,
+      "grant_until": null,
+      "subscription": null
     }
-  ],
-  "total": 1
+  ]
 }

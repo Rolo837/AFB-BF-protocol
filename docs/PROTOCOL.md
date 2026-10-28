@@ -1224,16 +1224,15 @@ Resync по ревизии и статусу не показывает, что �
 
 | Ось | Значения | Что определяет |
 |---|---|---|
-| `tier` — кто | `manager` / `user` / `guest` | менеджерские функции (только `tier == manager`, независимо от `mode`); лимиты tier |
-| `capabilities` — персональные допуски | `trade`, `virtual`, `screener`, `local`, … (открытый набор) | выдаются менеджером персонально; **`trade` ⇒ всегда `mode: full`** (`reason: subscription`) — реальная торговля не холдится |
+| `tier` — кто | строка `^[a-z][a-z0-9_]*$` (`manager`, `user`, `guest`, новый tier — данными, без правки протокола) | менеджерские функции (только `tier == manager`, независимо от `mode`); лимиты tier |
+| `capabilities` — персональные допуски | `trade`, `virtual`, `screener`, `local` (набор задаёт код бэкенда) | выдаются менеджером персонально; **`trade` ⇒ всегда `mode: full`** (`reason: subscription`) — реальная торговля не холдится |
 | `mode` — что доступно сейчас | `full` / `basic` | работают ли платные функции; **вся логика решается только `mode`** |
 
 Рядом: `reason` (`subscription | grant | trial | window | none`) и `until` (момент следующей
-известной смены режима или `null`) — только для отображения и статистики; в `basic`
-`reason` всегда `none`. `showcase: true` — в `basic` действует витрина инструментов
-(возможно только в `basic`). `limits` — четыре ключа (`max_favorites_tickers`,
-`max_primitives_per_user`, `max_sets`, `max_favorite_colors`), целые ≥0, проверяются
-только при добавлении объектов.
+известной смены режима или `null`) — только для отображения (тексты отказов, индикатор) и
+статистики; в `basic` `reason` всегда `none`. `limits` — четыре ключа (`max_favorites_tickers`,
+`max_primitives_per_user`, `max_sets`, `max_favorite_colors`), целые ≥0, проверяются только
+при добавлении объектов. Все поля блока обязательны.
 
 ### `afbws.auth.v1` (capability `afbws.auth.v1`)
 
@@ -1251,39 +1250,50 @@ Resync по ревизии и статусу не показывает, что �
 
 ### `afbws.access.channel.v1` (capability `afbws.access.channel.v1`)
 
+Сообщения повторяют таблицы базы доступа бэкенда (`tiers`, `members`, `users`, `subscriptions`).
 Один schema id на операцию (`afbws.access.<op>.v1`) = запрос = ответ (эхо `request_id`);
-`request_id` обязателен в каждом запросе. Все операции, кроме `state`/`denied`, — только
-менеджер (иначе `error` с `forbidden`).
+`request_id` обязателен в каждом запросе; запрос и ответ различаются наличием ответных полей,
+ответные поля в запросе запрещены. Все операции, кроме `state`/`denied`, — только менеджер
+(иначе `error` с `forbidden`).
 
 | Операция | Запрос | Ответ |
 |---|---|---|
-| `roles.get` | — | снимок: `tiers` (ровно `manager`/`user`/`guest`: `title`, `limits`, `members[]`), `capabilities` (имя → `title`, `members[]`), `local_groups[]` `{id, title}`, `getcourse_groups[]` `{id, title}`, `getcourse_groups_error`, `limits_template`, `default_tier` (только чтение) |
-| `roles.set` | `tiers`, `capabilities`, `local_groups?` (замена целиком; без `local_groups` — без изменений) | снимок, как у `roles.get`. Заменяет config-op `roles` (`afbws.config.roles.v1`), который бэкенд продолжает обслуживать тем же кодом |
-| `settings.get` | — | `settings`: `revision`, `default_tier` (`user|guest`), `trial_days`, `window_workday`, `window_weekend` (`{from, to}` `HH:MM` МСК или `null`; `to < from` — через полночь), `showcase {enabled, collection}`, `updated_at`, `updated_by` |
-| `settings.set` | `settings`: `revision` (база) + заменяемые ключи верхнего уровня | сохранённый `settings` с новым `revision`; расхождение ревизии → `error` `conflict` с текущим документом в `item` |
-| `users.list` | фильтры `tier?`, `mode?`, `lapsed?` (подписка закончилась), `query?`, `limit`/`offset` | `items[]` (строка пользователя) + `total` |
-| `user.get` | `user_id`, `log_limit?` | `item` (строка) + `subscription_periods[]`, `trials[]`, `grants[]`, `log[]` |
-| `trial.set` | `user_id`, `action` (`extend`/`start` — с `ends_at`; `reset` — без), `note?` | `item` + `trial` |
-| `grant.set` | `user_id`, `tier: user`, `ends_at`, `reason?` | `grant` + `item` |
-| `grant.revoke` | `grant_id` | `grant` (с `revoked_at`) + `item` |
-| `stats` | `from`, `to` (даты), `group_by: week` | `cohorts[]` (`period_start`, `guests_new`, `trial_started`, `active`, `converted`, `grants`), `denied[]` по фичам, `denied_instruments[]` по инструментам |
+| `roles.get` | — | `tiers[]` (`tierRow`), `members[]` (`member`), `capabilities[]` (имена из кода), `getcourse_groups[]` `{id, title}` + `getcourse_groups_error` (`string\|null`) — подсказки для выбора `gc:` |
+| `roles.set` | `tiers[]` (≥1; имена `tier` уникальны — проверяет сервер), `members[]` — замена обеих таблиц целиком | как `roles.get` |
+| `users.list` | — | `items[]` (`userRow`) — все пользователи, без фильтров и пагинации |
+| `user.set` | `user_id` + `trial_ends_at?` и/или `grant_until?` (хотя бы одно; `null` — снять). Первый `trial_ends_at` у пользователя без триала ставит `trial_started_at = now` | `user_id` + `item` (`userRow`); неизвестный пользователь → `not_found` |
+| `stats` | `from`, `to` (даты, включительно, МСК) | эхо `from`/`to` + `weeks[]` `{week, new_users, trials_started, converted, active}` |
 
-Строка пользователя (`$defs/userRow`): `user_id`, `display_name`, `source` (`gc|local|demo`),
-`tier`, `capabilities`, `mode`, `reason`, `until`, `trial_ends_at`, `grant_ends_at`,
-`subscription_started_at`, `subscription_ended_at`, `first_seen_at`, `last_seen_at`.
+Записи (`$defs`):
+
+- `tierRow` — `tier`, `title` (подпись в админке), `rank` (приоритет при попадании в несколько
+  tier; tier с минимальным `rank` — по умолчанию), `paid` (платная подписка: ведутся периоды,
+  участвует в конверсии), `limits`, `policy` (`policy|null`; `null` — всегда `full` со своими лимитами).
+- `policy` — `as_tier` (обязателен: с лимитами какого tier работает пользователь, пока политика
+  даёт `full`), `trial_days?` (≥0; 0/нет — триала нет), `workday?`/`weekend?` (`window|null`:
+  окно торгового / неторгового по календарю MOEX дня), `showcase?` `{enabled, collection|null}`
+  (витрина, этап 3). Других ключей нет. Политика: `full` (лимиты `as_tier`), пока активен
+  grant / триал / окно (этап 3 — инструмент витрины), иначе `basic` со своими лимитами.
+- `window` — `{from, to}` в `HH:MM` МСК; `to < from` — через полночь.
+- `member` — `role` (имя tier или capability), `token` ∈ `id_<id>` | `gc_<id>` | `gc:<группа GetCourse>`.
+- `userRow` — `user_id`, `display_name|null`, `tier`, `capabilities[]`, `first_seen_at`,
+  `last_seen_at`, `trial_started_at|null`, `trial_ends_at|null`, `grant_until|null`,
+  `subscription` — последний период `{tier, started_at, ended_at|null}` или `null`.
+
+Статистика `stats` по календарным неделям (`week` — понедельник): `new_users` — `first_seen_at`
+в неделе; `trials_started` — `trial_started_at` в неделе; `converted` — периоды платной подписки,
+начатые в неделе; `active` — `last_seen_at` в неделе.
 
 Серверные сообщения:
 
 - `afbws.access.state.v1` — пуш без `request_id`: новый блок `access` целиком при смене
-  режима (наступил `until`, менеджер изменил триал/грант/настройки, сменился tier/capability).
+  режима (наступил `until`, менеджер изменил tiers/members/триал/grant).
 - `afbws.access.denied.v1` — отказ гейта на запрос **любого** канала. `channel` — канал
-  отказанного запроса (не `access`), `request_id` — его id: клиент запрос/ответ этого канала
-  отклоняет pending-запрос. Поля: `reason` (`basic` — недоступно в базовом режиме;
-  `showcase` — инструменты из `refs[]` не в витрине; `held` — активация аларма/плана на
-  холде), `feature`, `refs[]?` (`instrument_key`), `until` (когда станет `full`, или `null`),
-  `message` (готовый текст).
-- `afbws.access.error.v1` — отказ запроса канала целиком: `code` ∈ `forbidden`,
-  `validation_error`, `not_found`, `conflict`, `invalid_schema`, `internal_error`; `item`
-  (текущие `settings`) — только при `conflict`.
+  отказанного запроса, `request_id` — его id: клиент запрос/ответ этого канала отклоняет
+  pending-запрос. Поля: `reason` (`basic` — недоступно в базовом режиме; `showcase` —
+  инструмент не в витрине; `held` — активация аларма/плана на холде), `feature`, `until`
+  (когда станет `full`, или `null`), `message` (готовый текст).
+- `afbws.access.error.v1` — отказ запроса канала целиком: `request_id`, `code` ∈ `forbidden`,
+  `validation_error`, `not_found`, `invalid_channel`, `invalid_schema`, `internal_error`, `message`.
 
 Примеры: `examples/auth_v1/`, `examples/access_channel_v1/`.

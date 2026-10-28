@@ -1,0 +1,22 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.user.set.v1",
+  "request_id": "r-4",
+  "user_id": "gc_282811500",
+  "item": {
+    "user_id": "gc_282811500",
+    "display_name": "Иван Петров",
+    "tier": "guest",
+    "capabilities": [],
+    "first_seen_at": "2026-10-01T09:12:00Z",
+    "last_seen_at": "2026-10-28T12:40:00Z",
+    "trial_started_at": "2026-10-01T09:12:00Z",
+    "trial_ends_at": "2026-10-15T09:12:00Z",
+    "grant_until": "2026-11-15T21:00:00Z",
+    "subscription": {
+      "tier": "user",
+      "started_at": "2026-09-01T08:00:00Z",
+      "ended_at": "2026-10-01T08:00:00Z"
+    }
+  }
+}
