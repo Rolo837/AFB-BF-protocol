@@ -1,0 +1,1714 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/access.channel.v1.json",
+  "x-afbws-support-id": "afbws.access.channel.v1",
+  "title": "access channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support (capability id afbws.access.channel.v1). Freemium access model: tier (who) x capabilities (personal permissions) x mode (what is available now), see common.v1.json#/$defs/access. Same convention as afbws.link/afbws.screener: ONE schema id per operation (`afbws.access.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response (echoes `request_id`). `request_id` is required in every client request. Server-initiated messages: push `afbws.access.state.v1` (no `request_id`, new access block when the mode changes) and `afbws.access.denied.v1` — the gate's refusal of a request of ANY channel (sent on the refused request's channel, with its `request_id`). Whole-request failures of this channel: `afbws.access.error.v1`. Operations (manager only, others get `forbidden`): `roles.get`/`roles.set` (tiers, capabilities, local groups; replace the config-channel op `roles`), `settings.get`/`settings.set` (default tier, trial length, time windows, showcase; optimistic lock by `revision`), `users.list`, `user.get`, `trial.set`, `grant.set`, `grant.revoke`, `stats`. See AFB/docs/ws/access.md.",
+  "type": "object",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/rolesGet"
+    },
+    {
+      "$ref": "#/$defs/rolesSet"
+    },
+    {
+      "$ref": "#/$defs/settingsGet"
+    },
+    {
+      "$ref": "#/$defs/settingsSet"
+    },
+    {
+      "$ref": "#/$defs/usersList"
+    },
+    {
+      "$ref": "#/$defs/userGet"
+    },
+    {
+      "$ref": "#/$defs/trialSet"
+    },
+    {
+      "$ref": "#/$defs/grantSet"
+    },
+    {
+      "$ref": "#/$defs/grantRevoke"
+    },
+    {
+      "$ref": "#/$defs/stats"
+    },
+    {
+      "$ref": "#/$defs/state"
+    },
+    {
+      "$ref": "#/$defs/denied"
+    },
+    {
+      "$ref": "#/$defs/error"
+    }
+  ],
+  "$defs": {
+    "memberToken": {
+      "type": "string",
+      "pattern": "^(id_[a-zA-Z0-9]{1,10}|gc_[a-zA-Z0-9]{1,10}|id:.+|gc:.+)$",
+      "description": "Member token: `id_<suffix>` (local user), `gc_<suffix>` (GetCourse user), `id:<local group id>`, `gc:<GetCourse group id>`."
+    },
+    "roleTier": {
+      "type": "object",
+      "required": [
+        "title",
+        "limits",
+        "members"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "limits": {
+          "$ref": "common.v1.json#/$defs/accessLimits"
+        },
+        "members": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/memberToken"
+          }
+        }
+      }
+    },
+    "roleCapability": {
+      "type": "object",
+      "required": [
+        "title",
+        "members"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "members": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/memberToken"
+          }
+        }
+      }
+    },
+    "tiers": {
+      "type": "object",
+      "description": "Exactly the three tiers; each with title, limits and members.",
+      "required": [
+        "manager",
+        "user",
+        "guest"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "manager": {
+          "$ref": "#/$defs/roleTier"
+        },
+        "user": {
+          "$ref": "#/$defs/roleTier"
+        },
+        "guest": {
+          "$ref": "#/$defs/roleTier"
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "description": "Capability name -> {title, members}. Open set of names (`trade`, `virtual`, `screener`, `local`, ...).",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/roleCapability"
+      }
+    },
+    "localGroup": {
+      "type": "object",
+      "description": "Local user group (members reference it as `id:<id>`).",
+      "required": [
+        "id",
+        "title"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "getcourseGroup": {
+      "type": "object",
+      "description": "GetCourse group (members reference it as `gc:<id>`), normalized by the backend.",
+      "required": [
+        "id",
+        "title"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "limitsTemplate": {
+      "type": "object",
+      "required": [
+        "keys",
+        "defaults"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "defaults": {
+          "$ref": "common.v1.json#/$defs/accessLimits"
+        }
+      }
+    },
+    "window": {
+      "description": "Daily time window, Moscow time. `from` == start, `to` == end (exclusive); `to` < `from` = across midnight (e.g. 22:00-02:00). null = no window on that kind of day.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "from",
+            "to"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "from": {
+              "$ref": "#/$defs/hhmm"
+            },
+            "to": {
+              "$ref": "#/$defs/hhmm"
+            }
+          }
+        }
+      ]
+    },
+    "hhmm": {
+      "type": "string",
+      "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+    },
+    "showcase": {
+      "type": "object",
+      "description": "Instrument showcase: when `enabled`, a guest in `basic` gets `full` functionality for the instruments of catalog collection `collection` (null = empty showcase).",
+      "required": [
+        "enabled",
+        "collection"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "collection": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "title": "Access settings document (server view).",
+      "description": "Type of day (workday/weekend) comes from the MOEX trading calendar, fallback Sat/Sun.",
+      "required": [
+        "revision",
+        "default_tier",
+        "trial_days",
+        "window_workday",
+        "window_weekend",
+        "showcase",
+        "updated_at",
+        "updated_by"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Monotonic document revision; settings.set must carry the revision it is based on (optimistic lock)."
+        },
+        "default_tier": {
+          "type": "string",
+          "enum": [
+            "user",
+            "guest"
+          ],
+          "description": "Tier of a user who matches no tier members."
+        },
+        "trial_days": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Length of the guest trial in days (0 = no trial)."
+        },
+        "window_workday": {
+          "$ref": "#/$defs/window"
+        },
+        "window_weekend": {
+          "$ref": "#/$defs/window"
+        },
+        "showcase": {
+          "$ref": "#/$defs/showcase"
+        },
+        "updated_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "updated_by": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "user_id of the last editor."
+        }
+      }
+    },
+    "settingsInput": {
+      "type": "object",
+      "title": "settings.set input: `revision` + the top-level keys to replace (others unchanged).",
+      "required": [
+        "revision"
+      ],
+      "minProperties": 2,
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Monotonic document revision; settings.set must carry the revision it is based on (optimistic lock)."
+        },
+        "default_tier": {
+          "type": "string",
+          "enum": [
+            "user",
+            "guest"
+          ],
+          "description": "Tier of a user who matches no tier members."
+        },
+        "trial_days": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Length of the guest trial in days (0 = no trial)."
+        },
+        "window_workday": {
+          "$ref": "#/$defs/window"
+        },
+        "window_weekend": {
+          "$ref": "#/$defs/window"
+        },
+        "showcase": {
+          "$ref": "#/$defs/showcase"
+        }
+      }
+    },
+    "userSource": {
+      "type": "string",
+      "enum": [
+        "gc",
+        "local",
+        "demo"
+      ],
+      "description": "How the user logs in: GetCourse, local, demo."
+    },
+    "userRow": {
+      "type": "object",
+      "title": "One user in the manager's list (also the head of user.get).",
+      "description": "`mode`/`reason`/`until` — effective access computed now (see common.v1.json#/$defs/access). `trial_ends_at`/`grant_ends_at` — end of the current or last trial/active grant (null — never). `subscription_started_at`/`subscription_ended_at` — the latest subscription period (`ended_at` null = still subscribed; both null = never subscribed).",
+      "required": [
+        "user_id",
+        "display_name",
+        "source",
+        "tier",
+        "capabilities",
+        "mode",
+        "reason",
+        "until",
+        "trial_ends_at",
+        "grant_ends_at",
+        "subscription_started_at",
+        "subscription_ended_at",
+        "first_seen_at",
+        "last_seen_at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "display_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "$ref": "#/$defs/userSource"
+        },
+        "tier": {
+          "$ref": "common.v1.json#/$defs/accessTier"
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "mode": {
+          "$ref": "common.v1.json#/$defs/accessMode"
+        },
+        "reason": {
+          "$ref": "common.v1.json#/$defs/accessReason"
+        },
+        "until": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "trial_ends_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "grant_ends_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "subscription_started_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "subscription_ended_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "first_seen_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_seen_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "subscriptionPeriod": {
+      "type": "object",
+      "required": [
+        "tier",
+        "started_at",
+        "ended_at",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "tier": {
+          "$ref": "common.v1.json#/$defs/accessTier"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ended_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "null = still open."
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "getcourse",
+            "member",
+            "grant"
+          ],
+          "description": "getcourse — GetCourse group; member — personal tier member; grant — manual grant."
+        }
+      }
+    },
+    "trial": {
+      "type": "object",
+      "required": [
+        "started_at",
+        "ends_at",
+        "updated_by",
+        "note"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ends_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_by": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Manager user_id of the last manual change; null — automatic start."
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "grant": {
+      "type": "object",
+      "title": "Manual access extension (grace) by a manager.",
+      "required": [
+        "id",
+        "user_id",
+        "tier",
+        "starts_at",
+        "ends_at",
+        "granted_by",
+        "reason",
+        "revoked_at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "user_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tier": {
+          "const": "user"
+        },
+        "starts_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ends_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "granted_by": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revoked_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "null = not revoked."
+        }
+      }
+    },
+    "logEntry": {
+      "type": "object",
+      "required": [
+        "ts",
+        "event",
+        "details"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "ts": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "event": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Open set; known values: tier_changed, capability_added, capability_removed, trial_started, trial_extended, trial_reset, grant_set, grant_revoked, mode_changed, denied."
+        },
+        "details": {
+          "type": "object"
+        }
+      }
+    },
+    "cohort": {
+      "type": "object",
+      "description": "One cohort = guests first seen during the period starting `period_start` (Monday for `week`). Counters: `guests_new` — new guests; `trial_started` — of them started a trial; `active` — of them seen in the period after the trial; `converted` — of them became `user` (paid); `grants` — grants issued during the period.",
+      "required": [
+        "period_start",
+        "guests_new",
+        "trial_started",
+        "active",
+        "converted",
+        "grants"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "period_start": {
+          "type": "string",
+          "format": "date"
+        },
+        "guests_new": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trial_started": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "active": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "converted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "grants": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "deniedStat": {
+      "type": "object",
+      "required": [
+        "feature",
+        "count",
+        "users"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "feature": {
+          "type": "string",
+          "minLength": 1
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "users": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Distinct users."
+        }
+      }
+    },
+    "deniedInstrumentStat": {
+      "type": "object",
+      "required": [
+        "instrument_key",
+        "count",
+        "users"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "instrument_key": {
+          "$ref": "common.v1.json#/$defs/instrumentKey"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "users": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "rolesGet": {
+      "type": "object",
+      "title": "afbws.access.roles.get.v1 — read the tiers/capabilities/groups configuration (request / response), manager only.",
+      "description": "Request: only `request_id`. Response: the full snapshot. Replaces the read half of the config-channel op `roles` (afbws.config.roles.v1), which the backend keeps serving from the same code.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.roles.get.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "tiers": {
+          "$ref": "#/$defs/tiers"
+        },
+        "capabilities": {
+          "$ref": "#/$defs/capabilities"
+        },
+        "local_groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/localGroup"
+          }
+        },
+        "getcourse_groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/getcourseGroup"
+          },
+          "description": "Response only."
+        },
+        "getcourse_groups_error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Response only: why GetCourse groups could not be fetched."
+        },
+        "limits_template": {
+          "$ref": "#/$defs/limitsTemplate",
+          "description": "Response only."
+        },
+        "default_tier": {
+          "type": "string",
+          "enum": [
+            "user",
+            "guest"
+          ],
+          "description": "Response only, read-only here (edited via settings.set)."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "limits_template"
+            ]
+          },
+          "then": {
+            "required": [
+              "tiers",
+              "capabilities",
+              "local_groups",
+              "getcourse_groups",
+              "getcourse_groups_error",
+              "limits_template",
+              "default_tier"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "tiers"
+                  ]
+                },
+                {
+                  "required": [
+                    "capabilities"
+                  ]
+                },
+                {
+                  "required": [
+                    "local_groups"
+                  ]
+                },
+                {
+                  "required": [
+                    "getcourse_groups"
+                  ]
+                },
+                {
+                  "required": [
+                    "getcourse_groups_error"
+                  ]
+                },
+                {
+                  "required": [
+                    "limits_template"
+                  ]
+                },
+                {
+                  "required": [
+                    "default_tier"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "rolesSet": {
+      "type": "object",
+      "title": "afbws.access.roles.set.v1 — replace the tiers/capabilities/local groups (request / response), manager only.",
+      "description": "Request: `tiers` + `capabilities` (whole replacement), optional `local_groups` (omitted = unchanged). Response: the full snapshot after saving (same as roles.get).",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.roles.set.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "tiers": {
+          "$ref": "#/$defs/tiers"
+        },
+        "capabilities": {
+          "$ref": "#/$defs/capabilities"
+        },
+        "local_groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/localGroup"
+          }
+        },
+        "getcourse_groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/getcourseGroup"
+          },
+          "description": "Response only."
+        },
+        "getcourse_groups_error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Response only: why GetCourse groups could not be fetched."
+        },
+        "limits_template": {
+          "$ref": "#/$defs/limitsTemplate",
+          "description": "Response only."
+        },
+        "default_tier": {
+          "type": "string",
+          "enum": [
+            "user",
+            "guest"
+          ],
+          "description": "Response only, read-only here (edited via settings.set)."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "limits_template"
+            ]
+          },
+          "then": {
+            "required": [
+              "tiers",
+              "capabilities",
+              "local_groups",
+              "getcourse_groups",
+              "getcourse_groups_error",
+              "limits_template",
+              "default_tier"
+            ]
+          },
+          "else": {
+            "required": [
+              "tiers",
+              "capabilities"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "getcourse_groups"
+                  ]
+                },
+                {
+                  "required": [
+                    "getcourse_groups_error"
+                  ]
+                },
+                {
+                  "required": [
+                    "default_tier"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "settingsGet": {
+      "type": "object",
+      "title": "afbws.access.settings.get.v1 — read the access settings (request / response), manager only.",
+      "description": "Request: only `request_id`. Response: `settings`.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.settings.get.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "settings": {
+          "$ref": "#/$defs/settings"
+        }
+      }
+    },
+    "settingsSet": {
+      "type": "object",
+      "title": "afbws.access.settings.set.v1 — change the access settings (request / response), manager only.",
+      "description": "Request: `settings` = settingsInput (`revision` the change is based on + top-level keys to replace). Response: the saved `settings` with a new `revision`. Revision mismatch -> afbws.access.error.v1 code `conflict` with the current document in `item`.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "settings"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.settings.set.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "settings": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/settings"
+            },
+            {
+              "$ref": "#/$defs/settingsInput"
+            }
+          ]
+        }
+      }
+    },
+    "usersList": {
+      "type": "object",
+      "title": "afbws.access.users.list.v1 — list users with their effective access (request / response), manager only.",
+      "description": "Request: optional filters (intersection): `tier`, `mode`, `lapsed` (true = subscription ended and not renewed — candidates for a manual grant), `query` (substring of user_id/display_name), paging `limit`/`offset`. Response: `items[]` (userRow, most recently seen first) + `total` (matching rows before paging).",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.users.list.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "tier": {
+          "$ref": "common.v1.json#/$defs/accessTier"
+        },
+        "mode": {
+          "$ref": "common.v1.json#/$defs/accessMode"
+        },
+        "lapsed": {
+          "type": "boolean"
+        },
+        "query": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/userRow"
+          },
+          "description": "Response only."
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Response only."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "items"
+            ]
+          },
+          "then": {
+            "required": [
+              "items",
+              "total"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "tier"
+                  ]
+                },
+                {
+                  "required": [
+                    "mode"
+                  ]
+                },
+                {
+                  "required": [
+                    "lapsed"
+                  ]
+                },
+                {
+                  "required": [
+                    "query"
+                  ]
+                },
+                {
+                  "required": [
+                    "limit"
+                  ]
+                },
+                {
+                  "required": [
+                    "offset"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "total"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "userGet": {
+      "type": "object",
+      "title": "afbws.access.user.get.v1 — one user's card with history (request / response), manager only.",
+      "description": "Request: `user_id`, optional `log_limit` (newest log entries, default 200). Response: `user_id`, `item` (userRow), `subscription_periods[]`, `trials[]`, `grants[]` (incl. revoked), `log[]` (newest first). Unknown user -> error `not_found`.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "user_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.user.get.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "user_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "log_limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 200
+        },
+        "item": {
+          "$ref": "#/$defs/userRow"
+        },
+        "subscription_periods": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/subscriptionPeriod"
+          }
+        },
+        "trials": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/trial"
+          }
+        },
+        "grants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/grant"
+          }
+        },
+        "log": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/logEntry"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "item"
+            ]
+          },
+          "then": {
+            "required": [
+              "item",
+              "subscription_periods",
+              "trials",
+              "grants",
+              "log"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "log_limit"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "subscription_periods"
+                  ]
+                },
+                {
+                  "required": [
+                    "trials"
+                  ]
+                },
+                {
+                  "required": [
+                    "grants"
+                  ]
+                },
+                {
+                  "required": [
+                    "log"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "trialSet": {
+      "type": "object",
+      "title": "afbws.access.trial.set.v1 — manage a user's trial (request / response), manager only.",
+      "description": "Request: `user_id`, `action` — `extend` (move the end of the current/last trial to `ends_at`), `start` (a new trial from now until `ends_at`; a repeated trial is possible only this way), `reset` (end the current trial now; no `ends_at`); optional `note`. Response: `user_id`, `item` (updated userRow), `trial` (the affected trial record).",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "user_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.trial.set.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "user_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "extend",
+            "start",
+            "reset"
+          ]
+        },
+        "ends_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "item": {
+          "$ref": "#/$defs/userRow"
+        },
+        "trial": {
+          "$ref": "#/$defs/trial"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "item"
+            ]
+          },
+          "then": {
+            "required": [
+              "item",
+              "trial"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "action"
+                  ]
+                },
+                {
+                  "required": [
+                    "ends_at"
+                  ]
+                },
+                {
+                  "required": [
+                    "note"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "action"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "trial"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "enum": [
+                  "extend",
+                  "start"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "ends_at"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "const": "reset"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "ends_at"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "grantSet": {
+      "type": "object",
+      "title": "afbws.access.grant.set.v1 — grant standard access until a date (request / response), manager only.",
+      "description": "Request: `user_id`, `tier` (only `user`), `ends_at` (future), optional `reason`. The grant starts now. Response: `grant` (the created record) + `item` (updated userRow).",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.grant.set.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "user_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tier": {
+          "const": "user"
+        },
+        "ends_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "grant": {
+          "$ref": "#/$defs/grant"
+        },
+        "item": {
+          "$ref": "#/$defs/userRow"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "grant"
+            ]
+          },
+          "then": {
+            "required": [
+              "grant",
+              "item"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "user_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "tier"
+                  ]
+                },
+                {
+                  "required": [
+                    "ends_at"
+                  ]
+                },
+                {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "user_id",
+              "tier",
+              "ends_at"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "item"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "grantRevoke": {
+      "type": "object",
+      "title": "afbws.access.grant.revoke.v1 — revoke a grant (request / response), manager only.",
+      "description": "Request: `grant_id`. Response: `grant` (with `revoked_at` set) + `item` (updated userRow). Unknown id -> `not_found`; an already revoked grant is returned as is.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.grant.revoke.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "grant_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "grant": {
+          "$ref": "#/$defs/grant"
+        },
+        "item": {
+          "$ref": "#/$defs/userRow"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "grant"
+            ]
+          },
+          "then": {
+            "required": [
+              "grant",
+              "item"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "grant_id"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "grant_id"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "item"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "stats": {
+      "type": "object",
+      "title": "afbws.access.stats.v1 — conversion statistics (request / response), manager only.",
+      "description": "Request: `from`/`to` (dates, inclusive, Moscow), `group_by` (`week`). Response echoes `from`/`to`/`group_by` and carries `cohorts[]` (oldest first) and the top refusals: `denied[]` by feature and `denied_instruments[]` by instrument (showcase stage), both most frequent first.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "from",
+        "to"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.stats.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "from": {
+          "type": "string",
+          "format": "date"
+        },
+        "to": {
+          "type": "string",
+          "format": "date"
+        },
+        "group_by": {
+          "type": "string",
+          "enum": [
+            "week"
+          ],
+          "default": "week"
+        },
+        "cohorts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cohort"
+          }
+        },
+        "denied": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/deniedStat"
+          }
+        },
+        "denied_instruments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/deniedInstrumentStat"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "cohorts"
+            ]
+          },
+          "then": {
+            "required": [
+              "cohorts",
+              "denied",
+              "denied_instruments",
+              "group_by"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "denied"
+                  ]
+                },
+                {
+                  "required": [
+                    "denied_instruments"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "state": {
+      "type": "object",
+      "title": "afbws.access.state.v1 — new effective access of this connection (server push only).",
+      "description": "Sent without `request_id` whenever the effective access changes (mode switch at `until`, a trial/grant/settings change by a manager, a tier/capability change). Carries the whole new `access` block; the client replaces the one from auth.ok.",
+      "required": [
+        "channel",
+        "schema",
+        "access"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.state.v1"
+        },
+        "access": {
+          "$ref": "common.v1.json#/$defs/access"
+        }
+      }
+    },
+    "denied": {
+      "type": "object",
+      "title": "afbws.access.denied.v1 — the access gate refused a request of ANY channel (server -> client).",
+      "description": "Answer to a request of any schema-first channel that the current `mode` does not allow. `channel` is the channel of the REFUSED request (not `access`) and `request_id` echoes it, so the per-channel request/response client correlates and rejects the pending request. `reason`: `basic` — feature not available in basic mode; `showcase` — basic mode with showcase, the instrument(s) in `refs` are not in the showcase; `held` — activation of an alarm/trade plan while the owner's objects are held. `feature` — gate feature id (e.g. `datasets`, `participants`, `virtual`, `screener`, `alarm.activate`). `until` — when `full` becomes available (next window/trial), null if unknown. `message` — ready-to-show text.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "reason",
+        "feature",
+        "until",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Channel of the refused request."
+        },
+        "schema": {
+          "const": "afbws.access.denied.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "basic",
+            "showcase",
+            "held"
+          ]
+        },
+        "feature": {
+          "type": "string",
+          "minLength": 1
+        },
+        "refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.v1.json#/$defs/instrumentKey"
+          },
+          "description": "Instruments that caused the refusal (showcase/held)."
+        },
+        "until": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "title": "afbws.access.error.v1 — typed error for a whole request (server -> client).",
+      "description": "`code` is a closed subset of common errorCode: `forbidden` (not a manager), `validation_error`, `not_found` (user/grant), `conflict` (settings.set revision mismatch; `item` = current settings document), `invalid_schema`, `internal_error`.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "code",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.error.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "code": {
+          "type": "string",
+          "enum": [
+            "forbidden",
+            "validation_error",
+            "not_found",
+            "conflict",
+            "invalid_schema",
+            "internal_error"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "item": {
+          "$ref": "#/$defs/settings"
+        }
+      },
+      "if": {
+        "required": [
+          "item"
+        ]
+      },
+      "then": {
+        "properties": {
+          "code": {
+            "const": "conflict"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,11 +1,367 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 96b3bbf0c27bb434c68ecb2dcc86aace70cc2c8211e1e4e7c9c26103e8c1fe0a
+# source-hash: 7af24499104ef908b55c5a9344cddf2ed3619fba3d4936e94f362f03569a310f
 
 from __future__ import annotations
 
 from typing import Any, Literal, NotRequired, TypeAlias, TypedDict
+
+
+class AccessV1Cohort(TypedDict):
+    """
+    One cohort = guests first seen during the period starting `period_start` (Monday for `week`). Counters: `guests_new` — new guests; `trial_started` — of them started a trial; `active` — of them seen in the period after the trial; `converted` — of them became `user` (paid); `grants` — grants issued during the period.
+    """
+
+    period_start: str
+    guests_new: int
+    trial_started: int
+    active: int
+    converted: int
+    grants: int
+
+
+class AccessV1Denied(TypedDict):
+    """
+    Answer to a request of any schema-first channel that the current `mode` does not allow. `channel` is the channel of the REFUSED request (not `access`) and `request_id` echoes it, so the per-channel request/response client correlates and rejects the pending request. `reason`: `basic` — feature not available in basic mode; `showcase` — basic mode with showcase, the instrument(s) in `refs` are not in the showcase; `held` — activation of an alarm/trade plan while the owner's objects are held. `feature` — gate feature id (e.g. `datasets`, `participants`, `virtual`, `screener`, `alarm.activate`). `until` — when `full` becomes available (next window/trial), null if unknown. `message` — ready-to-show text.
+    """
+
+    channel: str
+    schema: Literal["afbws.access.denied.v1"]
+    request_id: AfbwsCommonV1RequestId
+    reason: Literal["basic", "showcase", "held"]
+    feature: str
+    refs: NotRequired[list[AfbwsCommonV1InstrumentKey]]
+    until: str | None
+    message: str
+
+
+class AccessV1DeniedInstrumentStat(TypedDict):
+    instrument_key: AfbwsCommonV1InstrumentKey
+    count: int
+    users: int
+
+
+class AccessV1DeniedStat(TypedDict):
+    feature: str
+    count: int
+    users: int
+
+
+class AccessV1Error(TypedDict):
+    """
+    `code` is a closed subset of common errorCode: `forbidden` (not a manager), `validation_error`, `not_found` (user/grant), `conflict` (settings.set revision mismatch; `item` = current settings document), `invalid_schema`, `internal_error`.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.error.v1"]
+    request_id: AfbwsCommonV1RequestId
+    code: Literal[
+        "forbidden",
+        "validation_error",
+        "not_found",
+        "conflict",
+        "invalid_schema",
+        "internal_error",
+    ]
+    message: str
+    item: NotRequired[AccessV1Settings]
+
+
+class AccessV1GetcourseGroup(TypedDict):
+    """
+    GetCourse group (members reference it as `gc:<id>`), normalized by the backend.
+    """
+
+    id: str
+
+
+class AccessV1Grant(TypedDict):
+    id: str
+    user_id: str
+    tier: Literal["user"]
+    starts_at: str
+    ends_at: str
+    granted_by: str
+    reason: str | None
+    revoked_at: str | None
+
+
+class AccessV1GrantRevoke(TypedDict):
+    """
+    Request: `grant_id`. Response: `grant` (with `revoked_at` set) + `item` (updated userRow). Unknown id -> `not_found`; an already revoked grant is returned as is.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.grant.revoke.v1"]
+    request_id: AfbwsCommonV1RequestId
+    grant_id: NotRequired[str]
+    grant: NotRequired[AccessV1Grant]
+    item: NotRequired[AccessV1UserRow]
+
+
+class AccessV1GrantSet(TypedDict):
+    """
+    Request: `user_id`, `tier` (only `user`), `ends_at` (future), optional `reason`. The grant starts now. Response: `grant` (the created record) + `item` (updated userRow).
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.grant.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    user_id: NotRequired[str]
+    tier: NotRequired[Literal["user"]]
+    ends_at: NotRequired[str]
+    reason: NotRequired[str]
+    grant: NotRequired[AccessV1Grant]
+    item: NotRequired[AccessV1UserRow]
+
+
+AccessV1Hhmm: TypeAlias = str
+
+
+class AccessV1LimitsTemplate(TypedDict):
+    keys: list[str]
+    defaults: AfbwsCommonV1AccessLimits
+
+
+class AccessV1LocalGroup(TypedDict):
+    """
+    Local user group (members reference it as `id:<id>`).
+    """
+
+    id: str
+
+
+class AccessV1LogEntry(TypedDict):
+    ts: str
+    event: str
+    details: dict[str, Any]
+
+
+AccessV1MemberToken: TypeAlias = str
+
+
+class AccessV1RoleCapability(TypedDict):
+    members: list[AccessV1MemberToken]
+
+
+AccessV1Capabilities: TypeAlias = dict[str, AccessV1RoleCapability]
+
+
+class AccessV1RoleTier(TypedDict):
+    limits: AfbwsCommonV1AccessLimits
+    members: list[AccessV1MemberToken]
+
+
+class AccessV1RolesGet(TypedDict):
+    """
+    Request: only `request_id`. Response: the full snapshot. Replaces the read half of the config-channel op `roles` (afbws.config.roles.v1), which the backend keeps serving from the same code.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.roles.get.v1"]
+    request_id: AfbwsCommonV1RequestId
+    tiers: NotRequired[AccessV1Tiers]
+    capabilities: NotRequired[AccessV1Capabilities]
+    local_groups: NotRequired[list[AccessV1LocalGroup]]
+    getcourse_groups: NotRequired[list[AccessV1GetcourseGroup]]
+    getcourse_groups_error: NotRequired[str | None]
+    limits_template: NotRequired[AccessV1LimitsTemplate]
+    default_tier: NotRequired[Literal["user", "guest"]]
+
+
+class AccessV1RolesSet(TypedDict):
+    """
+    Request: `tiers` + `capabilities` (whole replacement), optional `local_groups` (omitted = unchanged). Response: the full snapshot after saving (same as roles.get).
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.roles.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    tiers: NotRequired[AccessV1Tiers]
+    capabilities: NotRequired[AccessV1Capabilities]
+    local_groups: NotRequired[list[AccessV1LocalGroup]]
+    getcourse_groups: NotRequired[list[AccessV1GetcourseGroup]]
+    getcourse_groups_error: NotRequired[str | None]
+    limits_template: NotRequired[AccessV1LimitsTemplate]
+    default_tier: NotRequired[Literal["user", "guest"]]
+
+
+class AccessV1Settings(TypedDict):
+    """
+    Type of day (workday/weekend) comes from the MOEX trading calendar, fallback Sat/Sun.
+    """
+
+    revision: int
+    default_tier: Literal["user", "guest"]
+    trial_days: int
+    window_workday: AccessV1Window
+    window_weekend: AccessV1Window
+    showcase: AccessV1Showcase
+    updated_at: str | None
+    updated_by: str | None
+
+
+class AccessV1SettingsGet(TypedDict):
+    """
+    Request: only `request_id`. Response: `settings`.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.settings.get.v1"]
+    request_id: AfbwsCommonV1RequestId
+    settings: NotRequired[AccessV1Settings]
+
+
+class AccessV1SettingsInput(TypedDict):
+    revision: int
+    default_tier: NotRequired[Literal["user", "guest"]]
+    trial_days: NotRequired[int]
+    window_workday: NotRequired[AccessV1Window]
+    window_weekend: NotRequired[AccessV1Window]
+    showcase: NotRequired[AccessV1Showcase]
+
+
+class AccessV1SettingsSet(TypedDict):
+    """
+    Request: `settings` = settingsInput (`revision` the change is based on + top-level keys to replace). Response: the saved `settings` with a new `revision`. Revision mismatch -> afbws.access.error.v1 code `conflict` with the current document in `item`.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.settings.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    settings: AccessV1Settings | AccessV1SettingsInput
+
+
+class AccessV1Showcase(TypedDict):
+    """
+    Instrument showcase: when `enabled`, a guest in `basic` gets `full` functionality for the instruments of catalog collection `collection` (null = empty showcase).
+    """
+
+    enabled: bool
+    collection: str | None
+
+
+class AccessV1State(TypedDict):
+    """
+    Sent without `request_id` whenever the effective access changes (mode switch at `until`, a trial/grant/settings change by a manager, a tier/capability change). Carries the whole new `access` block; the client replaces the one from auth.ok.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.state.v1"]
+    access: AfbwsCommonV1Access
+
+
+class AccessV1SubscriptionPeriod(TypedDict):
+    tier: AfbwsCommonV1AccessTier
+    started_at: str
+    ended_at: str | None
+    source: Literal["getcourse", "member", "grant"]
+
+
+class AccessV1Tiers(TypedDict):
+    """
+    Exactly the three tiers; each with title, limits and members.
+    """
+
+    manager: AccessV1RoleTier
+    user: AccessV1RoleTier
+    guest: AccessV1RoleTier
+
+
+class AccessV1Trial(TypedDict):
+    started_at: str
+    ends_at: str
+    updated_by: str | None
+    note: str | None
+
+
+class AccessV1TrialSet(TypedDict):
+    """
+    Request: `user_id`, `action` — `extend` (move the end of the current/last trial to `ends_at`), `start` (a new trial from now until `ends_at`; a repeated trial is possible only this way), `reset` (end the current trial now; no `ends_at`); optional `note`. Response: `user_id`, `item` (updated userRow), `trial` (the affected trial record).
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.trial.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    user_id: str
+    action: NotRequired[Literal["extend", "start", "reset"]]
+    ends_at: NotRequired[str]
+    note: NotRequired[str]
+    item: NotRequired[AccessV1UserRow]
+    trial: NotRequired[AccessV1Trial]
+
+
+class AccessV1UserGet(TypedDict):
+    """
+    Request: `user_id`, optional `log_limit` (newest log entries, default 200). Response: `user_id`, `item` (userRow), `subscription_periods[]`, `trials[]`, `grants[]` (incl. revoked), `log[]` (newest first). Unknown user -> error `not_found`.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.user.get.v1"]
+    request_id: AfbwsCommonV1RequestId
+    user_id: str
+    log_limit: NotRequired[int]
+    item: NotRequired[AccessV1UserRow]
+    subscription_periods: NotRequired[list[AccessV1SubscriptionPeriod]]
+    trials: NotRequired[list[AccessV1Trial]]
+    grants: NotRequired[list[AccessV1Grant]]
+    log: NotRequired[list[AccessV1LogEntry]]
+
+
+class AccessV1UserRow(TypedDict):
+    """
+    `mode`/`reason`/`until` — effective access computed now (see common.v1.json#/$defs/access). `trial_ends_at`/`grant_ends_at` — end of the current or last trial/active grant (null — never). `subscription_started_at`/`subscription_ended_at` — the latest subscription period (`ended_at` null = still subscribed; both null = never subscribed).
+    """
+
+    user_id: str
+    display_name: str | None
+    source: AccessV1UserSource
+    tier: AfbwsCommonV1AccessTier
+    capabilities: list[Capability]
+    mode: AfbwsCommonV1AccessMode
+    reason: AfbwsCommonV1AccessReason
+    until: str | None
+    trial_ends_at: str | None
+    grant_ends_at: str | None
+    subscription_started_at: str | None
+    subscription_ended_at: str | None
+    first_seen_at: str
+    last_seen_at: str
+
+
+AccessV1UserSource: TypeAlias = Literal["gc", "local", "demo"]
+
+
+class AccessV1UsersList(TypedDict):
+    """
+    Request: optional filters (intersection): `tier`, `mode`, `lapsed` (true = subscription ended and not renewed — candidates for a manual grant), `query` (substring of user_id/display_name), paging `limit`/`offset`. Response: `items[]` (userRow, most recently seen first) + `total` (matching rows before paging).
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.users.list.v1"]
+    request_id: AfbwsCommonV1RequestId
+    tier: NotRequired[AfbwsCommonV1AccessTier]
+    mode: NotRequired[AfbwsCommonV1AccessMode]
+    lapsed: NotRequired[bool]
+    query: NotRequired[str]
+    limit: NotRequired[int]
+    offset: NotRequired[int]
+    items: NotRequired[list[AccessV1UserRow]]
+    total: NotRequired[int]
+
+
+AccessV1Window1 = TypedDict(
+    "AccessV1Window1",
+    {
+        "from": AccessV1Hhmm,
+        "to": AccessV1Hhmm,
+    },
+)
+
+
+AccessV1Window: TypeAlias = AccessV1Window1 | None
+
 
 AccountV2AccountId: TypeAlias = str
 
@@ -561,6 +917,42 @@ AfbwsCatalogChannelV1Root: TypeAlias = (
 )
 
 
+class AfbwsCommonV1Access(TypedDict):
+    """
+    Three independent axes. (1) `tier` — WHO the user is (manager/user/guest). (2) `capabilities` — personal permissions granted by a manager, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`, ...); holding `trade` ALWAYS yields `mode: full` (`reason: subscription`): real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); logic is decided only by `mode`, while `reason` and `until` are for display and statistics. `until` is the moment of the next mode change known to the server (end of trial/grant/window, start of the next window), null when none is scheduled; the server pushes afbws.access.state.v1 when the mode actually changes. `showcase` — whether the instrument showcase applies to this connection (only possible in `basic`): instruments of the showcase collection work as in `full`, everything else as `basic`.
+    """
+
+    tier: AfbwsCommonV1AccessTier
+    capabilities: list[Capability]
+    limits: AfbwsCommonV1AccessLimits
+    mode: AfbwsCommonV1AccessMode
+    reason: AfbwsCommonV1AccessReason
+    until: str | None
+    showcase: bool
+
+
+class AfbwsCommonV1AccessLimits(TypedDict):
+    """
+    Effective per-user limits (enforced only when ADDING objects; existing objects above a limit are never deleted or truncated). Keys mirror AFB backend/users/roles_loader.py LIMIT_KEYS.
+    """
+
+    max_favorites_tickers: int
+    max_primitives_per_user: int
+    max_sets: int
+    max_favorite_colors: int
+
+
+AfbwsCommonV1AccessMode: TypeAlias = Literal["full", "basic"]
+
+
+AfbwsCommonV1AccessReason: TypeAlias = Literal[
+    "subscription", "grant", "trial", "window", "none"
+]
+
+
+AfbwsCommonV1AccessTier: TypeAlias = Literal["manager", "user", "guest"]
+
+
 AfbwsCommonV1ErrorCode: TypeAlias = Literal[
     "not_found",
     "invalid_schema",
@@ -581,6 +973,39 @@ AfbwsCommonV1InstrumentKey: TypeAlias = str
 
 
 AfbwsCommonV1RequestId: TypeAlias = str
+
+
+AccessV1Stats = TypedDict(
+    "AccessV1Stats",
+    {
+        "channel": Literal["access"],
+        "schema": Literal["afbws.access.stats.v1"],
+        "request_id": AfbwsCommonV1RequestId,
+        "from": str,
+        "to": str,
+        "group_by": NotRequired[Literal["week"]],
+        "cohorts": NotRequired[list[AccessV1Cohort]],
+        "denied": NotRequired[list[AccessV1DeniedStat]],
+        "denied_instruments": NotRequired[list[AccessV1DeniedInstrumentStat]],
+    },
+)
+
+
+AccessChannelV1Message: TypeAlias = (
+    AccessV1RolesGet
+    | AccessV1RolesSet
+    | AccessV1SettingsGet
+    | AccessV1SettingsSet
+    | AccessV1UsersList
+    | AccessV1UserGet
+    | AccessV1TrialSet
+    | AccessV1GrantSet
+    | AccessV1GrantRevoke
+    | AccessV1Stats
+    | AccessV1State
+    | AccessV1Denied
+    | AccessV1Error
+)
 
 
 AfbwsCommonV1Root: TypeAlias = Any
@@ -1316,6 +1741,47 @@ class Alarms1(TypedDict):
     confirm_delete: NotRequired[bool]
 
 
+class AuthV1Error(TypedDict):
+    """
+    `unauthorized` — no valid session (close code 4001); `session_invalid` — the session exists but its access profile could not be resolved (close code 4001); `invalid_request` — the first message is not a valid auth request (close code 4000).
+    """
+
+    channel: Literal["auth"]
+    schema: Literal["afbws.auth.error.v1"]
+    code: Literal["unauthorized", "invalid_request", "session_invalid"]
+    message: str
+
+
+class AuthV1Ok(TypedDict):
+    """
+    `support` — the backend's own declared afbws capability ids (not the intersection; the client computes it). `brokers` — known broker ids for the link connector-create form, sent unconditionally. `access` — effective access of this connection (tier / capabilities / limits / mode ...), see common.v1.json#/$defs/access; later changes arrive as afbws.access.state.v1 pushes.
+    """
+
+    channel: Literal["auth"]
+    schema: Literal["afbws.auth.ok.v1"]
+    user_id: str
+    timezone: str
+    support: list[SupportItem]
+    brokers: list[str]
+    access: AfbwsCommonV1Access
+
+
+class AuthV1Request(TypedDict):
+    """
+    The session is taken from the `afb_session` cookie, or from `session_id` when the cookie is absent/invalid. `version` (frontend build) is logged for monitoring only — never parsed, compared or used to gate behaviour; all behaviour is gated on `support` alone. `demo: true` = demo login (guest profile, GetCourse skipped).
+    """
+
+    channel: Literal["auth"]
+    schema: Literal["afbws.auth.request.v1"]
+    version: str
+    demo: NotRequired[bool]
+    support: list[SupportItem]
+    session_id: NotRequired[str]
+
+
+AuthV1Message: TypeAlias = AuthV1Request | AuthV1Ok | AuthV1Error
+
+
 class Backstop(TypedDict):
     """
     Per-deal overrides for the hybrid-mode server-side backstop order; unset fields fall back to the executing BF's own config defaults. Meaningful only when execution_mode is `hybrid`.
@@ -1507,6 +1973,9 @@ class CalendarUpdatePayload(TypedDict):
     stale_after_sec: int
     horizon_until: str
     sections: list[Section]
+
+
+Capability: TypeAlias = str
 
 
 Change = TypedDict(
@@ -4562,6 +5031,9 @@ class Sort(TypedDict):
 class Subscription(TypedDict):
     dataset_id: Literal["positions", "orders", "hhi", "trades"]
     instrument: DealInstrument
+
+
+SupportItem: TypeAlias = str
 
 
 class TradePlanV21(TypedDict):

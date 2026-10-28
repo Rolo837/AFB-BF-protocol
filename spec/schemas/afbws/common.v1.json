@@ -30,6 +30,147 @@
       "type": "string",
       "minLength": 1,
       "description": "Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel."
+    },
+    "accessTier": {
+      "type": "string",
+      "enum": [
+        "manager",
+        "user",
+        "guest"
+      ],
+      "description": "Who the user is (axis 1 of the access model): `manager` (everything + resource management), `user` (paying GetCourse subscriber), `guest`. Comes from tier members in the backend's access database (GetCourse groups, user ids). Manager functions are gated on `tier == manager` only, independently of `mode`."
+    },
+    "accessMode": {
+      "type": "string",
+      "enum": [
+        "full",
+        "basic"
+      ],
+      "description": "What is available right now (axis 3 of the access model): `full` — paid features work; `basic` — paid features are refused with afbws.access.denied.v1 and the user's alarms/trade plans are held (not evaluated). ALL access logic is decided by `mode` alone; `reason`/`until` are display/statistics only."
+    },
+    "accessReason": {
+      "type": "string",
+      "enum": [
+        "subscription",
+        "grant",
+        "trial",
+        "window",
+        "none"
+      ],
+      "description": "Why the current `mode` holds — display/statistics only, never used for logic. `subscription` — paid tier (user/manager) or the `trade` capability; `grant` — manual extension by a manager; `trial` — guest trial period; `window` — guest inside the workday/weekend time window; `none` — no reason for `full` (always so in `basic`)."
+    },
+    "accessLimits": {
+      "type": "object",
+      "description": "Effective per-user limits (enforced only when ADDING objects; existing objects above a limit are never deleted or truncated). Keys mirror AFB backend/users/roles_loader.py LIMIT_KEYS.",
+      "required": [
+        "max_favorites_tickers",
+        "max_primitives_per_user",
+        "max_sets",
+        "max_favorite_colors"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "max_favorites_tickers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_primitives_per_user": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_sets": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_favorite_colors": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "access": {
+      "type": "object",
+      "title": "Effective access of one connection (auth.ok.access, access.state.access).",
+      "description": "Three independent axes. (1) `tier` — WHO the user is (manager/user/guest). (2) `capabilities` — personal permissions granted by a manager, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`, ...); holding `trade` ALWAYS yields `mode: full` (`reason: subscription`): real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); logic is decided only by `mode`, while `reason` and `until` are for display and statistics. `until` is the moment of the next mode change known to the server (end of trial/grant/window, start of the next window), null when none is scheduled; the server pushes afbws.access.state.v1 when the mode actually changes. `showcase` — whether the instrument showcase applies to this connection (only possible in `basic`): instruments of the showcase collection work as in `full`, everything else as `basic`.",
+      "required": [
+        "tier",
+        "capabilities",
+        "limits",
+        "mode",
+        "reason",
+        "until",
+        "showcase"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "tier": {
+          "$ref": "#/$defs/accessTier"
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Personal capability names (e.g. `trade`, `virtual`, `screener`, `local`). Open set: managers may define new ones."
+        },
+        "limits": {
+          "$ref": "#/$defs/accessLimits"
+        },
+        "mode": {
+          "$ref": "#/$defs/accessMode"
+        },
+        "reason": {
+          "$ref": "#/$defs/accessReason"
+        },
+        "until": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "Next known mode change, ISO-8601 with offset; null — none scheduled."
+        },
+        "showcase": {
+          "type": "boolean",
+          "description": "True only in `basic` when the showcase is enabled for this connection."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "basic"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "const": "none"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "showcase": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "mode": {
+                "const": "basic"
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

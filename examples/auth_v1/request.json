@@ -1,0 +1,11 @@
+{
+  "channel": "auth",
+  "schema": "afbws.auth.request.v1",
+  "version": "3.4.1",
+  "demo": false,
+  "support": [
+    "afbws.auth.v1",
+    "afbws.access.channel.v1",
+    "afbws.link.channel.v2"
+  ]
+}

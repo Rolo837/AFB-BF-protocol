@@ -419,6 +419,8 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/schemas/afbws/catalog.channel.v1.json` | Канал `catalog` (capability `afbws.catalog.channel.v1`), только менеджер: `snapshot`/`symbols`/`support`/`commit`/`refresh`, один schema id на сообщение, списки ≤100, пуш итога обновления `refresh` без `request_id`; заменяет менеджерскую половину `afbws.instrument` (`catalog`/`pool`/`inventory`/`commit`/`refresh`) |
 | `spec/schemas/afbws/screener.channel.v1.json` | Канал `screener` (capability `afbws.screener.channel.v1`), доступ по capability `screener` роли: `list` (выгрузки скринера, новые первыми, `latest`/`intraday_latest`) и `get` (выгрузка по id `night:YYYY-MM-DD` / `intraday:YYYY-MM-DDTHHMM` или алиасу `latest`/`intraday_latest`; `document` — открытый объект контракта `AFB/docs/SCREENER_RESULTS.md`) `participants` (снимок участников рынка: колоночный формат `columns`/`rows`, как у таблиц `market.series`: справочник деривативов + коллекции и четыре списка `now`/`d1`/`d2`/`w1` — fiz/yur long/short/net, число участников, ОИ, объём; запрос пустой) и `error`; один schema id на сообщение (`afbws.screener.<op>.v1`), `request_id` обязателен в запросах клиента; единственный серверный пуш — `participants` без `request_id` (после каждого обновления позиций FORTS, ~5 мин, подписанным запросом соединениям); в списках `participants` есть колонка `price` (цена активного контракта); `list`/`get` читают только JSON-файлы, не БД скринера |
 | `spec/schemas/afbws/instrument.channel.v2.json` | Канал `instrument` v2 (capability `afbws.instrument.channel.v2`), любой авторизованный: `catalog`/`sets`/`favorites`/`paint`/`expiration`/`replace`/`detail`, один schema id на сообщение, пуш без `request_id`, инструмент только по `instrument_key`; `sets` — единая команда наборов (личные и глобальные по `visibility`), `detail` — параметры по всем счетам |
+| `spec/schemas/afbws/auth.v1.json` | Рукопожатие WS AFB (capability `afbws.auth.v1`): `afbws.auth.request.v1` / `afbws.auth.ok.v1` (с блоком `access`) / `afbws.auth.error.v1`; заменяет легаси `type: "auth"`/`auth_ok`/`auth_error` (бэкенд понимает обе формы, см. §20) |
+| `spec/schemas/afbws/access.channel.v1.json` | Канал `access` (capability `afbws.access.channel.v1`): модель доступа tier × capabilities × mode; менеджерские `roles.get/set`, `settings.get/set`, `users.list`, `user.get`, `trial.set`, `grant.set/revoke`, `stats`; пуш `state`, отказ гейта `denied`, `error` (см. §20) |
 | `spec/schemas/payloads/` | JSON Schema каждого payload |
 | `examples/` | Подписанные примеры конвертов |
 | `examples/tradeplans/` | Примеры шаблонов ТП (не конверты, не подписываются) |
@@ -1211,3 +1213,77 @@ Resync по ревизии и статусу не показывает, что �
 
 - **Биржевой сбор** (Finam `AccountTrade.commission`, `BUYSELLFEE`) привязан к трейду → необязательное `deal.report.fills[].exchange_fee {value, currency}`. Брокер начисляет его после клиринга, поэтому закрывающий отчёт идёт без него, а позже BF отправляет **повторный `deal.report`** (те же fills, новый `deal_seq`/ключ идемпотентности) — получатель сливает по `trade_id` и не считает повтор вторым закрытием.
 - **Брокерская комиссия** зависит от тарифа (за контракт, % от оборота за день, разные ставки по сторонам) и не делится по сделкам → только по счёту: `broker.accounts.accounts[].broker_fees[] {date, value, currency, transaction_id?}`, **скользящее окно последних дней** (полный снимок, а не дельта — потерянный пуш лечится следующим; AFB делает upsert по `(account_id, date)` и копит историю сам). `date` — торговый день в `market.timezone` BF; `value` положительное число = удержано.
+
+---
+
+## 20. Доступ: рукопожатие `auth` и канал `access` (AFB-сторонние)
+
+Не AsyncAPI, канал AFB↔BF не пересекают — связка фронтенд↔бэкенд AFB.
+
+### Модель доступа: три независимые оси (`common.v1.json#/$defs/access`)
+
+| Ось | Значения | Что определяет |
+|---|---|---|
+| `tier` — кто | `manager` / `user` / `guest` | менеджерские функции (только `tier == manager`, независимо от `mode`); лимиты tier |
+| `capabilities` — персональные допуски | `trade`, `virtual`, `screener`, `local`, … (открытый набор) | выдаются менеджером персонально; **`trade` ⇒ всегда `mode: full`** (`reason: subscription`) — реальная торговля не холдится |
+| `mode` — что доступно сейчас | `full` / `basic` | работают ли платные функции; **вся логика решается только `mode`** |
+
+Рядом: `reason` (`subscription | grant | trial | window | none`) и `until` (момент следующей
+известной смены режима или `null`) — только для отображения и статистики; в `basic`
+`reason` всегда `none`. `showcase: true` — в `basic` действует витрина инструментов
+(возможно только в `basic`). `limits` — четыре ключа (`max_favorites_tickers`,
+`max_primitives_per_user`, `max_sets`, `max_favorite_colors`), целые ≥0, проверяются
+только при добавлении объектов.
+
+### `afbws.auth.v1` (capability `afbws.auth.v1`)
+
+Первое сообщение соединения, `channel: "auth"`, без `request_id` (ровно один запрос и один ответ):
+
+- `afbws.auth.request.v1` — `version` (сборка фронта, только логируется), `demo?`, `support[]`, `session_id?`.
+- `afbws.auth.ok.v1` — `user_id`, `timezone`, `support[]` (собственные capability бэкенда), `brokers[]`, `access`.
+  Плоских `tier`/`capabilities`/`limits` легаси-`auth_ok` в типизированной форме нет — они в `access`.
+- `afbws.auth.error.v1` — `code` ∈ `unauthorized` (нет сессии, close 4001) | `session_invalid` (профиль не определён, 4001) | `invalid_request` (первое сообщение — не auth, 4000), `message`; сервер сразу закрывает сокет.
+
+Согласование: `support` клиент узнаёт только из ответа, то есть **после** выбора формы первого
+сообщения. Поэтому фронт всегда шлёт `afbws.auth.request.v1`, а бэкенд принимает обе формы
+(легаси `type: "auth"` и схему) и отвечает в форме запроса. `afbws.auth.v1` в `support` лишь
+сообщает клиенту, что бэкенд понимает новую форму. Удаление легаси — отдельным решением.
+
+### `afbws.access.channel.v1` (capability `afbws.access.channel.v1`)
+
+Один schema id на операцию (`afbws.access.<op>.v1`) = запрос = ответ (эхо `request_id`);
+`request_id` обязателен в каждом запросе. Все операции, кроме `state`/`denied`, — только
+менеджер (иначе `error` с `forbidden`).
+
+| Операция | Запрос | Ответ |
+|---|---|---|
+| `roles.get` | — | снимок: `tiers` (ровно `manager`/`user`/`guest`: `title`, `limits`, `members[]`), `capabilities` (имя → `title`, `members[]`), `local_groups[]` `{id, title}`, `getcourse_groups[]` `{id, title}`, `getcourse_groups_error`, `limits_template`, `default_tier` (только чтение) |
+| `roles.set` | `tiers`, `capabilities`, `local_groups?` (замена целиком; без `local_groups` — без изменений) | снимок, как у `roles.get`. Заменяет config-op `roles` (`afbws.config.roles.v1`), который бэкенд продолжает обслуживать тем же кодом |
+| `settings.get` | — | `settings`: `revision`, `default_tier` (`user|guest`), `trial_days`, `window_workday`, `window_weekend` (`{from, to}` `HH:MM` МСК или `null`; `to < from` — через полночь), `showcase {enabled, collection}`, `updated_at`, `updated_by` |
+| `settings.set` | `settings`: `revision` (база) + заменяемые ключи верхнего уровня | сохранённый `settings` с новым `revision`; расхождение ревизии → `error` `conflict` с текущим документом в `item` |
+| `users.list` | фильтры `tier?`, `mode?`, `lapsed?` (подписка закончилась), `query?`, `limit`/`offset` | `items[]` (строка пользователя) + `total` |
+| `user.get` | `user_id`, `log_limit?` | `item` (строка) + `subscription_periods[]`, `trials[]`, `grants[]`, `log[]` |
+| `trial.set` | `user_id`, `action` (`extend`/`start` — с `ends_at`; `reset` — без), `note?` | `item` + `trial` |
+| `grant.set` | `user_id`, `tier: user`, `ends_at`, `reason?` | `grant` + `item` |
+| `grant.revoke` | `grant_id` | `grant` (с `revoked_at`) + `item` |
+| `stats` | `from`, `to` (даты), `group_by: week` | `cohorts[]` (`period_start`, `guests_new`, `trial_started`, `active`, `converted`, `grants`), `denied[]` по фичам, `denied_instruments[]` по инструментам |
+
+Строка пользователя (`$defs/userRow`): `user_id`, `display_name`, `source` (`gc|local|demo`),
+`tier`, `capabilities`, `mode`, `reason`, `until`, `trial_ends_at`, `grant_ends_at`,
+`subscription_started_at`, `subscription_ended_at`, `first_seen_at`, `last_seen_at`.
+
+Серверные сообщения:
+
+- `afbws.access.state.v1` — пуш без `request_id`: новый блок `access` целиком при смене
+  режима (наступил `until`, менеджер изменил триал/грант/настройки, сменился tier/capability).
+- `afbws.access.denied.v1` — отказ гейта на запрос **любого** канала. `channel` — канал
+  отказанного запроса (не `access`), `request_id` — его id: клиент запрос/ответ этого канала
+  отклоняет pending-запрос. Поля: `reason` (`basic` — недоступно в базовом режиме;
+  `showcase` — инструменты из `refs[]` не в витрине; `held` — активация аларма/плана на
+  холде), `feature`, `refs[]?` (`instrument_key`), `until` (когда станет `full`, или `null`),
+  `message` (готовый текст).
+- `afbws.access.error.v1` — отказ запроса канала целиком: `code` ∈ `forbidden`,
+  `validation_error`, `not_found`, `conflict`, `invalid_schema`, `internal_error`; `item`
+  (текущие `settings`) — только при `conflict`.
+
+Примеры: `examples/auth_v1/`, `examples/access_channel_v1/`.

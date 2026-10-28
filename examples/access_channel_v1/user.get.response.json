@@ -1,0 +1,49 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.user.get.v1",
+  "request_id": "r6",
+  "user_id": "gc_282811500",
+  "item": {
+    "user_id": "gc_282811500",
+    "display_name": "Иван П.",
+    "source": "gc",
+    "tier": "guest",
+    "capabilities": [],
+    "mode": "basic",
+    "reason": "none",
+    "until": "2026-10-29T10:00:00+03:00",
+    "trial_ends_at": "2026-10-20T12:00:00+03:00",
+    "grant_ends_at": null,
+    "subscription_started_at": "2026-08-01T09:00:00+03:00",
+    "subscription_ended_at": "2026-10-01T09:00:00+03:00",
+    "first_seen_at": "2026-08-01T09:00:00+03:00",
+    "last_seen_at": "2026-10-28T18:30:00+03:00"
+  },
+  "subscription_periods": [
+    {
+      "tier": "user",
+      "started_at": "2026-08-01T09:00:00+03:00",
+      "ended_at": "2026-10-01T09:00:00+03:00",
+      "source": "getcourse"
+    }
+  ],
+  "trials": [
+    {
+      "started_at": "2026-10-13T12:00:00+03:00",
+      "ends_at": "2026-10-20T12:00:00+03:00",
+      "updated_by": null,
+      "note": null
+    }
+  ],
+  "grants": [],
+  "log": [
+    {
+      "ts": "2026-10-01T09:00:00+03:00",
+      "event": "tier_changed",
+      "details": {
+        "from": "user",
+        "to": "guest"
+      }
+    }
+  ]
+}

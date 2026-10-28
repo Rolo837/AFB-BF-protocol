@@ -1,0 +1,10 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.settings.set.v1",
+  "request_id": "r4",
+  "settings": {
+    "revision": 4,
+    "trial_days": 10,
+    "window_weekend": null
+  }
+}

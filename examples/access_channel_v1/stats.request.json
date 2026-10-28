@@ -1,0 +1,8 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.stats.v1",
+  "request_id": "r10",
+  "from": "2026-10-05",
+  "to": "2026-10-25",
+  "group_by": "week"
+}

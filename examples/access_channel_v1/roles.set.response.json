@@ -1,0 +1,92 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.roles.set.v1",
+  "request_id": "r2",
+  "tiers": {
+    "manager": {
+      "title": "Администраторы",
+      "limits": {
+        "max_favorites_tickers": 100,
+        "max_primitives_per_user": 1000,
+        "max_sets": 100,
+        "max_favorite_colors": 5
+      },
+      "members": [
+        "id_9139066366",
+        "gc_282811589"
+      ]
+    },
+    "user": {
+      "title": "Пользователи",
+      "limits": {
+        "max_favorites_tickers": 42,
+        "max_primitives_per_user": 100,
+        "max_sets": 20,
+        "max_favorite_colors": 5
+      },
+      "members": [
+        "gc:666118",
+        "id:club"
+      ]
+    },
+    "guest": {
+      "title": "Гости",
+      "limits": {
+        "max_favorites_tickers": 10,
+        "max_primitives_per_user": 20,
+        "max_sets": 3,
+        "max_favorite_colors": 1
+      },
+      "members": [
+        "gc:667093"
+      ]
+    }
+  },
+  "capabilities": {
+    "trade": {
+      "title": "Торговля",
+      "members": [
+        "id_9139066366"
+      ]
+    },
+    "screener": {
+      "title": "Скринер",
+      "members": [
+        "id_9139066366",
+        "id_9910336377"
+      ]
+    }
+  },
+  "local_groups": [
+    {
+      "id": "club",
+      "title": "Клуб"
+    }
+  ],
+  "getcourse_groups": [
+    {
+      "id": "666118",
+      "title": "Подписка месяц"
+    },
+    {
+      "id": "667093",
+      "title": "Бесплатный курс"
+    }
+  ],
+  "getcourse_groups_error": null,
+  "limits_template": {
+    "keys": [
+      "max_favorites_tickers",
+      "max_primitives_per_user",
+      "max_sets",
+      "max_favorite_colors"
+    ],
+    "defaults": {
+      "max_favorites_tickers": 42,
+      "max_primitives_per_user": 100,
+      "max_sets": 20,
+      "max_favorite_colors": 5
+    }
+  },
+  "default_tier": "guest"
+}

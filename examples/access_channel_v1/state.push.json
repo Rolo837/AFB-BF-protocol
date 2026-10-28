@@ -1,0 +1,18 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.state.v1",
+  "access": {
+    "tier": "guest",
+    "capabilities": [],
+    "limits": {
+      "max_favorites_tickers": 42,
+      "max_primitives_per_user": 100,
+      "max_sets": 20,
+      "max_favorite_colors": 5
+    },
+    "mode": "full",
+    "reason": "trial",
+    "until": "2026-11-04T12:00:00+03:00",
+    "showcase": false
+  }
+}

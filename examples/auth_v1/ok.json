@@ -1,0 +1,30 @@
+{
+  "channel": "auth",
+  "schema": "afbws.auth.ok.v1",
+  "user_id": "id_9910336377",
+  "timezone": "Europe/Moscow",
+  "support": [
+    "afbws.auth.v1",
+    "afbws.access.channel.v1"
+  ],
+  "brokers": [
+    "finam-arena"
+  ],
+  "access": {
+    "tier": "user",
+    "capabilities": [
+      "trade",
+      "virtual"
+    ],
+    "limits": {
+      "max_favorites_tickers": 42,
+      "max_primitives_per_user": 100,
+      "max_sets": 20,
+      "max_favorite_colors": 5
+    },
+    "mode": "full",
+    "reason": "subscription",
+    "until": null,
+    "showcase": false
+  }
+}

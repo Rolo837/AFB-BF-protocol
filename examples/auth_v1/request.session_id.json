@@ -1,0 +1,9 @@
+{
+  "channel": "auth",
+  "schema": "afbws.auth.request.v1",
+  "version": "3.4.1",
+  "support": [
+    "afbws.auth.v1"
+  ],
+  "session_id": "4c1f0d0e9b"
+}

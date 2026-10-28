@@ -1,0 +1,45 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.stats.v1",
+  "request_id": "r10",
+  "from": "2026-10-05",
+  "to": "2026-10-25",
+  "group_by": "week",
+  "cohorts": [
+    {
+      "period_start": "2026-10-05",
+      "guests_new": 40,
+      "trial_started": 38,
+      "active": 21,
+      "converted": 5,
+      "grants": 1
+    },
+    {
+      "period_start": "2026-10-12",
+      "guests_new": 35,
+      "trial_started": 35,
+      "active": 18,
+      "converted": 3,
+      "grants": 0
+    }
+  ],
+  "denied": [
+    {
+      "feature": "datasets",
+      "count": 120,
+      "users": 31
+    },
+    {
+      "feature": "participants",
+      "count": 44,
+      "users": 19
+    }
+  ],
+  "denied_instruments": [
+    {
+      "instrument_key": "MISX:TQBR:SBER",
+      "count": 12,
+      "users": 7
+    }
+  ]
+}

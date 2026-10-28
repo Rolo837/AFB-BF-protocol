@@ -1,0 +1,9 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.grant.set.v1",
+  "request_id": "r8",
+  "user_id": "gc_282811500",
+  "tier": "user",
+  "ends_at": "2026-11-15T00:00:00+03:00",
+  "reason": "Ждём оплату"
+}
