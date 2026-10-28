@@ -1,6 +1,7 @@
 {
   "channel": "auth",
   "schema": "afbws.auth.error.v1",
+  "request_id": "a-1",
   "code": "unauthorized",
   "message": "Требуется авторизация"
 }

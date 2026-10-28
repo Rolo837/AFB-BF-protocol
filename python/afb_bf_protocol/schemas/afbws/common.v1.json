@@ -34,7 +34,7 @@
     "accessTier": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9_]*$",
-      "description": "Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `manager`, `user`, `guest`, a new paid tier `lite`), NOT an enum: a new tier needs no protocol change. Only `manager` is reserved by code (staff, manager functions gated on `tier == manager` independently of `mode`). Comes from tier members (GetCourse groups, user ids) in the backend's access database; the tier with the minimal rank is the default for users not matched by any member."
+      "description": "Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `manager`, `user`, `guest`, a new paid tier `lite`), NOT an enum: a new tier needs no protocol change. Only `manager` is reserved by code (staff, manager functions gated on `tier == manager` independently of `mode`). Comes from the backend's access database (personal `user_roles` and provider-group `group_roles`); the tier with the minimal rank is the default for users not matched by any of them."
     },
     "accessMode": {
       "type": "string",
@@ -42,18 +42,7 @@
         "full",
         "basic"
       ],
-      "description": "What is available right now (axis 3 of the access model): `full` — paid features work; `basic` — paid features are refused with afbws.access.denied.v1 and the user's alarms/trade plans are held (not evaluated). ALL access logic is decided by `mode` alone; `reason`/`until` are display/statistics only."
-    },
-    "accessReason": {
-      "type": "string",
-      "enum": [
-        "subscription",
-        "grant",
-        "trial",
-        "window",
-        "none"
-      ],
-      "description": "Why the current `mode` holds — display/statistics only, never used for logic. `subscription` — paid tier or the `trade` capability (or a tier without a mode policy); `grant` — manual extension by a manager; `trial` — trial period; `window` — inside the workday/weekend time window of the tier policy; `none` — no reason for `full` (always so in `basic`)."
+      "description": "What is available right now (axis 3 of the access model): `full` — paid features work; `basic` — paid features are refused with afbws.access.denied.v1 and the user's alarms/trade plans are held (not evaluated). ALL access logic is decided by `mode` alone."
     },
     "accessLimits": {
       "type": "object",
@@ -86,15 +75,13 @@
     },
     "access": {
       "type": "object",
-      "title": "Effective access of one connection (auth.ok.access, access.state.access).",
-      "description": "Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; manager functions are gated on `tier == manager` only). (2) `capabilities` — personal permissions granted by a manager, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`); holding `trade` ALWAYS yields `mode: full` (`reason: subscription`): real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); logic is decided only by `mode`, while `reason` and `until` are for display (refusal texts, indicator) and statistics. `until` is the moment of the next mode change known to the server (end of trial/grant/window, start of the next window), null when none is scheduled; the server pushes afbws.access.state.v1 when the mode actually changes.",
+      "title": "Effective access of one connection (afbws.auth.v1 response/push `access`).",
+      "description": "Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; manager functions are gated on `tier == manager` only). (2) `capabilities` — personal permissions granted by a manager, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.",
       "required": [
         "tier",
         "capabilities",
         "limits",
-        "mode",
-        "reason",
-        "until"
+        "mode"
       ],
       "additionalProperties": false,
       "properties": {
@@ -115,37 +102,8 @@
         },
         "mode": {
           "$ref": "#/$defs/accessMode"
-        },
-        "reason": {
-          "$ref": "#/$defs/accessReason"
-        },
-        "until": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "date-time",
-          "description": "Next known mode change, ISO-8601 with offset; null — none scheduled."
         }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "mode": {
-                "const": "basic"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "reason": {
-                "const": "none"
-              }
-            }
-          }
-        }
-      ]
+      }
     }
   }
 }

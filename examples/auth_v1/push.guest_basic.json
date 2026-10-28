@@ -1,6 +1,6 @@
 {
   "channel": "auth",
-  "schema": "afbws.auth.ok.v1",
+  "schema": "afbws.auth.v1",
   "user_id": "gc_282811500",
   "timezone": "Europe/Moscow",
   "support": [
@@ -16,8 +16,6 @@
       "max_sets": 3,
       "max_favorite_colors": 1
     },
-    "mode": "basic",
-    "reason": "none",
-    "until": "2026-10-29T19:00:00+03:00"
+    "mode": "basic"
   }
 }

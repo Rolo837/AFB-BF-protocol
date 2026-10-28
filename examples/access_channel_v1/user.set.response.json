@@ -5,6 +5,7 @@
   "user_id": "gc_282811500",
   "item": {
     "user_id": "gc_282811500",
+    "provider": "getcourse",
     "display_name": "Иван Петров",
     "tier": "guest",
     "capabilities": [],

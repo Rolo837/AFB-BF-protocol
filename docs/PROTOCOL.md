@@ -419,8 +419,8 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/schemas/afbws/catalog.channel.v1.json` | Канал `catalog` (capability `afbws.catalog.channel.v1`), только менеджер: `snapshot`/`symbols`/`support`/`commit`/`refresh`, один schema id на сообщение, списки ≤100, пуш итога обновления `refresh` без `request_id`; заменяет менеджерскую половину `afbws.instrument` (`catalog`/`pool`/`inventory`/`commit`/`refresh`) |
 | `spec/schemas/afbws/screener.channel.v1.json` | Канал `screener` (capability `afbws.screener.channel.v1`), доступ по capability `screener` роли: `list` (выгрузки скринера, новые первыми, `latest`/`intraday_latest`) и `get` (выгрузка по id `night:YYYY-MM-DD` / `intraday:YYYY-MM-DDTHHMM` или алиасу `latest`/`intraday_latest`; `document` — открытый объект контракта `AFB/docs/SCREENER_RESULTS.md`) `participants` (снимок участников рынка: колоночный формат `columns`/`rows`, как у таблиц `market.series`: справочник деривативов + коллекции и четыре списка `now`/`d1`/`d2`/`w1` — fiz/yur long/short/net, число участников, ОИ, объём; запрос пустой) и `error`; один schema id на сообщение (`afbws.screener.<op>.v1`), `request_id` обязателен в запросах клиента; единственный серверный пуш — `participants` без `request_id` (после каждого обновления позиций FORTS, ~5 мин, подписанным запросом соединениям); в списках `participants` есть колонка `price` (цена активного контракта); `list`/`get` читают только JSON-файлы, не БД скринера |
 | `spec/schemas/afbws/instrument.channel.v2.json` | Канал `instrument` v2 (capability `afbws.instrument.channel.v2`), любой авторизованный: `catalog`/`sets`/`favorites`/`paint`/`expiration`/`replace`/`detail`, один schema id на сообщение, пуш без `request_id`, инструмент только по `instrument_key`; `sets` — единая команда наборов (личные и глобальные по `visibility`), `detail` — параметры по всем счетам |
-| `spec/schemas/afbws/auth.v1.json` | Рукопожатие WS AFB (capability `afbws.auth.v1`): `afbws.auth.request.v1` / `afbws.auth.ok.v1` (с блоком `access`) / `afbws.auth.error.v1`; заменяет легаси `type: "auth"`/`auth_ok`/`auth_error` (бэкенд понимает обе формы, см. §20) |
-| `spec/schemas/afbws/access.channel.v1.json` | Канал `access` (capability `afbws.access.channel.v1`): модель доступа tier × capabilities × mode; менеджерские `roles.get/set`, `settings.get/set`, `users.list`, `user.get`, `trial.set`, `grant.set/revoke`, `stats`; пуш `state`, отказ гейта `denied`, `error` (см. §20) |
+| `spec/schemas/afbws/auth.v1.json` | Рукопожатие WS AFB (capability `afbws.auth.v1`): одна схема `afbws.auth.v1` — запрос / ответ (с блоком `access`) / пуш при смене доступа, и `afbws.auth.error.v1`; заменяет легаси `type: "auth"`/`auth_ok`/`auth_error` (бэкенд понимает обе формы, см. §20) |
+| `spec/schemas/afbws/access.channel.v1.json` | Канал `access` (capability `afbws.access.channel.v1`): модель доступа tier × capabilities × mode; менеджерские `roles.get/set`, `users.list`, `user.set`, `stats`; отказ гейта `denied`, `error` (см. §20) |
 | `spec/schemas/payloads/` | JSON Schema каждого payload |
 | `examples/` | Подписанные примеры конвертов |
 | `examples/tradeplans/` | Примеры шаблонов ТП (не конверты, не подписываются) |
@@ -1225,41 +1225,48 @@ Resync по ревизии и статусу не показывает, что �
 | Ось | Значения | Что определяет |
 |---|---|---|
 | `tier` — кто | строка `^[a-z][a-z0-9_]*$` (`manager`, `user`, `guest`, новый tier — данными, без правки протокола) | менеджерские функции (только `tier == manager`, независимо от `mode`); лимиты tier |
-| `capabilities` — персональные допуски | `trade`, `virtual`, `screener`, `local` (набор задаёт код бэкенда) | выдаются менеджером персонально; **`trade` ⇒ всегда `mode: full`** (`reason: subscription`) — реальная торговля не холдится |
+| `capabilities` — персональные допуски | `trade`, `virtual`, `screener`, `local` (набор задаёт код бэкенда) | выдаются менеджером персонально; **`trade` ⇒ всегда `mode: full`** — реальная торговля не холдится |
 | `mode` — что доступно сейчас | `full` / `basic` | работают ли платные функции; **вся логика решается только `mode`** |
 
-Рядом: `reason` (`subscription | grant | trial | window | none`) и `until` (момент следующей
-известной смены режима или `null`) — только для отображения (тексты отказов, индикатор) и
-статистики; в `basic` `reason` всегда `none`. `limits` — четыре ключа (`max_favorites_tickers`,
+`limits` — четыре ключа (`max_favorites_tickers`,
 `max_primitives_per_user`, `max_sets`, `max_favorite_colors`), целые ≥0, проверяются только
 при добавлении объектов. Все поля блока обязательны.
 
 ### `afbws.auth.v1` (capability `afbws.auth.v1`)
 
-Первое сообщение соединения, `channel: "auth"`, без `request_id` (ровно один запрос и один ответ):
+Первое сообщение соединения, `channel: "auth"`. Одна схема `afbws.auth.v1` — запрос, ответ и
+пуш (конвенция каналов: ответные поля в запросе запрещены):
 
-- `afbws.auth.request.v1` — `version` (сборка фронта, только логируется), `demo?`, `support[]`, `session_id?`.
-- `afbws.auth.ok.v1` — `user_id`, `timezone`, `support[]` (собственные capability бэкенда), `brokers[]`, `access`.
-  Плоских `tier`/`capabilities`/`limits` легаси-`auth_ok` в типизированной форме нет — они в `access`.
-- `afbws.auth.error.v1` — `code` ∈ `unauthorized` (нет сессии, close 4001) | `session_invalid` (профиль не определён, 4001) | `invalid_request` (первое сообщение — не auth, 4000), `message`; сервер сразу закрывает сокет.
+- запрос — `request_id`, `support[]`, `version` (сборка фронта, только логируется), `session_id?`
+  (iframe без cookie);
+- ответ (эхо `request_id`) — `user_id`, `timezone` (рыночное время на фронте), `brokers[]`
+  (link-фасад), `support[]` (собственные capability бэкенда), `access`; `version`/`session_id`
+  в ответе запрещены. Плоских `tier`/`capabilities`/`limits` легаси-`auth_ok` в типизированной
+  форме нет — они в `access`;
+- пуш (без `request_id`) — тот же ответ целиком при смене `access` соединения (наступила смена
+  режима, менеджер изменил tiers/роли/триал/grant); клиент заменяет состояние auth.
+
+`afbws.auth.error.v1` — `code` ∈ `unauthorized` (нет сессии, close 4001) | `session_invalid` (профиль не определён, 4001) | `invalid_request` (первое сообщение — не auth, 4000), `message`, `request_id?` (эхо, если запрос удалось прочитать); сервер сразу закрывает сокет.
 
 Согласование: `support` клиент узнаёт только из ответа, то есть **после** выбора формы первого
-сообщения. Поэтому фронт всегда шлёт `afbws.auth.request.v1`, а бэкенд принимает обе формы
+сообщения. Поэтому фронт всегда шлёт `afbws.auth.v1`, а бэкенд принимает обе формы
 (легаси `type: "auth"` и схему) и отвечает в форме запроса. `afbws.auth.v1` в `support` лишь
 сообщает клиенту, что бэкенд понимает новую форму. Удаление легаси — отдельным решением.
 
 ### `afbws.access.channel.v1` (capability `afbws.access.channel.v1`)
 
-Сообщения повторяют таблицы базы доступа бэкенда (`tiers`, `members`, `users`, `subscriptions`).
+Сообщения повторяют таблицы базы доступа бэкенда (`tiers`, `user_roles`, `group_roles`, `users`,
+`subscriptions`). Модель не знает конкретного провайдера авторизации: внешние группы адресуются
+парой (`provider`, `group_id`), `provider` — id адаптера (`getcourse`, `local`; строка, не enum).
 Один schema id на операцию (`afbws.access.<op>.v1`) = запрос = ответ (эхо `request_id`);
 `request_id` обязателен в каждом запросе; запрос и ответ различаются наличием ответных полей,
-ответные поля в запросе запрещены. Все операции, кроме `state`/`denied`, — только менеджер
+ответные поля в запросе запрещены. Все операции — только менеджер
 (иначе `error` с `forbidden`).
 
 | Операция | Запрос | Ответ |
 |---|---|---|
-| `roles.get` | — | `tiers[]` (`tierRow`), `members[]` (`member`), `capabilities[]` (имена из кода), `getcourse_groups[]` `{id, title}` + `getcourse_groups_error` (`string\|null`) — подсказки для выбора `gc:` |
-| `roles.set` | `tiers[]` (≥1; имена `tier` уникальны — проверяет сервер), `members[]` — замена обеих таблиц целиком | как `roles.get` |
+| `roles.get` | — | `tiers[]` (`tierRow`), `user_roles[]` (`userRole`), `group_roles[]` (`groupRole`), `capabilities[]` (имена из кода), `provider_groups[]` (`providerGroup`) + `provider_groups_error` (`string\|null`) — подсказки для выбора `group_roles` |
+| `roles.set` | `tiers[]` (≥1; имена `tier` уникальны — проверяет сервер), `user_roles[]`, `group_roles[]` — замена трёх таблиц целиком | как `roles.get` |
 | `users.list` | — | `items[]` (`userRow`) — все пользователи, без фильтров и пагинации |
 | `user.set` | `user_id` + `trial_ends_at?` и/или `grant_until?` (хотя бы одно; `null` — снять). Первый `trial_ends_at` у пользователя без триала ставит `trial_started_at = now` | `user_id` + `item` (`userRow`); неизвестный пользователь → `not_found` |
 | `stats` | `from`, `to` (даты, включительно, МСК) | эхо `from`/`to` + `weeks[]` `{week, new_users, trials_started, converted, active}` |
@@ -1275,8 +1282,12 @@ Resync по ревизии и статусу не показывает, что �
   (витрина, этап 3). Других ключей нет. Политика: `full` (лимиты `as_tier`), пока активен
   grant / триал / окно (этап 3 — инструмент витрины), иначе `basic` со своими лимитами.
 - `window` — `{from, to}` в `HH:MM` МСК; `to < from` — через полночь.
-- `member` — `role` (имя tier или capability), `token` ∈ `id_<id>` | `gc_<id>` | `gc:<группа GetCourse>`.
-- `userRow` — `user_id`, `display_name|null`, `tier`, `capabilities[]`, `first_seen_at`,
+- `userRole` — `role` (имя tier или capability), `user_id` (внутренний id пользователя AFB) —
+  персональное назначение.
+- `groupRole` — `role`, `provider`, `group_id` (id группы у провайдера, строкой) — назначение
+  всем членам внешней группы.
+- `providerGroup` — `provider`, `group_id`, `title` — группа провайдера (подсказка в админке).
+- `userRow` — `user_id`, `provider` (кто аутентифицирует и отдаёт группы), `display_name|null`, `tier`, `capabilities[]`, `first_seen_at`,
   `last_seen_at`, `trial_started_at|null`, `trial_ends_at|null`, `grant_until|null`,
   `subscription` — последний период `{tier, started_at, ended_at|null}` или `null`.
 
@@ -1286,14 +1297,14 @@ Resync по ревизии и статусу не показывает, что �
 
 Серверные сообщения:
 
-- `afbws.access.state.v1` — пуш без `request_id`: новый блок `access` целиком при смене
-  режима (наступил `until`, менеджер изменил tiers/members/триал/grant).
 - `afbws.access.denied.v1` — отказ гейта на запрос **любого** канала. `channel` — канал
   отказанного запроса, `request_id` — его id: клиент запрос/ответ этого канала отклоняет
   pending-запрос. Поля: `reason` (`basic` — недоступно в базовом режиме; `showcase` —
-  инструмент не в витрине; `held` — активация аларма/плана на холде), `feature`, `until`
-  (когда станет `full`, или `null`), `message` (готовый текст).
+  инструмент не в витрине; `held` — активация аларма/плана на холде), `feature`, `message` (готовый текст; время,
+  когда станет доступно, — в нём).
 - `afbws.access.error.v1` — отказ запроса канала целиком: `request_id`, `code` ∈ `forbidden`,
   `validation_error`, `not_found`, `invalid_channel`, `invalid_schema`, `internal_error`, `message`.
+
+Смена собственного доступа соединения приходит не в этом канале, а пушем `afbws.auth.v1`.
 
 Примеры: `examples/auth_v1/`, `examples/access_channel_v1/`.

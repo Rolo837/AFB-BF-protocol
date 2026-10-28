@@ -1,10 +1,10 @@
 """afbws/auth.v1.json + afbws/access.channel.v1.json (AFB backend<->AFB frontend only;
 not part of afb.execution.v1). Freemium access model: tier x capabilities x mode.
 
-Convention (as link/screener): ONE schema id per operation = request = response;
-`request_id` required in requests; server-initiated messages are the push
-`access.state` (no `request_id`) and `access.denied` (on the refused request's
-channel, with its `request_id`)."""
+Convention (as link/screener): ONE schema id per operation = request = response
+(= push for auth); `request_id` required in requests; server-initiated messages are
+the push `afbws.auth.v1` (no `request_id`, whole auth response on access change)
+and `access.denied` (on the refused request's channel, with its `request_id`)."""
 from __future__ import annotations
 
 import copy
@@ -19,7 +19,7 @@ _ACCESS_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/acce
 _AUTH_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/auth.v1.json"
 _COMMON_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/common.v1.json"
 
-_ACCESS_OPS = {"roles.get", "roles.set", "users.list", "user.set", "stats", "state", "denied", "error"}
+_ACCESS_OPS = {"roles.get", "roles.set", "users.list", "user.set", "stats", "denied", "error"}
 
 
 def _v(schema_id, def_name, registry):
@@ -62,7 +62,8 @@ def test_access_one_id_per_operation():
 def test_auth_ids():
     doc = json.loads((_SCHEMAS / "auth.v1.json").read_text())
     ids = {d["properties"]["schema"]["const"] for d in doc["$defs"].values()}
-    assert ids == {"afbws.auth.request.v1", "afbws.auth.ok.v1", "afbws.auth.error.v1"}
+    assert ids == {"afbws.auth.v1", "afbws.auth.error.v1"}
+    assert len(doc["oneOf"]) == 2
 
 
 def test_no_message_def_declares_a_type_property():
@@ -84,7 +85,7 @@ def test_requests_require_request_id():
     doc = json.loads((_SCHEMAS / "access.channel.v1.json").read_text())
     for def_name, d in doc["$defs"].items():
         props = d.get("properties", {})
-        if "channel" not in props or def_name == "state":
+        if "channel" not in props:
             continue
         assert "request_id" in d["required"], def_name
 
@@ -113,7 +114,7 @@ def test_access_examples_validate_and_cover_every_operation(registry):
 # --- access block (common) --------------------------------------------------
 
 def _access(**kw):
-    out = copy.deepcopy(_example("auth_v1", "ok.json")["access"])
+    out = copy.deepcopy(_example("auth_v1", "response.json")["access"])
     out.update(kw)
     return out
 
@@ -121,22 +122,19 @@ def _access(**kw):
 def test_access_block_all_fields_required(registry):
     v = _v(_COMMON_ID, "access", registry)
     _ok(v, _access())
-    for key in ("tier", "capabilities", "limits", "mode", "reason", "until"):
+    for key in ("tier", "capabilities", "limits", "mode"):
         a = _access()
         del a[key]
         _bad(v, a)
+    _ok(v, _access(mode="basic"))
+    _bad(v, _access(mode="trial"))
 
 
-def test_access_block_basic_implies_reason_none(registry):
+def test_access_block_has_no_reason_until_showcase(registry):
     v = _v(_COMMON_ID, "access", registry)
-    _ok(v, _access(mode="basic", reason="none"))
-    _bad(v, _access(mode="basic", reason="window"))
-    _ok(v, _access(mode="full", reason="none"))
-
-
-def test_access_block_has_no_showcase(registry):
-    v = _v(_COMMON_ID, "access", registry)
-    _bad(v, _access(mode="basic", reason="none", showcase=True))
+    _bad(v, _access(reason="subscription"))
+    _bad(v, _access(until=None))
+    _bad(v, _access(mode="basic", showcase=True))
 
 
 def test_access_block_tier_is_open_string(registry):
@@ -159,25 +157,44 @@ def test_access_block_limits_closed_and_non_negative(registry):
 # --- auth ---------------------------------------------------------------------
 
 def test_auth_request_shape(registry):
-    v = _v(_AUTH_ID, "request", registry)
+    v = _v(_AUTH_ID, "auth", registry)
     req = _example("auth_v1", "request.json")
-    _bad(v, {**req, "type": "auth"})
-    _bad(v, {k: x for k, x in req.items() if k != "support"})
-    _bad(v, {k: x for k, x in req.items() if k != "version"})
-    _bad(v, {**req, "request_id": "x"})
+    _ok(v, req)
     _ok(v, _example("auth_v1", "request.session_id.json"))
+    _bad(v, {**req, "type": "auth"})
+    _bad(v, {**req, "demo": False})  # demo removed
+    for key in ("support", "version", "request_id"):
+        _bad(v, {k: x for k, x in req.items() if k != key})
 
 
-def test_auth_ok_requires_access(registry):
-    v = _v(_AUTH_ID, "ok", registry)
-    ok = _example("auth_v1", "ok.json")
-    _bad(v, {k: x for k, x in ok.items() if k != "access"})
-    _bad(v, {**ok, "tier": "user"})  # legacy flat fields are not part of the typed form
+def test_auth_request_forbids_response_fields(registry):
+    v = _v(_AUTH_ID, "auth", registry)
+    req = _example("auth_v1", "request.json")
+    resp = _example("auth_v1", "response.json")
+    for key in ("timezone", "brokers", "access"):
+        _bad(v, {**req, key: resp[key]})
+
+
+def test_auth_response_and_push(registry):
+    v = _v(_AUTH_ID, "auth", registry)
+    resp = _example("auth_v1", "response.json")
+    push = _example("auth_v1", "push.guest_basic.json")
+    _ok(v, resp)
+    _ok(v, push)
+    assert "request_id" in resp and "request_id" not in push
+    for key in ("timezone", "brokers", "support", "access"):
+        _bad(v, {k: x for k, x in resp.items() if k != key})
+        _bad(v, {k: x for k, x in push.items() if k != key})
+    _bad(v, {k: x for k, x in resp.items() if k != "user_id"})  # read as a request: response fields forbidden
+    for key, val in (("version", "3.4.1"), ("session_id", "s")):
+        _bad(v, {**resp, key: val})  # request-only field in a response
+    _bad(v, {**resp, "tier": "user"})  # legacy flat fields are not part of the typed form
 
 
 def test_auth_error_closed_codes(registry):
     v = _v(_AUTH_ID, "error", registry)
     _ok(v, {"channel": "auth", "schema": "afbws.auth.error.v1", "code": "session_invalid", "message": "x"})
+    _ok(v, _example("auth_v1", "error.json"))
     _bad(v, {"channel": "auth", "schema": "afbws.auth.error.v1", "code": "forbidden", "message": "x"})
 
 
@@ -189,7 +206,7 @@ def test_roles_get_request_vs_response(registry):
     resp = _example("access_channel_v1", "roles.get.response.json")
     _ok(v, req)
     _ok(v, resp)
-    for key in ("tiers", "members", "capabilities", "getcourse_groups", "getcourse_groups_error"):
+    for key in ("tiers", "user_roles", "group_roles", "capabilities", "provider_groups", "provider_groups_error"):
         _bad(v, {**req, key: resp[key]})  # response field in a request
         _bad(v, {k: x for k, x in resp.items() if k != key})  # incomplete response
 
@@ -200,9 +217,11 @@ def test_roles_set_request_vs_response(registry):
     resp = _example("access_channel_v1", "roles.set.response.json")
     _ok(v, req)
     _ok(v, resp)
-    _bad(v, {k: x for k, x in req.items() if k != "members"})
+    _bad(v, {k: x for k, x in req.items() if k != "user_roles"})
+    _bad(v, {k: x for k, x in req.items() if k != "group_roles"})
+    _bad(v, {**req, "members": []})
     _bad(v, {**req, "tiers": []})
-    for key in ("capabilities", "getcourse_groups", "getcourse_groups_error"):
+    for key in ("capabilities", "provider_groups", "provider_groups_error"):
         _bad(v, {**req, key: resp[key]})
         _bad(v, {k: x for k, x in resp.items() if k != key})
 
@@ -239,14 +258,32 @@ def test_policy_requires_as_tier_and_closed(registry):
     _bad(v, {"as_tier": "user", "revision": 1})
 
 
-def test_member_tokens(registry):
-    v = _v(_ACCESS_ID, "member", registry)
-    for token in ("id_9910336377", "gc_282811500", "gc:3125478", "gc_AbC"):
-        _ok(v, {"role": "user", "token": token})
-    for token in ("bogus", "id:grp", "id_", "gc_12345678901", "gc:", "gc_1-2"):
-        _bad(v, {"role": "user", "token": token})
-    _bad(v, {"role": "User", "token": "gc_1"})
+def test_user_role_shape(registry):
+    v = _v(_ACCESS_ID, "userRole", registry)
+    _ok(v, {"role": "user", "user_id": "gc_282811500"})
+    _ok(v, {"role": "trade", "user_id": "id_9910336377"})
+    _bad(v, {"role": "User", "user_id": "gc_1"})
+    _bad(v, {"role": "user", "user_id": ""})
     _bad(v, {"role": "user"})
+    _bad(v, {"role": "user", "token": "gc_1"})
+
+
+def test_group_role_shape(registry):
+    v = _v(_ACCESS_ID, "groupRole", registry)
+    _ok(v, {"role": "user", "provider": "getcourse", "group_id": "3125478"})
+    _bad(v, {"role": "user", "group_id": "3125478"})
+    _bad(v, {"role": "user", "provider": "getcourse"})
+    _bad(v, {"role": "user", "provider": "getcourse", "group_id": ""})
+    _bad(v, {"role": "user", "provider": "GetCourse", "group_id": "1"})
+    _bad(v, {"role": "user", "provider": "getcourse", "group_id": 3125478})
+
+
+def test_provider_group_shape(registry):
+    v = _v(_ACCESS_ID, "providerGroup", registry)
+    for g in _example("access_channel_v1", "roles.get.response.json")["provider_groups"]:
+        _ok(v, g)
+    _bad(v, {"provider": "getcourse", "group_id": "1"})
+    _bad(v, {"id": "1", "title": "x"})
 
 
 # --- access channel: users ----------------------------------------------------
@@ -267,6 +304,7 @@ def test_user_row_shape(registry):
     _ok(v, row)
     _ok(v, {**row, "subscription": None})
     _bad(v, {k: x for k, x in row.items() if k != "grant_until"})
+    _bad(v, {k: x for k, x in row.items() if k != "provider"})
     _bad(v, {**row, "subscription": {"tier": "user", "started_at": "2026-09-01T08:00:00Z"}})
     _bad(v, {**row, "mode": "full"})
 
@@ -300,21 +338,14 @@ def test_stats_request_vs_response(registry):
     _bad(v, {**req, "group_by": "week"})
 
 
-def test_state_is_push_only(registry):
-    v = _v(_ACCESS_ID, "state", registry)
-    msg = _example("access_channel_v1", "state.push.json")
-    _ok(v, msg)
-    _bad(v, {**msg, "request_id": "r"})
-
-
 def test_denied_uses_refused_request_channel(registry):
     v = _v(_ACCESS_ID, "denied", registry)
     msg = _example("access_channel_v1", "denied.json")
     assert msg["channel"] != "access"
     _ok(v, msg)
-    _ok(v, {**msg, "channel": "access", "reason": "held", "until": None})
+    _ok(v, {**msg, "channel": "access", "reason": "held"})
     _bad(v, {k: x for k, x in msg.items() if k != "request_id"})
-    _bad(v, {k: x for k, x in msg.items() if k != "until"})
+    _bad(v, {**msg, "until": None})
     _bad(v, {**msg, "reason": "window"})
     _bad(v, {**msg, "refs": ["MISX:TQBR:SBER"]})
 

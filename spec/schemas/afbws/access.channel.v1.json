@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/access.channel.v1.json",
   "x-afbws-support-id": "afbws.access.channel.v1",
   "title": "access channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support (capability id afbws.access.channel.v1). Freemium access model: tier (who) x capabilities (personal permissions) x mode (what is available now), see common.v1.json#/$defs/access. Messages mirror the backend's access database (tables tiers, members, users, subscriptions). Same convention as afbws.link/afbws.screener: ONE schema id per operation (`afbws.access.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response (echoes `request_id`); response-only fields are forbidden in a request. `request_id` is required in every client request. Operations (manager only, others get error `forbidden`): `roles.get`/`roles.set` (tiers and members; replace the config-channel op `roles`), `users.list`, `user.set` (trial end / manual grant), `stats` (weekly conversion). Server-initiated: push `afbws.access.state.v1` (no `request_id`) and `afbws.access.denied.v1` — the gate's refusal of a request of ANY channel (sent on the refused request's channel, with its `request_id`). Whole-request failures of this channel: `afbws.access.error.v1`. See AFB/docs/ws/access.md.",
+  "description": "Negotiated via auth.support (capability id afbws.access.channel.v1). Freemium access model: tier (who) x capabilities (personal permissions) x mode (what is available now), see common.v1.json#/$defs/access. Messages mirror the backend's access database (tables tiers, user_roles, group_roles, users, subscriptions); the model does not know a concrete authorization provider — external groups are addressed by (`provider`, `group_id`). Same convention as afbws.link/afbws.screener: ONE schema id per operation (`afbws.access.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response (echoes `request_id`); response-only fields are forbidden in a request. `request_id` is required in every client request. Operations (manager only, others get error `forbidden`): `roles.get`/`roles.set` (tiers, user_roles, group_roles; replace the config-channel op `roles`), `users.list`, `user.set` (trial end / manual grant), `stats` (weekly conversion). Server-initiated: `afbws.access.denied.v1` — the gate's refusal of a request of ANY channel (sent on the refused request's channel, with its `request_id`). Changes of the connection's own effective access arrive as an afbws.auth.v1 push. Whole-request failures of this channel: `afbws.access.error.v1`. See AFB/docs/ws/access.md.",
   "type": "object",
   "oneOf": [
     {
@@ -22,9 +22,6 @@
       "$ref": "#/$defs/stats"
     },
     {
-      "$ref": "#/$defs/state"
-    },
-    {
       "$ref": "#/$defs/denied"
     },
     {
@@ -32,6 +29,11 @@
     }
   ],
   "$defs": {
+    "provider": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "Authorization provider (adapter) id: who authenticates the user and supplies its groups, e.g. `getcourse`, `local`. An open set defined by the backend's adapters, not an enum."
+    },
     "tierName": {
       "$ref": "common.v1.json#/$defs/accessTier"
     },
@@ -119,7 +121,7 @@
         },
         "rank": {
           "type": "integer",
-          "description": "Priority when a user matches several tiers (higher wins); unique among tiers. The tier with the minimal rank is the default for users not matched by any member."
+          "description": "Priority when a user matches several tiers (higher wins); unique among tiers. The tier with the minimal rank is the default for users not matched by any `user_roles`/`group_roles` row."
         },
         "paid": {
           "type": "boolean",
@@ -141,12 +143,12 @@
         }
       }
     },
-    "member": {
+    "userRole": {
       "type": "object",
-      "description": "Who gets a tier or a capability (one row of the `members` table).",
+      "description": "Personal assignment of a tier or a capability to one user (one row of the `user_roles` table).",
       "required": [
         "role",
-        "token"
+        "user_id"
       ],
       "additionalProperties": false,
       "properties": {
@@ -155,18 +157,44 @@
           "pattern": "^[a-z][a-z0-9_]*$",
           "description": "A tier name (from `tiers`) or a capability name (set defined by the backend code)."
         },
-        "token": {
+        "user_id": {
           "type": "string",
-          "pattern": "^(id_[A-Za-z0-9]{1,10}|gc_[A-Za-z0-9]{1,10}|gc:.+)$",
-          "description": "`id_<id>` — local user, `gc_<id>` — GetCourse user, `gc:<group id>` — GetCourse group."
+          "minLength": 1,
+          "description": "Internal AFB user id (as in `users`)."
+        }
+      }
+    },
+    "groupRole": {
+      "type": "object",
+      "description": "Assignment of a tier or a capability to every member of an external group (one row of the `group_roles` table).",
+      "required": [
+        "role",
+        "provider",
+        "group_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "A tier name (from `tiers`) or a capability name (set defined by the backend code)."
+        },
+        "provider": {
+          "$ref": "#/$defs/provider"
+        },
+        "group_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Group id at the provider, as a string."
         }
       }
     },
     "userRow": {
       "type": "object",
-      "description": "One user who has logged in at least once (row of the `users` table + resolved tier/capabilities + the last subscription period).",
+      "description": "One user who has logged in at least once (row of the `users` table + resolved tier/capabilities + the last subscription period). `provider` — who authenticates the user and supplies its groups.",
       "required": [
         "user_id",
+        "provider",
         "display_name",
         "tier",
         "capabilities",
@@ -182,6 +210,9 @@
         "user_id": {
           "type": "string",
           "minLength": 1
+        },
+        "provider": {
+          "$ref": "#/$defs/provider"
         },
         "display_name": {
           "type": [
@@ -294,23 +325,27 @@
       },
       "description": "One paid subscription period (row of the `subscriptions` table)."
     },
-    "getcourseGroup": {
+    "providerGroup": {
       "type": "object",
+      "description": "A group of an authorization provider (a hint for choosing `group_roles`).",
       "required": [
-        "id",
+        "provider",
+        "group_id",
         "title"
       ],
       "additionalProperties": false,
       "properties": {
-        "id": {
+        "provider": {
+          "$ref": "#/$defs/provider"
+        },
+        "group_id": {
           "type": "string",
           "minLength": 1
         },
         "title": {
           "type": "string"
         }
-      },
-      "description": "GetCourse group (a member token references it as `gc:<id>`)."
+      }
     },
     "statsWeek": {
       "type": "object",
@@ -349,8 +384,8 @@
     },
     "rolesGet": {
       "type": "object",
-      "title": "afbws.access.roles.get.v1 — read tiers and members (request / response), manager only.",
-      "description": "Request: only `request_id`. Response: `tiers[]`, `members[]`, `capabilities[]`, `getcourse_groups[]`, `getcourse_groups_error`.",
+      "title": "afbws.access.roles.get.v1 — read tiers, user_roles and group_roles (request / response), manager only.",
+      "description": "Request: only `request_id`. Response: `tiers[]`, `user_roles[]`, `group_roles[]`, `capabilities[]`, `provider_groups[]`, `provider_groups_error`.",
       "required": [
         "channel",
         "schema",
@@ -373,11 +408,18 @@
             "$ref": "#/$defs/tierRow"
           }
         },
-        "members": {
+        "user_roles": {
           "type": "array",
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/member"
+            "$ref": "#/$defs/userRole"
+          }
+        },
+        "group_roles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/groupRole"
           }
         },
         "capabilities": {
@@ -389,19 +431,19 @@
           },
           "description": "Response only: capability names (the set is defined by the backend code)."
         },
-        "getcourse_groups": {
+        "provider_groups": {
           "type": "array",
-          "description": "Response only: GetCourse groups (hints for choosing a `gc:` token).",
+          "description": "Response only: groups of the authorization providers (hints for choosing `group_roles`).",
           "items": {
-            "$ref": "#/$defs/getcourseGroup"
+            "$ref": "#/$defs/providerGroup"
           }
         },
-        "getcourse_groups_error": {
+        "provider_groups_error": {
           "type": [
             "string",
             "null"
           ],
-          "description": "Response only: why GetCourse groups could not be fetched; null — fetched."
+          "description": "Response only: why provider groups could not be fetched (fully or partly); null — fetched."
         }
       },
       "if": {
@@ -412,10 +454,11 @@
       "then": {
         "required": [
           "tiers",
-          "members",
+          "user_roles",
+          "group_roles",
           "capabilities",
-          "getcourse_groups",
-          "getcourse_groups_error"
+          "provider_groups",
+          "provider_groups_error"
         ]
       },
       "else": {
@@ -423,7 +466,12 @@
           "anyOf": [
             {
               "required": [
-                "members"
+                "user_roles"
+              ]
+            },
+            {
+              "required": [
+                "group_roles"
               ]
             },
             {
@@ -433,12 +481,12 @@
             },
             {
               "required": [
-                "getcourse_groups"
+                "provider_groups"
               ]
             },
             {
               "required": [
-                "getcourse_groups_error"
+                "provider_groups_error"
               ]
             }
           ]
@@ -447,14 +495,15 @@
     },
     "rolesSet": {
       "type": "object",
-      "title": "afbws.access.roles.set.v1 — replace tiers and members (request / response), manager only.",
-      "description": "Request: `tiers[]` (at least one; `tier` names must be unique — checked by the server) and `members[]` — replace-all of both tables. Response: the saved snapshot, as afbws.access.roles.get.v1.",
+      "title": "afbws.access.roles.set.v1 — replace tiers, user_roles and group_roles (request / response), manager only.",
+      "description": "Request: `tiers[]` (at least one; `tier` names must be unique — checked by the server), `user_roles[]` and `group_roles[]` — replace-all of the three tables. Response: the saved snapshot, as afbws.access.roles.get.v1.",
       "required": [
         "channel",
         "schema",
         "request_id",
         "tiers",
-        "members"
+        "user_roles",
+        "group_roles"
       ],
       "additionalProperties": false,
       "properties": {
@@ -476,11 +525,18 @@
           },
           "description": "Tier names must be unique (JSON Schema cannot express uniqueness by key — the server rejects duplicates with validation_error)."
         },
-        "members": {
+        "user_roles": {
           "type": "array",
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/member"
+            "$ref": "#/$defs/userRole"
+          }
+        },
+        "group_roles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/groupRole"
           }
         },
         "capabilities": {
@@ -492,19 +548,19 @@
           },
           "description": "Response only: capability names (the set is defined by the backend code)."
         },
-        "getcourse_groups": {
+        "provider_groups": {
           "type": "array",
-          "description": "Response only: GetCourse groups (hints for choosing a `gc:` token).",
+          "description": "Response only: groups of the authorization providers (hints for choosing `group_roles`).",
           "items": {
-            "$ref": "#/$defs/getcourseGroup"
+            "$ref": "#/$defs/providerGroup"
           }
         },
-        "getcourse_groups_error": {
+        "provider_groups_error": {
           "type": [
             "string",
             "null"
           ],
-          "description": "Response only: why GetCourse groups could not be fetched; null — fetched."
+          "description": "Response only: why provider groups could not be fetched (fully or partly); null — fetched."
         }
       },
       "if": {
@@ -515,8 +571,8 @@
       "then": {
         "required": [
           "capabilities",
-          "getcourse_groups",
-          "getcourse_groups_error"
+          "provider_groups",
+          "provider_groups_error"
         ]
       },
       "else": {
@@ -529,12 +585,12 @@
             },
             {
               "required": [
-                "getcourse_groups"
+                "provider_groups"
               ]
             },
             {
               "required": [
-                "getcourse_groups_error"
+                "provider_groups_error"
               ]
             }
           ]
@@ -690,39 +746,16 @@
         }
       }
     },
-    "state": {
-      "type": "object",
-      "title": "afbws.access.state.v1 — new effective access of this connection (server push only).",
-      "description": "Sent without `request_id` when the effective access changes (mode switch at `until`, a manager's change of tiers/members/trial/grant). Carries the whole new `access` block; the client replaces the one from auth.ok.",
-      "required": [
-        "channel",
-        "schema",
-        "access"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "channel": {
-          "const": "access"
-        },
-        "schema": {
-          "const": "afbws.access.state.v1"
-        },
-        "access": {
-          "$ref": "common.v1.json#/$defs/access"
-        }
-      }
-    },
     "denied": {
       "type": "object",
       "title": "afbws.access.denied.v1 — the access gate refused a request of ANY channel (server -> client).",
-      "description": "Answer to a request of any schema-first channel that the current `mode` does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `basic` — feature not available in basic mode; `showcase` — basic mode with showcase, the instrument is not in the showcase; `held` — activation of an alarm/trade plan while the owner's objects are held. `feature` — gate feature id (e.g. `datasets`, `participants`, `virtual`, `screener`, `alarm.activate`). `until` — when `full` becomes available (next window/trial), null if unknown. `message` — ready-to-show text.",
+      "description": "Answer to a request of any schema-first channel that the current `mode` does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `basic` — feature not available in basic mode; `showcase` — basic mode with showcase, the instrument is not in the showcase; `held` — activation of an alarm/trade plan while the owner's objects are held. `feature` — gate feature id (e.g. `datasets`, `participants`, `virtual`, `screener`, `alarm.activate`). `message` — ready-to-show text (includes when `full` becomes available, if known).",
       "required": [
         "channel",
         "schema",
         "request_id",
         "reason",
         "feature",
-        "until",
         "message"
       ],
       "additionalProperties": false,
@@ -749,13 +782,6 @@
         "feature": {
           "type": "string",
           "minLength": 1
-        },
-        "until": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "date-time"
         },
         "message": {
           "type": "string",

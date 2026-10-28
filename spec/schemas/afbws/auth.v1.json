@@ -3,28 +3,24 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/auth.v1.json",
   "x-afbws-support-id": "afbws.auth.v1",
   "title": "auth handshake — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "First message of every AFB WebSocket connection, replacing the legacy `{type: \"auth\"}` / `{type: \"auth_ok\"}` / `{type: \"auth_error\"}`. Same convention as the other schema-first afbws channels: routed by `channel` (`auth`) then by a mandatory `schema` id, no `type` field. There is no `request_id`: the handshake is exactly one request and one answer. Negotiation caveat: `support` is learned only from auth.ok, i.e. AFTER the client has already chosen the form of its first message — so the frontend ALWAYS sends afbws.auth.request.v1, and the backend accepts BOTH the legacy `type: \"auth\"` and this schema, answering in the form of the request (legacy request -> legacy auth_ok/auth_error; schema request -> afbws.auth.ok.v1 / afbws.auth.error.v1). The backend still lists `afbws.auth.v1` in `support` so a client can tell that the backend understands the new form. Removal of the legacy form is a separate decision. See AFB/docs/API_REGISTRY.md.",
+  "description": "First message of every AFB WebSocket connection, replacing the legacy `{type: \"auth\"}` / `{type: \"auth_ok\"}` / `{type: \"auth_error\"}`. Same convention as the other schema-first afbws channels: routed by `channel` (`auth`) then by a mandatory `schema` id, no `type` field; ONE schema id `afbws.auth.v1` is the request, its response (echoes `request_id`) and the server push (no `request_id`); response-only fields are forbidden in a request. Failure: `afbws.auth.error.v1`. Negotiation caveat: `support` is learned only from the auth response, i.e. AFTER the client has already chosen the form of its first message — so the frontend ALWAYS sends afbws.auth.v1, and the backend accepts BOTH the legacy `type: \"auth\"` and this schema, answering in the form of the request (legacy request -> legacy auth_ok/auth_error; schema request -> afbws.auth.v1 / afbws.auth.error.v1). The backend still lists `afbws.auth.v1` in `support` so a client can tell that the backend understands the new form. Removal of the legacy form is a separate decision. See AFB/docs/API_REGISTRY.md.",
   "type": "object",
   "oneOf": [
     {
-      "$ref": "#/$defs/request"
-    },
-    {
-      "$ref": "#/$defs/ok"
+      "$ref": "#/$defs/auth"
     },
     {
       "$ref": "#/$defs/error"
     }
   ],
   "$defs": {
-    "request": {
+    "auth": {
       "type": "object",
-      "title": "afbws.auth.request.v1 — handshake request (client -> server, first message).",
-      "description": "The session is taken from the `afb_session` cookie, or from `session_id` when the cookie is absent/invalid. `version` (frontend build) is logged for monitoring only — never parsed, compared or used to gate behaviour; all behaviour is gated on `support` alone. `demo: true` = demo login (guest profile, GetCourse skipped).",
+      "title": "afbws.auth.v1 — handshake (request / response / server push).",
+      "description": "Request (client -> server, first message; no `user_id`): `request_id`, `support`, `version`, optional `session_id`. The session is taken from the `afb_session` cookie, or from `session_id` when the cookie is absent/invalid (iframe). `version` (frontend build) is logged for monitoring only — never parsed, compared or used to gate behaviour; all behaviour is gated on `support` alone. Response (same `request_id`): `user_id`, `timezone`, `brokers`, `support`, `access`; `support` — the backend's own declared afbws capability ids (not the intersection; the client computes it). Push (no `request_id`): the whole response, sent when the effective `access` of the connection changes; the client replaces its auth state.",
       "required": [
         "channel",
         "schema",
-        "version",
         "support"
       ],
       "additionalProperties": false,
@@ -33,16 +29,10 @@
           "const": "auth"
         },
         "schema": {
-          "const": "afbws.auth.request.v1"
+          "const": "afbws.auth.v1"
         },
-        "version": {
-          "type": "string",
-          "maxLength": 64,
-          "description": "Frontend build version, logged only."
-        },
-        "demo": {
-          "type": "boolean",
-          "default": false
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
         },
         "support": {
           "type": "array",
@@ -51,69 +41,97 @@
             "type": "string",
             "minLength": 1
           },
-          "description": "afbws capability ids the client supports (x-afbws-support-id values)."
+          "description": "afbws capability ids (x-afbws-support-id values): in a request — what the client supports; in a response/push — what the backend supports."
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Request only: frontend build version, logged only."
         },
         "session_id": {
           "type": "string",
           "minLength": 1,
-          "description": "HTTP session id, used when the cookie is unavailable."
-        }
-      }
-    },
-    "ok": {
-      "type": "object",
-      "title": "afbws.auth.ok.v1 — successful handshake (server -> client).",
-      "description": "`support` — the backend's own declared afbws capability ids (not the intersection; the client computes it). `brokers` — known broker ids for the link connector-create form, sent unconditionally. `access` — effective access of this connection (tier / capabilities / limits / mode ...), see common.v1.json#/$defs/access; later changes arrive as afbws.access.state.v1 pushes.",
-      "required": [
-        "channel",
-        "schema",
-        "user_id",
-        "timezone",
-        "support",
-        "brokers",
-        "access"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "channel": {
-          "const": "auth"
-        },
-        "schema": {
-          "const": "afbws.auth.ok.v1"
+          "description": "Request only: HTTP session id, used when the cookie is unavailable."
         },
         "user_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Response/push only."
         },
         "timezone": {
           "type": "string",
           "minLength": 1,
-          "description": "IANA timezone name of the platform (e.g. `Europe/Moscow`)."
-        },
-        "support": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
+          "description": "Response/push only: IANA timezone name of the platform (market time on the frontend, e.g. `Europe/Moscow`)."
         },
         "brokers": {
           "type": "array",
           "items": {
             "type": "string",
             "minLength": 1
-          }
+          },
+          "description": "Response/push only: known broker ids for the link connector-create form, sent unconditionally."
         },
         "access": {
           "$ref": "common.v1.json#/$defs/access"
+        }
+      },
+      "if": {
+        "required": [
+          "user_id"
+        ]
+      },
+      "then": {
+        "required": [
+          "user_id",
+          "timezone",
+          "brokers",
+          "access"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "version"
+              ]
+            },
+            {
+              "required": [
+                "session_id"
+              ]
+            }
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "request_id",
+          "version"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "timezone"
+              ]
+            },
+            {
+              "required": [
+                "brokers"
+              ]
+            },
+            {
+              "required": [
+                "access"
+              ]
+            }
+          ]
         }
       }
     },
     "error": {
       "type": "object",
       "title": "afbws.auth.error.v1 — failed handshake (server -> client); the server closes the socket right after it.",
-      "description": "`unauthorized` — no valid session (close code 4001); `session_invalid` — the session exists but its access profile could not be resolved (close code 4001); `invalid_request` — the first message is not a valid auth request (close code 4000).",
+      "description": "`unauthorized` — no valid session (close code 4001); `session_invalid` — the session exists but its access profile could not be resolved (close code 4001); `invalid_request` — the first message is not a valid auth request (close code 4000). `request_id` echoes the request's when it could be read.",
       "required": [
         "channel",
         "schema",
@@ -127,6 +145,9 @@
         },
         "schema": {
           "const": "afbws.auth.error.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
         },
         "code": {
           "type": "string",

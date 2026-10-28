@@ -78,26 +78,31 @@
       }
     }
   ],
-  "members": [
+  "user_roles": [
     {
       "role": "manager",
-      "token": "id_9910336377"
-    },
-    {
-      "role": "user",
-      "token": "gc:3125478"
-    },
-    {
-      "role": "lite",
-      "token": "gc:3125480"
+      "user_id": "id_9910336377"
     },
     {
       "role": "trade",
-      "token": "gc_282811500"
+      "user_id": "gc_282811500"
+    }
+  ],
+  "group_roles": [
+    {
+      "role": "user",
+      "provider": "getcourse",
+      "group_id": "3125478"
+    },
+    {
+      "role": "lite",
+      "provider": "getcourse",
+      "group_id": "3125480"
     },
     {
       "role": "virtual",
-      "token": "gc:3125478"
+      "provider": "getcourse",
+      "group_id": "3125478"
     }
   ]
 }

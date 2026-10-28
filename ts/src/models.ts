@@ -1,11 +1,11 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 78cfe2bf3a742bfcbb3216b195ee16d6eb93da33888ab08e7b1c1e731bff6fad
+ * source-hash: e876afe53812a24d479d2f46c0b90e662c0391088621b4c428720d27d5508bec
  */
 
 /**
- * Negotiated via auth.support (capability id afbws.access.channel.v1). Freemium access model: tier (who) x capabilities (personal permissions) x mode (what is available now), see common.v1.json#/$defs/access. Messages mirror the backend's access database (tables tiers, members, users, subscriptions). Same convention as afbws.link/afbws.screener: ONE schema id per operation (`afbws.access.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response (echoes `request_id`); response-only fields are forbidden in a request. `request_id` is required in every client request. Operations (manager only, others get error `forbidden`): `roles.get`/`roles.set` (tiers and members; replace the config-channel op `roles`), `users.list`, `user.set` (trial end / manual grant), `stats` (weekly conversion). Server-initiated: push `afbws.access.state.v1` (no `request_id`) and `afbws.access.denied.v1` — the gate's refusal of a request of ANY channel (sent on the refused request's channel, with its `request_id`). Whole-request failures of this channel: `afbws.access.error.v1`. See AFB/docs/ws/access.md.
+ * Negotiated via auth.support (capability id afbws.access.channel.v1). Freemium access model: tier (who) x capabilities (personal permissions) x mode (what is available now), see common.v1.json#/$defs/access. Messages mirror the backend's access database (tables tiers, user_roles, group_roles, users, subscriptions); the model does not know a concrete authorization provider — external groups are addressed by (`provider`, `group_id`). Same convention as afbws.link/afbws.screener: ONE schema id per operation (`afbws.access.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response (echoes `request_id`); response-only fields are forbidden in a request. `request_id` is required in every client request. Operations (manager only, others get error `forbidden`): `roles.get`/`roles.set` (tiers, user_roles, group_roles; replace the config-channel op `roles`), `users.list`, `user.set` (trial end / manual grant), `stats` (weekly conversion). Server-initiated: `afbws.access.denied.v1` — the gate's refusal of a request of ANY channel (sent on the refused request's channel, with its `request_id`). Changes of the connection's own effective access arrive as an afbws.auth.v1 push. Whole-request failures of this channel: `afbws.access.error.v1`. See AFB/docs/ws/access.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessChannelV1Message".
@@ -16,7 +16,6 @@ export type AccessChannelV1Message =
   | AccessV1UsersList
   | AccessV1UserSet
   | AccessV1Stats
-  | AccessV1State
   | AccessV1Denied
   | AccessV1Error;
 /**
@@ -27,48 +26,19 @@ export type AccessChannelV1Message =
  */
 export type AfbwsCommonV1_RequestId = string;
 /**
- * Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `manager`, `user`, `guest`, a new paid tier `lite`), NOT an enum: a new tier needs no protocol change. Only `manager` is reserved by code (staff, manager functions gated on `tier == manager` independently of `mode`). Comes from tier members (GetCourse groups, user ids) in the backend's access database; the tier with the minimal rank is the default for users not matched by any member.
+ * Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `manager`, `user`, `guest`, a new paid tier `lite`), NOT an enum: a new tier needs no protocol change. Only `manager` is reserved by code (staff, manager functions gated on `tier == manager` independently of `mode`). Comes from the backend's access database (personal `user_roles` and provider-group `group_roles`); the tier with the minimal rank is the default for users not matched by any of them.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessTier".
  */
 export type AccessTier = string;
 /**
- * Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; manager functions are gated on `tier == manager` only). (2) `capabilities` — personal permissions granted by a manager, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`); holding `trade` ALWAYS yields `mode: full` (`reason: subscription`): real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); logic is decided only by `mode`, while `reason` and `until` are for display (refusal texts, indicator) and statistics. `until` is the moment of the next mode change known to the server (end of trial/grant/window, start of the next window), null when none is scheduled; the server pushes afbws.access.state.v1 when the mode actually changes.
+ * Authorization provider (adapter) id: who authenticates the user and supplies its groups, e.g. `getcourse`, `local`. An open set defined by the backend's adapters, not an enum.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "Access".
+ * via the `definition` "AccessV1Provider".
  */
-export type Access = {
-  [k: string]: unknown;
-} & {
-  tier: AccessTier;
-  /**
-   * Personal capability names (`trade`, `virtual`, `screener`, `local`; the set is defined by the backend code).
-   */
-  capabilities: string[];
-  limits: AccessLimits;
-  mode: AccessMode;
-  reason: AccessReason;
-  /**
-   * Next known mode change, ISO-8601 with offset; null — none scheduled.
-   */
-  until: string | null;
-};
-/**
- * What is available right now (axis 3 of the access model): `full` — paid features work; `basic` — paid features are refused with afbws.access.denied.v1 and the user's alarms/trade plans are held (not evaluated). ALL access logic is decided by `mode` alone; `reason`/`until` are display/statistics only.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessMode".
- */
-export type AccessMode = 'full' | 'basic';
-/**
- * Why the current `mode` holds — display/statistics only, never used for logic. `subscription` — paid tier or the `trade` capability (or a tier without a mode policy); `grant` — manual extension by a manager; `trial` — trial period; `window` — inside the workday/weekend time window of the tier policy; `none` — no reason for `full` (always so in `basic`).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessReason".
- */
-export type AccessReason = 'subscription' | 'grant' | 'trial' | 'window' | 'none';
+export type AccessV1Provider = string;
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, error; `list` takes `bf_id` + `account_id`. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes , reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a broker account (one bf_id may have more than one), not the connector itself.
  *
@@ -282,12 +252,19 @@ export type AlarmV2Ack = {
   results?: AlarmV2AckResultItem[];
 };
 /**
- * First message of every AFB WebSocket connection, replacing the legacy `{type: "auth"}` / `{type: "auth_ok"}` / `{type: "auth_error"}`. Same convention as the other schema-first afbws channels: routed by `channel` (`auth`) then by a mandatory `schema` id, no `type` field. There is no `request_id`: the handshake is exactly one request and one answer. Negotiation caveat: `support` is learned only from auth.ok, i.e. AFTER the client has already chosen the form of its first message — so the frontend ALWAYS sends afbws.auth.request.v1, and the backend accepts BOTH the legacy `type: "auth"` and this schema, answering in the form of the request (legacy request -> legacy auth_ok/auth_error; schema request -> afbws.auth.ok.v1 / afbws.auth.error.v1). The backend still lists `afbws.auth.v1` in `support` so a client can tell that the backend understands the new form. Removal of the legacy form is a separate decision. See AFB/docs/API_REGISTRY.md.
+ * First message of every AFB WebSocket connection, replacing the legacy `{type: "auth"}` / `{type: "auth_ok"}` / `{type: "auth_error"}`. Same convention as the other schema-first afbws channels: routed by `channel` (`auth`) then by a mandatory `schema` id, no `type` field; ONE schema id `afbws.auth.v1` is the request, its response (echoes `request_id`) and the server push (no `request_id`); response-only fields are forbidden in a request. Failure: `afbws.auth.error.v1`. Negotiation caveat: `support` is learned only from the auth response, i.e. AFTER the client has already chosen the form of its first message — so the frontend ALWAYS sends afbws.auth.v1, and the backend accepts BOTH the legacy `type: "auth"` and this schema, answering in the form of the request (legacy request -> legacy auth_ok/auth_error; schema request -> afbws.auth.v1 / afbws.auth.error.v1). The backend still lists `afbws.auth.v1` in `support` so a client can tell that the backend understands the new form. Removal of the legacy form is a separate decision. See AFB/docs/API_REGISTRY.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AuthV1Message".
  */
-export type AuthV1Message = AuthV1Request | AuthV1Ok | AuthV1Error;
+export type AuthV1Message = AuthV1 | AuthV1Error;
+/**
+ * What is available right now (axis 3 of the access model): `full` — paid features work; `basic` — paid features are refused with afbws.access.denied.v1 and the user's alarms/trade plans are held (not evaluated). ALL access logic is decided by `mode` alone.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessMode".
+ */
+export type AccessMode = 'full' | 'basic';
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "BfsRegistryEntry".
@@ -1613,7 +1590,7 @@ export type TradePlanV2 = {
 export type TradeplanV2_TpExitList = TradeplanV2_TpLeg[];
 
 /**
- * Request: only `request_id`. Response: `tiers[]`, `members[]`, `capabilities[]`, `getcourse_groups[]`, `getcourse_groups_error`.
+ * Request: only `request_id`. Response: `tiers[]`, `user_roles[]`, `group_roles[]`, `capabilities[]`, `provider_groups[]`, `provider_groups_error`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1RolesGet".
@@ -1623,19 +1600,20 @@ export interface AccessV1RolesGet {
   schema: 'afbws.access.roles.get.v1';
   request_id: AfbwsCommonV1_RequestId;
   tiers?: AccessV1TierRow[];
-  members?: AccessV1Member[];
+  user_roles?: AccessV1UserRole[];
+  group_roles?: AccessV1GroupRole[];
   /**
    * Response only: capability names (the set is defined by the backend code).
    */
   capabilities?: string[];
   /**
-   * Response only: GetCourse groups (hints for choosing a `gc:` token).
+   * Response only: groups of the authorization providers (hints for choosing `group_roles`).
    */
-  getcourse_groups?: AccessV1GetcourseGroup[];
+  provider_groups?: AccessV1ProviderGroup[];
   /**
-   * Response only: why GetCourse groups could not be fetched; null — fetched.
+   * Response only: why provider groups could not be fetched (fully or partly); null — fetched.
    */
-  getcourse_groups_error?: string | null;
+  provider_groups_error?: string | null;
 }
 /**
  * One tier (one row of the `tiers` table).
@@ -1650,7 +1628,7 @@ export interface AccessV1TierRow {
    */
   title: string;
   /**
-   * Priority when a user matches several tiers (higher wins); unique among tiers. The tier with the minimal rank is the default for users not matched by any member.
+   * Priority when a user matches several tiers (higher wins); unique among tiers. The tier with the minimal rank is the default for users not matched by any `user_roles`/`group_roles` row.
    */
   rank: number;
   /**
@@ -1721,33 +1699,51 @@ export interface AccessV1Showcase {
   collection: string | null;
 }
 /**
- * Who gets a tier or a capability (one row of the `members` table).
+ * Personal assignment of a tier or a capability to one user (one row of the `user_roles` table).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessV1Member".
+ * via the `definition` "AccessV1UserRole".
  */
-export interface AccessV1Member {
+export interface AccessV1UserRole {
   /**
    * A tier name (from `tiers`) or a capability name (set defined by the backend code).
    */
   role: string;
   /**
-   * `id_<id>` — local user, `gc_<id>` — GetCourse user, `gc:<group id>` — GetCourse group.
+   * Internal AFB user id (as in `users`).
    */
-  token: string;
+  user_id: string;
 }
 /**
- * GetCourse group (a member token references it as `gc:<id>`).
+ * Assignment of a tier or a capability to every member of an external group (one row of the `group_roles` table).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessV1GetcourseGroup".
+ * via the `definition` "AccessV1GroupRole".
  */
-export interface AccessV1GetcourseGroup {
-  id: string;
+export interface AccessV1GroupRole {
+  /**
+   * A tier name (from `tiers`) or a capability name (set defined by the backend code).
+   */
+  role: string;
+  provider: AccessV1Provider;
+  /**
+   * Group id at the provider, as a string.
+   */
+  group_id: string;
+}
+/**
+ * A group of an authorization provider (a hint for choosing `group_roles`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1ProviderGroup".
+ */
+export interface AccessV1ProviderGroup {
+  provider: AccessV1Provider;
+  group_id: string;
   title: string;
 }
 /**
- * Request: `tiers[]` (at least one; `tier` names must be unique — checked by the server) and `members[]` — replace-all of both tables. Response: the saved snapshot, as afbws.access.roles.get.v1.
+ * Request: `tiers[]` (at least one; `tier` names must be unique — checked by the server), `user_roles[]` and `group_roles[]` — replace-all of the three tables. Response: the saved snapshot, as afbws.access.roles.get.v1.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1RolesSet".
@@ -1762,19 +1758,20 @@ export interface AccessV1RolesSet {
    * @minItems 1
    */
   tiers: [AccessV1TierRow, ...AccessV1TierRow[]];
-  members: AccessV1Member[];
+  user_roles: AccessV1UserRole[];
+  group_roles: AccessV1GroupRole[];
   /**
    * Response only: capability names (the set is defined by the backend code).
    */
   capabilities?: string[];
   /**
-   * Response only: GetCourse groups (hints for choosing a `gc:` token).
+   * Response only: groups of the authorization providers (hints for choosing `group_roles`).
    */
-  getcourse_groups?: AccessV1GetcourseGroup[];
+  provider_groups?: AccessV1ProviderGroup[];
   /**
-   * Response only: why GetCourse groups could not be fetched; null — fetched.
+   * Response only: why provider groups could not be fetched (fully or partly); null — fetched.
    */
-  getcourse_groups_error?: string | null;
+  provider_groups_error?: string | null;
 }
 /**
  * Request: only `request_id`. Response: `items[]` — every user who has logged in at least once (no server-side filtering or paging).
@@ -1792,13 +1789,14 @@ export interface AccessV1UsersList {
   items?: AccessV1UserRow[];
 }
 /**
- * One user who has logged in at least once (row of the `users` table + resolved tier/capabilities + the last subscription period).
+ * One user who has logged in at least once (row of the `users` table + resolved tier/capabilities + the last subscription period). `provider` — who authenticates the user and supplies its groups.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1UserRow".
  */
 export interface AccessV1UserRow {
   user_id: string;
+  provider: AccessV1Provider;
   display_name: string | null;
   tier: AccessTier;
   capabilities: string[];
@@ -1890,18 +1888,7 @@ export interface AccessV1StatsWeek {
   active: number;
 }
 /**
- * Sent without `request_id` when the effective access changes (mode switch at `until`, a manager's change of tiers/members/trial/grant). Carries the whole new `access` block; the client replaces the one from auth.ok.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessV1State".
- */
-export interface AccessV1State {
-  channel: 'access';
-  schema: 'afbws.access.state.v1';
-  access: Access;
-}
-/**
- * Answer to a request of any schema-first channel that the current `mode` does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `basic` — feature not available in basic mode; `showcase` — basic mode with showcase, the instrument is not in the showcase; `held` — activation of an alarm/trade plan while the owner's objects are held. `feature` — gate feature id (e.g. `datasets`, `participants`, `virtual`, `screener`, `alarm.activate`). `until` — when `full` becomes available (next window/trial), null if unknown. `message` — ready-to-show text.
+ * Answer to a request of any schema-first channel that the current `mode` does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `basic` — feature not available in basic mode; `showcase` — basic mode with showcase, the instrument is not in the showcase; `held` — activation of an alarm/trade plan while the owner's objects are held. `feature` — gate feature id (e.g. `datasets`, `participants`, `virtual`, `screener`, `alarm.activate`). `message` — ready-to-show text (includes when `full` becomes available, if known).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Denied".
@@ -1915,7 +1902,6 @@ export interface AccessV1Denied {
   request_id: AfbwsCommonV1_RequestId;
   reason: 'basic' | 'showcase' | 'held';
   feature: string;
-  until: string | null;
   message: string;
 }
 /**
@@ -2166,48 +2152,58 @@ export interface AlarmV2Error {
   details?: {};
 }
 /**
- * The session is taken from the `afb_session` cookie, or from `session_id` when the cookie is absent/invalid. `version` (frontend build) is logged for monitoring only — never parsed, compared or used to gate behaviour; all behaviour is gated on `support` alone. `demo: true` = demo login (guest profile, GetCourse skipped).
+ * Request (client -> server, first message; no `user_id`): `request_id`, `support`, `version`, optional `session_id`. The session is taken from the `afb_session` cookie, or from `session_id` when the cookie is absent/invalid (iframe). `version` (frontend build) is logged for monitoring only — never parsed, compared or used to gate behaviour; all behaviour is gated on `support` alone. Response (same `request_id`): `user_id`, `timezone`, `brokers`, `support`, `access`; `support` — the backend's own declared afbws capability ids (not the intersection; the client computes it). Push (no `request_id`): the whole response, sent when the effective `access` of the connection changes; the client replaces its auth state.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AuthV1Request".
+ * via the `definition` "AuthV1".
  */
-export interface AuthV1Request {
+export interface AuthV1 {
   channel: 'auth';
-  schema: 'afbws.auth.request.v1';
+  schema: 'afbws.auth.v1';
+  request_id?: AfbwsCommonV1_RequestId;
   /**
-   * Frontend build version, logged only.
-   */
-  version: string;
-  demo?: boolean;
-  /**
-   * afbws capability ids the client supports (x-afbws-support-id values).
+   * afbws capability ids (x-afbws-support-id values): in a request — what the client supports; in a response/push — what the backend supports.
    */
   support: string[];
   /**
-   * HTTP session id, used when the cookie is unavailable.
+   * Request only: frontend build version, logged only.
+   */
+  version?: string;
+  /**
+   * Request only: HTTP session id, used when the cookie is unavailable.
    */
   session_id?: string;
+  /**
+   * Response/push only.
+   */
+  user_id?: string;
+  /**
+   * Response/push only: IANA timezone name of the platform (market time on the frontend, e.g. `Europe/Moscow`).
+   */
+  timezone?: string;
+  /**
+   * Response/push only: known broker ids for the link connector-create form, sent unconditionally.
+   */
+  brokers?: string[];
+  access?: Access;
 }
 /**
- * `support` — the backend's own declared afbws capability ids (not the intersection; the client computes it). `brokers` — known broker ids for the link connector-create form, sent unconditionally. `access` — effective access of this connection (tier / capabilities / limits / mode ...), see common.v1.json#/$defs/access; later changes arrive as afbws.access.state.v1 pushes.
+ * Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; manager functions are gated on `tier == manager` only). (2) `capabilities` — personal permissions granted by a manager, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AuthV1Ok".
+ * via the `definition` "Access".
  */
-export interface AuthV1Ok {
-  channel: 'auth';
-  schema: 'afbws.auth.ok.v1';
-  user_id: string;
+export interface Access {
+  tier: AccessTier;
   /**
-   * IANA timezone name of the platform (e.g. `Europe/Moscow`).
+   * Personal capability names (`trade`, `virtual`, `screener`, `local`; the set is defined by the backend code).
    */
-  timezone: string;
-  support: string[];
-  brokers: string[];
-  access: Access;
+  capabilities: string[];
+  limits: AccessLimits;
+  mode: AccessMode;
 }
 /**
- * `unauthorized` — no valid session (close code 4001); `session_invalid` — the session exists but its access profile could not be resolved (close code 4001); `invalid_request` — the first message is not a valid auth request (close code 4000).
+ * `unauthorized` — no valid session (close code 4001); `session_invalid` — the session exists but its access profile could not be resolved (close code 4001); `invalid_request` — the first message is not a valid auth request (close code 4000). `request_id` echoes the request's when it could be read.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AuthV1Error".
@@ -2215,6 +2211,7 @@ export interface AuthV1Ok {
 export interface AuthV1Error {
   channel: 'auth';
   schema: 'afbws.auth.error.v1';
+  request_id?: AfbwsCommonV1_RequestId;
   code: 'unauthorized' | 'invalid_request' | 'session_invalid';
   message: string;
 }

@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 78cfe2bf3a742bfcbb3216b195ee16d6eb93da33888ab08e7b1c1e731bff6fad
+# source-hash: e876afe53812a24d479d2f46c0b90e662c0391088621b4c428720d27d5508bec
 
 from __future__ import annotations
 
@@ -10,15 +10,13 @@ from typing import Any, Literal, NotRequired, TypeAlias, TypedDict
 
 class Access(TypedDict):
     """
-    Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; manager functions are gated on `tier == manager` only). (2) `capabilities` — personal permissions granted by a manager, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`); holding `trade` ALWAYS yields `mode: full` (`reason: subscription`): real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); logic is decided only by `mode`, while `reason` and `until` are for display (refusal texts, indicator) and statistics. `until` is the moment of the next mode change known to the server (end of trial/grant/window, start of the next window), null when none is scheduled; the server pushes afbws.access.state.v1 when the mode actually changes.
+    Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; manager functions are gated on `tier == manager` only). (2) `capabilities` — personal permissions granted by a manager, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
     """
 
     tier: AccessTier
     capabilities: list[Capability]
     limits: AccessLimits
     mode: AccessMode
-    reason: AccessReason
-    until: str | None
 
 
 class AccessLimits(TypedDict):
@@ -35,15 +33,12 @@ class AccessLimits(TypedDict):
 AccessMode: TypeAlias = Literal["full", "basic"]
 
 
-AccessReason: TypeAlias = Literal["subscription", "grant", "trial", "window", "none"]
-
-
 AccessTier: TypeAlias = str
 
 
 class AccessV1Denied(TypedDict):
     """
-    Answer to a request of any schema-first channel that the current `mode` does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `basic` — feature not available in basic mode; `showcase` — basic mode with showcase, the instrument is not in the showcase; `held` — activation of an alarm/trade plan while the owner's objects are held. `feature` — gate feature id (e.g. `datasets`, `participants`, `virtual`, `screener`, `alarm.activate`). `until` — when `full` becomes available (next window/trial), null if unknown. `message` — ready-to-show text.
+    Answer to a request of any schema-first channel that the current `mode` does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `basic` — feature not available in basic mode; `showcase` — basic mode with showcase, the instrument is not in the showcase; `held` — activation of an alarm/trade plan while the owner's objects are held. `feature` — gate feature id (e.g. `datasets`, `participants`, `virtual`, `screener`, `alarm.activate`). `message` — ready-to-show text (includes when `full` becomes available, if known).
     """
 
     channel: str
@@ -51,7 +46,6 @@ class AccessV1Denied(TypedDict):
     request_id: AfbwsCommonV1RequestId
     reason: Literal["basic", "showcase", "held"]
     feature: str
-    until: str | None
     message: str
 
 
@@ -74,22 +68,14 @@ class AccessV1Error(TypedDict):
     message: str
 
 
-class AccessV1GetcourseGroup(TypedDict):
+class AccessV1GroupRole(TypedDict):
     """
-    GetCourse group (a member token references it as `gc:<id>`).
-    """
-
-    id: str
-    title: str
-
-
-class AccessV1Member(TypedDict):
-    """
-    Who gets a tier or a capability (one row of the `members` table).
+    Assignment of a tier or a capability to every member of an external group (one row of the `group_roles` table).
     """
 
     role: str
-    token: str
+    provider: AccessV1Provider
+    group_id: str
 
 
 class AccessV1Policy(TypedDict):
@@ -104,34 +90,49 @@ class AccessV1Policy(TypedDict):
     showcase: NotRequired[AccessV1Showcase]
 
 
+AccessV1Provider: TypeAlias = str
+
+
+class AccessV1ProviderGroup(TypedDict):
+    """
+    A group of an authorization provider (a hint for choosing `group_roles`).
+    """
+
+    provider: AccessV1Provider
+    group_id: str
+    title: str
+
+
 class AccessV1RolesGet(TypedDict):
     """
-    Request: only `request_id`. Response: `tiers[]`, `members[]`, `capabilities[]`, `getcourse_groups[]`, `getcourse_groups_error`.
+    Request: only `request_id`. Response: `tiers[]`, `user_roles[]`, `group_roles[]`, `capabilities[]`, `provider_groups[]`, `provider_groups_error`.
     """
 
     channel: Literal["access"]
     schema: Literal["afbws.access.roles.get.v1"]
     request_id: AfbwsCommonV1RequestId
     tiers: NotRequired[list[AccessV1TierRow]]
-    members: NotRequired[list[AccessV1Member]]
+    user_roles: NotRequired[list[AccessV1UserRole]]
+    group_roles: NotRequired[list[AccessV1GroupRole]]
     capabilities: NotRequired[list[Capability]]
-    getcourse_groups: NotRequired[list[AccessV1GetcourseGroup]]
-    getcourse_groups_error: NotRequired[str | None]
+    provider_groups: NotRequired[list[AccessV1ProviderGroup]]
+    provider_groups_error: NotRequired[str | None]
 
 
 class AccessV1RolesSet(TypedDict):
     """
-    Request: `tiers[]` (at least one; `tier` names must be unique — checked by the server) and `members[]` — replace-all of both tables. Response: the saved snapshot, as afbws.access.roles.get.v1.
+    Request: `tiers[]` (at least one; `tier` names must be unique — checked by the server), `user_roles[]` and `group_roles[]` — replace-all of the three tables. Response: the saved snapshot, as afbws.access.roles.get.v1.
     """
 
     channel: Literal["access"]
     schema: Literal["afbws.access.roles.set.v1"]
     request_id: AfbwsCommonV1RequestId
     tiers: list[AccessV1TierRow]
-    members: list[AccessV1Member]
+    user_roles: list[AccessV1UserRole]
+    group_roles: list[AccessV1GroupRole]
     capabilities: NotRequired[list[Capability]]
-    getcourse_groups: NotRequired[list[AccessV1GetcourseGroup]]
-    getcourse_groups_error: NotRequired[str | None]
+    provider_groups: NotRequired[list[AccessV1ProviderGroup]]
+    provider_groups_error: NotRequired[str | None]
 
 
 class AccessV1Showcase(TypedDict):
@@ -141,16 +142,6 @@ class AccessV1Showcase(TypedDict):
 
     enabled: bool
     collection: str | None
-
-
-class AccessV1State(TypedDict):
-    """
-    Sent without `request_id` when the effective access changes (mode switch at `until`, a manager's change of tiers/members/trial/grant). Carries the whole new `access` block; the client replaces the one from auth.ok.
-    """
-
-    channel: Literal["access"]
-    schema: Literal["afbws.access.state.v1"]
-    access: Access
 
 
 class AccessV1StatsWeek(TypedDict):
@@ -188,12 +179,22 @@ class AccessV1TierRow(TypedDict):
     policy: AccessV1Policy | None
 
 
+class AccessV1UserRole(TypedDict):
+    """
+    Personal assignment of a tier or a capability to one user (one row of the `user_roles` table).
+    """
+
+    role: str
+    user_id: str
+
+
 class AccessV1UserRow(TypedDict):
     """
-    One user who has logged in at least once (row of the `users` table + resolved tier/capabilities + the last subscription period).
+    One user who has logged in at least once (row of the `users` table + resolved tier/capabilities + the last subscription period). `provider` — who authenticates the user and supplies its groups.
     """
 
     user_id: str
+    provider: AccessV1Provider
     display_name: str | None
     tier: AccessTier
     capabilities: list[Capability]
@@ -835,7 +836,6 @@ AccessChannelV1Message: TypeAlias = (
     | AccessV1UsersList
     | AccessV1UserSet
     | AccessV1Stats
-    | AccessV1State
     | AccessV1Denied
     | AccessV1Error
 )
@@ -1574,45 +1574,36 @@ class Alarms1(TypedDict):
     confirm_delete: NotRequired[bool]
 
 
+class AuthV1(TypedDict):
+    """
+    Request (client -> server, first message; no `user_id`): `request_id`, `support`, `version`, optional `session_id`. The session is taken from the `afb_session` cookie, or from `session_id` when the cookie is absent/invalid (iframe). `version` (frontend build) is logged for monitoring only — never parsed, compared or used to gate behaviour; all behaviour is gated on `support` alone. Response (same `request_id`): `user_id`, `timezone`, `brokers`, `support`, `access`; `support` — the backend's own declared afbws capability ids (not the intersection; the client computes it). Push (no `request_id`): the whole response, sent when the effective `access` of the connection changes; the client replaces its auth state.
+    """
+
+    channel: Literal["auth"]
+    schema: Literal["afbws.auth.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    support: list[SupportItem]
+    version: NotRequired[str]
+    session_id: NotRequired[str]
+    user_id: NotRequired[str]
+    timezone: NotRequired[str]
+    brokers: NotRequired[list[str]]
+    access: NotRequired[Access]
+
+
 class AuthV1Error(TypedDict):
     """
-    `unauthorized` — no valid session (close code 4001); `session_invalid` — the session exists but its access profile could not be resolved (close code 4001); `invalid_request` — the first message is not a valid auth request (close code 4000).
+    `unauthorized` — no valid session (close code 4001); `session_invalid` — the session exists but its access profile could not be resolved (close code 4001); `invalid_request` — the first message is not a valid auth request (close code 4000). `request_id` echoes the request's when it could be read.
     """
 
     channel: Literal["auth"]
     schema: Literal["afbws.auth.error.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
     code: Literal["unauthorized", "invalid_request", "session_invalid"]
     message: str
 
 
-class AuthV1Ok(TypedDict):
-    """
-    `support` — the backend's own declared afbws capability ids (not the intersection; the client computes it). `brokers` — known broker ids for the link connector-create form, sent unconditionally. `access` — effective access of this connection (tier / capabilities / limits / mode ...), see common.v1.json#/$defs/access; later changes arrive as afbws.access.state.v1 pushes.
-    """
-
-    channel: Literal["auth"]
-    schema: Literal["afbws.auth.ok.v1"]
-    user_id: str
-    timezone: str
-    support: list[SupportItem]
-    brokers: list[str]
-    access: Access
-
-
-class AuthV1Request(TypedDict):
-    """
-    The session is taken from the `afb_session` cookie, or from `session_id` when the cookie is absent/invalid. `version` (frontend build) is logged for monitoring only — never parsed, compared or used to gate behaviour; all behaviour is gated on `support` alone. `demo: true` = demo login (guest profile, GetCourse skipped).
-    """
-
-    channel: Literal["auth"]
-    schema: Literal["afbws.auth.request.v1"]
-    version: str
-    demo: NotRequired[bool]
-    support: list[SupportItem]
-    session_id: NotRequired[str]
-
-
-AuthV1Message: TypeAlias = AuthV1Request | AuthV1Ok | AuthV1Error
+AuthV1Message: TypeAlias = AuthV1 | AuthV1Error
 
 
 class Backstop(TypedDict):

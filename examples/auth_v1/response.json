@@ -1,6 +1,7 @@
 {
   "channel": "auth",
-  "schema": "afbws.auth.ok.v1",
+  "schema": "afbws.auth.v1",
+  "request_id": "a-1",
   "user_id": "id_9910336377",
   "timezone": "Europe/Moscow",
   "support": [
@@ -22,8 +23,6 @@
       "max_sets": 20,
       "max_favorite_colors": 5
     },
-    "mode": "full",
-    "reason": "subscription",
-    "until": null
+    "mode": "full"
   }
 }
