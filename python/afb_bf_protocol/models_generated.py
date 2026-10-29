@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 9f2cc9490f9b485e3ef3a10647fb48abfc2693b9d4798e7af3a4680821f52852
+# source-hash: 477d6f3ed59917b98c802643afc57e478b02845758436d0c67ed06e896dfe94c
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from typing import Any, Literal, NotRequired, TypeAlias, TypedDict
 
 class Access(TypedDict):
     """
-    Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — permissions: capabilities of the tier ∪ capabilities added to the user (`trade` — real trading through BF, `virtual`, `screener`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
+    Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — ДЕЙСТВУЮЩИЕ СЕЙЧАС capabilities: готовый результат политики доступа бэкенда (tier, личные, триал/льгота/окно); фронт определяет функционал ТОЛЬКО по `capabilities` и `limits`. Real trading (`trade`) is never held because of a window, a trial or an ended subscription. (3) `mode` — DEPRECATED (этап 2е): совместимость с фронтами до 2е (`full`, если `dataset` ∈ capabilities, иначе `basic`); новый фронт не читает, удаление — после окна релизов. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
     """
 
     tier: AccessTier
@@ -75,7 +75,7 @@ class AccessTrialAvailable(TypedDict):
 AccessTrial: TypeAlias = AccessTrialAvailable | AccessTrialActive | None
 
 
-AccessV1Capability: TypeAlias = Literal["trade", "virtual", "screener"]
+AccessV1Capability: TypeAlias = Literal["trade", "virtual", "screener", "dataset"]
 
 
 class AccessV1CapabilityLabel(TypedDict):
@@ -89,13 +89,13 @@ class AccessV1CapabilityLabel(TypedDict):
 
 class AccessV1Denied(TypedDict):
     """
-    Answer to a request of any schema-first channel that the current `mode` does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `basic` — feature not available in basic mode; `showcase` — basic mode with showcase, the instrument is not in the showcase; `held` — activation of an alarm/trade plan while the owner's objects are held. `feature` — gate feature id (e.g. `datasets`, `participants`, `virtual`, `screener`, `alarm.activate`). `message` — ready-to-show text (includes when `full` becomes available, if known).
+    Answer to a request of any schema-first channel that the connection's current access (capabilities) does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `capability` — the required capability is missing from the connection's effective capabilities, `feature` is the capability name (`dataset`, `screener`, `virtual`, ...); `showcase` — the instrument is not in the showcase; `basic` (feature not available in basic mode) and `held` (activation while the owner's objects are held) — legacy, kept for compatibility, no longer sent by the backend since stage 2е. `message` — ready-to-show text (includes when `full` becomes available, if known).
     """
 
     channel: str
     schema: Literal["afbws.access.denied.v1"]
     request_id: AfbwsCommonV1RequestId
-    reason: Literal["basic", "showcase", "held"]
+    reason: Literal["basic", "showcase", "held", "capability"]
     feature: str
     message: str
 

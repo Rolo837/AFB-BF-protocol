@@ -9,7 +9,10 @@
   "brokers": [],
   "access": {
     "tier": "guest",
-    "capabilities": [],
+    "capabilities": [
+      "virtual",
+      "dataset"
+    ],
     "limits": {
       "max_favorites_tickers": 42,
       "max_primitives_per_user": 100,

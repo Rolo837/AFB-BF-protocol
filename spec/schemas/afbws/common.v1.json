@@ -42,7 +42,8 @@
         "full",
         "basic"
       ],
-      "description": "What is available right now (axis 3 of the access model): `full` — paid features work; `basic` — paid features are refused with afbws.access.denied.v1 and the user's alarms/trade plans are held (not evaluated). ALL access logic is decided by `mode` alone."
+      "deprecated": true,
+      "description": "DEPRECATED (этап 2е). Совместимость с фронтами до 2е: бэкенд отдаёт `full`, если `dataset` ∈ capabilities, иначе `basic`. Новый фронт не читает; удаление — после окна релизов. Функционал определяется только по `capabilities` и `limits`."
     },
     "accessLimits": {
       "type": "object",
@@ -170,7 +171,7 @@
     "access": {
       "type": "object",
       "title": "Effective access of one connection (afbws.auth.v1 response/push `access`).",
-      "description": "Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — permissions: capabilities of the tier ∪ capabilities added to the user (`trade` — real trading through BF, `virtual`, `screener`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.",
+      "description": "Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — ДЕЙСТВУЮЩИЕ СЕЙЧАС capabilities: готовый результат политики доступа бэкенда (tier, личные, триал/льгота/окно); фронт определяет функционал ТОЛЬКО по `capabilities` и `limits`. Real trading (`trade`) is never held because of a window, a trial or an ended subscription. (3) `mode` — DEPRECATED (этап 2е): совместимость с фронтами до 2е (`full`, если `dataset` ∈ capabilities, иначе `basic`); новый фронт не читает, удаление — после окна релизов. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.",
       "required": [
         "tier",
         "capabilities",
@@ -191,7 +192,7 @@
             "type": "string",
             "minLength": 1
           },
-          "description": "Действующие capabilities (строки): capabilities tier ∪ добавленные пользователю (`trade`, `virtual`, `screener`). `local` — не назначаемая capability: бэкенд сам добавляет её локальным пользователям (provider `local`; фронт по ней показывает смену пароля)."
+          "description": "Действующие сейчас capabilities (строки) — результат политики доступа бэкенда: capabilities tier (или tier, по лимитам которого пользователь работает в триале/льготе/окне) ∪ добавленные пользователю; у персонала — все capabilities кода, кроме `trade`. Значения: `trade`, `virtual`, `screener`, `dataset` (см. access.channel.v1.json#/$defs/capability). Фронт определяет функционал только по `capabilities` и `limits`. `local` — не назначаемая capability: бэкенд сам добавляет её локальным пользователям (provider `local`; фронт по ней показывает смену пароля)."
         },
         "limits": {
           "$ref": "#/$defs/accessLimits"

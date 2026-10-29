@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/access.channel.v1.json",
   "x-afbws-support-id": "afbws.access.channel.v1",
   "title": "access channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Согласуется через auth.support (capability id afbws.access.channel.v1). Модель доступа freemium: tier (кто) × capabilities (что разрешено) × mode (что доступно сейчас), см. common.v1.json#/$defs/access. Сообщения повторяют таблицы базы доступа бэкенда (`tiers`, `tier_members`, `user_capabilities`, `users`, `subscriptions`); модель не знает конкретного провайдера авторизации — внешние группы адресуются парой (`provider`, `group_id`), пользователи заводятся через адаптер провайдера. Конвенция как у afbws.link/afbws.screener: ОДИН schema id на операцию (`afbws.access.<op>.v1`, без суффиксов .request/.response); одна схема — запрос и ответ (эхо `request_id`); ответные поля в запросе запрещены; `request_id` обязателен в каждом запросе. Персонал — два tier, зарезервированных кодом: `admin` и `manager` (staff = admin + manager). Операции персонала (staff, admin и manager): `users.list`, `users.set` (имя, добавленные capabilities, льготный период — пакетом; поле `tier` — только admin), `policy.get`/`policy.set`, `stats`. Только admin (admin-only): `users.add` (создать пользователей), `users.delete` (удалить пользователей), `tiers.get`/`tiers.set`, `groups.get`/`groups.set` (группы провайдера в составе tier). Любой пользователь: `trial.start`. Чужая операция → error `forbidden`. Даты — YYYY-MM-DD в поясе сервера, действуют до конца указанного дня. Сервер шлёт сам: `afbws.access.denied.v1` — отказ гейта на запрос ЛЮБОГО канала (на канале отказанного запроса, с его `request_id`). Смена собственного доступа соединения приходит пушем afbws.auth.v1. Отказ запроса канала целиком: `afbws.access.error.v1`. См. AFB/docs/ws/access.md.",
+  "description": "Согласуется через auth.support (capability id afbws.access.channel.v1). Модель доступа freemium: tier (кто) × capabilities (что доступно сейчас — результат политики; фронт определяет функционал только по capabilities и limits; `mode` — deprecated), см. common.v1.json#/$defs/access. Сообщения повторяют таблицы базы доступа бэкенда (`tiers`, `tier_members`, `user_capabilities`, `users`, `subscriptions`); модель не знает конкретного провайдера авторизации — внешние группы адресуются парой (`provider`, `group_id`), пользователи заводятся через адаптер провайдера. Конвенция как у afbws.link/afbws.screener: ОДИН schema id на операцию (`afbws.access.<op>.v1`, без суффиксов .request/.response); одна схема — запрос и ответ (эхо `request_id`); ответные поля в запросе запрещены; `request_id` обязателен в каждом запросе. Персонал — два tier, зарезервированных кодом: `admin` и `manager` (staff = admin + manager). Операции персонала (staff, admin и manager): `users.list`, `users.set` (имя, добавленные capabilities, льготный период — пакетом; поле `tier` — только admin), `policy.get`/`policy.set`, `stats`. Только admin (admin-only): `users.add` (создать пользователей), `users.delete` (удалить пользователей), `tiers.get`/`tiers.set`, `groups.get`/`groups.set` (группы провайдера в составе tier). Любой пользователь: `trial.start`. Чужая операция → error `forbidden`. Даты — YYYY-MM-DD в поясе сервера, действуют до конца указанного дня. Сервер шлёт сам: `afbws.access.denied.v1` — отказ гейта на запрос ЛЮБОГО канала (на канале отказанного запроса, с его `request_id`). Смена собственного доступа соединения приходит пушем afbws.auth.v1. Отказ запроса канала целиком: `afbws.access.error.v1`. См. AFB/docs/ws/access.md.",
   "type": "object",
   "oneOf": [
     {
@@ -63,9 +63,10 @@
       "enum": [
         "trade",
         "virtual",
-        "screener"
+        "screener",
+        "dataset"
       ],
-      "description": "Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF, `virtual` — виртуальный счёт, `screener` — скринер. `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities."
+      "description": "Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF; `virtual` — виртуальный счёт и активация/оценка алармов и торговых планов (с `trade` они работают и без `virtual`); `screener` — выгрузки скринера и скоуп `futures` в market subscribe; `dataset` — наборы данных в market series, `oi`/`oi_daily` в market snapshot, screener participants. `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities."
     },
     "window": {
       "type": "object",
@@ -1145,7 +1146,7 @@
     "denied": {
       "type": "object",
       "title": "afbws.access.denied.v1 — the access gate refused a request of ANY channel (server -> client).",
-      "description": "Answer to a request of any schema-first channel that the current `mode` does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `basic` — feature not available in basic mode; `showcase` — basic mode with showcase, the instrument is not in the showcase; `held` — activation of an alarm/trade plan while the owner's objects are held. `feature` — gate feature id (e.g. `datasets`, `participants`, `virtual`, `screener`, `alarm.activate`). `message` — ready-to-show text (includes when `full` becomes available, if known).",
+      "description": "Answer to a request of any schema-first channel that the connection's current access (capabilities) does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `capability` — the required capability is missing from the connection's effective capabilities, `feature` is the capability name (`dataset`, `screener`, `virtual`, ...); `showcase` — the instrument is not in the showcase; `basic` (feature not available in basic mode) and `held` (activation while the owner's objects are held) — legacy, kept for compatibility, no longer sent by the backend since stage 2е. `message` — ready-to-show text (includes when `full` becomes available, if known).",
       "required": [
         "channel",
         "schema",
@@ -1172,12 +1173,15 @@
           "enum": [
             "basic",
             "showcase",
-            "held"
-          ]
+            "held",
+            "capability"
+          ],
+          "description": "`capability` — отказ по отсутствию capability в действующих (`feature` — имя capability: `dataset`, `screener`, `virtual`, ...). `showcase` — инструмент вне витрины. `basic`/`held` — устар. (до этапа 2е): остаются в схеме для совместимости, новый бэкенд их не отправляет."
         },
         "feature": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "При `reason: capability` — имя отсутствующей capability; иначе — id фичи гейта (например `alarm.activate`)."
         },
         "message": {
           "type": "string",
