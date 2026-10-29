@@ -1,0 +1,8 @@
+{
+  "channel": "market",
+  "schema": "afbws.access.denied.v1",
+  "request_id": "m-42",
+  "reason": "capability",
+  "feature": "dataset",
+  "message": "Наборы данных доступны по подписке или с 19:00 МСК."
+}

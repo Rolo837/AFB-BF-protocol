@@ -1,11 +1,11 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 9f2cc9490f9b485e3ef3a10647fb48abfc2693b9d4798e7af3a4680821f52852
+ * source-hash: 477d6f3ed59917b98c802643afc57e478b02845758436d0c67ed06e896dfe94c
  */
 
 /**
- * Согласуется через auth.support (capability id afbws.access.channel.v1). Модель доступа freemium: tier (кто) × capabilities (что разрешено) × mode (что доступно сейчас), см. common.v1.json#/$defs/access. Сообщения повторяют таблицы базы доступа бэкенда (`tiers`, `tier_members`, `user_capabilities`, `users`, `subscriptions`); модель не знает конкретного провайдера авторизации — внешние группы адресуются парой (`provider`, `group_id`), пользователи заводятся через адаптер провайдера. Конвенция как у afbws.link/afbws.screener: ОДИН schema id на операцию (`afbws.access.<op>.v1`, без суффиксов .request/.response); одна схема — запрос и ответ (эхо `request_id`); ответные поля в запросе запрещены; `request_id` обязателен в каждом запросе. Персонал — два tier, зарезервированных кодом: `admin` и `manager` (staff = admin + manager). Операции персонала (staff, admin и manager): `users.list`, `users.set` (имя, добавленные capabilities, льготный период — пакетом; поле `tier` — только admin), `policy.get`/`policy.set`, `stats`. Только admin (admin-only): `users.add` (создать пользователей), `users.delete` (удалить пользователей), `tiers.get`/`tiers.set`, `groups.get`/`groups.set` (группы провайдера в составе tier). Любой пользователь: `trial.start`. Чужая операция → error `forbidden`. Даты — YYYY-MM-DD в поясе сервера, действуют до конца указанного дня. Сервер шлёт сам: `afbws.access.denied.v1` — отказ гейта на запрос ЛЮБОГО канала (на канале отказанного запроса, с его `request_id`). Смена собственного доступа соединения приходит пушем afbws.auth.v1. Отказ запроса канала целиком: `afbws.access.error.v1`. См. AFB/docs/ws/access.md.
+ * Согласуется через auth.support (capability id afbws.access.channel.v1). Модель доступа freemium: tier (кто) × capabilities (что доступно сейчас — результат политики; фронт определяет функционал только по capabilities и limits; `mode` — deprecated), см. common.v1.json#/$defs/access. Сообщения повторяют таблицы базы доступа бэкенда (`tiers`, `tier_members`, `user_capabilities`, `users`, `subscriptions`); модель не знает конкретного провайдера авторизации — внешние группы адресуются парой (`provider`, `group_id`), пользователи заводятся через адаптер провайдера. Конвенция как у afbws.link/afbws.screener: ОДИН schema id на операцию (`afbws.access.<op>.v1`, без суффиксов .request/.response); одна схема — запрос и ответ (эхо `request_id`); ответные поля в запросе запрещены; `request_id` обязателен в каждом запросе. Персонал — два tier, зарезервированных кодом: `admin` и `manager` (staff = admin + manager). Операции персонала (staff, admin и manager): `users.list`, `users.set` (имя, добавленные capabilities, льготный период — пакетом; поле `tier` — только admin), `policy.get`/`policy.set`, `stats`. Только admin (admin-only): `users.add` (создать пользователей), `users.delete` (удалить пользователей), `tiers.get`/`tiers.set`, `groups.get`/`groups.set` (группы провайдера в составе tier). Любой пользователь: `trial.start`. Чужая операция → error `forbidden`. Даты — YYYY-MM-DD в поясе сервера, действуют до конца указанного дня. Сервер шлёт сам: `afbws.access.denied.v1` — отказ гейта на запрос ЛЮБОГО канала (на канале отказанного запроса, с его `request_id`). Смена собственного доступа соединения приходит пушем afbws.auth.v1. Отказ запроса канала целиком: `afbws.access.error.v1`. См. AFB/docs/ws/access.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessChannelV1Message".
@@ -40,12 +40,12 @@ export type AfbwsCommonV1_RequestId = string;
  */
 export type AccessV1Provider = string;
 /**
- * Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF, `virtual` — виртуальный счёт, `screener` — скринер. `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities.
+ * Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF; `virtual` — виртуальный счёт и активация/оценка алармов и торговых планов (с `trade` они работают и без `virtual`); `screener` — выгрузки скринера и скоуп `futures` в market subscribe; `dataset` — наборы данных в market series, `oi`/`oi_daily` в market snapshot, screener participants. `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Capability".
  */
-export type AccessV1Capability = 'trade' | 'virtual' | 'screener';
+export type AccessV1Capability = 'trade' | 'virtual' | 'screener' | 'dataset';
 /**
  * Дата YYYY-MM-DD в поясе сервера; действует до конца указанного дня (до 00:00 следующего дня пояса сервера).
  *
@@ -308,7 +308,7 @@ export type AlarmV2Ack = {
  */
 export type AuthV1Message = AuthV1 | AuthV1Error;
 /**
- * What is available right now (axis 3 of the access model): `full` — paid features work; `basic` — paid features are refused with afbws.access.denied.v1 and the user's alarms/trade plans are held (not evaluated). ALL access logic is decided by `mode` alone.
+ * DEPRECATED (этап 2е). Совместимость с фронтами до 2е: бэкенд отдаёт `full`, если `dataset` ∈ capabilities, иначе `basic`. Новый фронт не читает; удаление — после окна релизов. Функционал определяется только по `capabilities` и `limits`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessMode".
@@ -2158,7 +2158,7 @@ export interface AccessV1StatsWeek {
   active: number;
 }
 /**
- * Answer to a request of any schema-first channel that the current `mode` does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `basic` — feature not available in basic mode; `showcase` — basic mode with showcase, the instrument is not in the showcase; `held` — activation of an alarm/trade plan while the owner's objects are held. `feature` — gate feature id (e.g. `datasets`, `participants`, `virtual`, `screener`, `alarm.activate`). `message` — ready-to-show text (includes when `full` becomes available, if known).
+ * Answer to a request of any schema-first channel that the connection's current access (capabilities) does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `capability` — the required capability is missing from the connection's effective capabilities, `feature` is the capability name (`dataset`, `screener`, `virtual`, ...); `showcase` — the instrument is not in the showcase; `basic` (feature not available in basic mode) and `held` (activation while the owner's objects are held) — legacy, kept for compatibility, no longer sent by the backend since stage 2е. `message` — ready-to-show text (includes when `full` becomes available, if known).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Denied".
@@ -2170,7 +2170,13 @@ export interface AccessV1Denied {
   channel: string;
   schema: 'afbws.access.denied.v1';
   request_id: AfbwsCommonV1_RequestId;
-  reason: 'basic' | 'showcase' | 'held';
+  /**
+   * `capability` — отказ по отсутствию capability в действующих (`feature` — имя capability: `dataset`, `screener`, `virtual`, ...). `showcase` — инструмент вне витрины. `basic`/`held` — устар. (до этапа 2е): остаются в схеме для совместимости, новый бэкенд их не отправляет.
+   */
+  reason: 'basic' | 'showcase' | 'held' | 'capability';
+  /**
+   * При `reason: capability` — имя отсутствующей capability; иначе — id фичи гейта (например `alarm.activate`).
+   */
   feature: string;
   message: string;
 }
@@ -2458,7 +2464,7 @@ export interface AuthV1 {
   access?: Access;
 }
 /**
- * Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — permissions: capabilities of the tier ∪ capabilities added to the user (`trade` — real trading through BF, `virtual`, `screener`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
+ * Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — ДЕЙСТВУЮЩИЕ СЕЙЧАС capabilities: готовый результат политики доступа бэкенда (tier, личные, триал/льгота/окно); фронт определяет функционал ТОЛЬКО по `capabilities` и `limits`. Real trading (`trade`) is never held because of a window, a trial or an ended subscription. (3) `mode` — DEPRECATED (этап 2е): совместимость с фронтами до 2е (`full`, если `dataset` ∈ capabilities, иначе `basic`); новый фронт не читает, удаление — после окна релизов. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "Access".
@@ -2466,7 +2472,7 @@ export interface AuthV1 {
 export interface Access {
   tier: AccessTier;
   /**
-   * Действующие capabilities (строки): capabilities tier ∪ добавленные пользователю (`trade`, `virtual`, `screener`). `local` — не назначаемая capability: бэкенд сам добавляет её локальным пользователям (provider `local`; фронт по ней показывает смену пароля).
+   * Действующие сейчас capabilities (строки) — результат политики доступа бэкенда: capabilities tier (или tier, по лимитам которого пользователь работает в триале/льготе/окне) ∪ добавленные пользователю; у персонала — все capabilities кода, кроме `trade`. Значения: `trade`, `virtual`, `screener`, `dataset` (см. access.channel.v1.json#/$defs/capability). Фронт определяет функционал только по `capabilities` и `limits`. `local` — не назначаемая capability: бэкенд сам добавляет её локальным пользователям (provider `local`; фронт по ней показывает смену пароля).
    */
   capabilities: string[];
   limits: AccessLimits;

@@ -16,6 +16,7 @@
     "capabilities": [
       "trade",
       "virtual",
+      "dataset",
       "local"
     ],
     "limits": {

@@ -11,7 +11,8 @@
       "capabilities": [
         "trade",
         "virtual",
-        "screener"
+        "screener",
+        "dataset"
       ],
       "limits": {
         "max_favorites_tickers": 500,
@@ -27,7 +28,8 @@
       "subscription": false,
       "capabilities": [
         "virtual",
-        "screener"
+        "screener",
+        "dataset"
       ],
       "limits": {
         "max_favorites_tickers": 500,
@@ -42,7 +44,8 @@
       "rank": 20,
       "subscription": true,
       "capabilities": [
-        "virtual"
+        "virtual",
+        "dataset"
       ],
       "limits": {
         "max_favorites_tickers": 42,

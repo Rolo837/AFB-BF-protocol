@@ -252,7 +252,7 @@ def test_access_description_names_admin_only_and_staff_operations():
 
 def test_capability_enum_has_no_local(registry):
     v = _v(_ACCESS_ID, "capability", registry)
-    for c in ("trade", "virtual", "screener"):
+    for c in ("trade", "virtual", "screener", "dataset"):
         _ok(v, c)
     _bad(v, "local")
     _bad(v, "Trade")
@@ -582,6 +582,43 @@ def test_denied_uses_refused_request_channel(registry):
     _bad(v, {**msg, "until": None})
     _bad(v, {**msg, "reason": "window"})
     _bad(v, {**msg, "refs": ["MISX:TQBR:SBER"]})
+
+
+def test_capability_enum_order_stage_2e():
+    enum = json.loads((_SCHEMAS / "access.channel.v1.json").read_text())["$defs"]["capability"]["enum"]
+    assert enum == ["trade", "virtual", "screener", "dataset"]
+
+
+def test_denied_reason_capability(registry):
+    v = _v(_ACCESS_ID, "denied", registry)
+    msg = _example("access_channel_v1", "denied.capability.json")
+    assert msg["reason"] == "capability" and msg["feature"] == "dataset"
+    _ok(v, msg)
+    # legacy reasons stay valid for compatibility (no longer sent since stage 2е)
+    for reason in ("basic", "showcase", "held"):
+        _ok(v, {**msg, "reason": reason})
+    _bad(v, {**msg, "reason": "Capability"})
+
+
+def test_access_mode_deprecated_but_required(registry):
+    common = json.loads((_SCHEMAS / "common.v1.json").read_text())["$defs"]
+    assert common["accessMode"]["deprecated"] is True
+    assert "mode" in common["access"]["required"]
+    v = _v(_COMMON_ID, "access", registry)
+    _ok(v, _access(capabilities=["virtual", "dataset"], mode="full"))
+    _ok(v, _access(capabilities=[], mode="basic"))
+    a = _access()
+    del a["mode"]
+    _bad(v, a)
+
+
+def test_auth_examples_mode_matches_dataset_capability():
+    # compat rule since stage 2е: mode == full iff dataset ∈ capabilities (non-staff examples)
+    for path in (_ROOT / "examples" / "auth_v1").glob("*.json"):
+        access = json.loads(path.read_text(encoding="utf-8")).get("access")
+        if access is None or access["tier"] in ("admin", "manager"):
+            continue
+        assert (access["mode"] == "full") == ("dataset" in access["capabilities"]), path.name
 
 
 def test_error_codes(registry):

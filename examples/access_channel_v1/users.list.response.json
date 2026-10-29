@@ -87,6 +87,10 @@
     {
       "capability": "screener",
       "title": "Скринер"
+    },
+    {
+      "capability": "dataset",
+      "title": "Данные"
     }
   ],
   "providers": [

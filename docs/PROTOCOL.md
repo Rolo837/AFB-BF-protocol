@@ -420,7 +420,7 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/schemas/afbws/screener.channel.v1.json` | Канал `screener` (capability `afbws.screener.channel.v1`), доступ по capability `screener` роли: `list` (выгрузки скринера, новые первыми, `latest`/`intraday_latest`) и `get` (выгрузка по id `night:YYYY-MM-DD` / `intraday:YYYY-MM-DDTHHMM` или алиасу `latest`/`intraday_latest`; `document` — открытый объект контракта `AFB/docs/SCREENER_RESULTS.md`) `participants` (снимок участников рынка: колоночный формат `columns`/`rows`, как у таблиц `market.series`: справочник деривативов + коллекции и четыре списка `now`/`d1`/`d2`/`w1` — fiz/yur long/short/net, число участников, ОИ, объём; запрос пустой) и `error`; один schema id на сообщение (`afbws.screener.<op>.v1`), `request_id` обязателен в запросах клиента; единственный серверный пуш — `participants` без `request_id` (после каждого обновления позиций FORTS, ~5 мин, подписанным запросом соединениям); в списках `participants` есть колонка `price` (цена активного контракта); `list`/`get` читают только JSON-файлы, не БД скринера |
 | `spec/schemas/afbws/instrument.channel.v2.json` | Канал `instrument` v2 (capability `afbws.instrument.channel.v2`), любой авторизованный: `catalog`/`sets`/`favorites`/`paint`/`expiration`/`replace`/`detail`, один schema id на сообщение, пуш без `request_id`, инструмент только по `instrument_key`; `sets` — единая команда наборов (личные и глобальные по `visibility`), `detail` — параметры по всем счетам |
 | `spec/schemas/afbws/auth.v1.json` | Рукопожатие WS AFB (capability `afbws.auth.v1`): одна схема `afbws.auth.v1` — запрос / ответ (с блоком `access`) / пуш при смене доступа, и `afbws.auth.error.v1`; заменяет легаси `type: "auth"`/`auth_ok`/`auth_error` (бэкенд понимает обе формы, см. §20) |
-| `spec/schemas/afbws/access.channel.v1.json` | Канал `access` (capability `afbws.access.channel.v1`): модель доступа tier × capabilities × mode; операции персонала `users.list`, `users.set` (поле `tier` — только admin), `policy.get/set`, `stats`, только admin `users.add`, `users.delete`, `tiers.get/set`, `groups.get/set`, любого пользователя `trial.start`; отказ гейта `denied`, `error` (см. §20) |
+| `spec/schemas/afbws/access.channel.v1.json` | Канал `access` (capability `afbws.access.channel.v1`): модель доступа tier × capabilities (`mode` — deprecated); операции персонала `users.list`, `users.set` (поле `tier` — только admin), `policy.get/set`, `stats`, только admin `users.add`, `users.delete`, `tiers.get/set`, `groups.get/set`, любого пользователя `trial.start`; отказ гейта `denied`, `error` (см. §20) |
 | `spec/schemas/payloads/` | JSON Schema каждого payload |
 | `examples/` | Подписанные примеры конвертов |
 | `examples/tradeplans/` | Примеры шаблонов ТП (не конверты, не подписываются) |
@@ -1225,8 +1225,10 @@ Resync по ревизии и статусу не показывает, что �
 | Ось | Значения | Что определяет |
 |---|---|---|
 | `tier` — кто | строка `^[a-z][a-z0-9_]*$` (`admin`, `manager`, `user`, `guest`, новый tier — данными, без правки протокола) | функции персонала (только tier `admin`/`manager`, независимо от `mode`; персонал всегда `full`); лимиты tier |
-| `capabilities` — допуски | `trade`, `virtual`, `screener` (набор задаёт код бэкенда) | capabilities tier ∪ добавленные пользователю (только добавление — урезать функционал tier нельзя); `local` — не назначаемая: бэкенд сам добавляет её локальным пользователям (смена пароля на фронте); **`trade` ⇒ всегда `mode: full`** — реальная торговля не холдится |
-| `mode` — что доступно сейчас | `full` / `basic` | работают ли платные функции; **вся логика решается только `mode`** |
+| `capabilities` — что доступно сейчас | `trade`, `virtual`, `screener`, `dataset` (набор задаёт код бэкенда) | **действующие сейчас** capabilities — готовый результат политики бэкенда: capabilities tier (в триале / льготе / окне — tier `as_tier` политики) ∪ добавленные пользователю (только добавление — урезать функционал tier нельзя); персонал — все capabilities кода, кроме `trade`. Фронт определяет функционал **только** по `capabilities` и `limits`. `local` — не назначаемая: бэкенд сам добавляет её локальным пользователям (смена пароля на фронте); реальная торговля (`trade`) не холдится |
+| `mode` — **deprecated** (этап 2е) | `full` / `basic` | только совместимость с фронтами до 2е: `full`, если `dataset` ∈ `capabilities`, иначе `basic`. Поле остаётся обязательным; новый фронт его не читает; удаление — после окна релизов |
+
+Capabilities (`access.channel.v1.json#/$defs/capability`): `trade` — реальная торговля через BF; `virtual` — виртуальный счёт **и** активация/оценка алармов и торговых планов (у торгующего достаточно `trade`); `screener` — выгрузки скринера, скоуп `futures` в `market subscribe`; `dataset` — наборы данных в `market series`, `oi`/`oi_daily` в `market snapshot`, `screener participants`.
 
 `limits` — четыре ключа (`max_favorites_tickers`,
 `max_primitives_per_user`, `max_sets`, `max_favorite_colors`), целые ≥0, проверяются только
@@ -1329,7 +1331,7 @@ staff = admin + manager. Операции разделены по обязанн
   Политика: `full` (лимиты `as_tier`), пока идёт льготный / пробный период / окно (этап 3 —
   инструмент витрины), иначе `basic` со своими лимитами.
 - `window` — `{from, to}` в `HH:MM` МСК; `to < from` — через полночь.
-- `capability` — `trade` | `virtual` | `screener` (назначаемые; `local` сюда не входит).
+- `capability` — `trade` | `virtual` | `screener` | `dataset` (назначаемые; `local` сюда не входит).
 - `tierLabel` — `{tier, title}`; `capabilityLabel` — `{capability, title}`; `providerLabel` — `{provider, title}`.
 - `tierGroup` — `provider`, `group_id` (id группы у провайдера, строкой), `tier` — группа провайдера
   в составе tier (строка `tier_members` kind=group).
@@ -1355,8 +1357,10 @@ staff = admin + manager. Операции разделены по обязанн
 
 - `afbws.access.denied.v1` — отказ гейта на запрос **любого** канала. `channel` — канал
   отказанного запроса, `request_id` — его id: клиент запрос/ответ этого канала отклоняет
-  pending-запрос. Поля: `reason` (`basic` — недоступно в базовом режиме; `showcase` —
-  инструмент не в витрине; `held` — активация аларма/плана на холде), `feature`, `message` (готовый текст; время,
+  pending-запрос. Поля: `reason` (`capability` — нет нужной capability в действующих, `feature` — имя
+  capability: `dataset`, `screener`, `virtual`; `showcase` — инструмент не в витрине; `basic` —
+  недоступно в базовом режиме и `held` — активация аларма/плана на холде — остаются в схеме для
+  совместимости, бэкенд с этапа 2е их не отправляет), `feature`, `message` (готовый текст; время,
   когда станет доступно, — в нём).
 - `afbws.access.error.v1` — отказ запроса канала целиком: `request_id`, `code` ∈ `forbidden`,
   `validation_error`, `not_found`, `invalid_channel`, `invalid_schema`, `internal_error`, `message`.
