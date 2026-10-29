@@ -20,7 +20,7 @@ _AUTH_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/auth.v
 _COMMON_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/common.v1.json"
 
 _ACCESS_OPS = {
-    "users.list", "users.set", "users.tier.set", "trial.start", "policy.get", "policy.set", "tiers.get", "tiers.set",
+    "users.list", "users.add", "users.set", "users.delete", "trial.start", "policy.get", "policy.set", "tiers.get", "tiers.set",
     "groups.get", "groups.set", "stats", "denied", "error",
 }
 
@@ -237,14 +237,17 @@ def test_auth_error_closed_codes(registry):
 
 def test_roles_operations_removed():
     doc = json.loads((_SCHEMAS / "access.channel.v1.json").read_text())
-    assert not {"rolesGet", "rolesSet", "userRole", "userSet", "userTierSet", "groupRole"} & set(doc["$defs"])
+    assert not {"rolesGet", "rolesSet", "userRole", "userSet", "userTierSet", "groupRole",
+                "usersTierSet", "usersTierSetItem", "subscription"} & set(doc["$defs"])
     assert "roles.get" not in doc["description"]
     assert "user.set" not in doc["description"]
+    assert "users.tier.set" not in json.dumps(doc, ensure_ascii=False)
 
 
 def test_access_description_names_admin_only_and_staff_operations():
     desc = json.loads((_SCHEMAS / "access.channel.v1.json").read_text())["description"]
     assert "admin-only" in desc and "staff" in desc and "forbidden" in desc and "trial.start" in desc
+    assert "users.add" in desc and "users.delete" in desc
 
 
 def test_capability_enum_has_no_local(registry):
@@ -406,9 +409,9 @@ def test_users_list_request_vs_response(registry):
     _ok(v, req)
     _ok(v, resp)
     _bad(v, {k: x for k, x in resp.items() if k != "request_id"})
-    for key in ("items", "tiers", "capabilities"):
+    for key in ("items", "tiers", "capabilities", "providers"):
         _bad(v, {k: x for k, x in resp.items() if k != key})  # incomplete response
-    for key in ("tiers", "capabilities"):
+    for key in ("tiers", "capabilities", "providers"):
         _bad(v, {**req, key: resp[key]})  # response field in a request
     _bad(v, {**resp, "tier": "guest"})  # no filters
     _bad(v, {**resp, "total": 2})  # no paging
@@ -417,37 +420,98 @@ def test_users_list_request_vs_response(registry):
 def test_users_list_labels_shape(registry):
     tl = _v(_ACCESS_ID, "tierLabel", registry)
     cl = _v(_ACCESS_ID, "capabilityLabel", registry)
+    pl = _v(_ACCESS_ID, "providerLabel", registry)
     resp = _example("access_channel_v1", "users.list.response.json")
     for row in resp["tiers"]:
         _ok(tl, row)
     for row in resp["capabilities"]:
         _ok(cl, row)
+    assert {r["provider"] for r in resp["providers"]} == {"getcourse", "local"}
+    for row in resp["providers"]:
+        _ok(pl, row)
+    _bad(pl, {"provider": "getcourse"})
+    _bad(pl, {"provider": "GetCourse", "title": "GetCourse"})
+    _bad(pl, {"provider": "local", "title": "Локальный", "password": True})
     _bad(tl, {"tier": "user"})
     _bad(tl, {"tier": "user", "title": "x", "rank": 20})
     _bad(cl, {"capability": "", "title": "x"})
     _bad(cl, {"capability": "trade"})
 
 
+_USER_ROW_KEYS = {
+    "user_id", "provider", "name", "display_name", "tier", "capabilities", "personal_capabilities",
+    "last_seen_at", "grace_until", "subscription_status",
+}
+
+
 def test_user_row_shape(registry):
     v = _v(_ACCESS_ID, "userRow", registry)
     rows = _example("access_channel_v1", "users.list.response.json")["items"]
-    assert {r["tier_source"] for r in rows} == {"personal", "group", "default"}
+    assert {r["subscription_status"] for r in rows} == {"active", "ended", None}
     for r in rows:
+        assert set(r) == _USER_ROW_KEYS
         _ok(v, r)
     row = rows[0]
-    _ok(v, {**row, "subscription": None})
-    for key in ("provider", "tier_source", "personal_capabilities", "trial_started_on", "trial_ends_on",
-                "grace_until", "late_days"):
-        _bad(v, {k: x for k, x in row.items() if k != key})
-    for removed in ("personal_tier", "trial_started_at", "trial_ends_at", "grant_until"):
-        _bad(v, {**row, removed: None})
-    _bad(v, {**row, "tier_source": "manual"})
-    _bad(v, {**row, "late_days": -1})
+    for key in _USER_ROW_KEYS:
+        _bad(v, {k: x for k, x in row.items() if k != key})  # every field required
+    for status in ("active", "grace", "ended", None):
+        _ok(v, {**row, "subscription_status": status})
+    _bad(v, {**row, "subscription_status": "trial"})
+    _ok(v, {**row, "last_seen_at": None})  # created by admin, never logged in
+    _ok(v, {**row, "name": "Иван", "display_name": None})
+    _bad(v, {**row, "name": 1})
+    for removed, val in (("tier_source", "group"), ("first_seen_at", "2026-10-01T09:12:00Z"),
+                         ("trial_started_on", None), ("trial_ends_on", None), ("late_days", 0),
+                         ("subscription", None), ("personal_tier", None), ("grant_until", None)):
+        _bad(v, {**row, removed: val})
     _bad(v, {**row, "grace_until": "2026-11-15T21:00:00Z"})  # a date, not a moment
     _bad(v, {**row, "personal_capabilities": ["trade", "trade"]})
     _bad(v, {**row, "personal_capabilities": ["local"]})
-    _bad(v, {**row, "subscription": {"tier": "user", "started_at": "2026-09-01T08:00:00Z"}})
     _bad(v, {**row, "mode": "full"})
+
+
+def test_users_add_request_vs_response(registry):
+    v = _v(_ACCESS_ID, "usersAdd", registry)
+    gc = _example("access_channel_v1", "users.add.request.getcourse.json")
+    local = _example("access_channel_v1", "users.add.request.local.json")
+    resp = _example("access_channel_v1", "users.add.response.json")
+    _ok(v, gc)
+    _ok(v, local)
+    _ok(v, resp)
+    assert "password" in local["items"][0] and "password" not in json.dumps(resp)
+    assert all(r["last_seen_at"] is None for r in resp["items"])
+    item = gc["items"][0]
+    _ok(v, {**gc, "items": [item, local["items"][0]]})
+    _ok(v, {**gc, "items": [{**item, "name": "Иван", "capabilities": []}]})
+    _bad(v, {**gc, "items": []})
+    _bad(v, {k: x for k, x in gc.items() if k != "items"})
+    for key in ("provider", "external_id", "tier"):
+        _bad(v, {**gc, "items": [{k: x for k, x in item.items() if k != key}]})
+    _bad(v, {**gc, "items": [{**item, "external_id": ""}]})
+    _bad(v, {**gc, "items": [{**item, "external_id": 315500771}]})
+    _bad(v, {**gc, "items": [{**item, "name": None}]})
+    _bad(v, {**gc, "items": [{**item, "password": None}]})
+    _bad(v, {**gc, "items": [{**item, "provider": "GetCourse"}]})
+    _bad(v, {**gc, "items": [{**item, "tier": None}]})
+    _bad(v, {**gc, "items": [{**item, "capabilities": ["local"]}]})
+    _bad(v, {**gc, "items": [{**item, "user_id": "gc_315500771"}]})  # user_id is built by the provider adapter
+    _bad(v, {**gc, "items": [{**item, "grace_until": None}]})
+    _bad(v, {**gc, "items": [item, resp["items"][0]]})  # request and response rows are not mixed
+    _bad(v, {**resp, "items": [{**resp["items"][0], "password": "x"}]})  # password never returned
+
+
+def test_users_delete_request_vs_response(registry):
+    v = _v(_ACCESS_ID, "usersDelete", registry)
+    req = _example("access_channel_v1", "users.delete.request.json")
+    resp = _example("access_channel_v1", "users.delete.response.json")
+    _ok(v, req)
+    _ok(v, resp)
+    _bad(v, {**req, "items": []})
+    _bad(v, {k: x for k, x in req.items() if k != "items"})
+    _bad(v, {**req, "items": [{}]})
+    _bad(v, {**req, "items": [{"user_id": ""}]})
+    _bad(v, {**req, "items": [{"user_id": "gc_1", "provider": "getcourse"}]})
+    _bad(v, {**req, "items": ["gc_1"]})
 
 
 def test_users_set_request_vs_response(registry):
@@ -460,6 +524,11 @@ def test_users_set_request_vs_response(registry):
     item = {"user_id": "gc_1", "grace_until": "2026-11-15"}
     _ok(v, {**req, "items": [{**item, "capabilities": ["virtual"]}]})
     _ok(v, {**req, "items": [{"user_id": "gc_1", "capabilities": []}]})
+    _ok(v, {**req, "items": [{"user_id": "gc_1", "name": "Иван"}]})
+    _ok(v, {**req, "items": [{"user_id": "gc_1", "name": None}]})  # clear: provider name is shown
+    _ok(v, {**req, "items": [{"user_id": "gc_1", "tier": "manager"}]})  # admin only — checked by the server
+    _ok(v, {**req, "items": [{"user_id": "gc_1", "name": "Иван", "tier": "user", "capabilities": [],
+                              "grace_until": None}]})
     _bad(v, {**req, "items": []})
     _bad(v, {k: x for k, x in req.items() if k != "items"})
     _bad(v, {**req, "items": [{"user_id": "gc_1"}]})  # nothing to set
@@ -467,25 +536,13 @@ def test_users_set_request_vs_response(registry):
     _bad(v, {**req, "items": [{**item, "grace_until": "2026-11-15T21:00:00Z"}]})
     _bad(v, {**req, "items": [{**item, "capabilities": ["local"]}]})
     _bad(v, {**req, "items": [{**item, "capabilities": ["trade", "trade"]}]})
-    _bad(v, {**req, "items": [{**item, "tier": "user"}]})  # tier — only users.tier.set
+    _bad(v, {**req, "items": [{**item, "tier": None}]})  # «по группам» = choose that tier, no null
+    _bad(v, {**req, "items": [{**item, "tier": "Admin"}]})
+    _bad(v, {**req, "items": [{**item, "name": 1}]})
+    _bad(v, {**req, "items": [{**item, "provider": "getcourse"}]})
     _bad(v, {**req, "items": [{**item, "trial_ends_on": "2026-11-15"}]})  # trial is not managed by staff
     _bad(v, {**req, "items": [item, resp["items"][0]]})  # request and response rows are not mixed
     _bad(v, {**req, "user_id": "gc_1"})
-
-
-def test_users_tier_set_request_vs_response(registry):
-    v = _v(_ACCESS_ID, "usersTierSet", registry)
-    req = _example("access_channel_v1", "users.tier.set.request.json")
-    resp = _example("access_channel_v1", "users.tier.set.response.json")
-    _ok(v, req)
-    _ok(v, resp)
-    assert any(i["tier"] is None for i in req["items"])
-    _bad(v, {**req, "items": []})
-    _bad(v, {**req, "items": [{"user_id": "gc_1"}]})  # tier (or null) required
-    _bad(v, {**req, "items": [{"tier": "user"}]})
-    _bad(v, {**req, "items": [{"user_id": "gc_1", "tier": "Admin"}]})
-    _bad(v, {**req, "items": [{"user_id": "gc_1", "tier": "user", "capabilities": []}]})
-    _bad(v, {**req, "item": resp["items"][0]})
 
 
 def test_trial_start_request_vs_response(registry):

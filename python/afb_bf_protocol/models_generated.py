@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 01076ad6ead8e29920eaee5b60e4836005519f1bb99c0200e0ca1c15ca068dae
+# source-hash: 9f2cc9490f9b485e3ef3a10647fb48abfc2693b9d4798e7af3a4680821f52852
 
 from __future__ import annotations
 
@@ -206,6 +206,15 @@ class AccessV1ProviderGroup(TypedDict):
     title: str
 
 
+class AccessV1ProviderLabel(TypedDict):
+    """
+    Провайдер авторизации и его подпись (выбор провайдера при создании пользователя); набор и подписи задаёт код бэкенда (адаптеры провайдеров).
+    """
+
+    provider: AccessV1Provider
+    title: str
+
+
 class AccessV1Showcase(TypedDict):
     """
     Instrument showcase (stage 3): instruments of the global catalog collection `collection` work as in `full`.
@@ -225,16 +234,6 @@ class AccessV1StatsWeek(TypedDict):
     trials_started: int
     converted: int
     active: int
-
-
-class AccessV1Subscription(TypedDict):
-    """
-    One subscription period (row of the `subscriptions` table).
-    """
-
-    tier: AccessTier
-    started_at: str
-    ended_at: str | None
 
 
 class AccessV1TierGroup(TypedDict):
@@ -304,28 +303,67 @@ class AccessV1TrialStart(TypedDict):
 
 class AccessV1UserRow(TypedDict):
     """
-    Пользователь, входивший хотя бы раз (строка `users` + вычисленные tier/capabilities + последний период подписки).
+    Пользователь реестра (входил хотя бы раз или создан admin через users.add): строка `users` + вычисленные tier/capabilities и статус подписки. Только то, что показывается персоналу; даты пробного периода, первого входа, опоздания и периоды подписки остаются в базе (их использует статистика). Показываемое имя = `name` ?? `display_name` ?? `user_id`.
     """
 
     user_id: str
     provider: AccessV1Provider
+    name: str | None
     display_name: str | None
     tier: AccessTier
-    tier_source: Literal["personal", "group", "default"]
     capabilities: list[AccessV1Capability]
     personal_capabilities: list[AccessV1Capability]
-    first_seen_at: str
-    last_seen_at: str
-    trial_started_on: AccessDate | None
-    trial_ends_on: AccessDate | None
+    last_seen_at: str | None
     grace_until: AccessDate | None
-    late_days: int
-    subscription: AccessV1Subscription | None
+    subscription_status: Literal["active", "grace", "ended"] | None
+
+
+class AccessV1UsersAdd(TypedDict):
+    """
+    Запрос: `items[]` — `{provider, external_id, name?, tier, capabilities?, password?}`. Ответ: `items[]` — строки userRow созданных пользователей (`last_seen_at` = null до первого входа; при входе пользователь получает назначенный tier). Пакет — всё или ничего: сначала все элементы проверяются у провайдера (нет пользователя у провайдера / ошибка API / нет пароля у `local` → `validation_error` с причиной), затем одна транзакция; ошибка → error с перечнем элементов и причин в `message`; неизвестный провайдер / tier, пользователь уже есть в реестре, повтор в `items` → `validation_error`. `password` в ответе и логах не появляется.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.users.add.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[AccessV1UsersAddItem] | list[AccessV1UserRow]
+
+
+class AccessV1UsersAddItem(TypedDict):
+    """
+    Элемент запроса users.add: пользователь провайдера `provider` с id `external_id` (`user_id` строит адаптер провайдера: `getcourse` — `gc_<id>`, `local` — `id_<логин>`).
+    """
+
+    provider: AccessV1Provider
+    external_id: str
+    name: NotRequired[str]
+    tier: AccessTier
+    capabilities: NotRequired[list[AccessV1Capability]]
+    password: NotRequired[str]
+
+
+class AccessV1UsersDelete(TypedDict):
+    """
+    Запрос: `items[]` — `{user_id}`. Ответ: `items[]` — `{user_id}` удалённых. Удаляются запись реестра, личное членство в tier и добавленные capabilities; периоды подписки и журнал действий персонала остаются; у `local` удаляется и учётная запись входа (вход невозможен). Пользователь внешнего провайдера после удаления может снова войти и появится заново по общим правилам. Объекты пользователя (настройки, алармы, планы) не трогаются. Нельзя удалить себя и последнего `admin` → `validation_error`. Пакет — всё или ничего; неизвестный `user_id` / повтор в `items` → `validation_error`.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.users.delete.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[AccessV1UsersDeleteItem]
+
+
+class AccessV1UsersDeleteItem(TypedDict):
+    """
+    Элемент запроса и ответа users.delete.
+    """
+
+    user_id: str
 
 
 class AccessV1UsersList(TypedDict):
     """
-    Request: only `request_id`. Response: `items[]` — every user who has logged in at least once (no server-side filtering or paging), `tiers[]` and `capabilities[]` — labels for the staff UI.
+    Request: only `request_id`. Response: `items[]` — every user of the registry (logged in at least once or created by admin; no server-side filtering or paging), `tiers[]`, `capabilities[]` and `providers[]` — labels for the staff UI.
     """
 
     channel: Literal["access"]
@@ -334,11 +372,12 @@ class AccessV1UsersList(TypedDict):
     items: NotRequired[list[AccessV1UserRow]]
     tiers: NotRequired[list[AccessV1TierLabel]]
     capabilities: NotRequired[list[AccessV1CapabilityLabel]]
+    providers: NotRequired[list[AccessV1ProviderLabel]]
 
 
 class AccessV1UsersSet(TypedDict):
     """
-    Запрос: `items[]` — `{user_id, grace_until?, capabilities?}` (хотя бы одно из двух). Ответ: `items[]` — обновлённые строки userRow. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей (входившие хотя бы раз).
+    Запрос: `items[]` — `{user_id, name?, tier?, capabilities?, grace_until?}` (хотя бы одно поле кроме `user_id`). Поле `tier` хотя бы в одном элементе от не-admin → error `forbidden`; неизвестный tier / снятие последнего `admin` → `validation_error`. Ответ: `items[]` — обновлённые строки userRow. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей.
     """
 
     channel: Literal["access"]
@@ -349,45 +388,58 @@ class AccessV1UsersSet(TypedDict):
 
 class AccessV1UsersSetItem1(TypedDict):
     """
-    Элемент запроса users.set: хотя бы одно из `grace_until`, `capabilities`.
+    Элемент запроса users.set: хотя бы одно из `name`, `tier`, `capabilities`, `grace_until`.
     """
 
     user_id: str
-    grace_until: AccessDate | None
+    name: str | None
+    tier: NotRequired[AccessTier]
     capabilities: NotRequired[list[AccessV1Capability]]
+    grace_until: NotRequired[AccessDate | None]
 
 
 class AccessV1UsersSetItem2(TypedDict):
     """
-    Элемент запроса users.set: хотя бы одно из `grace_until`, `capabilities`.
+    Элемент запроса users.set: хотя бы одно из `name`, `tier`, `capabilities`, `grace_until`.
     """
 
     user_id: str
+    name: NotRequired[str | None]
+    tier: AccessTier
+    capabilities: NotRequired[list[AccessV1Capability]]
     grace_until: NotRequired[AccessDate | None]
-    capabilities: list[AccessV1Capability]
 
 
-AccessV1UsersSetItem: TypeAlias = AccessV1UsersSetItem1 | AccessV1UsersSetItem2
-
-
-class AccessV1UsersTierSet(TypedDict):
+class AccessV1UsersSetItem3(TypedDict):
     """
-    Запрос: `items[]` — `{user_id, tier|null}`: tier — включить лично; null — исключить из личного tier. Ответ: `items[]` — обновлённые строки userRow. Неизвестный tier / исключение последнего личного `admin` → `validation_error`. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей (входившие хотя бы раз).
-    """
-
-    channel: Literal["access"]
-    schema: Literal["afbws.access.users.tier.set.v1"]
-    request_id: AfbwsCommonV1RequestId
-    items: list[AccessV1UsersTierSetItem] | list[AccessV1UserRow]
-
-
-class AccessV1UsersTierSetItem(TypedDict):
-    """
-    Элемент запроса users.tier.set.
+    Элемент запроса users.set: хотя бы одно из `name`, `tier`, `capabilities`, `grace_until`.
     """
 
     user_id: str
-    tier: AccessTier | None
+    name: NotRequired[str | None]
+    tier: NotRequired[AccessTier]
+    capabilities: list[AccessV1Capability]
+    grace_until: NotRequired[AccessDate | None]
+
+
+class AccessV1UsersSetItem4(TypedDict):
+    """
+    Элемент запроса users.set: хотя бы одно из `name`, `tier`, `capabilities`, `grace_until`.
+    """
+
+    user_id: str
+    name: NotRequired[str | None]
+    tier: NotRequired[AccessTier]
+    capabilities: NotRequired[list[AccessV1Capability]]
+    grace_until: AccessDate | None
+
+
+AccessV1UsersSetItem: TypeAlias = (
+    AccessV1UsersSetItem1
+    | AccessV1UsersSetItem2
+    | AccessV1UsersSetItem3
+    | AccessV1UsersSetItem4
+)
 
 
 AccessV1Window = TypedDict(
@@ -991,8 +1043,9 @@ AccessV1Stats = TypedDict(
 
 AccessChannelV1Message: TypeAlias = (
     AccessV1UsersList
+    | AccessV1UsersAdd
     | AccessV1UsersSet
-    | AccessV1UsersTierSet
+    | AccessV1UsersDelete
     | AccessV1TrialStart
     | AccessV1PolicyGet
     | AccessV1PolicySet

@@ -1,19 +1,20 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 01076ad6ead8e29920eaee5b60e4836005519f1bb99c0200e0ca1c15ca068dae
+ * source-hash: 9f2cc9490f9b485e3ef3a10647fb48abfc2693b9d4798e7af3a4680821f52852
  */
 
 /**
- * Согласуется через auth.support (capability id afbws.access.channel.v1). Модель доступа freemium: tier (кто) × capabilities (что разрешено) × mode (что доступно сейчас), см. common.v1.json#/$defs/access. Сообщения повторяют таблицы базы доступа бэкенда (`tiers`, `tier_members`, `user_capabilities`, `users`, `subscriptions`); модель не знает конкретного провайдера авторизации — внешние группы адресуются парой (`provider`, `group_id`). Конвенция как у afbws.link/afbws.screener: ОДИН schema id на операцию (`afbws.access.<op>.v1`, без суффиксов .request/.response); одна схема — запрос и ответ (эхо `request_id`); ответные поля в запросе запрещены; `request_id` обязателен в каждом запросе. Персонал — два tier, зарезервированных кодом: `admin` и `manager` (staff = admin + manager). Операции персонала (staff, admin и manager): `users.list`, `users.set` (льготный период, добавленные capabilities — пакетом), `policy.get`/`policy.set`, `stats`. Только admin (admin-only): `users.tier.set` (личный tier — пакетом), `tiers.get`/`tiers.set`, `groups.get`/`groups.set` (группы провайдера в составе tier). Любой пользователь: `trial.start`. Чужая операция → error `forbidden`. Даты — YYYY-MM-DD в поясе сервера, действуют до конца указанного дня. Сервер шлёт сам: `afbws.access.denied.v1` — отказ гейта на запрос ЛЮБОГО канала (на канале отказанного запроса, с его `request_id`). Смена собственного доступа соединения приходит пушем afbws.auth.v1. Отказ запроса канала целиком: `afbws.access.error.v1`. См. AFB/docs/ws/access.md.
+ * Согласуется через auth.support (capability id afbws.access.channel.v1). Модель доступа freemium: tier (кто) × capabilities (что разрешено) × mode (что доступно сейчас), см. common.v1.json#/$defs/access. Сообщения повторяют таблицы базы доступа бэкенда (`tiers`, `tier_members`, `user_capabilities`, `users`, `subscriptions`); модель не знает конкретного провайдера авторизации — внешние группы адресуются парой (`provider`, `group_id`), пользователи заводятся через адаптер провайдера. Конвенция как у afbws.link/afbws.screener: ОДИН schema id на операцию (`afbws.access.<op>.v1`, без суффиксов .request/.response); одна схема — запрос и ответ (эхо `request_id`); ответные поля в запросе запрещены; `request_id` обязателен в каждом запросе. Персонал — два tier, зарезервированных кодом: `admin` и `manager` (staff = admin + manager). Операции персонала (staff, admin и manager): `users.list`, `users.set` (имя, добавленные capabilities, льготный период — пакетом; поле `tier` — только admin), `policy.get`/`policy.set`, `stats`. Только admin (admin-only): `users.add` (создать пользователей), `users.delete` (удалить пользователей), `tiers.get`/`tiers.set`, `groups.get`/`groups.set` (группы провайдера в составе tier). Любой пользователь: `trial.start`. Чужая операция → error `forbidden`. Даты — YYYY-MM-DD в поясе сервера, действуют до конца указанного дня. Сервер шлёт сам: `afbws.access.denied.v1` — отказ гейта на запрос ЛЮБОГО канала (на канале отказанного запроса, с его `request_id`). Смена собственного доступа соединения приходит пушем afbws.auth.v1. Отказ запроса канала целиком: `afbws.access.error.v1`. См. AFB/docs/ws/access.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessChannelV1Message".
  */
 export type AccessChannelV1Message =
   | AccessV1UsersList
+  | AccessV1UsersAdd
   | AccessV1UsersSet
-  | AccessV1UsersTierSet
+  | AccessV1UsersDelete
   | AccessV1TrialStart
   | AccessV1PolicyGet
   | AccessV1PolicySet
@@ -60,7 +61,7 @@ export type AccessDate = string;
  */
 export type AccessTier = string;
 /**
- * Элемент запроса users.set: хотя бы одно из `grace_until`, `capabilities`.
+ * Элемент запроса users.set: хотя бы одно из `name`, `tier`, `capabilities`, `grace_until`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1UsersSetItem".
@@ -68,13 +69,21 @@ export type AccessTier = string;
 export type AccessV1UsersSetItem = AccessV1UsersSetItem1 & {
   user_id: string;
   /**
-   * Последний день льготного периода; null — снять.
+   * Имя, заданное персоналом; null — снять (показывается имя от провайдера). У `local` пишется и в реестр локальных пользователей.
    */
-  grace_until?: null | AccessDate;
+  name?: string | null;
+  /**
+   * Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `admin`, `manager`, `user`, `guest`, a new subscription tier `lite`), NOT an enum: a new tier needs no protocol change. Only the staff tiers `admin` and `manager` are reserved by code (staff functions gated on the tier independently of `mode`; `admin` additionally manages tiers, their members and groups). Состав tier — таблица `tier_members` базы доступа: tier пользователя = личный → иначе по группам провайдера (старший по rank) → иначе tier по умолчанию (минимальный rank).
+   */
+  tier?: string;
   /**
    * Capabilities, добавленные пользователю, замена целиком; [] — снять все добавленные (capabilities tier не затрагиваются).
    */
   capabilities?: AccessV1Capability[];
+  /**
+   * Последний день льготного периода; null — снять.
+   */
+  grace_until?: null | AccessDate;
 };
 export type AccessV1UsersSetItem1 = {
   [k: string]: unknown;
@@ -1644,7 +1653,7 @@ export type TradePlanV2 = {
 export type TradeplanV2_TpExitList = TradeplanV2_TpLeg[];
 
 /**
- * Request: only `request_id`. Response: `items[]` — every user who has logged in at least once (no server-side filtering or paging), `tiers[]` and `capabilities[]` — labels for the staff UI.
+ * Request: only `request_id`. Response: `items[]` — every user of the registry (logged in at least once or created by admin; no server-side filtering or paging), `tiers[]`, `capabilities[]` and `providers[]` — labels for the staff UI.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1UsersList".
@@ -1665,9 +1674,13 @@ export interface AccessV1UsersList {
    * Response only: all capabilities with labels.
    */
   capabilities?: AccessV1CapabilityLabel[];
+  /**
+   * Response only: authorization providers available for creating users (users.add), with labels.
+   */
+  providers?: AccessV1ProviderLabel[];
 }
 /**
- * Пользователь, входивший хотя бы раз (строка `users` + вычисленные tier/capabilities + последний период подписки).
+ * Пользователь реестра (входил хотя бы раз или создан admin через users.add): строка `users` + вычисленные tier/capabilities и статус подписки. Только то, что показывается персоналу; даты пробного периода, первого входа, опоздания и периоды подписки остаются в базе (их использует статистика). Показываемое имя = `name` ?? `display_name` ?? `user_id`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1UserRow".
@@ -1675,15 +1688,18 @@ export interface AccessV1UsersList {
 export interface AccessV1UserRow {
   user_id: string;
   provider: AccessV1Provider;
+  /**
+   * Имя, заданное персоналом; приоритетнее `display_name`; у `local` — единственное имя. null — не задано.
+   */
+  name: string | null;
+  /**
+   * Имя от провайдера (при создании / при входе); у `local` — null.
+   */
   display_name: string | null;
   /**
    * Действующий tier.
    */
   tier: string;
-  /**
-   * Откуда tier: `personal` — пользователь лично в составе tier (его можно исключить); `group` — по группе провайдера; `default` — tier по умолчанию.
-   */
-  tier_source: 'personal' | 'group' | 'default';
   /**
    * Действующие capabilities: capabilities tier ∪ добавленные пользователю.
    */
@@ -1692,42 +1708,18 @@ export interface AccessV1UserRow {
    * Capabilities, добавленные пользователю сверх tier (правятся через users.set).
    */
   personal_capabilities: AccessV1Capability[];
-  first_seen_at: string;
-  last_seen_at: string;
   /**
-   * День, когда пользователь включил пробный период; null — не включал.
+   * Последний вход; null — создан admin и ещё не входил.
    */
-  trial_started_on: null | AccessDate;
-  /**
-   * Последний день пробного периода включительно; null — не включал.
-   */
-  trial_ends_on: null | AccessDate;
+  last_seen_at: string | null;
   /**
    * Последний день льготного периода включительно; null — нет.
    */
   grace_until: null | AccessDate;
   /**
-   * Накопительно дней без подписки между её окончанием и возобновлением (только статистика).
+   * Статус подписки (вычисляет бэкенд): `active` — открыт период подписки; `grace` — идёт льготный период (`grace_until` ≥ сегодня); `ended` — периоды подписки были, открытого нет, льготы нет; null — подписки не было и льготы нет.
    */
-  late_days: number;
-  /**
-   * The last subscription period; null — never subscribed.
-   */
-  subscription: null | AccessV1Subscription;
-}
-/**
- * One subscription period (row of the `subscriptions` table).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessV1Subscription".
- */
-export interface AccessV1Subscription {
-  tier: AccessTier;
-  started_at: string;
-  /**
-   * null — active.
-   */
-  ended_at: string | null;
+  subscription_status: 'active' | 'grace' | 'ended' | null;
 }
 /**
  * A tier and its label (for choosing a tier in the staff UI).
@@ -1750,7 +1742,64 @@ export interface AccessV1CapabilityLabel {
   title: string;
 }
 /**
- * Запрос: `items[]` — `{user_id, grace_until?, capabilities?}` (хотя бы одно из двух). Ответ: `items[]` — обновлённые строки userRow. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей (входившие хотя бы раз).
+ * Провайдер авторизации и его подпись (выбор провайдера при создании пользователя); набор и подписи задаёт код бэкенда (адаптеры провайдеров).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1ProviderLabel".
+ */
+export interface AccessV1ProviderLabel {
+  provider: AccessV1Provider;
+  title: string;
+}
+/**
+ * Запрос: `items[]` — `{provider, external_id, name?, tier, capabilities?, password?}`. Ответ: `items[]` — строки userRow созданных пользователей (`last_seen_at` = null до первого входа; при входе пользователь получает назначенный tier). Пакет — всё или ничего: сначала все элементы проверяются у провайдера (нет пользователя у провайдера / ошибка API / нет пароля у `local` → `validation_error` с причиной), затем одна транзакция; ошибка → error с перечнем элементов и причин в `message`; неизвестный провайдер / tier, пользователь уже есть в реестре, повтор в `items` → `validation_error`. `password` в ответе и логах не появляется.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1UsersAdd".
+ */
+export interface AccessV1UsersAdd {
+  channel: 'access';
+  schema: 'afbws.access.users.add.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Запрос: элементы usersAddItem; ответ: строки userRow.
+   */
+  items: [AccessV1UsersAddItem, ...AccessV1UsersAddItem[]] | [AccessV1UserRow, ...AccessV1UserRow[]];
+}
+/**
+ * Элемент запроса users.add: пользователь провайдера `provider` с id `external_id` (`user_id` строит адаптер провайдера: `getcourse` — `gc_<id>`, `local` — `id_<логин>`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1UsersAddItem".
+ */
+export interface AccessV1UsersAddItem {
+  /**
+   * Authorization provider (adapter) id: who authenticates the user and supplies its groups, e.g. `getcourse`, `local`. An open set defined by the backend's adapters, not an enum.
+   */
+  provider: string;
+  /**
+   * Id пользователя у провайдера: `getcourse` — id в GetCourse (проверяется через API, имя берётся оттуда); `local` — логин.
+   */
+  external_id: string;
+  /**
+   * Имя, заданное персоналом (приоритетнее имени от провайдера); нет ключа — не задано.
+   */
+  name?: string;
+  /**
+   * Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `admin`, `manager`, `user`, `guest`, a new subscription tier `lite`), NOT an enum: a new tier needs no protocol change. Only the staff tiers `admin` and `manager` are reserved by code (staff functions gated on the tier independently of `mode`; `admin` additionally manages tiers, their members and groups). Состав tier — таблица `tier_members` базы доступа: tier пользователя = личный → иначе по группам провайдера (старший по rank) → иначе tier по умолчанию (минимальный rank).
+   */
+  tier: string;
+  /**
+   * Capabilities, добавленные пользователю сверх tier; нет ключа — нет.
+   */
+  capabilities?: AccessV1Capability[];
+  /**
+   * Пароль входа — только для `local`, для него обязателен (проверяет сервер: не пустой, не длиннее предела). Сохраняется только хэшем; не логируется и никогда не возвращается.
+   */
+  password?: string;
+}
+/**
+ * Запрос: `items[]` — `{user_id, name?, tier?, capabilities?, grace_until?}` (хотя бы одно поле кроме `user_id`). Поле `tier` хотя бы в одном элементе от не-admin → error `forbidden`; неизвестный tier / снятие последнего `admin` → `validation_error`. Ответ: `items[]` — обновлённые строки userRow. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1UsersSet".
@@ -1765,32 +1814,30 @@ export interface AccessV1UsersSet {
   items: [AccessV1UsersSetItem, ...AccessV1UsersSetItem[]] | [AccessV1UserRow, ...AccessV1UserRow[]];
 }
 /**
- * Запрос: `items[]` — `{user_id, tier|null}`: tier — включить лично; null — исключить из личного tier. Ответ: `items[]` — обновлённые строки userRow. Неизвестный tier / исключение последнего личного `admin` → `validation_error`. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей (входившие хотя бы раз).
+ * Запрос: `items[]` — `{user_id}`. Ответ: `items[]` — `{user_id}` удалённых. Удаляются запись реестра, личное членство в tier и добавленные capabilities; периоды подписки и журнал действий персонала остаются; у `local` удаляется и учётная запись входа (вход невозможен). Пользователь внешнего провайдера после удаления может снова войти и появится заново по общим правилам. Объекты пользователя (настройки, алармы, планы) не трогаются. Нельзя удалить себя и последнего `admin` → `validation_error`. Пакет — всё или ничего; неизвестный `user_id` / повтор в `items` → `validation_error`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessV1UsersTierSet".
+ * via the `definition` "AccessV1UsersDelete".
  */
-export interface AccessV1UsersTierSet {
+export interface AccessV1UsersDelete {
   channel: 'access';
-  schema: 'afbws.access.users.tier.set.v1';
+  schema: 'afbws.access.users.delete.v1';
   request_id: AfbwsCommonV1_RequestId;
   /**
-   * Запрос: элементы usersTierSetItem; ответ: строки userRow.
+   * Запрос: кого удалить; ответ: удалённые.
+   *
+   * @minItems 1
    */
-  items: [AccessV1UsersTierSetItem, ...AccessV1UsersTierSetItem[]] | [AccessV1UserRow, ...AccessV1UserRow[]];
+  items: [AccessV1UsersDeleteItem, ...AccessV1UsersDeleteItem[]];
 }
 /**
- * Элемент запроса users.tier.set.
+ * Элемент запроса и ответа users.delete.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessV1UsersTierSetItem".
+ * via the `definition` "AccessV1UsersDeleteItem".
  */
-export interface AccessV1UsersTierSetItem {
+export interface AccessV1UsersDeleteItem {
   user_id: string;
-  /**
-   * tier — включить пользователя в tier лично (любой, в т.ч. `admin`/`manager`); null — исключить из личного tier (останется tier по группам / по умолчанию).
-   */
-  tier: null | AccessTier;
 }
 /**
  * Запрос: только `request_id`. Ответ: `trial` — новое состояние пробного периода (как access.trial); затем пуш afbws.auth.v1. Пробный период включается один раз: `trial_started_on` = сегодня, `trial_ends_on` = сегодня + `trial_days` − 1. Недоступен → error `validation_error` «Пробный период недоступен».

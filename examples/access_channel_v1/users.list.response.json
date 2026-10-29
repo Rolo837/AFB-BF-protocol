@@ -6,56 +6,40 @@
     {
       "user_id": "gc_282811500",
       "provider": "getcourse",
+      "name": null,
       "display_name": "Иван Петров",
       "tier": "guest",
-      "tier_source": "default",
       "capabilities": [
         "virtual"
       ],
       "personal_capabilities": [
         "virtual"
       ],
-      "first_seen_at": "2026-10-01T09:12:00Z",
       "last_seen_at": "2026-10-28T12:40:00Z",
-      "trial_started_on": null,
-      "trial_ends_on": null,
       "grace_until": "2026-10-03",
-      "late_days": 0,
-      "subscription": {
-        "tier": "user",
-        "started_at": "2026-09-01T08:00:00Z",
-        "ended_at": "2026-10-01T08:00:00Z"
-      }
+      "subscription_status": "ended"
     },
     {
       "user_id": "gc_301122334",
       "provider": "getcourse",
+      "name": "Ольга (VIP)",
       "display_name": "Ольга Смирнова",
       "tier": "user",
-      "tier_source": "group",
       "capabilities": [
         "virtual",
         "screener"
       ],
       "personal_capabilities": [],
-      "first_seen_at": "2026-09-15T10:00:00Z",
       "last_seen_at": "2026-10-28T09:05:00Z",
-      "trial_started_on": "2026-09-15",
-      "trial_ends_on": "2026-09-28",
       "grace_until": null,
-      "late_days": 4,
-      "subscription": {
-        "tier": "user",
-        "started_at": "2026-10-02T07:30:00Z",
-        "ended_at": null
-      }
+      "subscription_status": "active"
     },
     {
       "user_id": "id_9910336377",
       "provider": "local",
+      "name": "Администратор",
       "display_name": null,
       "tier": "admin",
-      "tier_source": "personal",
       "capabilities": [
         "trade",
         "virtual",
@@ -64,13 +48,9 @@
       "personal_capabilities": [
         "trade"
       ],
-      "first_seen_at": "2026-01-10T07:00:00Z",
       "last_seen_at": "2026-10-28T13:00:00Z",
-      "trial_started_on": null,
-      "trial_ends_on": null,
       "grace_until": null,
-      "late_days": 0,
-      "subscription": null
+      "subscription_status": null
     }
   ],
   "tiers": [
@@ -107,6 +87,16 @@
     {
       "capability": "screener",
       "title": "Скринер"
+    }
+  ],
+  "providers": [
+    {
+      "provider": "getcourse",
+      "title": "GetCourse"
+    },
+    {
+      "provider": "local",
+      "title": "Локальный"
     }
   ]
 }

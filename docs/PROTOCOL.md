@@ -420,7 +420,7 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/schemas/afbws/screener.channel.v1.json` | Канал `screener` (capability `afbws.screener.channel.v1`), доступ по capability `screener` роли: `list` (выгрузки скринера, новые первыми, `latest`/`intraday_latest`) и `get` (выгрузка по id `night:YYYY-MM-DD` / `intraday:YYYY-MM-DDTHHMM` или алиасу `latest`/`intraday_latest`; `document` — открытый объект контракта `AFB/docs/SCREENER_RESULTS.md`) `participants` (снимок участников рынка: колоночный формат `columns`/`rows`, как у таблиц `market.series`: справочник деривативов + коллекции и четыре списка `now`/`d1`/`d2`/`w1` — fiz/yur long/short/net, число участников, ОИ, объём; запрос пустой) и `error`; один schema id на сообщение (`afbws.screener.<op>.v1`), `request_id` обязателен в запросах клиента; единственный серверный пуш — `participants` без `request_id` (после каждого обновления позиций FORTS, ~5 мин, подписанным запросом соединениям); в списках `participants` есть колонка `price` (цена активного контракта); `list`/`get` читают только JSON-файлы, не БД скринера |
 | `spec/schemas/afbws/instrument.channel.v2.json` | Канал `instrument` v2 (capability `afbws.instrument.channel.v2`), любой авторизованный: `catalog`/`sets`/`favorites`/`paint`/`expiration`/`replace`/`detail`, один schema id на сообщение, пуш без `request_id`, инструмент только по `instrument_key`; `sets` — единая команда наборов (личные и глобальные по `visibility`), `detail` — параметры по всем счетам |
 | `spec/schemas/afbws/auth.v1.json` | Рукопожатие WS AFB (capability `afbws.auth.v1`): одна схема `afbws.auth.v1` — запрос / ответ (с блоком `access`) / пуш при смене доступа, и `afbws.auth.error.v1`; заменяет легаси `type: "auth"`/`auth_ok`/`auth_error` (бэкенд понимает обе формы, см. §20) |
-| `spec/schemas/afbws/access.channel.v1.json` | Канал `access` (capability `afbws.access.channel.v1`): модель доступа tier × capabilities × mode; операции персонала `users.list`, `users.set`, `policy.get/set`, `stats`, только admin `users.tier.set`, `tiers.get/set`, `groups.get/set`, любого пользователя `trial.start`; отказ гейта `denied`, `error` (см. §20) |
+| `spec/schemas/afbws/access.channel.v1.json` | Канал `access` (capability `afbws.access.channel.v1`): модель доступа tier × capabilities × mode; операции персонала `users.list`, `users.set` (поле `tier` — только admin), `policy.get/set`, `stats`, только admin `users.add`, `users.delete`, `tiers.get/set`, `groups.get/set`, любого пользователя `trial.start`; отказ гейта `denied`, `error` (см. §20) |
 | `spec/schemas/payloads/` | JSON Schema каждого payload |
 | `examples/` | Подписанные примеры конвертов |
 | `examples/tradeplans/` | Примеры шаблонов ТП (не конверты, не подписываются) |
@@ -1277,9 +1277,10 @@ staff = admin + manager. Операции разделены по обязанн
 
 | Операция | Кто | Запрос | Ответ |
 |---|---|---|---|
-| `users.list` | staff | — | `items[]` (`userRow`) — все пользователи, без фильтров и пагинации; `tiers[]` (`tierLabel` `{tier, title}`, все tier) и `capabilities[]` (`capabilityLabel` `{capability, title}`) — подписи из кода бэкенда, фронт их не хардкодит |
-| `users.set` | staff | `items[]` `{user_id, grace_until?, capabilities?}` — хотя бы одно из двух: `grace_until` (дата \| `null` — снять льготный период), `capabilities` (добавленные пользователю, замена целиком, `[]` — снять все) | `items[]` (`userRow`) |
-| `users.tier.set` | admin | `items[]` `{user_id, tier}`: `tier` — включить лично (любой, в т.ч. `admin`/`manager`), `null` — исключить из личного tier | `items[]` (`userRow`) |
+| `users.list` | staff | — | `items[]` (`userRow`) — все пользователи реестра (входившие и созданные admin), без фильтров и пагинации; `tiers[]` (`tierLabel` `{tier, title}`, все tier), `capabilities[]` (`capabilityLabel` `{capability, title}`) и `providers[]` (`providerLabel` `{provider, title}` — провайдеры для `users.add`) — подписи из кода бэкенда, фронт их не хардкодит |
+| `users.add` | admin | `items[]` `{provider, external_id, name?, tier, capabilities?, password?}`: `external_id` — id у провайдера (`getcourse` — id в GetCourse, проверяется через API, имя берётся оттуда; `local` — логин), `user_id` строит адаптер провайдера; `password` — только `local`, для него обязателен; хранится хэшем, не логируется и не возвращается | `items[]` (`userRow`; `last_seen_at = null` до первого входа) |
+| `users.set` | staff; поле `tier` — только admin (иначе `forbidden`) | `items[]` `{user_id, name?, tier?, capabilities?, grace_until?}` — хотя бы одно поле кроме `user_id`: `name` (строка \| `null` — снять, показывается имя от провайдера; у `local` пишется и в реестр локальных пользователей), `tier`, `capabilities` (добавленные пользователю, замена целиком, `[]` — снять все), `grace_until` (дата \| `null` — снять льготный период) | `items[]` (`userRow`) |
+| `users.delete` | admin | `items[]` `{user_id}` | `items[]` `{user_id}` |
 | `trial.start` | любой пользователь | — | `trial` (как `access.trial`); затем пуш `afbws.auth.v1`. Недоступен → `validation_error` «Пробный период недоступен» |
 | `policy.get` | staff | — | `tiers[]` (`policyRow` `{tier, title, rank, policy\|null}`) — все tier, кроме `admin`/`manager` |
 | `policy.set` | staff | `tier` (не персонал), `policy` \| `null` | как `policy.get` |
@@ -1289,16 +1290,28 @@ staff = admin + manager. Операции разделены по обязанн
 | `groups.get` | admin | — | `groups[]` (`tierGroup`), `provider_groups[]` (`providerGroup`) + `provider_groups_error` (`string\|null`) — список групп провайдера для выбора |
 | `groups.set` | admin | `groups[]` — замена целиком (у группы один tier, только не-персонал) | как `groups.get` |
 
-Пакеты `users.set`/`users.tier.set` — **всё или ничего**: все элементы проверяются до записи, одна
-транзакция; ошибка → `error` с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` —
-`validation_error`. `user_id` — только входившие хотя бы раз. Запрос и ответ различаются формой
-элементов `items[]`: в запросе — `usersSetItem`/`usersTierSetItem`, в ответе — `userRow`.
+Пакеты `users.add`/`users.set`/`users.delete` — **всё или ничего**: все элементы проверяются до записи
+(у `users.add` — сначала у провайдера: нет пользователя / ошибка API / нет пароля у `local` →
+`validation_error`), одна транзакция; ошибка → `error` с перечнем элементов и причин в `message`;
+повтор в `items` — `validation_error`. `user_id` в `users.set`/`users.delete` — только из реестра;
+в `users.add` пользователь ещё не должен быть в реестре. В `users.set`/`users.add` запрос и ответ
+различаются формой элементов `items[]`: в запросе — `usersSetItem`/`usersAddItem`, в ответе — `userRow`.
+
+**tier** (`users.add`, `users.set`): выбранный tier совпадает с тем, что пользователь получил бы без
+личного членства (по группам / по умолчанию), — личное членство снимается / не пишется; иначе
+пользователь включается в tier лично (любой, в т.ч. `admin`/`manager`). «Вернуть по группам» —
+просто выбрать этот tier, отдельного значения нет.
+
+**users.delete** удаляет запись реестра, личное членство в tier и добавленные capabilities; периоды
+подписки и журнал действий персонала остаются; у `local` удаляется учётная запись входа. Пользователь
+внешнего провайдера после удаления может снова войти и появится заново по общим правилам. Объекты
+пользователя (настройки, алармы, планы) не трогаются. Нельзя удалить себя и последнего `admin`.
 
 Инварианты (проверяет сервер, `validation_error` с причиной в `message`): `admin` и `manager`
 всегда есть, их `rank`/`subscription = false`/политика не меняются (только `title`, `capabilities`
 и `limits`); прочие tier — rank 1..99, уникальный; capabilities — из набора кода; tier нельзя
 удалить, пока на него ссылаются состав tier или `policy.as_tier` (`message` перечисляет ссылки);
-нельзя исключить последнего личного члена `admin`.
+нельзя снять tier `admin` у последнего admin.
 
 Записи (`$defs`):
 
@@ -1317,20 +1330,22 @@ staff = admin + manager. Операции разделены по обязанн
   инструмент витрины), иначе `basic` со своими лимитами.
 - `window` — `{from, to}` в `HH:MM` МСК; `to < from` — через полночь.
 - `capability` — `trade` | `virtual` | `screener` (назначаемые; `local` сюда не входит).
-- `tierLabel` — `{tier, title}`; `capabilityLabel` — `{capability, title}`.
+- `tierLabel` — `{tier, title}`; `capabilityLabel` — `{capability, title}`; `providerLabel` — `{provider, title}`.
 - `tierGroup` — `provider`, `group_id` (id группы у провайдера, строкой), `tier` — группа провайдера
   в составе tier (строка `tier_members` kind=group).
 - `providerGroup` — `provider`, `group_id`, `title` — группа провайдера (выбор группы — только из
   этого списка).
-- `userRow` — `user_id`, `provider` (кто аутентифицирует и отдаёт группы), `display_name|null`,
-  `tier` (действующий), `tier_source` ∈ `personal` (лично в составе tier — можно исключить) |
-  `group` | `default`, `capabilities[]` (действующие: tier ∪ добавленные), `personal_capabilities[]`
-  (добавленные, правятся `users.set`), `first_seen_at`, `last_seen_at`, `trial_started_on|null`,
-  `trial_ends_on|null` (пробный период, только чтение), `grace_until|null` (последний день
-  льготного периода), `late_days` (≥0, накопительно дней без подписки между окончанием и
-  возобновлением — только статистика), `subscription` — последний период подписки
-  `{tier, started_at, ended_at|null}` или `null`.
-- `usersSetItem` — `{user_id, grace_until?, capabilities?}`; `usersTierSetItem` — `{user_id, tier|null}`.
+- `userRow` — только то, что показывается: `user_id`, `provider` (кто аутентифицирует и отдаёт
+  группы), `name|null` (имя, заданное персоналом; приоритетнее `display_name`; у `local` —
+  единственное), `display_name|null` (имя от провайдера), `tier` (действующий), `capabilities[]`
+  (действующие: tier ∪ добавленные), `personal_capabilities[]` (добавленные, правятся `users.set`),
+  `last_seen_at|null` (`null` — создан admin, ещё не входил), `grace_until|null` (последний день
+  льготного периода), `subscription_status` ∈ `active` (открыт период подписки) | `grace`
+  (`grace_until` ≥ сегодня) | `ended` (периоды были, открытого нет, льготы нет) | `null` (подписки не
+  было и льготы нет). Показываемое имя = `name` ?? `display_name` ?? `user_id`. Даты пробного
+  периода, первого входа, опоздания и периоды подписки остаются в базе (их использует статистика).
+- `usersAddItem` — `{provider, external_id, name?, tier, capabilities?, password?}`;
+  `usersSetItem` — `{user_id, name?, tier?, capabilities?, grace_until?}`; `usersDeleteItem` — `{user_id}`.
 
 Статистика `stats` по календарным неделям (`week` — понедельник): `new_users` — `first_seen_at`
 в неделе; `trials_started` — `trial_started_on` в неделе; `converted` — периоды подписки,

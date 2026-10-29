@@ -1,0 +1,13 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.users.delete.v1",
+  "request_id": "r-12",
+  "items": [
+    {
+      "user_id": "gc_315500771"
+    },
+    {
+      "user_id": "id_trader1"
+    }
+  ]
+}

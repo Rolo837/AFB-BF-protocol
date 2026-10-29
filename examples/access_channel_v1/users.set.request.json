@@ -9,7 +9,13 @@
     },
     {
       "user_id": "gc_301122334",
+      "name": "Ольга (VIP)",
+      "tier": "user",
       "grace_until": null
+    },
+    {
+      "user_id": "id_9910336377",
+      "name": null
     }
   ]
 }
