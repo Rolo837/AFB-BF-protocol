@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 341509b0bd694a31e76106c38024247057b5ecceb357d8d4cca46dc6b129629f
+# source-hash: 01076ad6ead8e29920eaee5b60e4836005519f1bb99c0200e0ca1c15ca068dae
 
 from __future__ import annotations
 
@@ -10,13 +10,30 @@ from typing import Any, Literal, NotRequired, TypeAlias, TypedDict
 
 class Access(TypedDict):
     """
-    Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — personal permissions granted by staff, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
+    Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — permissions: capabilities of the tier ∪ capabilities added to the user (`trade` — real trading through BF, `virtual`, `screener`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
     """
 
     tier: AccessTier
     capabilities: list[Capability]
     limits: AccessLimits
     mode: AccessMode
+    trial: AccessTrial
+    grace: AccessGrace
+
+
+AccessDate: TypeAlias = str
+
+
+class AccessGraceActive(TypedDict):
+    """
+    Льготный период после окончания подписки.
+    """
+
+    ends_on: AccessDate
+    days_left: int
+
+
+AccessGrace: TypeAlias = AccessGraceActive | None
 
 
 class AccessLimits(TypedDict):
@@ -36,12 +53,37 @@ AccessMode: TypeAlias = Literal["full", "basic"]
 AccessTier: TypeAlias = str
 
 
+class AccessTrialActive(TypedDict):
+    """
+    Пробный период идёт.
+    """
+
+    state: Literal["active"]
+    ends_on: AccessDate
+    days_left: int
+
+
+class AccessTrialAvailable(TypedDict):
+    """
+    Пробный период доступен: пользователь может включить его сам (afbws.access.trial.start.v1).
+    """
+
+    state: Literal["available"]
+    days: int
+
+
+AccessTrial: TypeAlias = AccessTrialAvailable | AccessTrialActive | None
+
+
+AccessV1Capability: TypeAlias = Literal["trade", "virtual", "screener"]
+
+
 class AccessV1CapabilityLabel(TypedDict):
     """
     A capability and its label; the set and the labels are defined by the backend code (the frontend does not hardcode them).
     """
 
-    capability: str
+    capability: AccessV1Capability
     title: str
 
 
@@ -77,49 +119,40 @@ class AccessV1Error(TypedDict):
     message: str
 
 
-class AccessV1GroupRole(TypedDict):
-    """
-    Assignment of a tier or a capability to every member of an external group (one row of the `group_roles` table).
-    """
-
-    role: str
-    provider: AccessV1Provider
-    group_id: str
-
-
 class AccessV1GroupsGet(TypedDict):
     """
-    Request: only `request_id`. Response: `group_roles[]`, `provider_groups[]`, `provider_groups_error`.
+    Запрос: только `request_id`. Ответ: `groups[]`, `provider_groups[]`, `provider_groups_error`.
     """
 
     channel: Literal["access"]
     schema: Literal["afbws.access.groups.get.v1"]
     request_id: AfbwsCommonV1RequestId
-    group_roles: NotRequired[list[AccessV1GroupRole]]
+    groups: NotRequired[list[AccessV1TierGroup]]
     provider_groups: NotRequired[list[AccessV1ProviderGroup]]
     provider_groups_error: NotRequired[str | None]
 
 
 class AccessV1GroupsSet(TypedDict):
     """
-    Request: `group_roles[]` — replace-all of the `group_roles` table (unknown tier/capability or removing the last `admin` assignment -> `validation_error`). Response: as afbws.access.groups.get.v1.
+    Запрос: `groups[]` — замена целиком всех строк `tier_members` kind=group (неизвестный tier / tier персонала / повтор группы → `validation_error`). Ответ: как afbws.access.groups.get.v1.
     """
 
     channel: Literal["access"]
     schema: Literal["afbws.access.groups.set.v1"]
     request_id: AfbwsCommonV1RequestId
-    group_roles: list[AccessV1GroupRole]
+    groups: list[AccessV1TierGroup]
     provider_groups: NotRequired[list[AccessV1ProviderGroup]]
     provider_groups_error: NotRequired[str | None]
 
 
 class AccessV1Policy(TypedDict):
     """
-    Mode policy of a tier (`tiers.policy` in the backend's access database). A tier WITH a policy is `full` (with the limits of `as_tier`) while a manual grant, the trial, a time window (stage 3: a showcase instrument) is active, otherwise `basic` with its own limits. A tier without a policy (null) is always `full` with its own limits. The `trade` capability and a subscription tier are always `full`.
+    Политика режима tier (`tiers.policy` базы доступа). Tier С политикой — `full` (с лимитами `as_tier`), пока идёт льготный период, пробный период или временное окно (этап 3: инструмент витрины), иначе `basic` со своими лимитами. Tier без политики (null) — всегда `full` со своими лимитами. Capability `trade` и tier подписки — всегда `full`.
     """
 
     as_tier: AccessTier
     trial_days: NotRequired[int]
+    grace_days: NotRequired[int]
     workday: NotRequired[AccessV1Window | None]
     weekend: NotRequired[AccessV1Window | None]
     showcase: NotRequired[AccessV1Showcase]
@@ -165,7 +198,7 @@ AccessV1Provider: TypeAlias = str
 
 class AccessV1ProviderGroup(TypedDict):
     """
-    A group of an authorization provider (a hint for choosing `group_roles`).
+    Группа провайдера авторизации (выбор группы в составе tier).
     """
 
     provider: AccessV1Provider
@@ -204,6 +237,16 @@ class AccessV1Subscription(TypedDict):
     ended_at: str | None
 
 
+class AccessV1TierGroup(TypedDict):
+    """
+    Группа провайдера в составе tier (строка `tier_members` kind=group): все члены группы получают этот tier (личный tier пользователя главнее). У группы один tier; только tier не-персонала.
+    """
+
+    provider: AccessV1Provider
+    group_id: str
+    tier: AccessTier
+
+
 class AccessV1TierLabel(TypedDict):
     """
     A tier and its label (for choosing a tier in the staff UI).
@@ -222,6 +265,7 @@ class AccessV1TierRow(TypedDict):
     title: str
     rank: int
     subscription: bool
+    capabilities: list[AccessV1Capability]
     limits: AccessLimits
 
 
@@ -238,7 +282,7 @@ class AccessV1TiersGet(TypedDict):
 
 class AccessV1TiersSet(TypedDict):
     """
-    Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title` and `limits` change); other ranks 1..99, unique; a tier cannot be removed while referenced by `user_roles`/`group_roles`/`policy.as_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.
+    Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title`, `capabilities` and `limits` change); other ranks 1..99, unique; capabilities — из набора кода; a tier cannot be removed while referenced by `tier_members`/`policy.as_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.
     """
 
     channel: Literal["access"]
@@ -247,52 +291,36 @@ class AccessV1TiersSet(TypedDict):
     tiers: list[AccessV1TierRow]
 
 
+class AccessV1TrialStart(TypedDict):
+    """
+    Запрос: только `request_id`. Ответ: `trial` — новое состояние пробного периода (как access.trial); затем пуш afbws.auth.v1. Пробный период включается один раз: `trial_started_on` = сегодня, `trial_ends_on` = сегодня + `trial_days` − 1. Недоступен → error `validation_error` «Пробный период недоступен».
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.trial.start.v1"]
+    request_id: AfbwsCommonV1RequestId
+    trial: NotRequired[AccessTrial]
+
+
 class AccessV1UserRow(TypedDict):
     """
-    One user who has logged in at least once (row of the `users` table + resolved tier/capabilities + the last subscription period). `provider` — who authenticates the user and supplies its groups. `tier`/`capabilities` — effective (personal `user_roles` ∪ provider groups `group_roles`); `personal_tier`/`personal_capabilities` — the personal `user_roles` assignments only (editable; group assignments are visible in `capabilities` but not edited from here).
+    Пользователь, входивший хотя бы раз (строка `users` + вычисленные tier/capabilities + последний период подписки).
     """
 
     user_id: str
     provider: AccessV1Provider
     display_name: str | None
     tier: AccessTier
-    personal_tier: AccessTier | None
-    capabilities: list[Capability]
-    personal_capabilities: list[PersonalCapability]
+    tier_source: Literal["personal", "group", "default"]
+    capabilities: list[AccessV1Capability]
+    personal_capabilities: list[AccessV1Capability]
     first_seen_at: str
     last_seen_at: str
-    trial_started_at: str | None
-    trial_ends_at: str | None
-    grant_until: str | None
+    trial_started_on: AccessDate | None
+    trial_ends_on: AccessDate | None
+    grace_until: AccessDate | None
+    late_days: int
     subscription: AccessV1Subscription | None
-
-
-class AccessV1UserSet(TypedDict):
-    """
-    Request: `user_id` + `trial_ends_at`, `grant_until` and/or `capabilities` (at least one; null removes the trial end / grant; `capabilities` replaces the personal capabilities). The first `trial_ends_at` for a user without a trial (`trial_started_at` null) also sets `trial_started_at` = now. Response: `user_id` + `item` — the updated row. Unknown user -> error `not_found`.
-    """
-
-    channel: Literal["access"]
-    schema: Literal["afbws.access.user.set.v1"]
-    request_id: AfbwsCommonV1RequestId
-    user_id: str
-    trial_ends_at: NotRequired[str | None]
-    grant_until: NotRequired[str | None]
-    capabilities: NotRequired[list[Capability]]
-    item: NotRequired[AccessV1UserRow]
-
-
-class AccessV1UserTierSet(TypedDict):
-    """
-    Request: `user_id`, `tier` — the personal tier (any tier incl. `admin`/`manager`) or null (remove: tier by groups / default). Response: `user_id` + `item` — the updated row. Unknown user / tier -> error `not_found` / `validation_error`; removing the last `admin` assignment -> `validation_error`.
-    """
-
-    channel: Literal["access"]
-    schema: Literal["afbws.access.user.tier.set.v1"]
-    request_id: AfbwsCommonV1RequestId
-    user_id: str
-    tier: NotRequired[AccessTier | None]
-    item: NotRequired[AccessV1UserRow]
 
 
 class AccessV1UsersList(TypedDict):
@@ -306,6 +334,60 @@ class AccessV1UsersList(TypedDict):
     items: NotRequired[list[AccessV1UserRow]]
     tiers: NotRequired[list[AccessV1TierLabel]]
     capabilities: NotRequired[list[AccessV1CapabilityLabel]]
+
+
+class AccessV1UsersSet(TypedDict):
+    """
+    Запрос: `items[]` — `{user_id, grace_until?, capabilities?}` (хотя бы одно из двух). Ответ: `items[]` — обновлённые строки userRow. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей (входившие хотя бы раз).
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.users.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[AccessV1UsersSetItem] | list[AccessV1UserRow]
+
+
+class AccessV1UsersSetItem1(TypedDict):
+    """
+    Элемент запроса users.set: хотя бы одно из `grace_until`, `capabilities`.
+    """
+
+    user_id: str
+    grace_until: AccessDate | None
+    capabilities: NotRequired[list[AccessV1Capability]]
+
+
+class AccessV1UsersSetItem2(TypedDict):
+    """
+    Элемент запроса users.set: хотя бы одно из `grace_until`, `capabilities`.
+    """
+
+    user_id: str
+    grace_until: NotRequired[AccessDate | None]
+    capabilities: list[AccessV1Capability]
+
+
+AccessV1UsersSetItem: TypeAlias = AccessV1UsersSetItem1 | AccessV1UsersSetItem2
+
+
+class AccessV1UsersTierSet(TypedDict):
+    """
+    Запрос: `items[]` — `{user_id, tier|null}`: tier — включить лично; null — исключить из личного tier. Ответ: `items[]` — обновлённые строки userRow. Неизвестный tier / исключение последнего личного `admin` → `validation_error`. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей (входившие хотя бы раз).
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.users.tier.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[AccessV1UsersTierSetItem] | list[AccessV1UserRow]
+
+
+class AccessV1UsersTierSetItem(TypedDict):
+    """
+    Элемент запроса users.tier.set.
+    """
+
+    user_id: str
+    tier: AccessTier | None
 
 
 AccessV1Window = TypedDict(
@@ -909,8 +991,9 @@ AccessV1Stats = TypedDict(
 
 AccessChannelV1Message: TypeAlias = (
     AccessV1UsersList
-    | AccessV1UserSet
-    | AccessV1UserTierSet
+    | AccessV1UsersSet
+    | AccessV1UsersTierSet
+    | AccessV1TrialStart
     | AccessV1PolicyGet
     | AccessV1PolicySet
     | AccessV1TiersGet
@@ -1658,7 +1741,7 @@ class Alarms1(TypedDict):
 
 class AuthV1(TypedDict):
     """
-    Request (client -> server, first message; no `user_id`): `request_id`, `support`, `version`, optional `session_id`. The session is taken from the `afb_session` cookie, or from `session_id` when the cookie is absent/invalid (iframe). `version` (frontend build) is logged for monitoring only — never parsed, compared or used to gate behaviour; all behaviour is gated on `support` alone. Response (same `request_id`): `user_id`, `timezone`, `brokers`, `support`, `access`; `support` — the backend's own declared afbws capability ids (not the intersection; the client computes it). Push (no `request_id`): the whole response, sent when the effective `access` of the connection changes; the client replaces its auth state.
+    Request (client -> server, first message; no `user_id`): `request_id`, `support`, `version`, optional `session_id`. The session is taken from the `afb_session` cookie, or from `session_id` when the cookie is absent/invalid (iframe). `version` (frontend build) is logged for monitoring only — never parsed, compared or used to gate behaviour; all behaviour is gated on `support` alone. Response (same `request_id`): `user_id`, `timezone`, `brokers`, `support`, `access`; `support` — the backend's own declared afbws capability ids (not the intersection; the client computes it). Push (no `request_id`): the whole response, sent when the effective `access` of the connection changes; the client replaces its auth state (в т.ч. в полночь пояса сервера, когда меняется `trial.days_left`/`grace.days_left`, и после afbws.access.trial.start.v1).
     """
 
     channel: Literal["auth"]
@@ -4697,9 +4780,6 @@ class PayloadsDealRejectedBrokerError(TypedDict):
     kind: str
     native_code: NotRequired[str | None]
     native_message: NotRequired[str | None]
-
-
-PersonalCapability: TypeAlias = str
 
 
 class Plans(TypedDict):

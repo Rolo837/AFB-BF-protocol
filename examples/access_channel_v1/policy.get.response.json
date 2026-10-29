@@ -32,6 +32,7 @@
       "policy": {
         "as_tier": "user",
         "trial_days": 14,
+        "grace_days": 3,
         "workday": {
           "from": "22:00",
           "to": "02:00"

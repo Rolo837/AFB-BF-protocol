@@ -1,0 +1,10 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.trial.start.v1",
+  "request_id": "r-20",
+  "trial": {
+    "state": "active",
+    "ends_on": "2026-11-11",
+    "days_left": 14
+  }
+}

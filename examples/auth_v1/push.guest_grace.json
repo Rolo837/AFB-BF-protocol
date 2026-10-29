@@ -1,0 +1,26 @@
+{
+  "channel": "auth",
+  "schema": "afbws.auth.v1",
+  "user_id": "gc_282811500",
+  "timezone": "Europe/Moscow",
+  "support": [
+    "afbws.auth.v1"
+  ],
+  "brokers": [],
+  "access": {
+    "tier": "guest",
+    "capabilities": [],
+    "limits": {
+      "max_favorites_tickers": 42,
+      "max_primitives_per_user": 100,
+      "max_sets": 20,
+      "max_favorite_colors": 5
+    },
+    "mode": "full",
+    "trial": null,
+    "grace": {
+      "ends_on": "2026-11-01",
+      "days_left": 3
+    }
+  }
+}

@@ -1,7 +1,0 @@
-{
-  "channel": "access",
-  "schema": "afbws.access.user.set.v1",
-  "request_id": "r-4",
-  "user_id": "gc_282811500",
-  "grant_until": "2026-11-15T21:00:00Z"
-}

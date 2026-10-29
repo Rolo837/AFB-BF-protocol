@@ -1,0 +1,18 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.users.set.v1",
+  "request_id": "r-8",
+  "items": [
+    {
+      "user_id": "gc_282811500",
+      "capabilities": [
+        "virtual",
+        "screener"
+      ]
+    },
+    {
+      "user_id": "id_9910336377",
+      "capabilities": []
+    }
+  ]
+}

@@ -20,7 +20,7 @@ _AUTH_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/auth.v
 _COMMON_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/common.v1.json"
 
 _ACCESS_OPS = {
-    "users.list", "user.set", "user.tier.set", "policy.get", "policy.set", "tiers.get", "tiers.set",
+    "users.list", "users.set", "users.tier.set", "trial.start", "policy.get", "policy.set", "tiers.get", "tiers.set",
     "groups.get", "groups.set", "stats", "denied", "error",
 }
 
@@ -125,7 +125,7 @@ def _access(**kw):
 def test_access_block_all_fields_required(registry):
     v = _v(_COMMON_ID, "access", registry)
     _ok(v, _access())
-    for key in ("tier", "capabilities", "limits", "mode"):
+    for key in ("tier", "capabilities", "limits", "mode", "trial", "grace"):
         a = _access()
         del a[key]
         _bad(v, a)
@@ -155,6 +155,38 @@ def test_access_block_limits_closed_and_non_negative(registry):
     _bad(v, _access(limits={**lim, "max_alarms": 3}))
     _bad(v, _access(limits={**lim, "max_sets": -1}))
     _bad(v, _access(limits={k: x for k, x in lim.items() if k != "max_sets"}))
+
+
+def test_access_block_trial_and_grace(registry):
+    v = _v(_COMMON_ID, "access", registry)
+    _ok(v, _access(trial=None, grace=None))
+    _ok(v, _access(trial={"state": "available", "days": 14}))
+    _ok(v, _access(trial={"state": "active", "ends_on": "2026-11-11", "days_left": 5}))
+    _ok(v, _access(grace={"ends_on": "2026-11-01", "days_left": 3}))
+    _bad(v, _access(trial={"state": "available", "days": 0}))
+    _bad(v, _access(trial={"state": "available", "days": 14, "ends_on": "2026-11-11"}))
+    _bad(v, _access(trial={"state": "active", "ends_on": "2026-11-11"}))
+    _bad(v, _access(trial={"state": "active", "ends_on": "2026-11-11", "days_left": 0}))
+    _bad(v, _access(trial={"state": "ended"}))
+    _bad(v, _access(grace={"ends_on": "2026-11-01"}))
+    _bad(v, _access(grace={"ends_on": "2026-11-01", "days_left": 3, "state": "active"}))
+
+
+def test_access_block_capabilities_are_open_strings(registry):
+    v = _v(_COMMON_ID, "access", registry)
+    _ok(v, _access(capabilities=["trade", "local"]))  # local — added by the backend, not assignable
+    _bad(v, _access(capabilities=["trade", "trade"]))
+
+
+def test_auth_examples_cover_trial_and_grace():
+    states = set()
+    for path in (_ROOT / "examples" / "auth_v1").glob("*.json"):
+        msg = json.loads(path.read_text(encoding="utf-8"))
+        if "access" in msg:
+            a = msg["access"]
+            states.add("trial:" + (a["trial"]["state"] if a["trial"] else "null"))
+            states.add("grace:" + ("set" if a["grace"] else "null"))
+    assert states == {"trial:null", "trial:available", "trial:active", "grace:null", "grace:set"}
 
 
 # --- auth ---------------------------------------------------------------------
@@ -205,13 +237,22 @@ def test_auth_error_closed_codes(registry):
 
 def test_roles_operations_removed():
     doc = json.loads((_SCHEMAS / "access.channel.v1.json").read_text())
-    assert not {"rolesGet", "rolesSet", "userRole"} & set(doc["$defs"])
+    assert not {"rolesGet", "rolesSet", "userRole", "userSet", "userTierSet", "groupRole"} & set(doc["$defs"])
     assert "roles.get" not in doc["description"]
+    assert "user.set" not in doc["description"]
 
 
 def test_access_description_names_admin_only_and_staff_operations():
     desc = json.loads((_SCHEMAS / "access.channel.v1.json").read_text())["description"]
-    assert "Admin-only" in desc and "Staff operations" in desc and "forbidden" in desc
+    assert "admin-only" in desc and "staff" in desc and "forbidden" in desc and "trial.start" in desc
+
+
+def test_capability_enum_has_no_local(registry):
+    v = _v(_ACCESS_ID, "capability", registry)
+    for c in ("trade", "virtual", "screener"):
+        _ok(v, c)
+    _bad(v, "local")
+    _bad(v, "Trade")
 
 
 def test_tiers_get_request_vs_response(registry):
@@ -243,8 +284,11 @@ def test_tier_row_shape(registry):
     for row in rows:
         _ok(v, row)
     row = rows[0]
-    for key in ("tier", "title", "rank", "subscription", "limits"):
+    for key in ("tier", "title", "rank", "subscription", "capabilities", "limits"):
         _bad(v, {k: x for k, x in row.items() if k != key})
+    _ok(v, {**row, "capabilities": []})
+    _bad(v, {**row, "capabilities": ["local"]})
+    _bad(v, {**row, "capabilities": ["trade", "trade"]})
     _bad(v, {**row, "subscription": 1})
     _bad(v, {**row, "paid": False})
     _bad(v, {**row, "policy": None})
@@ -272,6 +316,7 @@ def test_policy_set_request_vs_response(registry):
     _bad(v, {k: x for k, x in req.items() if k != "tier"})
     _bad(v, {**req, "tiers": resp["tiers"]})  # response field in a request
     _bad(v, {**req, "policy": {"trial_days": 3}})
+    _bad(v, {**req, "policy": {"as_tier": "user", "grace_days": -1}})
 
 
 def test_policy_row_shape(registry):
@@ -291,9 +336,10 @@ def test_groups_get_request_vs_response(registry):
     resp = _example("access_channel_v1", "groups.get.response.json")
     _ok(v, req)
     _ok(v, resp)
-    for key in ("group_roles", "provider_groups", "provider_groups_error"):
+    for key in ("groups", "provider_groups", "provider_groups_error"):
         _bad(v, {**req, key: resp[key]})  # response field in a request
         _bad(v, {k: x for k, x in resp.items() if k != key})  # incomplete response
+    _bad(v, {**req, "group_roles": []})
 
 
 def test_groups_set_request_vs_response(registry):
@@ -301,9 +347,10 @@ def test_groups_set_request_vs_response(registry):
     req = _example("access_channel_v1", "groups.set.request.json")
     resp = _example("access_channel_v1", "groups.set.response.json")
     _ok(v, req)
-    _ok(v, {**req, "group_roles": []})
+    _ok(v, {**req, "groups": []})
     _ok(v, resp)
-    _bad(v, {k: x for k, x in req.items() if k != "group_roles"})
+    _bad(v, {k: x for k, x in req.items() if k != "groups"})
+    _bad(v, {**req, "group_roles": []})
     _bad(v, {**req, "user_roles": []})
     _bad(v, {**req, "tiers": []})
     for key in ("provider_groups", "provider_groups_error"):
@@ -315,6 +362,10 @@ def test_policy_requires_as_tier_and_closed(registry):
     v = _v(_ACCESS_ID, "policy", registry)
     _ok(v, {"as_tier": "user"})
     _ok(v, {"as_tier": "user", "trial_days": 0, "workday": None, "weekend": None})
+    _ok(v, {"as_tier": "user", "trial_days": 14, "grace_days": 3})
+    _ok(v, {"as_tier": "user", "grace_days": 0})
+    _bad(v, {"as_tier": "user", "grace_days": -1})
+    _bad(v, {"as_tier": "user", "grace_days": 1.5})
     _ok(v, {"as_tier": "user", "workday": {"from": "22:00", "to": "02:00"}})  # across midnight
     _ok(v, {"as_tier": "user", "showcase": {"enabled": True, "collection": "c-1"}})
     _bad(v, {"trial_days": 14})  # no as_tier
@@ -325,15 +376,17 @@ def test_policy_requires_as_tier_and_closed(registry):
     _bad(v, {"as_tier": "user", "revision": 1})
 
 
-def test_group_role_shape(registry):
-    v = _v(_ACCESS_ID, "groupRole", registry)
-    _ok(v, {"role": "user", "provider": "getcourse", "group_id": "3125478"})
-    _bad(v, {"role": "user", "group_id": "3125478"})
-    _bad(v, {"role": "user", "provider": "getcourse"})
-    _bad(v, {"role": "user", "provider": "getcourse", "group_id": ""})
-    _bad(v, {"role": "user", "provider": "GetCourse", "group_id": "1"})
-    _bad(v, {"role": "user", "provider": "getcourse", "group_id": 3125478})
-    _bad(v, {"role": "User", "provider": "getcourse", "group_id": "1"})
+def test_tier_group_shape(registry):
+    v = _v(_ACCESS_ID, "tierGroup", registry)
+    _ok(v, {"tier": "user", "provider": "getcourse", "group_id": "3125478"})
+    _bad(v, {"tier": "user", "group_id": "3125478"})
+    _bad(v, {"tier": "user", "provider": "getcourse"})
+    _bad(v, {"provider": "getcourse", "group_id": "3125478"})
+    _bad(v, {"tier": "user", "provider": "getcourse", "group_id": ""})
+    _bad(v, {"tier": "user", "provider": "GetCourse", "group_id": "1"})
+    _bad(v, {"tier": "user", "provider": "getcourse", "group_id": 3125478})
+    _bad(v, {"tier": "User", "provider": "getcourse", "group_id": "1"})
+    _bad(v, {"role": "user", "provider": "getcourse", "group_id": "1"})
 
 
 def test_provider_group_shape(registry):
@@ -377,50 +430,74 @@ def test_users_list_labels_shape(registry):
 
 def test_user_row_shape(registry):
     v = _v(_ACCESS_ID, "userRow", registry)
-    row = _example("access_channel_v1", "users.list.response.json")["items"][0]
-    _ok(v, row)
+    rows = _example("access_channel_v1", "users.list.response.json")["items"]
+    assert {r["tier_source"] for r in rows} == {"personal", "group", "default"}
+    for r in rows:
+        _ok(v, r)
+    row = rows[0]
     _ok(v, {**row, "subscription": None})
-    _ok(v, {**row, "personal_tier": "manager"})
-    for key in ("grant_until", "provider", "personal_tier", "personal_capabilities"):
+    for key in ("provider", "tier_source", "personal_capabilities", "trial_started_on", "trial_ends_on",
+                "grace_until", "late_days"):
         _bad(v, {k: x for k, x in row.items() if k != key})
-    _bad(v, {**row, "personal_tier": "Manager"})
+    for removed in ("personal_tier", "trial_started_at", "trial_ends_at", "grant_until"):
+        _bad(v, {**row, removed: None})
+    _bad(v, {**row, "tier_source": "manual"})
+    _bad(v, {**row, "late_days": -1})
+    _bad(v, {**row, "grace_until": "2026-11-15T21:00:00Z"})  # a date, not a moment
     _bad(v, {**row, "personal_capabilities": ["trade", "trade"]})
+    _bad(v, {**row, "personal_capabilities": ["local"]})
     _bad(v, {**row, "subscription": {"tier": "user", "started_at": "2026-09-01T08:00:00Z"}})
     _bad(v, {**row, "mode": "full"})
 
 
-def test_user_set_request_vs_response(registry):
-    v = _v(_ACCESS_ID, "userSet", registry)
-    req = _example("access_channel_v1", "user.set.request.json")
-    resp = _example("access_channel_v1", "user.set.response.json")
+def test_users_set_request_vs_response(registry):
+    v = _v(_ACCESS_ID, "usersSet", registry)
+    req = _example("access_channel_v1", "users.set.request.json")
+    resp = _example("access_channel_v1", "users.set.response.json")
     _ok(v, req)
-    _ok(v, _example("access_channel_v1", "user.set.request.trial.json"))
-    _ok(v, _example("access_channel_v1", "user.set.request.capabilities.json"))
-    _ok(v, {**req, "trial_ends_at": "2026-11-01T00:00:00Z"})
-    _ok(v, {k: x for k, x in req.items() if k != "grant_until"} | {"capabilities": []})
+    _ok(v, _example("access_channel_v1", "users.set.request.capabilities.json"))
     _ok(v, resp)
-    _bad(v, {k: x for k, x in req.items() if k != "grant_until"})  # no fields to set
-    _bad(v, {k: x for k, x in req.items() if k != "user_id"})
-    _bad(v, {**req, "item": resp["item"]})  # response field in a request
-    _bad(v, {**resp, "capabilities": ["trade"]})  # request field in a response
-    _bad(v, {**req, "grant_until": 5})
-    _bad(v, {**req, "capabilities": ["trade", "trade"]})
-    _bad(v, {**req, "tier": "user"})  # tier — only user.tier.set
+    item = {"user_id": "gc_1", "grace_until": "2026-11-15"}
+    _ok(v, {**req, "items": [{**item, "capabilities": ["virtual"]}]})
+    _ok(v, {**req, "items": [{"user_id": "gc_1", "capabilities": []}]})
+    _bad(v, {**req, "items": []})
+    _bad(v, {k: x for k, x in req.items() if k != "items"})
+    _bad(v, {**req, "items": [{"user_id": "gc_1"}]})  # nothing to set
+    _bad(v, {**req, "items": [{"grace_until": None}]})
+    _bad(v, {**req, "items": [{**item, "grace_until": "2026-11-15T21:00:00Z"}]})
+    _bad(v, {**req, "items": [{**item, "capabilities": ["local"]}]})
+    _bad(v, {**req, "items": [{**item, "capabilities": ["trade", "trade"]}]})
+    _bad(v, {**req, "items": [{**item, "tier": "user"}]})  # tier — only users.tier.set
+    _bad(v, {**req, "items": [{**item, "trial_ends_on": "2026-11-15"}]})  # trial is not managed by staff
+    _bad(v, {**req, "items": [item, resp["items"][0]]})  # request and response rows are not mixed
+    _bad(v, {**req, "user_id": "gc_1"})
 
 
-def test_user_tier_set_request_vs_response(registry):
-    v = _v(_ACCESS_ID, "userTierSet", registry)
-    req = _example("access_channel_v1", "user.tier.set.request.json")
-    resp = _example("access_channel_v1", "user.tier.set.response.json")
+def test_users_tier_set_request_vs_response(registry):
+    v = _v(_ACCESS_ID, "usersTierSet", registry)
+    req = _example("access_channel_v1", "users.tier.set.request.json")
+    resp = _example("access_channel_v1", "users.tier.set.response.json")
     _ok(v, req)
-    _ok(v, _example("access_channel_v1", "user.tier.set.request.clear.json"))
     _ok(v, resp)
-    _bad(v, {k: x for k, x in req.items() if k != "tier"})  # tier (or null) required
-    _bad(v, {k: x for k, x in req.items() if k != "user_id"})
-    _bad(v, {**req, "item": resp["item"]})
-    _bad(v, {**resp, "tier": "user"})
-    _bad(v, {**req, "tier": "Admin"})
-    _bad(v, {**req, "capabilities": []})
+    assert any(i["tier"] is None for i in req["items"])
+    _bad(v, {**req, "items": []})
+    _bad(v, {**req, "items": [{"user_id": "gc_1"}]})  # tier (or null) required
+    _bad(v, {**req, "items": [{"tier": "user"}]})
+    _bad(v, {**req, "items": [{"user_id": "gc_1", "tier": "Admin"}]})
+    _bad(v, {**req, "items": [{"user_id": "gc_1", "tier": "user", "capabilities": []}]})
+    _bad(v, {**req, "item": resp["items"][0]})
+
+
+def test_trial_start_request_vs_response(registry):
+    v = _v(_ACCESS_ID, "trialStart", registry)
+    req = _example("access_channel_v1", "trial.start.request.json")
+    resp = _example("access_channel_v1", "trial.start.response.json")
+    _ok(v, req)
+    _ok(v, resp)
+    assert set(req) == {"channel", "schema", "request_id"}
+    _bad(v, {k: x for k, x in req.items() if k != "request_id"})
+    _bad(v, {**req, "days": 14})
+    _bad(v, {**resp, "trial": {"state": "active", "ends_on": "2026-11-11"}})
 
 
 # --- access channel: stats / server messages --------------------------------

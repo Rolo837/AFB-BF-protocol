@@ -3,17 +3,20 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/access.channel.v1.json",
   "x-afbws-support-id": "afbws.access.channel.v1",
   "title": "access channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support (capability id afbws.access.channel.v1). Freemium access model: tier (who) x capabilities (personal permissions) x mode (what is available now), see common.v1.json#/$defs/access. Messages mirror the backend's access database (tables tiers, user_roles, group_roles, users, subscriptions); the model does not know a concrete authorization provider — external groups are addressed by (`provider`, `group_id`). Same convention as afbws.link/afbws.screener: ONE schema id per operation (`afbws.access.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response (echoes `request_id`); response-only fields are forbidden in a request. `request_id` is required in every client request. Two staff tiers are reserved by code: `admin` and `manager` (staff = admin + manager). Staff operations (admin and manager): `users.list`, `user.set` (trial end / manual grant / personal capabilities), `policy.get`/`policy.set` (mode policy of tiers), `stats` (weekly conversion). Admin-only operations: `user.tier.set` (personal tier), `tiers.get`/`tiers.set` (tiers and their limits), `groups.get`/`groups.set` (provider group assignments). Any other connection gets error `forbidden`. Server-initiated: `afbws.access.denied.v1` — the gate's refusal of a request of ANY channel (sent on the refused request's channel, with its `request_id`). Changes of the connection's own effective access arrive as an afbws.auth.v1 push. Whole-request failures of this channel: `afbws.access.error.v1`. See AFB/docs/ws/access.md.",
+  "description": "Согласуется через auth.support (capability id afbws.access.channel.v1). Модель доступа freemium: tier (кто) × capabilities (что разрешено) × mode (что доступно сейчас), см. common.v1.json#/$defs/access. Сообщения повторяют таблицы базы доступа бэкенда (`tiers`, `tier_members`, `user_capabilities`, `users`, `subscriptions`); модель не знает конкретного провайдера авторизации — внешние группы адресуются парой (`provider`, `group_id`). Конвенция как у afbws.link/afbws.screener: ОДИН schema id на операцию (`afbws.access.<op>.v1`, без суффиксов .request/.response); одна схема — запрос и ответ (эхо `request_id`); ответные поля в запросе запрещены; `request_id` обязателен в каждом запросе. Персонал — два tier, зарезервированных кодом: `admin` и `manager` (staff = admin + manager). Операции персонала (staff, admin и manager): `users.list`, `users.set` (льготный период, добавленные capabilities — пакетом), `policy.get`/`policy.set`, `stats`. Только admin (admin-only): `users.tier.set` (личный tier — пакетом), `tiers.get`/`tiers.set`, `groups.get`/`groups.set` (группы провайдера в составе tier). Любой пользователь: `trial.start`. Чужая операция → error `forbidden`. Даты — YYYY-MM-DD в поясе сервера, действуют до конца указанного дня. Сервер шлёт сам: `afbws.access.denied.v1` — отказ гейта на запрос ЛЮБОГО канала (на канале отказанного запроса, с его `request_id`). Смена собственного доступа соединения приходит пушем afbws.auth.v1. Отказ запроса канала целиком: `afbws.access.error.v1`. См. AFB/docs/ws/access.md.",
   "type": "object",
   "oneOf": [
     {
       "$ref": "#/$defs/usersList"
     },
     {
-      "$ref": "#/$defs/userSet"
+      "$ref": "#/$defs/usersSet"
     },
     {
-      "$ref": "#/$defs/userTierSet"
+      "$ref": "#/$defs/usersTierSet"
+    },
+    {
+      "$ref": "#/$defs/trialStart"
     },
     {
       "$ref": "#/$defs/policyGet"
@@ -52,6 +55,15 @@
     "tierName": {
       "$ref": "common.v1.json#/$defs/accessTier"
     },
+    "capability": {
+      "type": "string",
+      "enum": [
+        "trade",
+        "virtual",
+        "screener"
+      ],
+      "description": "Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF, `virtual` — виртуальный счёт, `screener` — скринер. `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities."
+    },
     "window": {
       "type": "object",
       "description": "Daily time window, Moscow time: `from` — start, `to` — end. `to` < `from` = across midnight (e.g. 22:00-02:00).",
@@ -73,7 +85,7 @@
     },
     "policy": {
       "type": "object",
-      "description": "Mode policy of a tier (`tiers.policy` in the backend's access database). A tier WITH a policy is `full` (with the limits of `as_tier`) while a manual grant, the trial, a time window (stage 3: a showcase instrument) is active, otherwise `basic` with its own limits. A tier without a policy (null) is always `full` with its own limits. The `trade` capability and a subscription tier are always `full`.",
+      "description": "Политика режима tier (`tiers.policy` базы доступа). Tier С политикой — `full` (с лимитами `as_tier`), пока идёт льготный период, пробный период или временное окно (этап 3: инструмент витрины), иначе `basic` со своими лимитами. Tier без политики (null) — всегда `full` со своими лимитами. Capability `trade` и tier подписки — всегда `full`.",
       "required": [
         "as_tier"
       ],
@@ -85,7 +97,12 @@
         "trial_days": {
           "type": "integer",
           "minimum": 0,
-          "description": "Trial length in days; 0 or absent = no trial."
+          "description": "Срок пробного периода в днях (пользователь включает сам, один раз); 0 или нет ключа — пробного периода нет."
+        },
+        "grace_days": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Льготный период в днях после окончания подписки (выход из tier подписки в этот tier); 0 или нет ключа — льготного периода нет."
         },
         "workday": {
           "oneOf": [
@@ -122,6 +139,7 @@
         "title",
         "rank",
         "subscription",
+        "capabilities",
         "limits"
       ],
       "additionalProperties": false,
@@ -135,11 +153,19 @@
         },
         "rank": {
           "type": "integer",
-          "description": "Priority when a user matches several tiers (higher wins); unique among tiers. `admin` = 999 and `manager` = 100 are fixed by code, other tiers 1..99 (checked by the server). The tier with the minimal rank is the default for users not matched by any `user_roles`/`group_roles` row."
+          "description": "Priority when a user's groups match several tiers (higher wins); unique among tiers. `admin` = 999 and `manager` = 100 are fixed by code, other tiers 1..99 (checked by the server). The tier with the minimal rank is the default for users who are not members of any tier (personally or by group)."
         },
         "subscription": {
           "type": "boolean",
           "description": "Subscription tier: subscription periods are logged on login, the tier counts in conversion; without a policy always `full`. Always false for `admin`/`manager`."
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/capability"
+          },
+          "description": "Capabilities tier — есть у каждого члена tier; правит admin."
         },
         "limits": {
           "$ref": "common.v1.json#/$defs/accessLimits"
@@ -206,29 +232,23 @@
       "additionalProperties": false,
       "properties": {
         "capability": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/capability"
         },
         "title": {
           "type": "string"
         }
       }
     },
-    "groupRole": {
+    "tierGroup": {
       "type": "object",
-      "description": "Assignment of a tier or a capability to every member of an external group (one row of the `group_roles` table).",
+      "description": "Группа провайдера в составе tier (строка `tier_members` kind=group): все члены группы получают этот tier (личный tier пользователя главнее). У группы один tier; только tier не-персонала.",
       "required": [
-        "role",
         "provider",
-        "group_id"
+        "group_id",
+        "tier"
       ],
       "additionalProperties": false,
       "properties": {
-        "role": {
-          "type": "string",
-          "pattern": "^[a-z][a-z0-9_]*$",
-          "description": "A tier name (from `tiers`) or a capability name (set defined by the backend code)."
-        },
         "provider": {
           "$ref": "#/$defs/provider"
         },
@@ -236,25 +256,29 @@
           "type": "string",
           "minLength": 1,
           "description": "Group id at the provider, as a string."
+        },
+        "tier": {
+          "$ref": "#/$defs/tierName"
         }
       }
     },
     "userRow": {
       "type": "object",
-      "description": "One user who has logged in at least once (row of the `users` table + resolved tier/capabilities + the last subscription period). `provider` — who authenticates the user and supplies its groups. `tier`/`capabilities` — effective (personal `user_roles` ∪ provider groups `group_roles`); `personal_tier`/`personal_capabilities` — the personal `user_roles` assignments only (editable; group assignments are visible in `capabilities` but not edited from here).",
+      "description": "Пользователь, входивший хотя бы раз (строка `users` + вычисленные tier/capabilities + последний период подписки).",
       "required": [
         "user_id",
         "provider",
         "display_name",
         "tier",
-        "personal_tier",
+        "tier_source",
         "capabilities",
         "personal_capabilities",
         "first_seen_at",
         "last_seen_at",
-        "trial_started_at",
-        "trial_ends_at",
-        "grant_until",
+        "trial_started_on",
+        "trial_ends_on",
+        "grace_until",
+        "late_days",
         "subscription"
       ],
       "additionalProperties": false,
@@ -273,36 +297,33 @@
           ]
         },
         "tier": {
-          "$ref": "#/$defs/tierName"
+          "$ref": "#/$defs/tierName",
+          "description": "Действующий tier."
         },
-        "personal_tier": {
-          "oneOf": [
-            {
-              "type": "null"
-            },
-            {
-              "$ref": "#/$defs/tierName"
-            }
+        "tier_source": {
+          "type": "string",
+          "enum": [
+            "personal",
+            "group",
+            "default"
           ],
-          "description": "Personal tier (at most one `user_roles` row with a tier role); null — tier by groups / default."
+          "description": "Откуда tier: `personal` — пользователь лично в составе tier (его можно исключить); `group` — по группе провайдера; `default` — tier по умолчанию."
         },
         "capabilities": {
           "type": "array",
           "uniqueItems": true,
           "items": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "#/$defs/capability"
           },
-          "description": "Effective capabilities (personal and by groups)."
+          "description": "Действующие capabilities: capabilities tier ∪ добавленные пользователю."
         },
         "personal_capabilities": {
           "type": "array",
           "uniqueItems": true,
           "items": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "#/$defs/capability"
           },
-          "description": "Personal capabilities (`user_roles` rows with a capability role)."
+          "description": "Capabilities, добавленные пользователю сверх tier (правятся через users.set)."
         },
         "first_seen_at": {
           "type": "string",
@@ -312,29 +333,43 @@
           "type": "string",
           "format": "date-time"
         },
-        "trial_started_at": {
-          "type": [
-            "string",
-            "null"
+        "trial_started_on": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.v1.json#/$defs/accessDate"
+            }
           ],
-          "format": "date-time",
-          "description": "null — the trial has never been given."
+          "description": "День, когда пользователь включил пробный период; null — не включал."
         },
-        "trial_ends_at": {
-          "type": [
-            "string",
-            "null"
+        "trial_ends_on": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.v1.json#/$defs/accessDate"
+            }
           ],
-          "format": "date-time",
-          "description": "`full` until this moment (trial)."
+          "description": "Последний день пробного периода включительно; null — не включал."
         },
-        "grant_until": {
-          "type": [
-            "string",
-            "null"
+        "grace_until": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.v1.json#/$defs/accessDate"
+            }
           ],
-          "format": "date-time",
-          "description": "Manual extension: `full` until this moment; null — none."
+          "description": "Последний день льготного периода включительно; null — нет."
+        },
+        "late_days": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Накопительно дней без подписки между её окончанием и возобновлением (только статистика)."
         },
         "subscription": {
           "description": "The last subscription period; null — never subscribed.",
@@ -400,7 +435,7 @@
     },
     "providerGroup": {
       "type": "object",
-      "description": "A group of an authorization provider (a hint for choosing `group_roles`).",
+      "description": "Группа провайдера авторизации (выбор группы в составе tier).",
       "required": [
         "provider",
         "group_id",
@@ -526,115 +561,60 @@
         }
       }
     },
-    "userSet": {
+    "usersSetItem": {
       "type": "object",
-      "title": "afbws.access.user.set.v1 — set a user's trial end, manual grant and/or personal capabilities (request / response), staff.",
-      "description": "Request: `user_id` + `trial_ends_at`, `grant_until` and/or `capabilities` (at least one; null removes the trial end / grant; `capabilities` replaces the personal capabilities). The first `trial_ends_at` for a user without a trial (`trial_started_at` null) also sets `trial_started_at` = now. Response: `user_id` + `item` — the updated row. Unknown user -> error `not_found`.",
+      "description": "Элемент запроса users.set: хотя бы одно из `grace_until`, `capabilities`.",
       "required": [
-        "channel",
-        "schema",
-        "request_id",
         "user_id"
       ],
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "const": "access"
-        },
-        "schema": {
-          "const": "afbws.access.user.set.v1"
-        },
-        "request_id": {
-          "$ref": "common.v1.json#/$defs/requestId"
-        },
         "user_id": {
           "type": "string",
           "minLength": 1
         },
-        "trial_ends_at": {
-          "type": [
-            "string",
-            "null"
+        "grace_until": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.v1.json#/$defs/accessDate"
+            }
           ],
-          "format": "date-time",
-          "description": "Request only: new trial end; null — remove the trial end."
-        },
-        "grant_until": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "date-time",
-          "description": "Request only: manual grant until; null — remove the grant."
+          "description": "Последний день льготного периода; null — снять."
         },
         "capabilities": {
           "type": "array",
           "uniqueItems": true,
           "items": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "#/$defs/capability"
           },
-          "description": "Request only: the user's personal capabilities, replace-all ([] — remove all personal ones; group capabilities are not affected)."
-        },
-        "item": {
-          "$ref": "#/$defs/userRow"
+          "description": "Capabilities, добавленные пользователю, замена целиком; [] — снять все добавленные (capabilities tier не затрагиваются)."
         }
       },
-      "if": {
-        "required": [
-          "item"
-        ]
-      },
-      "then": {
-        "not": {
-          "anyOf": [
-            {
-              "required": [
-                "trial_ends_at"
-              ]
-            },
-            {
-              "required": [
-                "grant_until"
-              ]
-            },
-            {
-              "required": [
-                "capabilities"
-              ]
-            }
+      "anyOf": [
+        {
+          "required": [
+            "grace_until"
+          ]
+        },
+        {
+          "required": [
+            "capabilities"
           ]
         }
-      },
-      "else": {
-        "anyOf": [
-          {
-            "required": [
-              "trial_ends_at"
-            ]
-          },
-          {
-            "required": [
-              "grant_until"
-            ]
-          },
-          {
-            "required": [
-              "capabilities"
-            ]
-          }
-        ]
-      }
+      ]
     },
-    "userTierSet": {
+    "usersSet": {
       "type": "object",
-      "title": "afbws.access.user.tier.set.v1 — set a user's personal tier (request / response), admin only.",
-      "description": "Request: `user_id`, `tier` — the personal tier (any tier incl. `admin`/`manager`) or null (remove: tier by groups / default). Response: `user_id` + `item` — the updated row. Unknown user / tier -> error `not_found` / `validation_error`; removing the last `admin` assignment -> `validation_error`.",
+      "title": "afbws.access.users.set.v1 — льготный период и добавленные capabilities пользователей пакетом (запрос / ответ), staff.",
+      "description": "Запрос: `items[]` — `{user_id, grace_until?, capabilities?}` (хотя бы одно из двух). Ответ: `items[]` — обновлённые строки userRow. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей (входившие хотя бы раз).",
       "required": [
         "channel",
         "schema",
         "request_id",
-        "user_id"
+        "items"
       ],
       "additionalProperties": false,
       "properties": {
@@ -642,11 +622,41 @@
           "const": "access"
         },
         "schema": {
-          "const": "afbws.access.user.tier.set.v1"
+          "const": "afbws.access.users.set.v1"
         },
         "request_id": {
           "$ref": "common.v1.json#/$defs/requestId"
         },
+        "items": {
+          "description": "Запрос: элементы usersSetItem; ответ: строки userRow.",
+          "oneOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/usersSetItem"
+              }
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/userRow"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "usersTierSetItem": {
+      "type": "object",
+      "description": "Элемент запроса users.tier.set.",
+      "required": [
+        "user_id",
+        "tier"
+      ],
+      "additionalProperties": false,
+      "properties": {
         "user_id": {
           "type": "string",
           "minLength": 1
@@ -660,32 +670,76 @@
               "$ref": "#/$defs/tierName"
             }
           ],
-          "description": "Request only: personal tier; null — remove the personal tier."
-        },
-        "item": {
-          "$ref": "#/$defs/userRow"
+          "description": "tier — включить пользователя в tier лично (любой, в т.ч. `admin`/`manager`); null — исключить из личного tier (останется tier по группам / по умолчанию)."
         }
-      },
-      "if": {
-        "required": [
-          "item"
-        ]
-      },
-      "then": {
-        "not": {
-          "anyOf": [
+      }
+    },
+    "usersTierSet": {
+      "type": "object",
+      "title": "afbws.access.users.tier.set.v1 — личный tier пользователей пакетом (запрос / ответ), только admin.",
+      "description": "Запрос: `items[]` — `{user_id, tier|null}`: tier — включить лично; null — исключить из личного tier. Ответ: `items[]` — обновлённые строки userRow. Неизвестный tier / исключение последнего личного `admin` → `validation_error`. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей (входившие хотя бы раз).",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.users.tier.set.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "items": {
+          "description": "Запрос: элементы usersTierSetItem; ответ: строки userRow.",
+          "oneOf": [
             {
-              "required": [
-                "tier"
-              ]
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/usersTierSetItem"
+              }
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/userRow"
+              }
             }
           ]
         }
-      },
-      "else": {
-        "required": [
-          "tier"
-        ]
+      }
+    },
+    "trialStart": {
+      "type": "object",
+      "title": "afbws.access.trial.start.v1 — включить свой пробный период (запрос / ответ), любой пользователь.",
+      "description": "Запрос: только `request_id`. Ответ: `trial` — новое состояние пробного периода (как access.trial); затем пуш afbws.auth.v1. Пробный период включается один раз: `trial_started_on` = сегодня, `trial_ends_on` = сегодня + `trial_days` − 1. Недоступен → error `validation_error` «Пробный период недоступен».",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.trial.start.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "trial": {
+          "$ref": "common.v1.json#/$defs/accessTrial",
+          "description": "Только в ответе."
+        }
       }
     },
     "policyGet": {
@@ -789,7 +843,7 @@
     },
     "tiersGet": {
       "type": "object",
-      "title": "afbws.access.tiers.get.v1 — tiers and their limits (request / response), admin only.",
+      "title": "afbws.access.tiers.get.v1 — tiers, their capabilities and limits (request / response), admin only.",
       "description": "Request: only `request_id`. Response: `tiers[]` — every tier incl. `admin`/`manager` (policies — afbws.access.policy.get.v1).",
       "required": [
         "channel",
@@ -819,7 +873,7 @@
     "tiersSet": {
       "type": "object",
       "title": "afbws.access.tiers.set.v1 — replace the tiers (request / response), admin only.",
-      "description": "Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title` and `limits` change); other ranks 1..99, unique; a tier cannot be removed while referenced by `user_roles`/`group_roles`/`policy.as_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.",
+      "description": "Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title`, `capabilities` and `limits` change); other ranks 1..99, unique; capabilities — из набора кода; a tier cannot be removed while referenced by `tier_members`/`policy.as_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.",
       "required": [
         "channel",
         "schema",
@@ -850,8 +904,8 @@
     },
     "groupsGet": {
       "type": "object",
-      "title": "afbws.access.groups.get.v1 — provider group assignments (request / response), admin only.",
-      "description": "Request: only `request_id`. Response: `group_roles[]`, `provider_groups[]`, `provider_groups_error`.",
+      "title": "afbws.access.groups.get.v1 — группы провайдера в составе tier (запрос / ответ), только admin.",
+      "description": "Запрос: только `request_id`. Ответ: `groups[]`, `provider_groups[]`, `provider_groups_error`.",
       "required": [
         "channel",
         "schema",
@@ -868,17 +922,17 @@
         "request_id": {
           "$ref": "common.v1.json#/$defs/requestId"
         },
-        "group_roles": {
+        "groups": {
           "type": "array",
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/groupRole"
+            "$ref": "#/$defs/tierGroup"
           },
-          "description": "Response only."
+          "description": "Только в ответе: группы провайдера в составе tier."
         },
         "provider_groups": {
           "type": "array",
-          "description": "Response only: groups of the authorization providers (hints for choosing `group_roles`).",
+          "description": "Только в ответе: группы провайдеров авторизации (выбор группы во вкладке «Группы» — только из этого списка).",
           "items": {
             "$ref": "#/$defs/providerGroup"
           }
@@ -893,12 +947,12 @@
       },
       "if": {
         "required": [
-          "group_roles"
+          "groups"
         ]
       },
       "then": {
         "required": [
-          "group_roles",
+          "groups",
           "provider_groups",
           "provider_groups_error"
         ]
@@ -922,13 +976,13 @@
     },
     "groupsSet": {
       "type": "object",
-      "title": "afbws.access.groups.set.v1 — replace the provider group assignments (request / response), admin only.",
-      "description": "Request: `group_roles[]` — replace-all of the `group_roles` table (unknown tier/capability or removing the last `admin` assignment -> `validation_error`). Response: as afbws.access.groups.get.v1.",
+      "title": "afbws.access.groups.set.v1 — заменить группы провайдера в составе tier (запрос / ответ), только admin.",
+      "description": "Запрос: `groups[]` — замена целиком всех строк `tier_members` kind=group (неизвестный tier / tier персонала / повтор группы → `validation_error`). Ответ: как afbws.access.groups.get.v1.",
       "required": [
         "channel",
         "schema",
         "request_id",
-        "group_roles"
+        "groups"
       ],
       "additionalProperties": false,
       "properties": {
@@ -941,16 +995,17 @@
         "request_id": {
           "$ref": "common.v1.json#/$defs/requestId"
         },
-        "group_roles": {
+        "groups": {
           "type": "array",
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/groupRole"
-          }
+            "$ref": "#/$defs/tierGroup"
+          },
+          "description": "Группы провайдера в составе tier, замена целиком (на (`provider`, `group_id`) — один tier, проверяет сервер)."
         },
         "provider_groups": {
           "type": "array",
-          "description": "Response only: groups of the authorization providers (hints for choosing `group_roles`).",
+          "description": "Только в ответе: группы провайдеров авторизации (выбор группы во вкладке «Группы» — только из этого списка).",
           "items": {
             "$ref": "#/$defs/providerGroup"
           }
@@ -994,7 +1049,7 @@
     "stats": {
       "type": "object",
       "title": "afbws.access.stats.v1 — weekly conversion statistics (request / response), staff.",
-      "description": "Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `weeks[]` (oldest first), one per calendar week intersecting the range. `new_users` — users whose `first_seen_at` falls in the week; `trials_started` — users whose `trial_started_at` falls in the week; `converted` — subscription periods started in the week; `active` — users whose `last_seen_at` falls in the week.",
+      "description": "Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `weeks[]` (oldest first), one per calendar week intersecting the range. `new_users` — users whose `first_seen_at` falls in the week; `trials_started` — users whose `trial_started_on` falls in the week; `converted` — subscription periods started in the week; `active` — users whose `last_seen_at` falls in the week.",
       "required": [
         "channel",
         "schema",

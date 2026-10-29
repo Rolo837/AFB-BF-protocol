@@ -8,6 +8,11 @@
       "title": "Администраторы",
       "rank": 999,
       "subscription": false,
+      "capabilities": [
+        "trade",
+        "virtual",
+        "screener"
+      ],
       "limits": {
         "max_favorites_tickers": 500,
         "max_primitives_per_user": 1000,
@@ -20,6 +25,10 @@
       "title": "Менеджеры",
       "rank": 100,
       "subscription": false,
+      "capabilities": [
+        "virtual",
+        "screener"
+      ],
       "limits": {
         "max_favorites_tickers": 500,
         "max_primitives_per_user": 1000,
@@ -32,6 +41,9 @@
       "title": "Подписчик",
       "rank": 20,
       "subscription": true,
+      "capabilities": [
+        "virtual"
+      ],
       "limits": {
         "max_favorites_tickers": 42,
         "max_primitives_per_user": 100,
@@ -44,6 +56,7 @@
       "title": "Лайт",
       "rank": 15,
       "subscription": true,
+      "capabilities": [],
       "limits": {
         "max_favorites_tickers": 10,
         "max_primitives_per_user": 20,
@@ -56,6 +69,7 @@
       "title": "Гость",
       "rank": 10,
       "subscription": false,
+      "capabilities": [],
       "limits": {
         "max_favorites_tickers": 10,
         "max_primitives_per_user": 20,

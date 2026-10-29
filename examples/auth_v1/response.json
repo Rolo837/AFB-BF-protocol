@@ -15,7 +15,8 @@
     "tier": "user",
     "capabilities": [
       "trade",
-      "virtual"
+      "virtual",
+      "local"
     ],
     "limits": {
       "max_favorites_tickers": 42,
@@ -23,6 +24,8 @@
       "max_sets": 20,
       "max_favorite_colors": 5
     },
-    "mode": "full"
+    "mode": "full",
+    "trial": null,
+    "grace": null
   }
 }

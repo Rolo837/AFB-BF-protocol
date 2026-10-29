@@ -34,7 +34,7 @@
     "accessTier": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9_]*$",
-      "description": "Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `admin`, `manager`, `user`, `guest`, a new subscription tier `lite`), NOT an enum: a new tier needs no protocol change. Only the staff tiers `admin` and `manager` are reserved by code (staff functions gated on the tier independently of `mode`; `admin` additionally manages tiers, groups and personal tiers). Comes from the backend's access database (personal `user_roles` and provider-group `group_roles`); the tier with the minimal rank is the default for users not matched by any of them."
+      "description": "Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `admin`, `manager`, `user`, `guest`, a new subscription tier `lite`), NOT an enum: a new tier needs no protocol change. Only the staff tiers `admin` and `manager` are reserved by code (staff functions gated on the tier independently of `mode`; `admin` additionally manages tiers, their members and groups). Состав tier — таблица `tier_members` базы доступа: tier пользователя = личный → иначе по группам провайдера (старший по rank) → иначе tier по умолчанию (минимальный rank)."
     },
     "accessMode": {
       "type": "string",
@@ -73,15 +73,111 @@
         }
       }
     },
+    "accessDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "Дата YYYY-MM-DD в поясе сервера; действует до конца указанного дня (до 00:00 следующего дня пояса сервера)."
+    },
+    "accessTrialAvailable": {
+      "type": "object",
+      "description": "Пробный период доступен: пользователь может включить его сам (afbws.access.trial.start.v1).",
+      "required": [
+        "state",
+        "days"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "const": "available"
+        },
+        "days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Срок пробного периода в днях (`trial_days` политики tier)."
+        }
+      }
+    },
+    "accessTrialActive": {
+      "type": "object",
+      "description": "Пробный период идёт.",
+      "required": [
+        "state",
+        "ends_on",
+        "days_left"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "const": "active"
+        },
+        "ends_on": {
+          "$ref": "#/$defs/accessDate",
+          "description": "Последний день пробного периода включительно."
+        },
+        "days_left": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "`ends_on` − сегодня + 1; меняется в полночь пояса сервера."
+        }
+      }
+    },
+    "accessTrial": {
+      "description": "Пробный период пользователя: null — недоступен и не активен; `available` — можно включить; `active` — идёт.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/accessTrialAvailable"
+        },
+        {
+          "$ref": "#/$defs/accessTrialActive"
+        }
+      ]
+    },
+    "accessGraceActive": {
+      "type": "object",
+      "description": "Льготный период после окончания подписки.",
+      "required": [
+        "ends_on",
+        "days_left"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "ends_on": {
+          "$ref": "#/$defs/accessDate",
+          "description": "Последний день льготного периода включительно."
+        },
+        "days_left": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "`ends_on` − сегодня + 1; меняется в полночь пояса сервера."
+        }
+      }
+    },
+    "accessGrace": {
+      "description": "Льготный период: null — вне льготного периода (в т.ч. у подписчика).",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/accessGraceActive"
+        }
+      ]
+    },
     "access": {
       "type": "object",
       "title": "Effective access of one connection (afbws.auth.v1 response/push `access`).",
-      "description": "Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — personal permissions granted by staff, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.",
+      "description": "Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — permissions: capabilities of the tier ∪ capabilities added to the user (`trade` — real trading through BF, `virtual`, `screener`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.",
       "required": [
         "tier",
         "capabilities",
         "limits",
-        "mode"
+        "mode",
+        "trial",
+        "grace"
       ],
       "additionalProperties": false,
       "properties": {
@@ -95,13 +191,19 @@
             "type": "string",
             "minLength": 1
           },
-          "description": "Personal capability names (`trade`, `virtual`, `screener`, `local`; the set is defined by the backend code)."
+          "description": "Действующие capabilities (строки): capabilities tier ∪ добавленные пользователю (`trade`, `virtual`, `screener`). `local` — не назначаемая capability: бэкенд сам добавляет её локальным пользователям (provider `local`; фронт по ней показывает смену пароля)."
         },
         "limits": {
           "$ref": "#/$defs/accessLimits"
         },
         "mode": {
           "$ref": "#/$defs/accessMode"
+        },
+        "trial": {
+          "$ref": "#/$defs/accessTrial"
+        },
+        "grace": {
+          "$ref": "#/$defs/accessGrace"
         }
       }
     }

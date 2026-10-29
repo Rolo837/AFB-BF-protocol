@@ -16,6 +16,11 @@
       "max_sets": 3,
       "max_favorite_colors": 1
     },
-    "mode": "basic"
+    "mode": "basic",
+    "trial": {
+      "state": "available",
+      "days": 14
+    },
+    "grace": null
   }
 }

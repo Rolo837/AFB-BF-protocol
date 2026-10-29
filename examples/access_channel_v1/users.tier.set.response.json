@@ -1,0 +1,54 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.users.tier.set.v1",
+  "request_id": "r-9",
+  "items": [
+    {
+      "user_id": "gc_282811500",
+      "provider": "getcourse",
+      "display_name": "Иван Петров",
+      "tier": "manager",
+      "tier_source": "personal",
+      "capabilities": [
+        "virtual"
+      ],
+      "personal_capabilities": [
+        "virtual"
+      ],
+      "first_seen_at": "2026-10-01T09:12:00Z",
+      "last_seen_at": "2026-10-28T12:40:00Z",
+      "trial_started_on": null,
+      "trial_ends_on": null,
+      "grace_until": "2026-10-03",
+      "late_days": 0,
+      "subscription": {
+        "tier": "user",
+        "started_at": "2026-09-01T08:00:00Z",
+        "ended_at": "2026-10-01T08:00:00Z"
+      }
+    },
+    {
+      "user_id": "gc_301122334",
+      "provider": "getcourse",
+      "display_name": "Ольга Смирнова",
+      "tier": "user",
+      "tier_source": "group",
+      "capabilities": [
+        "virtual",
+        "screener"
+      ],
+      "personal_capabilities": [],
+      "first_seen_at": "2026-09-15T10:00:00Z",
+      "last_seen_at": "2026-10-28T09:05:00Z",
+      "trial_started_on": "2026-09-15",
+      "trial_ends_on": "2026-09-28",
+      "grace_until": null,
+      "late_days": 4,
+      "subscription": {
+        "tier": "user",
+        "started_at": "2026-10-02T07:30:00Z",
+        "ended_at": null
+      }
+    }
+  ]
+}
