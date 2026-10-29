@@ -8,7 +8,13 @@
     "provider": "getcourse",
     "display_name": "Иван Петров",
     "tier": "guest",
-    "capabilities": [],
+    "personal_tier": null,
+    "capabilities": [
+      "virtual"
+    ],
+    "personal_capabilities": [
+      "virtual"
+    ],
     "first_seen_at": "2026-10-01T09:12:00Z",
     "last_seen_at": "2026-10-28T12:40:00Z",
     "trial_started_at": "2026-10-01T09:12:00Z",

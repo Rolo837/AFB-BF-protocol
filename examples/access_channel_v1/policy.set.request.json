@@ -1,0 +1,17 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.policy.set.v1",
+  "request_id": "r-12",
+  "tier": "lite",
+  "policy": {
+    "as_tier": "user",
+    "workday": {
+      "from": "19:00",
+      "to": "23:50"
+    },
+    "weekend": {
+      "from": "00:00",
+      "to": "23:59"
+    }
+  }
+}

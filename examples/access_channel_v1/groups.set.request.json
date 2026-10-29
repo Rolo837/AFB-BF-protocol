@@ -1,0 +1,27 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.groups.set.v1",
+  "request_id": "r-16",
+  "group_roles": [
+    {
+      "role": "user",
+      "provider": "getcourse",
+      "group_id": "3125478"
+    },
+    {
+      "role": "lite",
+      "provider": "getcourse",
+      "group_id": "3125480"
+    },
+    {
+      "role": "virtual",
+      "provider": "getcourse",
+      "group_id": "3125478"
+    },
+    {
+      "role": "admin",
+      "provider": "getcourse",
+      "group_id": "3125490"
+    }
+  ]
+}

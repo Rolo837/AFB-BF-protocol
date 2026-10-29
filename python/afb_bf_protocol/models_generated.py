@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: e876afe53812a24d479d2f46c0b90e662c0391088621b4c428720d27d5508bec
+# source-hash: 341509b0bd694a31e76106c38024247057b5ecceb357d8d4cca46dc6b129629f
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from typing import Any, Literal, NotRequired, TypeAlias, TypedDict
 
 class Access(TypedDict):
     """
-    Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; manager functions are gated on `tier == manager` only). (2) `capabilities` — personal permissions granted by a manager, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
+    Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — personal permissions granted by staff, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
     """
 
     tier: AccessTier
@@ -36,6 +36,15 @@ AccessMode: TypeAlias = Literal["full", "basic"]
 AccessTier: TypeAlias = str
 
 
+class AccessV1CapabilityLabel(TypedDict):
+    """
+    A capability and its label; the set and the labels are defined by the backend code (the frontend does not hardcode them).
+    """
+
+    capability: str
+    title: str
+
+
 class AccessV1Denied(TypedDict):
     """
     Answer to a request of any schema-first channel that the current `mode` does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `basic` — feature not available in basic mode; `showcase` — basic mode with showcase, the instrument is not in the showcase; `held` — activation of an alarm/trade plan while the owner's objects are held. `feature` — gate feature id (e.g. `datasets`, `participants`, `virtual`, `screener`, `alarm.activate`). `message` — ready-to-show text (includes when `full` becomes available, if known).
@@ -51,7 +60,7 @@ class AccessV1Denied(TypedDict):
 
 class AccessV1Error(TypedDict):
     """
-    `code` is a closed subset of common errorCode: `forbidden` (not a manager), `validation_error`, `not_found` (unknown user), `invalid_channel`, `invalid_schema`, `internal_error`.
+    `code` is a closed subset of common errorCode: `forbidden` (the operation is not allowed for the connection's tier: not staff / not admin), `validation_error`, `not_found` (unknown user / tier), `invalid_channel`, `invalid_schema`, `internal_error`.
     """
 
     channel: Literal["access"]
@@ -78,9 +87,35 @@ class AccessV1GroupRole(TypedDict):
     group_id: str
 
 
+class AccessV1GroupsGet(TypedDict):
+    """
+    Request: only `request_id`. Response: `group_roles[]`, `provider_groups[]`, `provider_groups_error`.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.groups.get.v1"]
+    request_id: AfbwsCommonV1RequestId
+    group_roles: NotRequired[list[AccessV1GroupRole]]
+    provider_groups: NotRequired[list[AccessV1ProviderGroup]]
+    provider_groups_error: NotRequired[str | None]
+
+
+class AccessV1GroupsSet(TypedDict):
+    """
+    Request: `group_roles[]` — replace-all of the `group_roles` table (unknown tier/capability or removing the last `admin` assignment -> `validation_error`). Response: as afbws.access.groups.get.v1.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.groups.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    group_roles: list[AccessV1GroupRole]
+    provider_groups: NotRequired[list[AccessV1ProviderGroup]]
+    provider_groups_error: NotRequired[str | None]
+
+
 class AccessV1Policy(TypedDict):
     """
-    Mode policy of a tier (`tiers.policy` in the backend's access database). A tier WITH a policy is `full` (with the limits of `as_tier`) while a manual grant, the trial, a time window (stage 3: a showcase instrument) is active, otherwise `basic` with its own limits. A tier without a policy (null) is always `full` with its own limits. The `trade` capability and a paid tier are always `full`.
+    Mode policy of a tier (`tiers.policy` in the backend's access database). A tier WITH a policy is `full` (with the limits of `as_tier`) while a manual grant, the trial, a time window (stage 3: a showcase instrument) is active, otherwise `basic` with its own limits. A tier without a policy (null) is always `full` with its own limits. The `trade` capability and a subscription tier are always `full`.
     """
 
     as_tier: AccessTier
@@ -88,6 +123,41 @@ class AccessV1Policy(TypedDict):
     workday: NotRequired[AccessV1Window | None]
     weekend: NotRequired[AccessV1Window | None]
     showcase: NotRequired[AccessV1Showcase]
+
+
+class AccessV1PolicyGet(TypedDict):
+    """
+    Request: only `request_id`. Response: `tiers[]` — every non-staff tier with its policy.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.policy.get.v1"]
+    request_id: AfbwsCommonV1RequestId
+    tiers: NotRequired[list[AccessV1PolicyRow]]
+
+
+class AccessV1PolicyRow(TypedDict):
+    """
+    Mode policy of one tier (afbws.access.policy.*). Staff tiers (`admin`, `manager`) have no policy and are not listed.
+    """
+
+    tier: AccessTier
+    title: str
+    rank: int
+    policy: AccessV1Policy | None
+
+
+class AccessV1PolicySet(TypedDict):
+    """
+    Request (request-only fields): `tier` (not `admin`/`manager`), `policy` (null — no policy: always `full` with own limits). Response: as afbws.access.policy.get.v1. Unknown tier -> `not_found`; staff tier -> `validation_error`.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.policy.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    tier: NotRequired[AccessTier]
+    policy: NotRequired[AccessV1Policy | None]
+    tiers: NotRequired[list[AccessV1PolicyRow]]
 
 
 AccessV1Provider: TypeAlias = str
@@ -101,38 +171,6 @@ class AccessV1ProviderGroup(TypedDict):
     provider: AccessV1Provider
     group_id: str
     title: str
-
-
-class AccessV1RolesGet(TypedDict):
-    """
-    Request: only `request_id`. Response: `tiers[]`, `user_roles[]`, `group_roles[]`, `capabilities[]`, `provider_groups[]`, `provider_groups_error`.
-    """
-
-    channel: Literal["access"]
-    schema: Literal["afbws.access.roles.get.v1"]
-    request_id: AfbwsCommonV1RequestId
-    tiers: NotRequired[list[AccessV1TierRow]]
-    user_roles: NotRequired[list[AccessV1UserRole]]
-    group_roles: NotRequired[list[AccessV1GroupRole]]
-    capabilities: NotRequired[list[Capability]]
-    provider_groups: NotRequired[list[AccessV1ProviderGroup]]
-    provider_groups_error: NotRequired[str | None]
-
-
-class AccessV1RolesSet(TypedDict):
-    """
-    Request: `tiers[]` (at least one; `tier` names must be unique — checked by the server), `user_roles[]` and `group_roles[]` — replace-all of the three tables. Response: the saved snapshot, as afbws.access.roles.get.v1.
-    """
-
-    channel: Literal["access"]
-    schema: Literal["afbws.access.roles.set.v1"]
-    request_id: AfbwsCommonV1RequestId
-    tiers: list[AccessV1TierRow]
-    user_roles: list[AccessV1UserRole]
-    group_roles: list[AccessV1GroupRole]
-    capabilities: NotRequired[list[Capability]]
-    provider_groups: NotRequired[list[AccessV1ProviderGroup]]
-    provider_groups_error: NotRequired[str | None]
 
 
 class AccessV1Showcase(TypedDict):
@@ -158,7 +196,7 @@ class AccessV1StatsWeek(TypedDict):
 
 class AccessV1Subscription(TypedDict):
     """
-    One paid subscription period (row of the `subscriptions` table).
+    One subscription period (row of the `subscriptions` table).
     """
 
     tier: AccessTier
@@ -166,38 +204,61 @@ class AccessV1Subscription(TypedDict):
     ended_at: str | None
 
 
+class AccessV1TierLabel(TypedDict):
+    """
+    A tier and its label (for choosing a tier in the staff UI).
+    """
+
+    tier: AccessTier
+    title: str
+
+
 class AccessV1TierRow(TypedDict):
     """
-    One tier (one row of the `tiers` table).
+    One tier (one row of the `tiers` table without `policy`; the policy is edited by afbws.access.policy.*).
     """
 
     tier: AccessTier
     title: str
     rank: int
-    paid: bool
+    subscription: bool
     limits: AccessLimits
-    policy: AccessV1Policy | None
 
 
-class AccessV1UserRole(TypedDict):
+class AccessV1TiersGet(TypedDict):
     """
-    Personal assignment of a tier or a capability to one user (one row of the `user_roles` table).
+    Request: only `request_id`. Response: `tiers[]` — every tier incl. `admin`/`manager` (policies — afbws.access.policy.get.v1).
     """
 
-    role: str
-    user_id: str
+    channel: Literal["access"]
+    schema: Literal["afbws.access.tiers.get.v1"]
+    request_id: AfbwsCommonV1RequestId
+    tiers: NotRequired[list[AccessV1TierRow]]
+
+
+class AccessV1TiersSet(TypedDict):
+    """
+    Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title` and `limits` change); other ranks 1..99, unique; a tier cannot be removed while referenced by `user_roles`/`group_roles`/`policy.as_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.tiers.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    tiers: list[AccessV1TierRow]
 
 
 class AccessV1UserRow(TypedDict):
     """
-    One user who has logged in at least once (row of the `users` table + resolved tier/capabilities + the last subscription period). `provider` — who authenticates the user and supplies its groups.
+    One user who has logged in at least once (row of the `users` table + resolved tier/capabilities + the last subscription period). `provider` — who authenticates the user and supplies its groups. `tier`/`capabilities` — effective (personal `user_roles` ∪ provider groups `group_roles`); `personal_tier`/`personal_capabilities` — the personal `user_roles` assignments only (editable; group assignments are visible in `capabilities` but not edited from here).
     """
 
     user_id: str
     provider: AccessV1Provider
     display_name: str | None
     tier: AccessTier
+    personal_tier: AccessTier | None
     capabilities: list[Capability]
+    personal_capabilities: list[PersonalCapability]
     first_seen_at: str
     last_seen_at: str
     trial_started_at: str | None
@@ -208,7 +269,7 @@ class AccessV1UserRow(TypedDict):
 
 class AccessV1UserSet(TypedDict):
     """
-    Request: `user_id` + `trial_ends_at` and/or `grant_until` (at least one; null removes). The first `trial_ends_at` for a user without a trial (`trial_started_at` null) also sets `trial_started_at` = now. Response: `user_id` + `item` — the updated row. Unknown user -> error `not_found`.
+    Request: `user_id` + `trial_ends_at`, `grant_until` and/or `capabilities` (at least one; null removes the trial end / grant; `capabilities` replaces the personal capabilities). The first `trial_ends_at` for a user without a trial (`trial_started_at` null) also sets `trial_started_at` = now. Response: `user_id` + `item` — the updated row. Unknown user -> error `not_found`.
     """
 
     channel: Literal["access"]
@@ -217,18 +278,34 @@ class AccessV1UserSet(TypedDict):
     user_id: str
     trial_ends_at: NotRequired[str | None]
     grant_until: NotRequired[str | None]
+    capabilities: NotRequired[list[Capability]]
+    item: NotRequired[AccessV1UserRow]
+
+
+class AccessV1UserTierSet(TypedDict):
+    """
+    Request: `user_id`, `tier` — the personal tier (any tier incl. `admin`/`manager`) or null (remove: tier by groups / default). Response: `user_id` + `item` — the updated row. Unknown user / tier -> error `not_found` / `validation_error`; removing the last `admin` assignment -> `validation_error`.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.user.tier.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    user_id: str
+    tier: NotRequired[AccessTier | None]
     item: NotRequired[AccessV1UserRow]
 
 
 class AccessV1UsersList(TypedDict):
     """
-    Request: only `request_id`. Response: `items[]` — every user who has logged in at least once (no server-side filtering or paging).
+    Request: only `request_id`. Response: `items[]` — every user who has logged in at least once (no server-side filtering or paging), `tiers[]` and `capabilities[]` — labels for the staff UI.
     """
 
     channel: Literal["access"]
     schema: Literal["afbws.access.users.list.v1"]
     request_id: AfbwsCommonV1RequestId
     items: NotRequired[list[AccessV1UserRow]]
+    tiers: NotRequired[list[AccessV1TierLabel]]
+    capabilities: NotRequired[list[AccessV1CapabilityLabel]]
 
 
 AccessV1Window = TypedDict(
@@ -831,10 +908,15 @@ AccessV1Stats = TypedDict(
 
 
 AccessChannelV1Message: TypeAlias = (
-    AccessV1RolesGet
-    | AccessV1RolesSet
-    | AccessV1UsersList
+    AccessV1UsersList
     | AccessV1UserSet
+    | AccessV1UserTierSet
+    | AccessV1PolicyGet
+    | AccessV1PolicySet
+    | AccessV1TiersGet
+    | AccessV1TiersSet
+    | AccessV1GroupsGet
+    | AccessV1GroupsSet
     | AccessV1Stats
     | AccessV1Denied
     | AccessV1Error
@@ -4615,6 +4697,9 @@ class PayloadsDealRejectedBrokerError(TypedDict):
     kind: str
     native_code: NotRequired[str | None]
     native_message: NotRequired[str | None]
+
+
+PersonalCapability: TypeAlias = str
 
 
 class Plans(TypedDict):

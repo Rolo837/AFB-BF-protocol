@@ -420,7 +420,7 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/schemas/afbws/screener.channel.v1.json` | Канал `screener` (capability `afbws.screener.channel.v1`), доступ по capability `screener` роли: `list` (выгрузки скринера, новые первыми, `latest`/`intraday_latest`) и `get` (выгрузка по id `night:YYYY-MM-DD` / `intraday:YYYY-MM-DDTHHMM` или алиасу `latest`/`intraday_latest`; `document` — открытый объект контракта `AFB/docs/SCREENER_RESULTS.md`) `participants` (снимок участников рынка: колоночный формат `columns`/`rows`, как у таблиц `market.series`: справочник деривативов + коллекции и четыре списка `now`/`d1`/`d2`/`w1` — fiz/yur long/short/net, число участников, ОИ, объём; запрос пустой) и `error`; один schema id на сообщение (`afbws.screener.<op>.v1`), `request_id` обязателен в запросах клиента; единственный серверный пуш — `participants` без `request_id` (после каждого обновления позиций FORTS, ~5 мин, подписанным запросом соединениям); в списках `participants` есть колонка `price` (цена активного контракта); `list`/`get` читают только JSON-файлы, не БД скринера |
 | `spec/schemas/afbws/instrument.channel.v2.json` | Канал `instrument` v2 (capability `afbws.instrument.channel.v2`), любой авторизованный: `catalog`/`sets`/`favorites`/`paint`/`expiration`/`replace`/`detail`, один schema id на сообщение, пуш без `request_id`, инструмент только по `instrument_key`; `sets` — единая команда наборов (личные и глобальные по `visibility`), `detail` — параметры по всем счетам |
 | `spec/schemas/afbws/auth.v1.json` | Рукопожатие WS AFB (capability `afbws.auth.v1`): одна схема `afbws.auth.v1` — запрос / ответ (с блоком `access`) / пуш при смене доступа, и `afbws.auth.error.v1`; заменяет легаси `type: "auth"`/`auth_ok`/`auth_error` (бэкенд понимает обе формы, см. §20) |
-| `spec/schemas/afbws/access.channel.v1.json` | Канал `access` (capability `afbws.access.channel.v1`): модель доступа tier × capabilities × mode; менеджерские `roles.get/set`, `users.list`, `user.set`, `stats`; отказ гейта `denied`, `error` (см. §20) |
+| `spec/schemas/afbws/access.channel.v1.json` | Канал `access` (capability `afbws.access.channel.v1`): модель доступа tier × capabilities × mode; операции персонала `users.list`, `user.set`, `policy.get/set`, `stats` и только admin `user.tier.set`, `tiers.get/set`, `groups.get/set`; отказ гейта `denied`, `error` (см. §20) |
 | `spec/schemas/payloads/` | JSON Schema каждого payload |
 | `examples/` | Подписанные примеры конвертов |
 | `examples/tradeplans/` | Примеры шаблонов ТП (не конверты, не подписываются) |
@@ -1224,8 +1224,8 @@ Resync по ревизии и статусу не показывает, что �
 
 | Ось | Значения | Что определяет |
 |---|---|---|
-| `tier` — кто | строка `^[a-z][a-z0-9_]*$` (`manager`, `user`, `guest`, новый tier — данными, без правки протокола) | менеджерские функции (только `tier == manager`, независимо от `mode`); лимиты tier |
-| `capabilities` — персональные допуски | `trade`, `virtual`, `screener`, `local` (набор задаёт код бэкенда) | выдаются менеджером персонально; **`trade` ⇒ всегда `mode: full`** — реальная торговля не холдится |
+| `tier` — кто | строка `^[a-z][a-z0-9_]*$` (`admin`, `manager`, `user`, `guest`, новый tier — данными, без правки протокола) | функции персонала (только tier `admin`/`manager`, независимо от `mode`; персонал всегда `full`); лимиты tier |
+| `capabilities` — персональные допуски | `trade`, `virtual`, `screener`, `local` (набор задаёт код бэкенда) | выдаются персоналом персонально или по группам провайдера; **`trade` ⇒ всегда `mode: full`** — реальная торговля не холдится |
 | `mode` — что доступно сейчас | `full` / `basic` | работают ли платные функции; **вся логика решается только `mode`** |
 
 `limits` — четыре ключа (`max_favorites_tickers`,
@@ -1244,7 +1244,7 @@ Resync по ревизии и статусу не показывает, что �
   в ответе запрещены. Плоских `tier`/`capabilities`/`limits` легаси-`auth_ok` в типизированной
   форме нет — они в `access`;
 - пуш (без `request_id`) — тот же ответ целиком при смене `access` соединения (наступила смена
-  режима, менеджер изменил tiers/роли/триал/grant); клиент заменяет состояние auth.
+  режима, персонал изменил tier/политику/capabilities/триал/grant); клиент заменяет состояние auth.
 
 `afbws.auth.error.v1` — `code` ∈ `unauthorized` (нет сессии, close 4001) | `session_invalid` (профиль не определён, 4001) | `invalid_request` (первое сообщение — не auth, 4000), `message`, `request_id?` (эхо, если запрос удалось прочитать); сервер сразу закрывает сокет.
 
@@ -1260,39 +1260,55 @@ Resync по ревизии и статусу не показывает, что �
 парой (`provider`, `group_id`), `provider` — id адаптера (`getcourse`, `local`; строка, не enum).
 Один schema id на операцию (`afbws.access.<op>.v1`) = запрос = ответ (эхо `request_id`);
 `request_id` обязателен в каждом запросе; запрос и ответ различаются наличием ответных полей,
-ответные поля в запросе запрещены. Все операции — только менеджер
-(иначе `error` с `forbidden`).
+ответные поля в запросе запрещены.
 
-| Операция | Запрос | Ответ |
-|---|---|---|
-| `roles.get` | — | `tiers[]` (`tierRow`), `user_roles[]` (`userRole`), `group_roles[]` (`groupRole`), `capabilities[]` (имена из кода), `provider_groups[]` (`providerGroup`) + `provider_groups_error` (`string\|null`) — подсказки для выбора `group_roles` |
-| `roles.set` | `tiers[]` (≥1; имена `tier` уникальны — проверяет сервер), `user_roles[]`, `group_roles[]` — замена трёх таблиц целиком | как `roles.get` |
-| `users.list` | — | `items[]` (`userRow`) — все пользователи, без фильтров и пагинации |
-| `user.set` | `user_id` + `trial_ends_at?` и/или `grant_until?` (хотя бы одно; `null` — снять). Первый `trial_ends_at` у пользователя без триала ставит `trial_started_at = now` | `user_id` + `item` (`userRow`); неизвестный пользователь → `not_found` |
-| `stats` | `from`, `to` (даты, включительно, МСК) | эхо `from`/`to` + `weeks[]` `{week, new_users, trials_started, converted, active}` |
+Персонал — два зарезервированных кодом tier: `admin` (rank 999) и `manager` (rank 100);
+staff = admin + manager. Операции разделены по обязанностям; чужая операция → `error` с `forbidden`.
+
+| Операция | Кто | Запрос | Ответ |
+|---|---|---|---|
+| `users.list` | staff | — | `items[]` (`userRow`) — все пользователи, без фильтров и пагинации; `tiers[]` (`tierLabel` `{tier, title}`, все tier) и `capabilities[]` (`capabilityLabel` `{capability, title}`) — подписи из кода бэкенда, фронт их не хардкодит |
+| `user.set` | staff | `user_id` + `trial_ends_at?`, `grant_until?` (`null` — снять), `capabilities?` (персональные, замена целиком) — хотя бы одно. Первый `trial_ends_at` у пользователя без триала ставит `trial_started_at = now` | `user_id` + `item` (`userRow`); неизвестный пользователь → `not_found` |
+| `user.tier.set` | admin | `user_id`, `tier` (персональный tier, в т.ч. `admin`/`manager`) \| `null` (снять: tier по группам / по умолчанию) | `user_id` + `item` (`userRow`) |
+| `policy.get` | staff | — | `tiers[]` (`policyRow` `{tier, title, rank, policy\|null}`) — все tier, кроме `admin`/`manager` |
+| `policy.set` | staff | `tier` (не персонал), `policy` \| `null` | как `policy.get` |
+| `stats` | staff | `from`, `to` (даты, включительно, МСК) | эхо `from`/`to` + `weeks[]` `{week, new_users, trials_started, converted, active}` |
+| `tiers.get` | admin | — | `tiers[]` (`tierRow`) — все tier, включая персонал |
+| `tiers.set` | admin | `tiers[]` (≥1; имена уникальны — проверяет сервер) — замена таблицы целиком **без** `policy`: политика оставшегося tier сохраняется, у нового — `null` | как `tiers.get` |
+| `groups.get` | admin | — | `group_roles[]` (`groupRole`), `provider_groups[]` (`providerGroup`) + `provider_groups_error` (`string\|null`) — подсказки для выбора групп |
+| `groups.set` | admin | `group_roles[]` — замена таблицы целиком | как `groups.get` |
+
+Инварианты (проверяет сервер, `validation_error` с причиной в `message`): `admin` и `manager`
+всегда есть, их `rank`/`subscription = false`/политика не меняются (только `title` и `limits`);
+прочие tier — rank 1..99, уникальный; tier нельзя удалить, пока на него ссылаются назначения или
+`policy.as_tier` (`message` перечисляет ссылки); нельзя снять последнее назначение `admin`.
 
 Записи (`$defs`):
 
-- `tierRow` — `tier`, `title` (подпись в админке), `rank` (приоритет при попадании в несколько
-  tier; tier с минимальным `rank` — по умолчанию), `paid` (платная подписка: ведутся периоды,
-  участвует в конверсии), `limits`, `policy` (`policy|null`; `null` — всегда `full` со своими лимитами).
+- `tierRow` — `tier`, `title` (подпись в интерфейсе персонала), `rank` (приоритет при попадании в
+  несколько tier; tier с минимальным `rank` — по умолчанию), `subscription` (tier подписки: ведутся
+  периоды, участвует в конверсии; без политики всегда `full`), `limits`. Политики в строке нет —
+  она в `policyRow`.
+- `policyRow` — `tier`, `title`, `rank`, `policy` (`policy|null`; `null` — всегда `full` со своими лимитами).
 - `policy` — `as_tier` (обязателен: с лимитами какого tier работает пользователь, пока политика
   даёт `full`), `trial_days?` (≥0; 0/нет — триала нет), `workday?`/`weekend?` (`window|null`:
   окно торгового / неторгового по календарю MOEX дня), `showcase?` `{enabled, collection|null}`
   (витрина, этап 3). Других ключей нет. Политика: `full` (лимиты `as_tier`), пока активен
   grant / триал / окно (этап 3 — инструмент витрины), иначе `basic` со своими лимитами.
 - `window` — `{from, to}` в `HH:MM` МСК; `to < from` — через полночь.
-- `userRole` — `role` (имя tier или capability), `user_id` (внутренний id пользователя AFB) —
-  персональное назначение.
-- `groupRole` — `role`, `provider`, `group_id` (id группы у провайдера, строкой) — назначение
-  всем членам внешней группы.
-- `providerGroup` — `provider`, `group_id`, `title` — группа провайдера (подсказка в админке).
-- `userRow` — `user_id`, `provider` (кто аутентифицирует и отдаёт группы), `display_name|null`, `tier`, `capabilities[]`, `first_seen_at`,
-  `last_seen_at`, `trial_started_at|null`, `trial_ends_at|null`, `grant_until|null`,
-  `subscription` — последний период `{tier, started_at, ended_at|null}` или `null`.
+- `tierLabel` — `{tier, title}`; `capabilityLabel` — `{capability, title}`.
+- `groupRole` — `role` (имя tier или capability), `provider`, `group_id` (id группы у провайдера,
+  строкой) — назначение всем членам внешней группы.
+- `providerGroup` — `provider`, `group_id`, `title` — группа провайдера (подсказка в интерфейсе).
+- `userRow` — `user_id`, `provider` (кто аутентифицирует и отдаёт группы), `display_name|null`,
+  `tier` (действующий), `personal_tier|null` (персональный; `null` — по группам / по умолчанию),
+  `capabilities[]` (действующие: персональные ∪ по группам), `personal_capabilities[]`
+  (персональные, редактируются через `user.set`; групповые видны в `capabilities`, но отсюда не
+  правятся), `first_seen_at`, `last_seen_at`, `trial_started_at|null`, `trial_ends_at|null`,
+  `grant_until|null`, `subscription` — последний период подписки `{tier, started_at, ended_at|null}` или `null`.
 
 Статистика `stats` по календарным неделям (`week` — понедельник): `new_users` — `first_seen_at`
-в неделе; `trials_started` — `trial_started_at` в неделе; `converted` — периоды платной подписки,
+в неделе; `trials_started` — `trial_started_at` в неделе; `converted` — периоды подписки,
 начатые в неделе; `active` — `last_seen_at` в неделе.
 
 Серверные сообщения:

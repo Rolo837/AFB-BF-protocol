@@ -3,5 +3,5 @@
   "schema": "afbws.access.error.v1",
   "request_id": "r-7",
   "code": "forbidden",
-  "message": "Только для менеджера"
+  "message": "Только для администратора"
 }

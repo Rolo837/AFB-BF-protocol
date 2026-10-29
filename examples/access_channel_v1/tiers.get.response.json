@@ -1,0 +1,67 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.tiers.get.v1",
+  "request_id": "r-13",
+  "tiers": [
+    {
+      "tier": "admin",
+      "title": "Администраторы",
+      "rank": 999,
+      "subscription": false,
+      "limits": {
+        "max_favorites_tickers": 500,
+        "max_primitives_per_user": 1000,
+        "max_sets": 100,
+        "max_favorite_colors": 5
+      }
+    },
+    {
+      "tier": "manager",
+      "title": "Менеджеры",
+      "rank": 100,
+      "subscription": false,
+      "limits": {
+        "max_favorites_tickers": 500,
+        "max_primitives_per_user": 1000,
+        "max_sets": 100,
+        "max_favorite_colors": 5
+      }
+    },
+    {
+      "tier": "user",
+      "title": "Подписчик",
+      "rank": 20,
+      "subscription": true,
+      "limits": {
+        "max_favorites_tickers": 42,
+        "max_primitives_per_user": 100,
+        "max_sets": 20,
+        "max_favorite_colors": 5
+      }
+    },
+    {
+      "tier": "lite",
+      "title": "Лайт",
+      "rank": 15,
+      "subscription": true,
+      "limits": {
+        "max_favorites_tickers": 10,
+        "max_primitives_per_user": 20,
+        "max_sets": 3,
+        "max_favorite_colors": 1
+      }
+    },
+    {
+      "tier": "guest",
+      "title": "Гость",
+      "rank": 10,
+      "subscription": false,
+      "limits": {
+        "max_favorites_tickers": 10,
+        "max_primitives_per_user": 20,
+        "max_sets": 3,
+        "max_favorite_colors": 1
+      }
+    }
+  ]
+}

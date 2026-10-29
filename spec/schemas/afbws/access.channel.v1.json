@@ -3,20 +3,35 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/access.channel.v1.json",
   "x-afbws-support-id": "afbws.access.channel.v1",
   "title": "access channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support (capability id afbws.access.channel.v1). Freemium access model: tier (who) x capabilities (personal permissions) x mode (what is available now), see common.v1.json#/$defs/access. Messages mirror the backend's access database (tables tiers, user_roles, group_roles, users, subscriptions); the model does not know a concrete authorization provider — external groups are addressed by (`provider`, `group_id`). Same convention as afbws.link/afbws.screener: ONE schema id per operation (`afbws.access.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response (echoes `request_id`); response-only fields are forbidden in a request. `request_id` is required in every client request. Operations (manager only, others get error `forbidden`): `roles.get`/`roles.set` (tiers, user_roles, group_roles; replace the config-channel op `roles`), `users.list`, `user.set` (trial end / manual grant), `stats` (weekly conversion). Server-initiated: `afbws.access.denied.v1` — the gate's refusal of a request of ANY channel (sent on the refused request's channel, with its `request_id`). Changes of the connection's own effective access arrive as an afbws.auth.v1 push. Whole-request failures of this channel: `afbws.access.error.v1`. See AFB/docs/ws/access.md.",
+  "description": "Negotiated via auth.support (capability id afbws.access.channel.v1). Freemium access model: tier (who) x capabilities (personal permissions) x mode (what is available now), see common.v1.json#/$defs/access. Messages mirror the backend's access database (tables tiers, user_roles, group_roles, users, subscriptions); the model does not know a concrete authorization provider — external groups are addressed by (`provider`, `group_id`). Same convention as afbws.link/afbws.screener: ONE schema id per operation (`afbws.access.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response (echoes `request_id`); response-only fields are forbidden in a request. `request_id` is required in every client request. Two staff tiers are reserved by code: `admin` and `manager` (staff = admin + manager). Staff operations (admin and manager): `users.list`, `user.set` (trial end / manual grant / personal capabilities), `policy.get`/`policy.set` (mode policy of tiers), `stats` (weekly conversion). Admin-only operations: `user.tier.set` (personal tier), `tiers.get`/`tiers.set` (tiers and their limits), `groups.get`/`groups.set` (provider group assignments). Any other connection gets error `forbidden`. Server-initiated: `afbws.access.denied.v1` — the gate's refusal of a request of ANY channel (sent on the refused request's channel, with its `request_id`). Changes of the connection's own effective access arrive as an afbws.auth.v1 push. Whole-request failures of this channel: `afbws.access.error.v1`. See AFB/docs/ws/access.md.",
   "type": "object",
   "oneOf": [
-    {
-      "$ref": "#/$defs/rolesGet"
-    },
-    {
-      "$ref": "#/$defs/rolesSet"
-    },
     {
       "$ref": "#/$defs/usersList"
     },
     {
       "$ref": "#/$defs/userSet"
+    },
+    {
+      "$ref": "#/$defs/userTierSet"
+    },
+    {
+      "$ref": "#/$defs/policyGet"
+    },
+    {
+      "$ref": "#/$defs/policySet"
+    },
+    {
+      "$ref": "#/$defs/tiersGet"
+    },
+    {
+      "$ref": "#/$defs/tiersSet"
+    },
+    {
+      "$ref": "#/$defs/groupsGet"
+    },
+    {
+      "$ref": "#/$defs/groupsSet"
     },
     {
       "$ref": "#/$defs/stats"
@@ -58,7 +73,7 @@
     },
     "policy": {
       "type": "object",
-      "description": "Mode policy of a tier (`tiers.policy` in the backend's access database). A tier WITH a policy is `full` (with the limits of `as_tier`) while a manual grant, the trial, a time window (stage 3: a showcase instrument) is active, otherwise `basic` with its own limits. A tier without a policy (null) is always `full` with its own limits. The `trade` capability and a paid tier are always `full`.",
+      "description": "Mode policy of a tier (`tiers.policy` in the backend's access database). A tier WITH a policy is `full` (with the limits of `as_tier`) while a manual grant, the trial, a time window (stage 3: a showcase instrument) is active, otherwise `basic` with its own limits. A tier without a policy (null) is always `full` with its own limits. The `trade` capability and a subscription tier are always `full`.",
       "required": [
         "as_tier"
       ],
@@ -101,14 +116,13 @@
     },
     "tierRow": {
       "type": "object",
-      "description": "One tier (one row of the `tiers` table).",
+      "description": "One tier (one row of the `tiers` table without `policy`; the policy is edited by afbws.access.policy.*).",
       "required": [
         "tier",
         "title",
         "rank",
-        "paid",
-        "limits",
-        "policy"
+        "subscription",
+        "limits"
       ],
       "additionalProperties": false,
       "properties": {
@@ -117,18 +131,40 @@
         },
         "title": {
           "type": "string",
-          "description": "Label shown in the manager UI."
+          "description": "Label shown in the staff UI."
         },
         "rank": {
           "type": "integer",
-          "description": "Priority when a user matches several tiers (higher wins); unique among tiers. The tier with the minimal rank is the default for users not matched by any `user_roles`/`group_roles` row."
+          "description": "Priority when a user matches several tiers (higher wins); unique among tiers. `admin` = 999 and `manager` = 100 are fixed by code, other tiers 1..99 (checked by the server). The tier with the minimal rank is the default for users not matched by any `user_roles`/`group_roles` row."
         },
-        "paid": {
+        "subscription": {
           "type": "boolean",
-          "description": "Paid subscription: subscription periods are logged on login, the tier counts in conversion."
+          "description": "Subscription tier: subscription periods are logged on login, the tier counts in conversion; without a policy always `full`. Always false for `admin`/`manager`."
         },
         "limits": {
           "$ref": "common.v1.json#/$defs/accessLimits"
+        }
+      }
+    },
+    "policyRow": {
+      "type": "object",
+      "description": "Mode policy of one tier (afbws.access.policy.*). Staff tiers (`admin`, `manager`) have no policy and are not listed.",
+      "required": [
+        "tier",
+        "title",
+        "rank",
+        "policy"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "tier": {
+          "$ref": "#/$defs/tierName"
+        },
+        "title": {
+          "type": "string"
+        },
+        "rank": {
+          "type": "integer"
         },
         "policy": {
           "oneOf": [
@@ -143,24 +179,38 @@
         }
       }
     },
-    "userRole": {
+    "tierLabel": {
       "type": "object",
-      "description": "Personal assignment of a tier or a capability to one user (one row of the `user_roles` table).",
+      "description": "A tier and its label (for choosing a tier in the staff UI).",
       "required": [
-        "role",
-        "user_id"
+        "tier",
+        "title"
       ],
       "additionalProperties": false,
       "properties": {
-        "role": {
-          "type": "string",
-          "pattern": "^[a-z][a-z0-9_]*$",
-          "description": "A tier name (from `tiers`) or a capability name (set defined by the backend code)."
+        "tier": {
+          "$ref": "#/$defs/tierName"
         },
-        "user_id": {
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "capabilityLabel": {
+      "type": "object",
+      "description": "A capability and its label; the set and the labels are defined by the backend code (the frontend does not hardcode them).",
+      "required": [
+        "capability",
+        "title"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "capability": {
           "type": "string",
-          "minLength": 1,
-          "description": "Internal AFB user id (as in `users`)."
+          "minLength": 1
+        },
+        "title": {
+          "type": "string"
         }
       }
     },
@@ -191,13 +241,15 @@
     },
     "userRow": {
       "type": "object",
-      "description": "One user who has logged in at least once (row of the `users` table + resolved tier/capabilities + the last subscription period). `provider` — who authenticates the user and supplies its groups.",
+      "description": "One user who has logged in at least once (row of the `users` table + resolved tier/capabilities + the last subscription period). `provider` — who authenticates the user and supplies its groups. `tier`/`capabilities` — effective (personal `user_roles` ∪ provider groups `group_roles`); `personal_tier`/`personal_capabilities` — the personal `user_roles` assignments only (editable; group assignments are visible in `capabilities` but not edited from here).",
       "required": [
         "user_id",
         "provider",
         "display_name",
         "tier",
+        "personal_tier",
         "capabilities",
+        "personal_capabilities",
         "first_seen_at",
         "last_seen_at",
         "trial_started_at",
@@ -223,13 +275,34 @@
         "tier": {
           "$ref": "#/$defs/tierName"
         },
+        "personal_tier": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/tierName"
+            }
+          ],
+          "description": "Personal tier (at most one `user_roles` row with a tier role); null — tier by groups / default."
+        },
         "capabilities": {
           "type": "array",
           "uniqueItems": true,
           "items": {
             "type": "string",
             "minLength": 1
-          }
+          },
+          "description": "Effective capabilities (personal and by groups)."
+        },
+        "personal_capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Personal capabilities (`user_roles` rows with a capability role)."
         },
         "first_seen_at": {
           "type": "string",
@@ -264,7 +337,7 @@
           "description": "Manual extension: `full` until this moment; null — none."
         },
         "subscription": {
-          "description": "The last paid subscription period; null — never subscribed.",
+          "description": "The last subscription period; null — never subscribed.",
           "oneOf": [
             {
               "type": "null"
@@ -323,7 +396,7 @@
           "description": "null — active."
         }
       },
-      "description": "One paid subscription period (row of the `subscriptions` table)."
+      "description": "One subscription period (row of the `subscriptions` table)."
     },
     "providerGroup": {
       "type": "object",
@@ -382,225 +455,10 @@
       },
       "description": "One calendar week of conversion statistics."
     },
-    "rolesGet": {
-      "type": "object",
-      "title": "afbws.access.roles.get.v1 — read tiers, user_roles and group_roles (request / response), manager only.",
-      "description": "Request: only `request_id`. Response: `tiers[]`, `user_roles[]`, `group_roles[]`, `capabilities[]`, `provider_groups[]`, `provider_groups_error`.",
-      "required": [
-        "channel",
-        "schema",
-        "request_id"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "channel": {
-          "const": "access"
-        },
-        "schema": {
-          "const": "afbws.access.roles.get.v1"
-        },
-        "request_id": {
-          "$ref": "common.v1.json#/$defs/requestId"
-        },
-        "tiers": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/tierRow"
-          }
-        },
-        "user_roles": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "$ref": "#/$defs/userRole"
-          }
-        },
-        "group_roles": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "$ref": "#/$defs/groupRole"
-          }
-        },
-        "capabilities": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "description": "Response only: capability names (the set is defined by the backend code)."
-        },
-        "provider_groups": {
-          "type": "array",
-          "description": "Response only: groups of the authorization providers (hints for choosing `group_roles`).",
-          "items": {
-            "$ref": "#/$defs/providerGroup"
-          }
-        },
-        "provider_groups_error": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Response only: why provider groups could not be fetched (fully or partly); null — fetched."
-        }
-      },
-      "if": {
-        "required": [
-          "tiers"
-        ]
-      },
-      "then": {
-        "required": [
-          "tiers",
-          "user_roles",
-          "group_roles",
-          "capabilities",
-          "provider_groups",
-          "provider_groups_error"
-        ]
-      },
-      "else": {
-        "not": {
-          "anyOf": [
-            {
-              "required": [
-                "user_roles"
-              ]
-            },
-            {
-              "required": [
-                "group_roles"
-              ]
-            },
-            {
-              "required": [
-                "capabilities"
-              ]
-            },
-            {
-              "required": [
-                "provider_groups"
-              ]
-            },
-            {
-              "required": [
-                "provider_groups_error"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    "rolesSet": {
-      "type": "object",
-      "title": "afbws.access.roles.set.v1 — replace tiers, user_roles and group_roles (request / response), manager only.",
-      "description": "Request: `tiers[]` (at least one; `tier` names must be unique — checked by the server), `user_roles[]` and `group_roles[]` — replace-all of the three tables. Response: the saved snapshot, as afbws.access.roles.get.v1.",
-      "required": [
-        "channel",
-        "schema",
-        "request_id",
-        "tiers",
-        "user_roles",
-        "group_roles"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "channel": {
-          "const": "access"
-        },
-        "schema": {
-          "const": "afbws.access.roles.set.v1"
-        },
-        "request_id": {
-          "$ref": "common.v1.json#/$defs/requestId"
-        },
-        "tiers": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": {
-            "$ref": "#/$defs/tierRow"
-          },
-          "description": "Tier names must be unique (JSON Schema cannot express uniqueness by key — the server rejects duplicates with validation_error)."
-        },
-        "user_roles": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "$ref": "#/$defs/userRole"
-          }
-        },
-        "group_roles": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "$ref": "#/$defs/groupRole"
-          }
-        },
-        "capabilities": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "description": "Response only: capability names (the set is defined by the backend code)."
-        },
-        "provider_groups": {
-          "type": "array",
-          "description": "Response only: groups of the authorization providers (hints for choosing `group_roles`).",
-          "items": {
-            "$ref": "#/$defs/providerGroup"
-          }
-        },
-        "provider_groups_error": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Response only: why provider groups could not be fetched (fully or partly); null — fetched."
-        }
-      },
-      "if": {
-        "required": [
-          "capabilities"
-        ]
-      },
-      "then": {
-        "required": [
-          "capabilities",
-          "provider_groups",
-          "provider_groups_error"
-        ]
-      },
-      "else": {
-        "not": {
-          "anyOf": [
-            {
-              "required": [
-                "capabilities"
-              ]
-            },
-            {
-              "required": [
-                "provider_groups"
-              ]
-            },
-            {
-              "required": [
-                "provider_groups_error"
-              ]
-            }
-          ]
-        }
-      }
-    },
     "usersList": {
       "type": "object",
-      "title": "afbws.access.users.list.v1 — all users (request / response), manager only.",
-      "description": "Request: only `request_id`. Response: `items[]` — every user who has logged in at least once (no server-side filtering or paging).",
+      "title": "afbws.access.users.list.v1 — all users (request / response), staff.",
+      "description": "Request: only `request_id`. Response: `items[]` — every user who has logged in at least once (no server-side filtering or paging), `tiers[]` and `capabilities[]` — labels for the staff UI.",
       "required": [
         "channel",
         "schema",
@@ -623,13 +481,55 @@
             "$ref": "#/$defs/userRow"
           },
           "description": "Response only."
+        },
+        "tiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tierLabel"
+          },
+          "description": "Response only: all tiers (incl. staff) with labels."
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/capabilityLabel"
+          },
+          "description": "Response only: all capabilities with labels."
+        }
+      },
+      "if": {
+        "required": [
+          "items"
+        ]
+      },
+      "then": {
+        "required": [
+          "items",
+          "tiers",
+          "capabilities"
+        ]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "tiers"
+              ]
+            },
+            {
+              "required": [
+                "capabilities"
+              ]
+            }
+          ]
         }
       }
     },
     "userSet": {
       "type": "object",
-      "title": "afbws.access.user.set.v1 — set a user's trial end and/or manual grant (request / response), manager only.",
-      "description": "Request: `user_id` + `trial_ends_at` and/or `grant_until` (at least one; null removes). The first `trial_ends_at` for a user without a trial (`trial_started_at` null) also sets `trial_started_at` = now. Response: `user_id` + `item` — the updated row. Unknown user -> error `not_found`.",
+      "title": "afbws.access.user.set.v1 — set a user's trial end, manual grant and/or personal capabilities (request / response), staff.",
+      "description": "Request: `user_id` + `trial_ends_at`, `grant_until` and/or `capabilities` (at least one; null removes the trial end / grant; `capabilities` replaces the personal capabilities). The first `trial_ends_at` for a user without a trial (`trial_started_at` null) also sets `trial_started_at` = now. Response: `user_id` + `item` — the updated row. Unknown user -> error `not_found`.",
       "required": [
         "channel",
         "schema",
@@ -667,6 +567,15 @@
           "format": "date-time",
           "description": "Request only: manual grant until; null — remove the grant."
         },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Request only: the user's personal capabilities, replace-all ([] — remove all personal ones; group capabilities are not affected)."
+        },
         "item": {
           "$ref": "#/$defs/userRow"
         }
@@ -688,6 +597,11 @@
               "required": [
                 "grant_until"
               ]
+            },
+            {
+              "required": [
+                "capabilities"
+              ]
             }
           ]
         }
@@ -703,14 +617,384 @@
             "required": [
               "grant_until"
             ]
+          },
+          {
+            "required": [
+              "capabilities"
+            ]
           }
         ]
       }
     },
+    "userTierSet": {
+      "type": "object",
+      "title": "afbws.access.user.tier.set.v1 — set a user's personal tier (request / response), admin only.",
+      "description": "Request: `user_id`, `tier` — the personal tier (any tier incl. `admin`/`manager`) or null (remove: tier by groups / default). Response: `user_id` + `item` — the updated row. Unknown user / tier -> error `not_found` / `validation_error`; removing the last `admin` assignment -> `validation_error`.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "user_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.user.tier.set.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "user_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tier": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/tierName"
+            }
+          ],
+          "description": "Request only: personal tier; null — remove the personal tier."
+        },
+        "item": {
+          "$ref": "#/$defs/userRow"
+        }
+      },
+      "if": {
+        "required": [
+          "item"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "tier"
+              ]
+            }
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "tier"
+        ]
+      }
+    },
+    "policyGet": {
+      "type": "object",
+      "title": "afbws.access.policy.get.v1 — mode policies of tiers (request / response), staff.",
+      "description": "Request: only `request_id`. Response: `tiers[]` — every non-staff tier with its policy.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.policy.get.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "tiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/policyRow"
+          },
+          "description": "Response only: every tier except `admin`/`manager`."
+        }
+      }
+    },
+    "policySet": {
+      "type": "object",
+      "title": "afbws.access.policy.set.v1 — set the mode policy of one tier (request / response), staff.",
+      "description": "Request (request-only fields): `tier` (not `admin`/`manager`), `policy` (null — no policy: always `full` with own limits). Response: as afbws.access.policy.get.v1. Unknown tier -> `not_found`; staff tier -> `validation_error`.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.policy.set.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "tier": {
+          "$ref": "#/$defs/tierName"
+        },
+        "policy": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/policy"
+            }
+          ],
+          "description": "Request only: new policy; null — remove."
+        },
+        "tiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/policyRow"
+          },
+          "description": "Response only: every tier except `admin`/`manager`."
+        }
+      },
+      "if": {
+        "required": [
+          "tiers"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "tier"
+              ]
+            },
+            {
+              "required": [
+                "policy"
+              ]
+            }
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "tier",
+          "policy"
+        ]
+      }
+    },
+    "tiersGet": {
+      "type": "object",
+      "title": "afbws.access.tiers.get.v1 — tiers and their limits (request / response), admin only.",
+      "description": "Request: only `request_id`. Response: `tiers[]` — every tier incl. `admin`/`manager` (policies — afbws.access.policy.get.v1).",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.tiers.get.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "tiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tierRow"
+          },
+          "description": "Response only."
+        }
+      }
+    },
+    "tiersSet": {
+      "type": "object",
+      "title": "afbws.access.tiers.set.v1 — replace the tiers (request / response), admin only.",
+      "description": "Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title` and `limits` change); other ranks 1..99, unique; a tier cannot be removed while referenced by `user_roles`/`group_roles`/`policy.as_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "tiers"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.tiers.set.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "tiers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/tierRow"
+          },
+          "description": "Tier names must be unique (JSON Schema cannot express uniqueness by key — the server rejects duplicates with validation_error)."
+        }
+      }
+    },
+    "groupsGet": {
+      "type": "object",
+      "title": "afbws.access.groups.get.v1 — provider group assignments (request / response), admin only.",
+      "description": "Request: only `request_id`. Response: `group_roles[]`, `provider_groups[]`, `provider_groups_error`.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.groups.get.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "group_roles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/groupRole"
+          },
+          "description": "Response only."
+        },
+        "provider_groups": {
+          "type": "array",
+          "description": "Response only: groups of the authorization providers (hints for choosing `group_roles`).",
+          "items": {
+            "$ref": "#/$defs/providerGroup"
+          }
+        },
+        "provider_groups_error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Response only: why provider groups could not be fetched (fully or partly); null — fetched."
+        }
+      },
+      "if": {
+        "required": [
+          "group_roles"
+        ]
+      },
+      "then": {
+        "required": [
+          "group_roles",
+          "provider_groups",
+          "provider_groups_error"
+        ]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "provider_groups"
+              ]
+            },
+            {
+              "required": [
+                "provider_groups_error"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "groupsSet": {
+      "type": "object",
+      "title": "afbws.access.groups.set.v1 — replace the provider group assignments (request / response), admin only.",
+      "description": "Request: `group_roles[]` — replace-all of the `group_roles` table (unknown tier/capability or removing the last `admin` assignment -> `validation_error`). Response: as afbws.access.groups.get.v1.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "group_roles"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.groups.set.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "group_roles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/groupRole"
+          }
+        },
+        "provider_groups": {
+          "type": "array",
+          "description": "Response only: groups of the authorization providers (hints for choosing `group_roles`).",
+          "items": {
+            "$ref": "#/$defs/providerGroup"
+          }
+        },
+        "provider_groups_error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Response only: why provider groups could not be fetched (fully or partly); null — fetched."
+        }
+      },
+      "if": {
+        "required": [
+          "provider_groups"
+        ]
+      },
+      "then": {
+        "required": [
+          "provider_groups",
+          "provider_groups_error"
+        ]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "provider_groups"
+              ]
+            },
+            {
+              "required": [
+                "provider_groups_error"
+              ]
+            }
+          ]
+        }
+      }
+    },
     "stats": {
       "type": "object",
-      "title": "afbws.access.stats.v1 — weekly conversion statistics (request / response), manager only.",
-      "description": "Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `weeks[]` (oldest first), one per calendar week intersecting the range. `new_users` — users whose `first_seen_at` falls in the week; `trials_started` — users whose `trial_started_at` falls in the week; `converted` — paid subscription periods started in the week; `active` — users whose `last_seen_at` falls in the week.",
+      "title": "afbws.access.stats.v1 — weekly conversion statistics (request / response), staff.",
+      "description": "Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `weeks[]` (oldest first), one per calendar week intersecting the range. `new_users` — users whose `first_seen_at` falls in the week; `trials_started` — users whose `trial_started_at` falls in the week; `converted` — subscription periods started in the week; `active` — users whose `last_seen_at` falls in the week.",
       "required": [
         "channel",
         "schema",
@@ -792,7 +1076,7 @@
     "error": {
       "type": "object",
       "title": "afbws.access.error.v1 — typed error for a whole request (server -> client).",
-      "description": "`code` is a closed subset of common errorCode: `forbidden` (not a manager), `validation_error`, `not_found` (unknown user), `invalid_channel`, `invalid_schema`, `internal_error`.",
+      "description": "`code` is a closed subset of common errorCode: `forbidden` (the operation is not allowed for the connection's tier: not staff / not admin), `validation_error`, `not_found` (unknown user / tier), `invalid_channel`, `invalid_schema`, `internal_error`.",
       "required": [
         "channel",
         "schema",

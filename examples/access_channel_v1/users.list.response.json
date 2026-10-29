@@ -8,7 +8,13 @@
       "provider": "getcourse",
       "display_name": "Иван Петров",
       "tier": "guest",
-      "capabilities": [],
+      "personal_tier": null,
+      "capabilities": [
+        "virtual"
+      ],
+      "personal_capabilities": [
+        "virtual"
+      ],
       "first_seen_at": "2026-10-01T09:12:00Z",
       "last_seen_at": "2026-10-28T12:40:00Z",
       "trial_started_at": "2026-10-01T09:12:00Z",
@@ -24,10 +30,14 @@
       "user_id": "id_9910336377",
       "provider": "local",
       "display_name": null,
-      "tier": "manager",
+      "tier": "admin",
+      "personal_tier": "admin",
       "capabilities": [
         "trade",
         "virtual"
+      ],
+      "personal_capabilities": [
+        "trade"
       ],
       "first_seen_at": "2026-01-10T07:00:00Z",
       "last_seen_at": "2026-10-28T13:00:00Z",
@@ -35,6 +45,46 @@
       "trial_ends_at": null,
       "grant_until": null,
       "subscription": null
+    }
+  ],
+  "tiers": [
+    {
+      "tier": "admin",
+      "title": "Администраторы"
+    },
+    {
+      "tier": "manager",
+      "title": "Менеджеры"
+    },
+    {
+      "tier": "user",
+      "title": "Подписчик"
+    },
+    {
+      "tier": "lite",
+      "title": "Лайт"
+    },
+    {
+      "tier": "guest",
+      "title": "Гость"
+    }
+  ],
+  "capabilities": [
+    {
+      "capability": "trade",
+      "title": "Торговля через BF"
+    },
+    {
+      "capability": "virtual",
+      "title": "Виртуальный счёт"
+    },
+    {
+      "capability": "screener",
+      "title": "Скринер"
+    },
+    {
+      "capability": "local",
+      "title": "Локальный режим"
     }
   ]
 }

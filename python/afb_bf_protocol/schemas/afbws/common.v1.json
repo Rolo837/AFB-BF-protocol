@@ -34,7 +34,7 @@
     "accessTier": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9_]*$",
-      "description": "Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `manager`, `user`, `guest`, a new paid tier `lite`), NOT an enum: a new tier needs no protocol change. Only `manager` is reserved by code (staff, manager functions gated on `tier == manager` independently of `mode`). Comes from the backend's access database (personal `user_roles` and provider-group `group_roles`); the tier with the minimal rank is the default for users not matched by any of them."
+      "description": "Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `admin`, `manager`, `user`, `guest`, a new subscription tier `lite`), NOT an enum: a new tier needs no protocol change. Only the staff tiers `admin` and `manager` are reserved by code (staff functions gated on the tier independently of `mode`; `admin` additionally manages tiers, groups and personal tiers). Comes from the backend's access database (personal `user_roles` and provider-group `group_roles`); the tier with the minimal rank is the default for users not matched by any of them."
     },
     "accessMode": {
       "type": "string",
@@ -76,7 +76,7 @@
     "access": {
       "type": "object",
       "title": "Effective access of one connection (afbws.auth.v1 response/push `access`).",
-      "description": "Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; manager functions are gated on `tier == manager` only). (2) `capabilities` — personal permissions granted by a manager, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.",
+      "description": "Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — personal permissions granted by staff, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.",
       "required": [
         "tier",
         "capabilities",

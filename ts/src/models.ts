@@ -1,20 +1,25 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: e876afe53812a24d479d2f46c0b90e662c0391088621b4c428720d27d5508bec
+ * source-hash: 341509b0bd694a31e76106c38024247057b5ecceb357d8d4cca46dc6b129629f
  */
 
 /**
- * Negotiated via auth.support (capability id afbws.access.channel.v1). Freemium access model: tier (who) x capabilities (personal permissions) x mode (what is available now), see common.v1.json#/$defs/access. Messages mirror the backend's access database (tables tiers, user_roles, group_roles, users, subscriptions); the model does not know a concrete authorization provider — external groups are addressed by (`provider`, `group_id`). Same convention as afbws.link/afbws.screener: ONE schema id per operation (`afbws.access.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response (echoes `request_id`); response-only fields are forbidden in a request. `request_id` is required in every client request. Operations (manager only, others get error `forbidden`): `roles.get`/`roles.set` (tiers, user_roles, group_roles; replace the config-channel op `roles`), `users.list`, `user.set` (trial end / manual grant), `stats` (weekly conversion). Server-initiated: `afbws.access.denied.v1` — the gate's refusal of a request of ANY channel (sent on the refused request's channel, with its `request_id`). Changes of the connection's own effective access arrive as an afbws.auth.v1 push. Whole-request failures of this channel: `afbws.access.error.v1`. See AFB/docs/ws/access.md.
+ * Negotiated via auth.support (capability id afbws.access.channel.v1). Freemium access model: tier (who) x capabilities (personal permissions) x mode (what is available now), see common.v1.json#/$defs/access. Messages mirror the backend's access database (tables tiers, user_roles, group_roles, users, subscriptions); the model does not know a concrete authorization provider — external groups are addressed by (`provider`, `group_id`). Same convention as afbws.link/afbws.screener: ONE schema id per operation (`afbws.access.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response (echoes `request_id`); response-only fields are forbidden in a request. `request_id` is required in every client request. Two staff tiers are reserved by code: `admin` and `manager` (staff = admin + manager). Staff operations (admin and manager): `users.list`, `user.set` (trial end / manual grant / personal capabilities), `policy.get`/`policy.set` (mode policy of tiers), `stats` (weekly conversion). Admin-only operations: `user.tier.set` (personal tier), `tiers.get`/`tiers.set` (tiers and their limits), `groups.get`/`groups.set` (provider group assignments). Any other connection gets error `forbidden`. Server-initiated: `afbws.access.denied.v1` — the gate's refusal of a request of ANY channel (sent on the refused request's channel, with its `request_id`). Changes of the connection's own effective access arrive as an afbws.auth.v1 push. Whole-request failures of this channel: `afbws.access.error.v1`. See AFB/docs/ws/access.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessChannelV1Message".
  */
 export type AccessChannelV1Message =
-  | AccessV1RolesGet
-  | AccessV1RolesSet
   | AccessV1UsersList
   | AccessV1UserSet
+  | AccessV1UserTierSet
+  | AccessV1PolicyGet
+  | AccessV1PolicySet
+  | AccessV1TiersGet
+  | AccessV1TiersSet
+  | AccessV1GroupsGet
+  | AccessV1GroupsSet
   | AccessV1Stats
   | AccessV1Denied
   | AccessV1Error;
@@ -26,19 +31,19 @@ export type AccessChannelV1Message =
  */
 export type AfbwsCommonV1_RequestId = string;
 /**
- * Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `manager`, `user`, `guest`, a new paid tier `lite`), NOT an enum: a new tier needs no protocol change. Only `manager` is reserved by code (staff, manager functions gated on `tier == manager` independently of `mode`). Comes from the backend's access database (personal `user_roles` and provider-group `group_roles`); the tier with the minimal rank is the default for users not matched by any of them.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessTier".
- */
-export type AccessTier = string;
-/**
  * Authorization provider (adapter) id: who authenticates the user and supplies its groups, e.g. `getcourse`, `local`. An open set defined by the backend's adapters, not an enum.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Provider".
  */
 export type AccessV1Provider = string;
+/**
+ * Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `admin`, `manager`, `user`, `guest`, a new subscription tier `lite`), NOT an enum: a new tier needs no protocol change. Only the staff tiers `admin` and `manager` are reserved by code (staff functions gated on the tier independently of `mode`; `admin` additionally manages tiers, groups and personal tiers). Comes from the backend's access database (personal `user_roles` and provider-group `group_roles`); the tier with the minimal rank is the default for users not matched by any of them.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessTier".
+ */
+export type AccessTier = string;
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, error; `list` takes `bf_id` + `account_id`. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes , reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a broker account (one bf_id may have more than one), not the connector itself.
  *
@@ -1590,71 +1595,178 @@ export type TradePlanV2 = {
 export type TradeplanV2_TpExitList = TradeplanV2_TpLeg[];
 
 /**
- * Request: only `request_id`. Response: `tiers[]`, `user_roles[]`, `group_roles[]`, `capabilities[]`, `provider_groups[]`, `provider_groups_error`.
+ * Request: only `request_id`. Response: `items[]` — every user who has logged in at least once (no server-side filtering or paging), `tiers[]` and `capabilities[]` — labels for the staff UI.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessV1RolesGet".
+ * via the `definition` "AccessV1UsersList".
  */
-export interface AccessV1RolesGet {
+export interface AccessV1UsersList {
   channel: 'access';
-  schema: 'afbws.access.roles.get.v1';
+  schema: 'afbws.access.users.list.v1';
   request_id: AfbwsCommonV1_RequestId;
-  tiers?: AccessV1TierRow[];
-  user_roles?: AccessV1UserRole[];
-  group_roles?: AccessV1GroupRole[];
   /**
-   * Response only: capability names (the set is defined by the backend code).
+   * Response only.
    */
-  capabilities?: string[];
+  items?: AccessV1UserRow[];
   /**
-   * Response only: groups of the authorization providers (hints for choosing `group_roles`).
+   * Response only: all tiers (incl. staff) with labels.
    */
-  provider_groups?: AccessV1ProviderGroup[];
+  tiers?: AccessV1TierLabel[];
   /**
-   * Response only: why provider groups could not be fetched (fully or partly); null — fetched.
+   * Response only: all capabilities with labels.
    */
-  provider_groups_error?: string | null;
+  capabilities?: AccessV1CapabilityLabel[];
 }
 /**
- * One tier (one row of the `tiers` table).
+ * One user who has logged in at least once (row of the `users` table + resolved tier/capabilities + the last subscription period). `provider` — who authenticates the user and supplies its groups. `tier`/`capabilities` — effective (personal `user_roles` ∪ provider groups `group_roles`); `personal_tier`/`personal_capabilities` — the personal `user_roles` assignments only (editable; group assignments are visible in `capabilities` but not edited from here).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessV1TierRow".
+ * via the `definition` "AccessV1UserRow".
  */
-export interface AccessV1TierRow {
+export interface AccessV1UserRow {
+  user_id: string;
+  provider: AccessV1Provider;
+  display_name: string | null;
   tier: AccessTier;
   /**
-   * Label shown in the manager UI.
+   * Personal tier (at most one `user_roles` row with a tier role); null — tier by groups / default.
    */
+  personal_tier: null | AccessTier;
+  /**
+   * Effective capabilities (personal and by groups).
+   */
+  capabilities: string[];
+  /**
+   * Personal capabilities (`user_roles` rows with a capability role).
+   */
+  personal_capabilities: string[];
+  first_seen_at: string;
+  last_seen_at: string;
+  /**
+   * null — the trial has never been given.
+   */
+  trial_started_at: string | null;
+  /**
+   * `full` until this moment (trial).
+   */
+  trial_ends_at: string | null;
+  /**
+   * Manual extension: `full` until this moment; null — none.
+   */
+  grant_until: string | null;
+  /**
+   * The last subscription period; null — never subscribed.
+   */
+  subscription: null | AccessV1Subscription;
+}
+/**
+ * One subscription period (row of the `subscriptions` table).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1Subscription".
+ */
+export interface AccessV1Subscription {
+  tier: AccessTier;
+  started_at: string;
+  /**
+   * null — active.
+   */
+  ended_at: string | null;
+}
+/**
+ * A tier and its label (for choosing a tier in the staff UI).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1TierLabel".
+ */
+export interface AccessV1TierLabel {
+  tier: AccessTier;
   title: string;
+}
+/**
+ * A capability and its label; the set and the labels are defined by the backend code (the frontend does not hardcode them).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1CapabilityLabel".
+ */
+export interface AccessV1CapabilityLabel {
+  capability: string;
+  title: string;
+}
+/**
+ * Request: `user_id` + `trial_ends_at`, `grant_until` and/or `capabilities` (at least one; null removes the trial end / grant; `capabilities` replaces the personal capabilities). The first `trial_ends_at` for a user without a trial (`trial_started_at` null) also sets `trial_started_at` = now. Response: `user_id` + `item` — the updated row. Unknown user -> error `not_found`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1UserSet".
+ */
+export interface AccessV1UserSet {
+  channel: 'access';
+  schema: 'afbws.access.user.set.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  user_id: string;
   /**
-   * Priority when a user matches several tiers (higher wins); unique among tiers. The tier with the minimal rank is the default for users not matched by any `user_roles`/`group_roles` row.
+   * Request only: new trial end; null — remove the trial end.
    */
+  trial_ends_at?: string | null;
+  /**
+   * Request only: manual grant until; null — remove the grant.
+   */
+  grant_until?: string | null;
+  /**
+   * Request only: the user's personal capabilities, replace-all ([] — remove all personal ones; group capabilities are not affected).
+   */
+  capabilities?: string[];
+  item?: AccessV1UserRow;
+}
+/**
+ * Request: `user_id`, `tier` — the personal tier (any tier incl. `admin`/`manager`) or null (remove: tier by groups / default). Response: `user_id` + `item` — the updated row. Unknown user / tier -> error `not_found` / `validation_error`; removing the last `admin` assignment -> `validation_error`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1UserTierSet".
+ */
+export interface AccessV1UserTierSet {
+  channel: 'access';
+  schema: 'afbws.access.user.tier.set.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  user_id: string;
+  /**
+   * Request only: personal tier; null — remove the personal tier.
+   */
+  tier?: null | AccessTier;
+  item?: AccessV1UserRow;
+}
+/**
+ * Request: only `request_id`. Response: `tiers[]` — every non-staff tier with its policy.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1PolicyGet".
+ */
+export interface AccessV1PolicyGet {
+  channel: 'access';
+  schema: 'afbws.access.policy.get.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Response only: every tier except `admin`/`manager`.
+   */
+  tiers?: AccessV1PolicyRow[];
+}
+/**
+ * Mode policy of one tier (afbws.access.policy.*). Staff tiers (`admin`, `manager`) have no policy and are not listed.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1PolicyRow".
+ */
+export interface AccessV1PolicyRow {
+  tier: AccessTier;
+  title: string;
   rank: number;
-  /**
-   * Paid subscription: subscription periods are logged on login, the tier counts in conversion.
-   */
-  paid: boolean;
-  limits: AccessLimits;
   /**
    * Mode policy; null — always `full` with its own limits.
    */
   policy: null | AccessV1Policy;
 }
 /**
- * Effective per-user limits (enforced only when ADDING objects; existing objects above a limit are never deleted or truncated). Keys mirror AFB backend/users/roles_loader.py LIMIT_KEYS.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessLimits".
- */
-export interface AccessLimits {
-  max_favorites_tickers: number;
-  max_primitives_per_user: number;
-  max_sets: number;
-  max_favorite_colors: number;
-}
-/**
- * Mode policy of a tier (`tiers.policy` in the backend's access database). A tier WITH a policy is `full` (with the limits of `as_tier`) while a manual grant, the trial, a time window (stage 3: a showcase instrument) is active, otherwise `basic` with its own limits. A tier without a policy (null) is always `full` with its own limits. The `trade` capability and a paid tier are always `full`.
+ * Mode policy of a tier (`tiers.policy` in the backend's access database). A tier WITH a policy is `full` (with the limits of `as_tier`) while a manual grant, the trial, a time window (stage 3: a showcase instrument) is active, otherwise `basic` with its own limits. A tier without a policy (null) is always `full` with its own limits. The `trade` capability and a subscription tier are always `full`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Policy".
@@ -1699,20 +1811,113 @@ export interface AccessV1Showcase {
   collection: string | null;
 }
 /**
- * Personal assignment of a tier or a capability to one user (one row of the `user_roles` table).
+ * Request (request-only fields): `tier` (not `admin`/`manager`), `policy` (null — no policy: always `full` with own limits). Response: as afbws.access.policy.get.v1. Unknown tier -> `not_found`; staff tier -> `validation_error`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessV1UserRole".
+ * via the `definition` "AccessV1PolicySet".
  */
-export interface AccessV1UserRole {
+export interface AccessV1PolicySet {
+  channel: 'access';
+  schema: 'afbws.access.policy.set.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  tier?: AccessTier;
   /**
-   * A tier name (from `tiers`) or a capability name (set defined by the backend code).
+   * Request only: new policy; null — remove.
    */
-  role: string;
+  policy?: null | AccessV1Policy;
   /**
-   * Internal AFB user id (as in `users`).
+   * Response only: every tier except `admin`/`manager`.
    */
-  user_id: string;
+  tiers?: AccessV1PolicyRow[];
+}
+/**
+ * Request: only `request_id`. Response: `tiers[]` — every tier incl. `admin`/`manager` (policies — afbws.access.policy.get.v1).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1TiersGet".
+ */
+export interface AccessV1TiersGet {
+  channel: 'access';
+  schema: 'afbws.access.tiers.get.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Response only.
+   */
+  tiers?: AccessV1TierRow[];
+}
+/**
+ * One tier (one row of the `tiers` table without `policy`; the policy is edited by afbws.access.policy.*).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1TierRow".
+ */
+export interface AccessV1TierRow {
+  tier: AccessTier;
+  /**
+   * Label shown in the staff UI.
+   */
+  title: string;
+  /**
+   * Priority when a user matches several tiers (higher wins); unique among tiers. `admin` = 999 and `manager` = 100 are fixed by code, other tiers 1..99 (checked by the server). The tier with the minimal rank is the default for users not matched by any `user_roles`/`group_roles` row.
+   */
+  rank: number;
+  /**
+   * Subscription tier: subscription periods are logged on login, the tier counts in conversion; without a policy always `full`. Always false for `admin`/`manager`.
+   */
+  subscription: boolean;
+  limits: AccessLimits;
+}
+/**
+ * Effective per-user limits (enforced only when ADDING objects; existing objects above a limit are never deleted or truncated). Keys mirror AFB backend/users/roles_loader.py LIMIT_KEYS.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessLimits".
+ */
+export interface AccessLimits {
+  max_favorites_tickers: number;
+  max_primitives_per_user: number;
+  max_sets: number;
+  max_favorite_colors: number;
+}
+/**
+ * Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title` and `limits` change); other ranks 1..99, unique; a tier cannot be removed while referenced by `user_roles`/`group_roles`/`policy.as_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1TiersSet".
+ */
+export interface AccessV1TiersSet {
+  channel: 'access';
+  schema: 'afbws.access.tiers.set.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Tier names must be unique (JSON Schema cannot express uniqueness by key — the server rejects duplicates with validation_error).
+   *
+   * @minItems 1
+   */
+  tiers: [AccessV1TierRow, ...AccessV1TierRow[]];
+}
+/**
+ * Request: only `request_id`. Response: `group_roles[]`, `provider_groups[]`, `provider_groups_error`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1GroupsGet".
+ */
+export interface AccessV1GroupsGet {
+  channel: 'access';
+  schema: 'afbws.access.groups.get.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Response only.
+   */
+  group_roles?: AccessV1GroupRole[];
+  /**
+   * Response only: groups of the authorization providers (hints for choosing `group_roles`).
+   */
+  provider_groups?: AccessV1ProviderGroup[];
+  /**
+   * Response only: why provider groups could not be fetched (fully or partly); null — fetched.
+   */
+  provider_groups_error?: string | null;
 }
 /**
  * Assignment of a tier or a capability to every member of an external group (one row of the `group_roles` table).
@@ -1743,27 +1948,16 @@ export interface AccessV1ProviderGroup {
   title: string;
 }
 /**
- * Request: `tiers[]` (at least one; `tier` names must be unique — checked by the server), `user_roles[]` and `group_roles[]` — replace-all of the three tables. Response: the saved snapshot, as afbws.access.roles.get.v1.
+ * Request: `group_roles[]` — replace-all of the `group_roles` table (unknown tier/capability or removing the last `admin` assignment -> `validation_error`). Response: as afbws.access.groups.get.v1.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessV1RolesSet".
+ * via the `definition` "AccessV1GroupsSet".
  */
-export interface AccessV1RolesSet {
+export interface AccessV1GroupsSet {
   channel: 'access';
-  schema: 'afbws.access.roles.set.v1';
+  schema: 'afbws.access.groups.set.v1';
   request_id: AfbwsCommonV1_RequestId;
-  /**
-   * Tier names must be unique (JSON Schema cannot express uniqueness by key — the server rejects duplicates with validation_error).
-   *
-   * @minItems 1
-   */
-  tiers: [AccessV1TierRow, ...AccessV1TierRow[]];
-  user_roles: AccessV1UserRole[];
   group_roles: AccessV1GroupRole[];
-  /**
-   * Response only: capability names (the set is defined by the backend code).
-   */
-  capabilities?: string[];
   /**
    * Response only: groups of the authorization providers (hints for choosing `group_roles`).
    */
@@ -1774,88 +1968,7 @@ export interface AccessV1RolesSet {
   provider_groups_error?: string | null;
 }
 /**
- * Request: only `request_id`. Response: `items[]` — every user who has logged in at least once (no server-side filtering or paging).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessV1UsersList".
- */
-export interface AccessV1UsersList {
-  channel: 'access';
-  schema: 'afbws.access.users.list.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  /**
-   * Response only.
-   */
-  items?: AccessV1UserRow[];
-}
-/**
- * One user who has logged in at least once (row of the `users` table + resolved tier/capabilities + the last subscription period). `provider` — who authenticates the user and supplies its groups.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessV1UserRow".
- */
-export interface AccessV1UserRow {
-  user_id: string;
-  provider: AccessV1Provider;
-  display_name: string | null;
-  tier: AccessTier;
-  capabilities: string[];
-  first_seen_at: string;
-  last_seen_at: string;
-  /**
-   * null — the trial has never been given.
-   */
-  trial_started_at: string | null;
-  /**
-   * `full` until this moment (trial).
-   */
-  trial_ends_at: string | null;
-  /**
-   * Manual extension: `full` until this moment; null — none.
-   */
-  grant_until: string | null;
-  /**
-   * The last paid subscription period; null — never subscribed.
-   */
-  subscription: null | AccessV1Subscription;
-}
-/**
- * One paid subscription period (row of the `subscriptions` table).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessV1Subscription".
- */
-export interface AccessV1Subscription {
-  tier: AccessTier;
-  started_at: string;
-  /**
-   * null — active.
-   */
-  ended_at: string | null;
-}
-/**
- * Request: `user_id` + `trial_ends_at` and/or `grant_until` (at least one; null removes). The first `trial_ends_at` for a user without a trial (`trial_started_at` null) also sets `trial_started_at` = now. Response: `user_id` + `item` — the updated row. Unknown user -> error `not_found`.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AccessV1UserSet".
- */
-export interface AccessV1UserSet {
-  channel: 'access';
-  schema: 'afbws.access.user.set.v1';
-  request_id: AfbwsCommonV1_RequestId;
-  user_id: string;
-  /**
-   * Request only: new trial end; null — remove the trial end.
-   */
-  trial_ends_at?: string | null;
-  /**
-   * Request only: manual grant until; null — remove the grant.
-   */
-  grant_until?: string | null;
-  item?: AccessV1UserRow;
-}
-/**
- * Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `weeks[]` (oldest first), one per calendar week intersecting the range. `new_users` — users whose `first_seen_at` falls in the week; `trials_started` — users whose `trial_started_at` falls in the week; `converted` — paid subscription periods started in the week; `active` — users whose `last_seen_at` falls in the week.
+ * Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `weeks[]` (oldest first), one per calendar week intersecting the range. `new_users` — users whose `first_seen_at` falls in the week; `trials_started` — users whose `trial_started_at` falls in the week; `converted` — subscription periods started in the week; `active` — users whose `last_seen_at` falls in the week.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Stats".
@@ -1905,7 +2018,7 @@ export interface AccessV1Denied {
   message: string;
 }
 /**
- * `code` is a closed subset of common errorCode: `forbidden` (not a manager), `validation_error`, `not_found` (unknown user), `invalid_channel`, `invalid_schema`, `internal_error`.
+ * `code` is a closed subset of common errorCode: `forbidden` (the operation is not allowed for the connection's tier: not staff / not admin), `validation_error`, `not_found` (unknown user / tier), `invalid_channel`, `invalid_schema`, `internal_error`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Error".
@@ -2188,7 +2301,7 @@ export interface AuthV1 {
   access?: Access;
 }
 /**
- * Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; manager functions are gated on `tier == manager` only). (2) `capabilities` — personal permissions granted by a manager, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
+ * Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — personal permissions granted by staff, orthogonal to tier (`trade` — real trading through BF, `virtual`, `screener`, `local`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "Access".
