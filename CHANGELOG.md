@@ -9,15 +9,21 @@
 ## Unreleased
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## v2.9.11 — 2026-10-30
+
+### Added
 - **Capability `dataset`** (`access.channel.v1.json#/$defs/capability`, enum `trade|virtual|screener|dataset`): наборы данных в `market series`, `oi`/`oi_daily` в `market snapshot`, `screener participants`. Описание `virtual` уточнено: виртуальный счёт и активация/оценка алармов и торговых планов. Модель `AccessV1Capability`.
 - **`afbws.access.denied.v1.reason`: + `capability`** — отказ по отсутствию capability в действующих (`feature` — имя capability). `basic`/`held` остаются в схеме для совместимости, новый бэкенд их не отправляет. Пример `examples/access_channel_v1/denied.capability.json`.
 
 ### Changed
 - **`common.v1#access.mode` — deprecated** (поле остаётся обязательным): совместимость с фронтами до этапа 2е — бэкенд отдаёт `full`, если `dataset` ∈ `capabilities`, иначе `basic`; новый фронт не читает, удаление — после окна релизов. `access.capabilities` — действующие сейчас capabilities (результат политики доступа), фронт определяет функционал только по `capabilities` и `limits`. Примеры `auth_v1`, `tiers.*`, `users.list` дополнены `dataset`.
-
-### Fixed
-
-### Removed
 
 ## v2.9.10 — 2026-10-29
 
