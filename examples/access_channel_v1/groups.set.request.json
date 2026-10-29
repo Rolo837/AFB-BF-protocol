@@ -1,0 +1,22 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.groups.set.v1",
+  "request_id": "r-16",
+  "groups": [
+    {
+      "provider": "getcourse",
+      "group_id": "3125478",
+      "tier": "user"
+    },
+    {
+      "provider": "getcourse",
+      "group_id": "3125480",
+      "tier": "lite"
+    },
+    {
+      "provider": "getcourse",
+      "group_id": "3125495",
+      "tier": "user"
+    }
+  ]
+}

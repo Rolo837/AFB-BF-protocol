@@ -75,6 +75,8 @@ from .capabilities import (
     CATALOG_CHANNEL_V1,
     CONFIG_CHANNEL_V1,
     SCREENER_CHANNEL_V1,
+    AUTH_V1,
+    ACCESS_CHANNEL_V1,
     ALL_CAPABILITY_IDS,
 )
 from .deal_state import (
@@ -167,6 +169,8 @@ __all__ = [
     "CATALOG_CHANNEL_V1",
     "CONFIG_CHANNEL_V1",
     "SCREENER_CHANNEL_V1",
+    "AUTH_V1",
+    "ACCESS_CHANNEL_V1",
     "ALL_CAPABILITY_IDS",
     "DealState",
     "DealStatus",

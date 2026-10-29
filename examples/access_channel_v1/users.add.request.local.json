@@ -1,0 +1,17 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.users.add.v1",
+  "request_id": "r-11",
+  "items": [
+    {
+      "provider": "local",
+      "external_id": "trader1",
+      "name": "Трейдер",
+      "tier": "lite",
+      "capabilities": [
+        "virtual"
+      ],
+      "password": "s3cret-Pass"
+    }
+  ]
+}

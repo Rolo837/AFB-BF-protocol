@@ -1,9 +1,93 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 96b3bbf0c27bb434c68ecb2dcc86aace70cc2c8211e1e4e7c9c26103e8c1fe0a
+ * source-hash: 9f2cc9490f9b485e3ef3a10647fb48abfc2693b9d4798e7af3a4680821f52852
  */
 
+/**
+ * Согласуется через auth.support (capability id afbws.access.channel.v1). Модель доступа freemium: tier (кто) × capabilities (что разрешено) × mode (что доступно сейчас), см. common.v1.json#/$defs/access. Сообщения повторяют таблицы базы доступа бэкенда (`tiers`, `tier_members`, `user_capabilities`, `users`, `subscriptions`); модель не знает конкретного провайдера авторизации — внешние группы адресуются парой (`provider`, `group_id`), пользователи заводятся через адаптер провайдера. Конвенция как у afbws.link/afbws.screener: ОДИН schema id на операцию (`afbws.access.<op>.v1`, без суффиксов .request/.response); одна схема — запрос и ответ (эхо `request_id`); ответные поля в запросе запрещены; `request_id` обязателен в каждом запросе. Персонал — два tier, зарезервированных кодом: `admin` и `manager` (staff = admin + manager). Операции персонала (staff, admin и manager): `users.list`, `users.set` (имя, добавленные capabilities, льготный период — пакетом; поле `tier` — только admin), `policy.get`/`policy.set`, `stats`. Только admin (admin-only): `users.add` (создать пользователей), `users.delete` (удалить пользователей), `tiers.get`/`tiers.set`, `groups.get`/`groups.set` (группы провайдера в составе tier). Любой пользователь: `trial.start`. Чужая операция → error `forbidden`. Даты — YYYY-MM-DD в поясе сервера, действуют до конца указанного дня. Сервер шлёт сам: `afbws.access.denied.v1` — отказ гейта на запрос ЛЮБОГО канала (на канале отказанного запроса, с его `request_id`). Смена собственного доступа соединения приходит пушем afbws.auth.v1. Отказ запроса канала целиком: `afbws.access.error.v1`. См. AFB/docs/ws/access.md.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessChannelV1Message".
+ */
+export type AccessChannelV1Message =
+  | AccessV1UsersList
+  | AccessV1UsersAdd
+  | AccessV1UsersSet
+  | AccessV1UsersDelete
+  | AccessV1TrialStart
+  | AccessV1PolicyGet
+  | AccessV1PolicySet
+  | AccessV1TiersGet
+  | AccessV1TiersSet
+  | AccessV1GroupsGet
+  | AccessV1GroupsSet
+  | AccessV1Stats
+  | AccessV1Denied
+  | AccessV1Error;
+/**
+ * Client-generated correlation id (e.g. uuid4), echoed verbatim in the matching response.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCommonV1_RequestId".
+ */
+export type AfbwsCommonV1_RequestId = string;
+/**
+ * Authorization provider (adapter) id: who authenticates the user and supplies its groups, e.g. `getcourse`, `local`. An open set defined by the backend's adapters, not an enum.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1Provider".
+ */
+export type AccessV1Provider = string;
+/**
+ * Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF, `virtual` — виртуальный счёт, `screener` — скринер. `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1Capability".
+ */
+export type AccessV1Capability = 'trade' | 'virtual' | 'screener';
+/**
+ * Дата YYYY-MM-DD в поясе сервера; действует до конца указанного дня (до 00:00 следующего дня пояса сервера).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessDate".
+ */
+export type AccessDate = string;
+/**
+ * Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `admin`, `manager`, `user`, `guest`, a new subscription tier `lite`), NOT an enum: a new tier needs no protocol change. Only the staff tiers `admin` and `manager` are reserved by code (staff functions gated on the tier independently of `mode`; `admin` additionally manages tiers, their members and groups). Состав tier — таблица `tier_members` базы доступа: tier пользователя = личный → иначе по группам провайдера (старший по rank) → иначе tier по умолчанию (минимальный rank).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessTier".
+ */
+export type AccessTier = string;
+/**
+ * Элемент запроса users.set: хотя бы одно из `name`, `tier`, `capabilities`, `grace_until`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1UsersSetItem".
+ */
+export type AccessV1UsersSetItem = AccessV1UsersSetItem1 & {
+  user_id: string;
+  /**
+   * Имя, заданное персоналом; null — снять (показывается имя от провайдера). У `local` пишется и в реестр локальных пользователей.
+   */
+  name?: string | null;
+  /**
+   * Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `admin`, `manager`, `user`, `guest`, a new subscription tier `lite`), NOT an enum: a new tier needs no protocol change. Only the staff tiers `admin` and `manager` are reserved by code (staff functions gated on the tier independently of `mode`; `admin` additionally manages tiers, their members and groups). Состав tier — таблица `tier_members` базы доступа: tier пользователя = личный → иначе по группам провайдера (старший по rank) → иначе tier по умолчанию (минимальный rank).
+   */
+  tier?: string;
+  /**
+   * Capabilities, добавленные пользователю, замена целиком; [] — снять все добавленные (capabilities tier не затрагиваются).
+   */
+  capabilities?: AccessV1Capability[];
+  /**
+   * Последний день льготного периода; null — снять.
+   */
+  grace_until?: null | AccessDate;
+};
+export type AccessV1UsersSetItem1 = {
+  [k: string]: unknown;
+};
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, error; `list` takes `bf_id` + `account_id`. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes , reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a broker account (one bf_id may have more than one), not the connector itself.
  *
@@ -32,13 +116,6 @@ export type AccountV2List = {
   default_account_id?: AccountV2AccountId;
   items?: AccountV2Snapshot[];
 };
-/**
- * Client-generated correlation id (e.g. uuid4), echoed verbatim in the matching response.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsCommonV1_RequestId".
- */
-export type AfbwsCommonV1_RequestId = string;
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountV2BfId".
@@ -223,6 +300,34 @@ export type AlarmV2Ack = {
   events?: [AlarmV2AckEvent, ...AlarmV2AckEvent[]];
   results?: AlarmV2AckResultItem[];
 };
+/**
+ * First message of every AFB WebSocket connection, replacing the legacy `{type: "auth"}` / `{type: "auth_ok"}` / `{type: "auth_error"}`. Same convention as the other schema-first afbws channels: routed by `channel` (`auth`) then by a mandatory `schema` id, no `type` field; ONE schema id `afbws.auth.v1` is the request, its response (echoes `request_id`) and the server push (no `request_id`); response-only fields are forbidden in a request. Failure: `afbws.auth.error.v1`. Negotiation caveat: `support` is learned only from the auth response, i.e. AFTER the client has already chosen the form of its first message — so the frontend ALWAYS sends afbws.auth.v1, and the backend accepts BOTH the legacy `type: "auth"` and this schema, answering in the form of the request (legacy request -> legacy auth_ok/auth_error; schema request -> afbws.auth.v1 / afbws.auth.error.v1). The backend still lists `afbws.auth.v1` in `support` so a client can tell that the backend understands the new form. Removal of the legacy form is a separate decision. See AFB/docs/API_REGISTRY.md.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AuthV1Message".
+ */
+export type AuthV1Message = AuthV1 | AuthV1Error;
+/**
+ * What is available right now (axis 3 of the access model): `full` — paid features work; `basic` — paid features are refused with afbws.access.denied.v1 and the user's alarms/trade plans are held (not evaluated). ALL access logic is decided by `mode` alone.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessMode".
+ */
+export type AccessMode = 'full' | 'basic';
+/**
+ * Пробный период пользователя: null — недоступен и не активен; `available` — можно включить; `active` — идёт.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessTrial".
+ */
+export type AccessTrial = null | AccessTrialAvailable | AccessTrialActive;
+/**
+ * Льготный период: null — вне льготного периода (в т.ч. у подписчика).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessGrace".
+ */
+export type AccessGrace = null | AccessGraceActive;
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "BfsRegistryEntry".
@@ -1548,6 +1653,541 @@ export type TradePlanV2 = {
 export type TradeplanV2_TpExitList = TradeplanV2_TpLeg[];
 
 /**
+ * Request: only `request_id`. Response: `items[]` — every user of the registry (logged in at least once or created by admin; no server-side filtering or paging), `tiers[]`, `capabilities[]` and `providers[]` — labels for the staff UI.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1UsersList".
+ */
+export interface AccessV1UsersList {
+  channel: 'access';
+  schema: 'afbws.access.users.list.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Response only.
+   */
+  items?: AccessV1UserRow[];
+  /**
+   * Response only: all tiers (incl. staff) with labels.
+   */
+  tiers?: AccessV1TierLabel[];
+  /**
+   * Response only: all capabilities with labels.
+   */
+  capabilities?: AccessV1CapabilityLabel[];
+  /**
+   * Response only: authorization providers available for creating users (users.add), with labels.
+   */
+  providers?: AccessV1ProviderLabel[];
+}
+/**
+ * Пользователь реестра (входил хотя бы раз или создан admin через users.add): строка `users` + вычисленные tier/capabilities и статус подписки. Только то, что показывается персоналу; даты пробного периода, первого входа, опоздания и периоды подписки остаются в базе (их использует статистика). Показываемое имя = `name` ?? `display_name` ?? `user_id`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1UserRow".
+ */
+export interface AccessV1UserRow {
+  user_id: string;
+  provider: AccessV1Provider;
+  /**
+   * Имя, заданное персоналом; приоритетнее `display_name`; у `local` — единственное имя. null — не задано.
+   */
+  name: string | null;
+  /**
+   * Имя от провайдера (при создании / при входе); у `local` — null.
+   */
+  display_name: string | null;
+  /**
+   * Действующий tier.
+   */
+  tier: string;
+  /**
+   * Действующие capabilities: capabilities tier ∪ добавленные пользователю.
+   */
+  capabilities: AccessV1Capability[];
+  /**
+   * Capabilities, добавленные пользователю сверх tier (правятся через users.set).
+   */
+  personal_capabilities: AccessV1Capability[];
+  /**
+   * Последний вход; null — создан admin и ещё не входил.
+   */
+  last_seen_at: string | null;
+  /**
+   * Последний день льготного периода включительно; null — нет.
+   */
+  grace_until: null | AccessDate;
+  /**
+   * Статус подписки (вычисляет бэкенд): `active` — открыт период подписки; `grace` — идёт льготный период (`grace_until` ≥ сегодня); `ended` — периоды подписки были, открытого нет, льготы нет; null — подписки не было и льготы нет.
+   */
+  subscription_status: 'active' | 'grace' | 'ended' | null;
+}
+/**
+ * A tier and its label (for choosing a tier in the staff UI).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1TierLabel".
+ */
+export interface AccessV1TierLabel {
+  tier: AccessTier;
+  title: string;
+}
+/**
+ * A capability and its label; the set and the labels are defined by the backend code (the frontend does not hardcode them).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1CapabilityLabel".
+ */
+export interface AccessV1CapabilityLabel {
+  capability: AccessV1Capability;
+  title: string;
+}
+/**
+ * Провайдер авторизации и его подпись (выбор провайдера при создании пользователя); набор и подписи задаёт код бэкенда (адаптеры провайдеров).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1ProviderLabel".
+ */
+export interface AccessV1ProviderLabel {
+  provider: AccessV1Provider;
+  title: string;
+}
+/**
+ * Запрос: `items[]` — `{provider, external_id, name?, tier, capabilities?, password?}`. Ответ: `items[]` — строки userRow созданных пользователей (`last_seen_at` = null до первого входа; при входе пользователь получает назначенный tier). Пакет — всё или ничего: сначала все элементы проверяются у провайдера (нет пользователя у провайдера / ошибка API / нет пароля у `local` → `validation_error` с причиной), затем одна транзакция; ошибка → error с перечнем элементов и причин в `message`; неизвестный провайдер / tier, пользователь уже есть в реестре, повтор в `items` → `validation_error`. `password` в ответе и логах не появляется.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1UsersAdd".
+ */
+export interface AccessV1UsersAdd {
+  channel: 'access';
+  schema: 'afbws.access.users.add.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Запрос: элементы usersAddItem; ответ: строки userRow.
+   */
+  items: [AccessV1UsersAddItem, ...AccessV1UsersAddItem[]] | [AccessV1UserRow, ...AccessV1UserRow[]];
+}
+/**
+ * Элемент запроса users.add: пользователь провайдера `provider` с id `external_id` (`user_id` строит адаптер провайдера: `getcourse` — `gc_<id>`, `local` — `id_<логин>`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1UsersAddItem".
+ */
+export interface AccessV1UsersAddItem {
+  /**
+   * Authorization provider (adapter) id: who authenticates the user and supplies its groups, e.g. `getcourse`, `local`. An open set defined by the backend's adapters, not an enum.
+   */
+  provider: string;
+  /**
+   * Id пользователя у провайдера: `getcourse` — id в GetCourse (проверяется через API, имя берётся оттуда); `local` — логин.
+   */
+  external_id: string;
+  /**
+   * Имя, заданное персоналом (приоритетнее имени от провайдера); нет ключа — не задано.
+   */
+  name?: string;
+  /**
+   * Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `admin`, `manager`, `user`, `guest`, a new subscription tier `lite`), NOT an enum: a new tier needs no protocol change. Only the staff tiers `admin` and `manager` are reserved by code (staff functions gated on the tier independently of `mode`; `admin` additionally manages tiers, their members and groups). Состав tier — таблица `tier_members` базы доступа: tier пользователя = личный → иначе по группам провайдера (старший по rank) → иначе tier по умолчанию (минимальный rank).
+   */
+  tier: string;
+  /**
+   * Capabilities, добавленные пользователю сверх tier; нет ключа — нет.
+   */
+  capabilities?: AccessV1Capability[];
+  /**
+   * Пароль входа — только для `local`, для него обязателен (проверяет сервер: не пустой, не длиннее предела). Сохраняется только хэшем; не логируется и никогда не возвращается.
+   */
+  password?: string;
+}
+/**
+ * Запрос: `items[]` — `{user_id, name?, tier?, capabilities?, grace_until?}` (хотя бы одно поле кроме `user_id`). Поле `tier` хотя бы в одном элементе от не-admin → error `forbidden`; неизвестный tier / снятие последнего `admin` → `validation_error`. Ответ: `items[]` — обновлённые строки userRow. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1UsersSet".
+ */
+export interface AccessV1UsersSet {
+  channel: 'access';
+  schema: 'afbws.access.users.set.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Запрос: элементы usersSetItem; ответ: строки userRow.
+   */
+  items: [AccessV1UsersSetItem, ...AccessV1UsersSetItem[]] | [AccessV1UserRow, ...AccessV1UserRow[]];
+}
+/**
+ * Запрос: `items[]` — `{user_id}`. Ответ: `items[]` — `{user_id}` удалённых. Удаляются запись реестра, личное членство в tier и добавленные capabilities; периоды подписки и журнал действий персонала остаются; у `local` удаляется и учётная запись входа (вход невозможен). Пользователь внешнего провайдера после удаления может снова войти и появится заново по общим правилам. Объекты пользователя (настройки, алармы, планы) не трогаются. Нельзя удалить себя и последнего `admin` → `validation_error`. Пакет — всё или ничего; неизвестный `user_id` / повтор в `items` → `validation_error`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1UsersDelete".
+ */
+export interface AccessV1UsersDelete {
+  channel: 'access';
+  schema: 'afbws.access.users.delete.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Запрос: кого удалить; ответ: удалённые.
+   *
+   * @minItems 1
+   */
+  items: [AccessV1UsersDeleteItem, ...AccessV1UsersDeleteItem[]];
+}
+/**
+ * Элемент запроса и ответа users.delete.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1UsersDeleteItem".
+ */
+export interface AccessV1UsersDeleteItem {
+  user_id: string;
+}
+/**
+ * Запрос: только `request_id`. Ответ: `trial` — новое состояние пробного периода (как access.trial); затем пуш afbws.auth.v1. Пробный период включается один раз: `trial_started_on` = сегодня, `trial_ends_on` = сегодня + `trial_days` − 1. Недоступен → error `validation_error` «Пробный период недоступен».
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1TrialStart".
+ */
+export interface AccessV1TrialStart {
+  channel: 'access';
+  schema: 'afbws.access.trial.start.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Только в ответе.
+   */
+  trial?: null | AccessTrialAvailable | AccessTrialActive;
+}
+/**
+ * Пробный период доступен: пользователь может включить его сам (afbws.access.trial.start.v1).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessTrialAvailable".
+ */
+export interface AccessTrialAvailable {
+  state: 'available';
+  /**
+   * Срок пробного периода в днях (`trial_days` политики tier).
+   */
+  days: number;
+}
+/**
+ * Пробный период идёт.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessTrialActive".
+ */
+export interface AccessTrialActive {
+  state: 'active';
+  /**
+   * Дата YYYY-MM-DD в поясе сервера; действует до конца указанного дня (до 00:00 следующего дня пояса сервера).
+   */
+  ends_on: string;
+  /**
+   * `ends_on` − сегодня + 1; меняется в полночь пояса сервера.
+   */
+  days_left: number;
+}
+/**
+ * Request: only `request_id`. Response: `tiers[]` — every non-staff tier with its policy.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1PolicyGet".
+ */
+export interface AccessV1PolicyGet {
+  channel: 'access';
+  schema: 'afbws.access.policy.get.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Response only: every tier except `admin`/`manager`.
+   */
+  tiers?: AccessV1PolicyRow[];
+}
+/**
+ * Mode policy of one tier (afbws.access.policy.*). Staff tiers (`admin`, `manager`) have no policy and are not listed.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1PolicyRow".
+ */
+export interface AccessV1PolicyRow {
+  tier: AccessTier;
+  title: string;
+  rank: number;
+  /**
+   * Mode policy; null — always `full` with its own limits.
+   */
+  policy: null | AccessV1Policy;
+}
+/**
+ * Политика режима tier (`tiers.policy` базы доступа). Tier С политикой — `full` (с лимитами `as_tier`), пока идёт льготный период, пробный период или временное окно (этап 3: инструмент витрины), иначе `basic` со своими лимитами. Tier без политики (null) — всегда `full` со своими лимитами. Capability `trade` и tier подписки — всегда `full`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1Policy".
+ */
+export interface AccessV1Policy {
+  as_tier: AccessTier;
+  /**
+   * Срок пробного периода в днях (пользователь включает сам, один раз); 0 или нет ключа — пробного периода нет.
+   */
+  trial_days?: number;
+  /**
+   * Льготный период в днях после окончания подписки (выход из tier подписки в этот tier); 0 или нет ключа — льготного периода нет.
+   */
+  grace_days?: number;
+  /**
+   * Window of a trading day (MOEX calendar); null or absent = no window.
+   */
+  workday?: null | AccessV1Window;
+  /**
+   * Window of a non-trading day (MOEX calendar); null or absent = no window.
+   */
+  weekend?: null | AccessV1Window;
+  showcase?: AccessV1Showcase;
+}
+/**
+ * Daily time window, Moscow time: `from` — start, `to` — end. `to` < `from` = across midnight (e.g. 22:00-02:00).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1Window".
+ */
+export interface AccessV1Window {
+  from: string;
+  to: string;
+}
+/**
+ * Instrument showcase (stage 3): instruments of the global catalog collection `collection` work as in `full`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1Showcase".
+ */
+export interface AccessV1Showcase {
+  enabled: boolean;
+  /**
+   * Id of a global catalog collection; null — not chosen.
+   */
+  collection: string | null;
+}
+/**
+ * Request (request-only fields): `tier` (not `admin`/`manager`), `policy` (null — no policy: always `full` with own limits). Response: as afbws.access.policy.get.v1. Unknown tier -> `not_found`; staff tier -> `validation_error`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1PolicySet".
+ */
+export interface AccessV1PolicySet {
+  channel: 'access';
+  schema: 'afbws.access.policy.set.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  tier?: AccessTier;
+  /**
+   * Request only: new policy; null — remove.
+   */
+  policy?: null | AccessV1Policy;
+  /**
+   * Response only: every tier except `admin`/`manager`.
+   */
+  tiers?: AccessV1PolicyRow[];
+}
+/**
+ * Request: only `request_id`. Response: `tiers[]` — every tier incl. `admin`/`manager` (policies — afbws.access.policy.get.v1).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1TiersGet".
+ */
+export interface AccessV1TiersGet {
+  channel: 'access';
+  schema: 'afbws.access.tiers.get.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Response only.
+   */
+  tiers?: AccessV1TierRow[];
+}
+/**
+ * One tier (one row of the `tiers` table without `policy`; the policy is edited by afbws.access.policy.*).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1TierRow".
+ */
+export interface AccessV1TierRow {
+  tier: AccessTier;
+  /**
+   * Label shown in the staff UI.
+   */
+  title: string;
+  /**
+   * Priority when a user's groups match several tiers (higher wins); unique among tiers. `admin` = 999 and `manager` = 100 are fixed by code, other tiers 1..99 (checked by the server). The tier with the minimal rank is the default for users who are not members of any tier (personally or by group).
+   */
+  rank: number;
+  /**
+   * Subscription tier: subscription periods are logged on login, the tier counts in conversion; without a policy always `full`. Always false for `admin`/`manager`.
+   */
+  subscription: boolean;
+  /**
+   * Capabilities tier — есть у каждого члена tier; правит admin.
+   */
+  capabilities: AccessV1Capability[];
+  limits: AccessLimits;
+}
+/**
+ * Effective per-user limits (enforced only when ADDING objects; existing objects above a limit are never deleted or truncated). Keys mirror AFB backend/users/roles_loader.py LIMIT_KEYS.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessLimits".
+ */
+export interface AccessLimits {
+  max_favorites_tickers: number;
+  max_primitives_per_user: number;
+  max_sets: number;
+  max_favorite_colors: number;
+}
+/**
+ * Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title`, `capabilities` and `limits` change); other ranks 1..99, unique; capabilities — из набора кода; a tier cannot be removed while referenced by `tier_members`/`policy.as_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1TiersSet".
+ */
+export interface AccessV1TiersSet {
+  channel: 'access';
+  schema: 'afbws.access.tiers.set.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Tier names must be unique (JSON Schema cannot express uniqueness by key — the server rejects duplicates with validation_error).
+   *
+   * @minItems 1
+   */
+  tiers: [AccessV1TierRow, ...AccessV1TierRow[]];
+}
+/**
+ * Запрос: только `request_id`. Ответ: `groups[]`, `provider_groups[]`, `provider_groups_error`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1GroupsGet".
+ */
+export interface AccessV1GroupsGet {
+  channel: 'access';
+  schema: 'afbws.access.groups.get.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Только в ответе: группы провайдера в составе tier.
+   */
+  groups?: AccessV1TierGroup[];
+  /**
+   * Только в ответе: группы провайдеров авторизации (выбор группы во вкладке «Группы» — только из этого списка).
+   */
+  provider_groups?: AccessV1ProviderGroup[];
+  /**
+   * Response only: why provider groups could not be fetched (fully or partly); null — fetched.
+   */
+  provider_groups_error?: string | null;
+}
+/**
+ * Группа провайдера в составе tier (строка `tier_members` kind=group): все члены группы получают этот tier (личный tier пользователя главнее). У группы один tier; только tier не-персонала.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1TierGroup".
+ */
+export interface AccessV1TierGroup {
+  provider: AccessV1Provider;
+  /**
+   * Group id at the provider, as a string.
+   */
+  group_id: string;
+  tier: AccessTier;
+}
+/**
+ * Группа провайдера авторизации (выбор группы в составе tier).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1ProviderGroup".
+ */
+export interface AccessV1ProviderGroup {
+  provider: AccessV1Provider;
+  group_id: string;
+  title: string;
+}
+/**
+ * Запрос: `groups[]` — замена целиком всех строк `tier_members` kind=group (неизвестный tier / tier персонала / повтор группы → `validation_error`). Ответ: как afbws.access.groups.get.v1.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1GroupsSet".
+ */
+export interface AccessV1GroupsSet {
+  channel: 'access';
+  schema: 'afbws.access.groups.set.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Группы провайдера в составе tier, замена целиком (на (`provider`, `group_id`) — один tier, проверяет сервер).
+   */
+  groups: AccessV1TierGroup[];
+  /**
+   * Только в ответе: группы провайдеров авторизации (выбор группы во вкладке «Группы» — только из этого списка).
+   */
+  provider_groups?: AccessV1ProviderGroup[];
+  /**
+   * Response only: why provider groups could not be fetched (fully or partly); null — fetched.
+   */
+  provider_groups_error?: string | null;
+}
+/**
+ * Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `weeks[]` (oldest first), one per calendar week intersecting the range. `new_users` — users whose `first_seen_at` falls in the week; `trials_started` — users whose `trial_started_on` falls in the week; `converted` — subscription periods started in the week; `active` — users whose `last_seen_at` falls in the week.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1Stats".
+ */
+export interface AccessV1Stats {
+  channel: 'access';
+  schema: 'afbws.access.stats.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  from: string;
+  to: string;
+  /**
+   * Response only.
+   */
+  weeks?: AccessV1StatsWeek[];
+}
+/**
+ * One calendar week of conversion statistics.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1StatsWeek".
+ */
+export interface AccessV1StatsWeek {
+  /**
+   * Monday of the week.
+   */
+  week: string;
+  new_users: number;
+  trials_started: number;
+  converted: number;
+  active: number;
+}
+/**
+ * Answer to a request of any schema-first channel that the current `mode` does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `basic` — feature not available in basic mode; `showcase` — basic mode with showcase, the instrument is not in the showcase; `held` — activation of an alarm/trade plan while the owner's objects are held. `feature` — gate feature id (e.g. `datasets`, `participants`, `virtual`, `screener`, `alarm.activate`). `message` — ready-to-show text (includes when `full` becomes available, if known).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1Denied".
+ */
+export interface AccessV1Denied {
+  /**
+   * Channel of the refused request.
+   */
+  channel: string;
+  schema: 'afbws.access.denied.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  reason: 'basic' | 'showcase' | 'held';
+  feature: string;
+  message: string;
+}
+/**
+ * `code` is a closed subset of common errorCode: `forbidden` (the operation is not allowed for the connection's tier: not staff / not admin), `validation_error`, `not_found` (unknown user / tier), `invalid_channel`, `invalid_schema`, `internal_error`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1Error".
+ */
+export interface AccessV1Error {
+  channel: 'access';
+  schema: 'afbws.access.error.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  code: 'forbidden' | 'validation_error' | 'not_found' | 'invalid_channel' | 'invalid_schema' | 'internal_error';
+  message: string;
+}
+/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountV2Snapshot".
  */
@@ -1782,6 +2422,88 @@ export interface AlarmV2Error {
   details?: {};
 }
 /**
+ * Request (client -> server, first message; no `user_id`): `request_id`, `support`, `version`, optional `session_id`. The session is taken from the `afb_session` cookie, or from `session_id` when the cookie is absent/invalid (iframe). `version` (frontend build) is logged for monitoring only — never parsed, compared or used to gate behaviour; all behaviour is gated on `support` alone. Response (same `request_id`): `user_id`, `timezone`, `brokers`, `support`, `access`; `support` — the backend's own declared afbws capability ids (not the intersection; the client computes it). Push (no `request_id`): the whole response, sent when the effective `access` of the connection changes; the client replaces its auth state (в т.ч. в полночь пояса сервера, когда меняется `trial.days_left`/`grace.days_left`, и после afbws.access.trial.start.v1).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AuthV1".
+ */
+export interface AuthV1 {
+  channel: 'auth';
+  schema: 'afbws.auth.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  /**
+   * afbws capability ids (x-afbws-support-id values): in a request — what the client supports; in a response/push — what the backend supports.
+   */
+  support: string[];
+  /**
+   * Request only: frontend build version, logged only.
+   */
+  version?: string;
+  /**
+   * Request only: HTTP session id, used when the cookie is unavailable.
+   */
+  session_id?: string;
+  /**
+   * Response/push only.
+   */
+  user_id?: string;
+  /**
+   * Response/push only: IANA timezone name of the platform (market time on the frontend, e.g. `Europe/Moscow`).
+   */
+  timezone?: string;
+  /**
+   * Response/push only: known broker ids for the link connector-create form, sent unconditionally.
+   */
+  brokers?: string[];
+  access?: Access;
+}
+/**
+ * Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — permissions: capabilities of the tier ∪ capabilities added to the user (`trade` — real trading through BF, `virtual`, `screener`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "Access".
+ */
+export interface Access {
+  tier: AccessTier;
+  /**
+   * Действующие capabilities (строки): capabilities tier ∪ добавленные пользователю (`trade`, `virtual`, `screener`). `local` — не назначаемая capability: бэкенд сам добавляет её локальным пользователям (provider `local`; фронт по ней показывает смену пароля).
+   */
+  capabilities: string[];
+  limits: AccessLimits;
+  mode: AccessMode;
+  trial: AccessTrial;
+  grace: AccessGrace;
+}
+/**
+ * Льготный период после окончания подписки.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessGraceActive".
+ */
+export interface AccessGraceActive {
+  /**
+   * Дата YYYY-MM-DD в поясе сервера; действует до конца указанного дня (до 00:00 следующего дня пояса сервера).
+   */
+  ends_on: string;
+  /**
+   * `ends_on` − сегодня + 1; меняется в полночь пояса сервера.
+   */
+  days_left: number;
+}
+/**
+ * `unauthorized` — no valid session (close code 4001); `session_invalid` — the session exists but its access profile could not be resolved (close code 4001); `invalid_request` — the first message is not a valid auth request (close code 4000). `request_id` echoes the request's when it could be read.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AuthV1Error".
+ */
+export interface AuthV1Error {
+  channel: 'auth';
+  schema: 'afbws.auth.error.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  code: 'unauthorized' | 'invalid_request' | 'session_invalid';
+  message: string;
+}
+/**
  * Shared public-view basis for `bfs` (registry push) and `connector` (record CRUD) — see BFRegistryEntry.to_public_dict() in AFB/backend/trade/models.py.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1911,6 +2633,7 @@ export interface AfbwsCatalogChannelV1_Derivative {
  */
 export interface AfbwsCatalogChannelV1_SourceStatus {
   source: AfbwsCatalogChannelV1_Source;
+  title: string;
   available: boolean;
   state: string;
   /**
@@ -2391,6 +3114,7 @@ export interface ConfigRoles {
  * via the `definition` "ConfigRoleTier".
  */
 export interface ConfigRoleTier {
+  title?: string;
   limits?: {
     [k: string]: number;
   };
@@ -5145,6 +5869,7 @@ export interface NotificationDealV1 {
   at?: string;
   display: {
     instrument_label: string;
+    title: string;
     text?: string;
   };
   user: {
@@ -5265,6 +5990,7 @@ export interface NotificationLinkV1 {
   };
   display: {
     connector_label: string;
+    title: string;
     text?: string;
   };
   user: {

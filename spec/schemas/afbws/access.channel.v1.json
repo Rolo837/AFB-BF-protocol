@@ -1,0 +1,1228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/access.channel.v1.json",
+  "x-afbws-support-id": "afbws.access.channel.v1",
+  "title": "access channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Согласуется через auth.support (capability id afbws.access.channel.v1). Модель доступа freemium: tier (кто) × capabilities (что разрешено) × mode (что доступно сейчас), см. common.v1.json#/$defs/access. Сообщения повторяют таблицы базы доступа бэкенда (`tiers`, `tier_members`, `user_capabilities`, `users`, `subscriptions`); модель не знает конкретного провайдера авторизации — внешние группы адресуются парой (`provider`, `group_id`), пользователи заводятся через адаптер провайдера. Конвенция как у afbws.link/afbws.screener: ОДИН schema id на операцию (`afbws.access.<op>.v1`, без суффиксов .request/.response); одна схема — запрос и ответ (эхо `request_id`); ответные поля в запросе запрещены; `request_id` обязателен в каждом запросе. Персонал — два tier, зарезервированных кодом: `admin` и `manager` (staff = admin + manager). Операции персонала (staff, admin и manager): `users.list`, `users.set` (имя, добавленные capabilities, льготный период — пакетом; поле `tier` — только admin), `policy.get`/`policy.set`, `stats`. Только admin (admin-only): `users.add` (создать пользователей), `users.delete` (удалить пользователей), `tiers.get`/`tiers.set`, `groups.get`/`groups.set` (группы провайдера в составе tier). Любой пользователь: `trial.start`. Чужая операция → error `forbidden`. Даты — YYYY-MM-DD в поясе сервера, действуют до конца указанного дня. Сервер шлёт сам: `afbws.access.denied.v1` — отказ гейта на запрос ЛЮБОГО канала (на канале отказанного запроса, с его `request_id`). Смена собственного доступа соединения приходит пушем afbws.auth.v1. Отказ запроса канала целиком: `afbws.access.error.v1`. См. AFB/docs/ws/access.md.",
+  "type": "object",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/usersList"
+    },
+    {
+      "$ref": "#/$defs/usersAdd"
+    },
+    {
+      "$ref": "#/$defs/usersSet"
+    },
+    {
+      "$ref": "#/$defs/usersDelete"
+    },
+    {
+      "$ref": "#/$defs/trialStart"
+    },
+    {
+      "$ref": "#/$defs/policyGet"
+    },
+    {
+      "$ref": "#/$defs/policySet"
+    },
+    {
+      "$ref": "#/$defs/tiersGet"
+    },
+    {
+      "$ref": "#/$defs/tiersSet"
+    },
+    {
+      "$ref": "#/$defs/groupsGet"
+    },
+    {
+      "$ref": "#/$defs/groupsSet"
+    },
+    {
+      "$ref": "#/$defs/stats"
+    },
+    {
+      "$ref": "#/$defs/denied"
+    },
+    {
+      "$ref": "#/$defs/error"
+    }
+  ],
+  "$defs": {
+    "provider": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "Authorization provider (adapter) id: who authenticates the user and supplies its groups, e.g. `getcourse`, `local`. An open set defined by the backend's adapters, not an enum."
+    },
+    "tierName": {
+      "$ref": "common.v1.json#/$defs/accessTier"
+    },
+    "capability": {
+      "type": "string",
+      "enum": [
+        "trade",
+        "virtual",
+        "screener"
+      ],
+      "description": "Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF, `virtual` — виртуальный счёт, `screener` — скринер. `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities."
+    },
+    "window": {
+      "type": "object",
+      "description": "Daily time window, Moscow time: `from` — start, `to` — end. `to` < `from` = across midnight (e.g. 22:00-02:00).",
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "type": "string",
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "description": "Политика режима tier (`tiers.policy` базы доступа). Tier С политикой — `full` (с лимитами `as_tier`), пока идёт льготный период, пробный период или временное окно (этап 3: инструмент витрины), иначе `basic` со своими лимитами. Tier без политики (null) — всегда `full` со своими лимитами. Capability `trade` и tier подписки — всегда `full`.",
+      "required": [
+        "as_tier"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "as_tier": {
+          "$ref": "#/$defs/tierName"
+        },
+        "trial_days": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Срок пробного периода в днях (пользователь включает сам, один раз); 0 или нет ключа — пробного периода нет."
+        },
+        "grace_days": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Льготный период в днях после окончания подписки (выход из tier подписки в этот tier); 0 или нет ключа — льготного периода нет."
+        },
+        "workday": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/window"
+            }
+          ],
+          "description": "Window of a trading day (MOEX calendar); null or absent = no window."
+        },
+        "weekend": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/window"
+            }
+          ],
+          "description": "Window of a non-trading day (MOEX calendar); null or absent = no window."
+        },
+        "showcase": {
+          "$ref": "#/$defs/showcase"
+        }
+      }
+    },
+    "tierRow": {
+      "type": "object",
+      "description": "One tier (one row of the `tiers` table without `policy`; the policy is edited by afbws.access.policy.*).",
+      "required": [
+        "tier",
+        "title",
+        "rank",
+        "subscription",
+        "capabilities",
+        "limits"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "tier": {
+          "$ref": "#/$defs/tierName"
+        },
+        "title": {
+          "type": "string",
+          "description": "Label shown in the staff UI."
+        },
+        "rank": {
+          "type": "integer",
+          "description": "Priority when a user's groups match several tiers (higher wins); unique among tiers. `admin` = 999 and `manager` = 100 are fixed by code, other tiers 1..99 (checked by the server). The tier with the minimal rank is the default for users who are not members of any tier (personally or by group)."
+        },
+        "subscription": {
+          "type": "boolean",
+          "description": "Subscription tier: subscription periods are logged on login, the tier counts in conversion; without a policy always `full`. Always false for `admin`/`manager`."
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/capability"
+          },
+          "description": "Capabilities tier — есть у каждого члена tier; правит admin."
+        },
+        "limits": {
+          "$ref": "common.v1.json#/$defs/accessLimits"
+        }
+      }
+    },
+    "policyRow": {
+      "type": "object",
+      "description": "Mode policy of one tier (afbws.access.policy.*). Staff tiers (`admin`, `manager`) have no policy and are not listed.",
+      "required": [
+        "tier",
+        "title",
+        "rank",
+        "policy"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "tier": {
+          "$ref": "#/$defs/tierName"
+        },
+        "title": {
+          "type": "string"
+        },
+        "rank": {
+          "type": "integer"
+        },
+        "policy": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/policy"
+            }
+          ],
+          "description": "Mode policy; null — always `full` with its own limits."
+        }
+      }
+    },
+    "tierLabel": {
+      "type": "object",
+      "description": "A tier and its label (for choosing a tier in the staff UI).",
+      "required": [
+        "tier",
+        "title"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "tier": {
+          "$ref": "#/$defs/tierName"
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "capabilityLabel": {
+      "type": "object",
+      "description": "A capability and its label; the set and the labels are defined by the backend code (the frontend does not hardcode them).",
+      "required": [
+        "capability",
+        "title"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "capability": {
+          "$ref": "#/$defs/capability"
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "tierGroup": {
+      "type": "object",
+      "description": "Группа провайдера в составе tier (строка `tier_members` kind=group): все члены группы получают этот tier (личный tier пользователя главнее). У группы один tier; только tier не-персонала.",
+      "required": [
+        "provider",
+        "group_id",
+        "tier"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/provider"
+        },
+        "group_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Group id at the provider, as a string."
+        },
+        "tier": {
+          "$ref": "#/$defs/tierName"
+        }
+      }
+    },
+    "providerLabel": {
+      "type": "object",
+      "description": "Провайдер авторизации и его подпись (выбор провайдера при создании пользователя); набор и подписи задаёт код бэкенда (адаптеры провайдеров).",
+      "required": [
+        "provider",
+        "title"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/provider"
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "userRow": {
+      "type": "object",
+      "description": "Пользователь реестра (входил хотя бы раз или создан admin через users.add): строка `users` + вычисленные tier/capabilities и статус подписки. Только то, что показывается персоналу; даты пробного периода, первого входа, опоздания и периоды подписки остаются в базе (их использует статистика). Показываемое имя = `name` ?? `display_name` ?? `user_id`.",
+      "required": [
+        "user_id",
+        "provider",
+        "name",
+        "display_name",
+        "tier",
+        "capabilities",
+        "personal_capabilities",
+        "last_seen_at",
+        "grace_until",
+        "subscription_status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "$ref": "#/$defs/provider"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Имя, заданное персоналом; приоритетнее `display_name`; у `local` — единственное имя. null — не задано."
+        },
+        "display_name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Имя от провайдера (при создании / при входе); у `local` — null."
+        },
+        "tier": {
+          "$ref": "#/$defs/tierName",
+          "description": "Действующий tier."
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/capability"
+          },
+          "description": "Действующие capabilities: capabilities tier ∪ добавленные пользователю."
+        },
+        "personal_capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/capability"
+          },
+          "description": "Capabilities, добавленные пользователю сверх tier (правятся через users.set)."
+        },
+        "last_seen_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "Последний вход; null — создан admin и ещё не входил."
+        },
+        "grace_until": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.v1.json#/$defs/accessDate"
+            }
+          ],
+          "description": "Последний день льготного периода включительно; null — нет."
+        },
+        "subscription_status": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "active",
+            "grace",
+            "ended",
+            null
+          ],
+          "description": "Статус подписки (вычисляет бэкенд): `active` — открыт период подписки; `grace` — идёт льготный период (`grace_until` ≥ сегодня); `ended` — периоды подписки были, открытого нет, льготы нет; null — подписки не было и льготы нет."
+        }
+      }
+    },
+    "showcase": {
+      "type": "object",
+      "description": "Instrument showcase (stage 3): instruments of the global catalog collection `collection` work as in `full`.",
+      "required": [
+        "enabled",
+        "collection"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "collection": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "description": "Id of a global catalog collection; null — not chosen."
+        }
+      }
+    },
+    "providerGroup": {
+      "type": "object",
+      "description": "Группа провайдера авторизации (выбор группы в составе tier).",
+      "required": [
+        "provider",
+        "group_id",
+        "title"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/provider"
+        },
+        "group_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "statsWeek": {
+      "type": "object",
+      "required": [
+        "week",
+        "new_users",
+        "trials_started",
+        "converted",
+        "active"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "week": {
+          "type": "string",
+          "format": "date",
+          "description": "Monday of the week."
+        },
+        "new_users": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trials_started": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "converted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "active": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "description": "One calendar week of conversion statistics."
+    },
+    "usersList": {
+      "type": "object",
+      "title": "afbws.access.users.list.v1 — all users (request / response), staff.",
+      "description": "Request: only `request_id`. Response: `items[]` — every user of the registry (logged in at least once or created by admin; no server-side filtering or paging), `tiers[]`, `capabilities[]` and `providers[]` — labels for the staff UI.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.users.list.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/userRow"
+          },
+          "description": "Response only."
+        },
+        "tiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tierLabel"
+          },
+          "description": "Response only: all tiers (incl. staff) with labels."
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/capabilityLabel"
+          },
+          "description": "Response only: all capabilities with labels."
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/providerLabel"
+          },
+          "description": "Response only: authorization providers available for creating users (users.add), with labels."
+        }
+      },
+      "if": {
+        "required": [
+          "items"
+        ]
+      },
+      "then": {
+        "required": [
+          "items",
+          "tiers",
+          "capabilities",
+          "providers"
+        ]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "tiers"
+              ]
+            },
+            {
+              "required": [
+                "capabilities"
+              ]
+            },
+            {
+              "required": [
+                "providers"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "usersAddItem": {
+      "type": "object",
+      "description": "Элемент запроса users.add: пользователь провайдера `provider` с id `external_id` (`user_id` строит адаптер провайдера: `getcourse` — `gc_<id>`, `local` — `id_<логин>`).",
+      "required": [
+        "provider",
+        "external_id",
+        "tier"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/provider",
+          "description": "Провайдер из `providers[]` ответа users.list."
+        },
+        "external_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Id пользователя у провайдера: `getcourse` — id в GetCourse (проверяется через API, имя берётся оттуда); `local` — логин."
+        },
+        "name": {
+          "type": "string",
+          "description": "Имя, заданное персоналом (приоритетнее имени от провайдера); нет ключа — не задано."
+        },
+        "tier": {
+          "$ref": "#/$defs/tierName",
+          "description": "Уровень доступа: совпадает с tier по группам/умолчанию — личное членство не пишется; иначе пользователь включается в tier лично."
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/capability"
+          },
+          "description": "Capabilities, добавленные пользователю сверх tier; нет ключа — нет."
+        },
+        "password": {
+          "type": "string",
+          "description": "Пароль входа — только для `local`, для него обязателен (проверяет сервер: не пустой, не длиннее предела). Сохраняется только хэшем; не логируется и никогда не возвращается."
+        }
+      }
+    },
+    "usersAdd": {
+      "type": "object",
+      "title": "afbws.access.users.add.v1 — создать пользователей пакетом (запрос / ответ), только admin.",
+      "description": "Запрос: `items[]` — `{provider, external_id, name?, tier, capabilities?, password?}`. Ответ: `items[]` — строки userRow созданных пользователей (`last_seen_at` = null до первого входа; при входе пользователь получает назначенный tier). Пакет — всё или ничего: сначала все элементы проверяются у провайдера (нет пользователя у провайдера / ошибка API / нет пароля у `local` → `validation_error` с причиной), затем одна транзакция; ошибка → error с перечнем элементов и причин в `message`; неизвестный провайдер / tier, пользователь уже есть в реестре, повтор в `items` → `validation_error`. `password` в ответе и логах не появляется.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.users.add.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "items": {
+          "description": "Запрос: элементы usersAddItem; ответ: строки userRow.",
+          "oneOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/usersAddItem"
+              }
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/userRow"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "usersSetItem": {
+      "type": "object",
+      "description": "Элемент запроса users.set: хотя бы одно из `name`, `tier`, `capabilities`, `grace_until`.",
+      "required": [
+        "user_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Имя, заданное персоналом; null — снять (показывается имя от провайдера). У `local` пишется и в реестр локальных пользователей."
+        },
+        "tier": {
+          "$ref": "#/$defs/tierName",
+          "description": "Только admin (иначе error `forbidden`). Выбранный tier совпадает с тем, что пользователь получил бы по группам/умолчанию, — личное членство снимается; иначе пользователь включается в tier лично. «Вернуть по группам» = выбрать этот tier."
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/capability"
+          },
+          "description": "Capabilities, добавленные пользователю, замена целиком; [] — снять все добавленные (capabilities tier не затрагиваются)."
+        },
+        "grace_until": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "common.v1.json#/$defs/accessDate"
+            }
+          ],
+          "description": "Последний день льготного периода; null — снять."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "name"
+          ]
+        },
+        {
+          "required": [
+            "tier"
+          ]
+        },
+        {
+          "required": [
+            "capabilities"
+          ]
+        },
+        {
+          "required": [
+            "grace_until"
+          ]
+        }
+      ]
+    },
+    "usersSet": {
+      "type": "object",
+      "title": "afbws.access.users.set.v1 — имя, tier, добавленные capabilities и льготный период пользователей пакетом (запрос / ответ), staff; поле `tier` — только admin.",
+      "description": "Запрос: `items[]` — `{user_id, name?, tier?, capabilities?, grace_until?}` (хотя бы одно поле кроме `user_id`). Поле `tier` хотя бы в одном элементе от не-admin → error `forbidden`; неизвестный tier / снятие последнего `admin` → `validation_error`. Ответ: `items[]` — обновлённые строки userRow. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.users.set.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "items": {
+          "description": "Запрос: элементы usersSetItem; ответ: строки userRow.",
+          "oneOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/usersSetItem"
+              }
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/userRow"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "usersDeleteItem": {
+      "type": "object",
+      "description": "Элемент запроса и ответа users.delete.",
+      "required": [
+        "user_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "usersDelete": {
+      "type": "object",
+      "title": "afbws.access.users.delete.v1 — удалить пользователей пакетом (запрос / ответ), только admin.",
+      "description": "Запрос: `items[]` — `{user_id}`. Ответ: `items[]` — `{user_id}` удалённых. Удаляются запись реестра, личное членство в tier и добавленные capabilities; периоды подписки и журнал действий персонала остаются; у `local` удаляется и учётная запись входа (вход невозможен). Пользователь внешнего провайдера после удаления может снова войти и появится заново по общим правилам. Объекты пользователя (настройки, алармы, планы) не трогаются. Нельзя удалить себя и последнего `admin` → `validation_error`. Пакет — всё или ничего; неизвестный `user_id` / повтор в `items` → `validation_error`.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.users.delete.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/usersDeleteItem"
+          },
+          "description": "Запрос: кого удалить; ответ: удалённые."
+        }
+      }
+    },
+    "trialStart": {
+      "type": "object",
+      "title": "afbws.access.trial.start.v1 — включить свой пробный период (запрос / ответ), любой пользователь.",
+      "description": "Запрос: только `request_id`. Ответ: `trial` — новое состояние пробного периода (как access.trial); затем пуш afbws.auth.v1. Пробный период включается один раз: `trial_started_on` = сегодня, `trial_ends_on` = сегодня + `trial_days` − 1. Недоступен → error `validation_error` «Пробный период недоступен».",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.trial.start.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "trial": {
+          "$ref": "common.v1.json#/$defs/accessTrial",
+          "description": "Только в ответе."
+        }
+      }
+    },
+    "policyGet": {
+      "type": "object",
+      "title": "afbws.access.policy.get.v1 — mode policies of tiers (request / response), staff.",
+      "description": "Request: only `request_id`. Response: `tiers[]` — every non-staff tier with its policy.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.policy.get.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "tiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/policyRow"
+          },
+          "description": "Response only: every tier except `admin`/`manager`."
+        }
+      }
+    },
+    "policySet": {
+      "type": "object",
+      "title": "afbws.access.policy.set.v1 — set the mode policy of one tier (request / response), staff.",
+      "description": "Request (request-only fields): `tier` (not `admin`/`manager`), `policy` (null — no policy: always `full` with own limits). Response: as afbws.access.policy.get.v1. Unknown tier -> `not_found`; staff tier -> `validation_error`.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.policy.set.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "tier": {
+          "$ref": "#/$defs/tierName"
+        },
+        "policy": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/policy"
+            }
+          ],
+          "description": "Request only: new policy; null — remove."
+        },
+        "tiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/policyRow"
+          },
+          "description": "Response only: every tier except `admin`/`manager`."
+        }
+      },
+      "if": {
+        "required": [
+          "tiers"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "tier"
+              ]
+            },
+            {
+              "required": [
+                "policy"
+              ]
+            }
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "tier",
+          "policy"
+        ]
+      }
+    },
+    "tiersGet": {
+      "type": "object",
+      "title": "afbws.access.tiers.get.v1 — tiers, their capabilities and limits (request / response), admin only.",
+      "description": "Request: only `request_id`. Response: `tiers[]` — every tier incl. `admin`/`manager` (policies — afbws.access.policy.get.v1).",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.tiers.get.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "tiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tierRow"
+          },
+          "description": "Response only."
+        }
+      }
+    },
+    "tiersSet": {
+      "type": "object",
+      "title": "afbws.access.tiers.set.v1 — replace the tiers (request / response), admin only.",
+      "description": "Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title`, `capabilities` and `limits` change); other ranks 1..99, unique; capabilities — из набора кода; a tier cannot be removed while referenced by `tier_members`/`policy.as_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "tiers"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.tiers.set.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "tiers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/tierRow"
+          },
+          "description": "Tier names must be unique (JSON Schema cannot express uniqueness by key — the server rejects duplicates with validation_error)."
+        }
+      }
+    },
+    "groupsGet": {
+      "type": "object",
+      "title": "afbws.access.groups.get.v1 — группы провайдера в составе tier (запрос / ответ), только admin.",
+      "description": "Запрос: только `request_id`. Ответ: `groups[]`, `provider_groups[]`, `provider_groups_error`.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.groups.get.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "groups": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/tierGroup"
+          },
+          "description": "Только в ответе: группы провайдера в составе tier."
+        },
+        "provider_groups": {
+          "type": "array",
+          "description": "Только в ответе: группы провайдеров авторизации (выбор группы во вкладке «Группы» — только из этого списка).",
+          "items": {
+            "$ref": "#/$defs/providerGroup"
+          }
+        },
+        "provider_groups_error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Response only: why provider groups could not be fetched (fully or partly); null — fetched."
+        }
+      },
+      "if": {
+        "required": [
+          "groups"
+        ]
+      },
+      "then": {
+        "required": [
+          "groups",
+          "provider_groups",
+          "provider_groups_error"
+        ]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "provider_groups"
+              ]
+            },
+            {
+              "required": [
+                "provider_groups_error"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "groupsSet": {
+      "type": "object",
+      "title": "afbws.access.groups.set.v1 — заменить группы провайдера в составе tier (запрос / ответ), только admin.",
+      "description": "Запрос: `groups[]` — замена целиком всех строк `tier_members` kind=group (неизвестный tier / tier персонала / повтор группы → `validation_error`). Ответ: как afbws.access.groups.get.v1.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "groups"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.groups.set.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "groups": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/tierGroup"
+          },
+          "description": "Группы провайдера в составе tier, замена целиком (на (`provider`, `group_id`) — один tier, проверяет сервер)."
+        },
+        "provider_groups": {
+          "type": "array",
+          "description": "Только в ответе: группы провайдеров авторизации (выбор группы во вкладке «Группы» — только из этого списка).",
+          "items": {
+            "$ref": "#/$defs/providerGroup"
+          }
+        },
+        "provider_groups_error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Response only: why provider groups could not be fetched (fully or partly); null — fetched."
+        }
+      },
+      "if": {
+        "required": [
+          "provider_groups"
+        ]
+      },
+      "then": {
+        "required": [
+          "provider_groups",
+          "provider_groups_error"
+        ]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "provider_groups"
+              ]
+            },
+            {
+              "required": [
+                "provider_groups_error"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "title": "afbws.access.stats.v1 — weekly conversion statistics (request / response), staff.",
+      "description": "Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `weeks[]` (oldest first), one per calendar week intersecting the range. `new_users` — users whose `first_seen_at` falls in the week; `trials_started` — users whose `trial_started_on` falls in the week; `converted` — subscription periods started in the week; `active` — users whose `last_seen_at` falls in the week.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "from",
+        "to"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.stats.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "from": {
+          "type": "string",
+          "format": "date"
+        },
+        "to": {
+          "type": "string",
+          "format": "date"
+        },
+        "weeks": {
+          "type": "array",
+          "description": "Response only.",
+          "items": {
+            "$ref": "#/$defs/statsWeek"
+          }
+        }
+      }
+    },
+    "denied": {
+      "type": "object",
+      "title": "afbws.access.denied.v1 — the access gate refused a request of ANY channel (server -> client).",
+      "description": "Answer to a request of any schema-first channel that the current `mode` does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `basic` — feature not available in basic mode; `showcase` — basic mode with showcase, the instrument is not in the showcase; `held` — activation of an alarm/trade plan while the owner's objects are held. `feature` — gate feature id (e.g. `datasets`, `participants`, `virtual`, `screener`, `alarm.activate`). `message` — ready-to-show text (includes when `full` becomes available, if known).",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "reason",
+        "feature",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Channel of the refused request."
+        },
+        "schema": {
+          "const": "afbws.access.denied.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "basic",
+            "showcase",
+            "held"
+          ]
+        },
+        "feature": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "title": "afbws.access.error.v1 — typed error for a whole request (server -> client).",
+      "description": "`code` is a closed subset of common errorCode: `forbidden` (the operation is not allowed for the connection's tier: not staff / not admin), `validation_error`, `not_found` (unknown user / tier), `invalid_channel`, `invalid_schema`, `internal_error`.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id",
+        "code",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "access"
+        },
+        "schema": {
+          "const": "afbws.access.error.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "code": {
+          "type": "string",
+          "enum": [
+            "forbidden",
+            "validation_error",
+            "not_found",
+            "invalid_channel",
+            "invalid_schema",
+            "internal_error"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.users.add.v1",
+  "request_id": "r-10",
+  "items": [
+    {
+      "provider": "getcourse",
+      "external_id": "315500771",
+      "tier": "user"
+    }
+  ]
+}

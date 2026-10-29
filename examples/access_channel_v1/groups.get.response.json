@@ -1,0 +1,40 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.groups.get.v1",
+  "request_id": "r-15",
+  "groups": [
+    {
+      "provider": "getcourse",
+      "group_id": "3125478",
+      "tier": "user"
+    },
+    {
+      "provider": "getcourse",
+      "group_id": "3125480",
+      "tier": "lite"
+    },
+    {
+      "provider": "getcourse",
+      "group_id": "3125495",
+      "tier": "user"
+    }
+  ],
+  "provider_groups": [
+    {
+      "provider": "getcourse",
+      "group_id": "3125478",
+      "title": "Подписка AFB"
+    },
+    {
+      "provider": "getcourse",
+      "group_id": "3125480",
+      "title": "Подписка AFB Лайт"
+    },
+    {
+      "provider": "getcourse",
+      "group_id": "3125490",
+      "title": "Команда AFB"
+    }
+  ],
+  "provider_groups_error": null
+}

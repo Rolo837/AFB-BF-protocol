@@ -1,0 +1,7 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.stats.v1",
+  "request_id": "r-6",
+  "from": "2026-10-05",
+  "to": "2026-10-18"
+}

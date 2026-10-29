@@ -78,6 +78,8 @@ function namedRootSchemas() {
     "config.v1.json": "ConfigSettingsV1",
     "afbws/config.channel.v1.json": "ConfigChannelV1Message",
     "afbws/screener.channel.v1.json": "ScreenerChannelV1Message",
+    "afbws/auth.v1.json": "AuthV1Message",
+    "afbws/access.channel.v1.json": "AccessChannelV1Message",
   };
   for (const file of readdirSync(payloadsDir).sort()) {
     if (!file.endsWith(".json")) continue;
@@ -112,6 +114,20 @@ const NAMED_DEF_SCHEMAS = {
     sizing: "DealSizing",
     executionPolicy: "DealExecutionPolicy",
     source: "DealSource",
+  },
+  // afbws/common.v1.json — only the access block is exported under a public
+  // name; requestId/errorCode/instrumentKey keep their namespaced keys.
+  "afbws/common.v1.json": {
+    accessTier: "AccessTier",
+    accessMode: "AccessMode",
+    accessLimits: "AccessLimits",
+    accessDate: "AccessDate",
+    accessTrialAvailable: "AccessTrialAvailable",
+    accessTrialActive: "AccessTrialActive",
+    accessTrial: "AccessTrial",
+    accessGraceActive: "AccessGraceActive",
+    accessGrace: "AccessGrace",
+    access: "Access",
   },
   "afbws/bfs.registry.v1.json": { entry: "BfsRegistryEntry" },
   "afbws/account.channel.v2.json": {
@@ -218,6 +234,43 @@ const NAMED_DEF_SCHEMAS = {
     participantsDerivatives: "ScreenerV1ParticipantsDerivatives",
     participantsCollection: "ScreenerV1ParticipantsCollection",
     error: "ScreenerV1Error",
+  },
+  "afbws/auth.v1.json": {
+    auth: "AuthV1",
+    error: "AuthV1Error",
+  },
+  "afbws/access.channel.v1.json": {
+    window: "AccessV1Window",
+    policy: "AccessV1Policy",
+    tierRow: "AccessV1TierRow",
+    policyRow: "AccessV1PolicyRow",
+    tierLabel: "AccessV1TierLabel",
+    capabilityLabel: "AccessV1CapabilityLabel",
+    provider: "AccessV1Provider",
+    capability: "AccessV1Capability",
+    tierGroup: "AccessV1TierGroup",
+    providerLabel: "AccessV1ProviderLabel",
+    userRow: "AccessV1UserRow",
+    showcase: "AccessV1Showcase",
+    providerGroup: "AccessV1ProviderGroup",
+    statsWeek: "AccessV1StatsWeek",
+    usersList: "AccessV1UsersList",
+    usersAddItem: "AccessV1UsersAddItem",
+    usersAdd: "AccessV1UsersAdd",
+    usersSetItem: "AccessV1UsersSetItem",
+    usersSet: "AccessV1UsersSet",
+    usersDeleteItem: "AccessV1UsersDeleteItem",
+    usersDelete: "AccessV1UsersDelete",
+    trialStart: "AccessV1TrialStart",
+    policyGet: "AccessV1PolicyGet",
+    policySet: "AccessV1PolicySet",
+    tiersGet: "AccessV1TiersGet",
+    tiersSet: "AccessV1TiersSet",
+    groupsGet: "AccessV1GroupsGet",
+    groupsSet: "AccessV1GroupsSet",
+    stats: "AccessV1Stats",
+    denied: "AccessV1Denied",
+    error: "AccessV1Error",
   },
   "afbws/market.channel.v1.json": {
     table: "MarketTable",
@@ -413,7 +466,11 @@ function main() {
         // would override our deterministic $defs-key naming (and collides
         // across files — several oneOf branches share titles like "price
         // touch"). `description` is kept — it becomes a useful JSDoc comment.
-        if (k === "title") continue;
+        // Only the `title` KEYWORD (a string) is dropped: inside a
+        // `properties` map a key named `title` is a property whose value is a
+        // schema object (e.g. `{"title": {"type": "string"}}`) and must stay,
+        // otherwise the generated interface silently loses its `title` field.
+        if (k === "title" && typeof v === "string") continue;
         if (k === "$ref" && typeof v === "string") {
           if (v.startsWith("#/$defs/")) {
             out.$ref = `#/$defs/${keyFor(fromRelPath, v.slice("#/$defs/".length))}`;

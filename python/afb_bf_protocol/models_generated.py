@@ -1,11 +1,455 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 96b3bbf0c27bb434c68ecb2dcc86aace70cc2c8211e1e4e7c9c26103e8c1fe0a
+# source-hash: 9f2cc9490f9b485e3ef3a10647fb48abfc2693b9d4798e7af3a4680821f52852
 
 from __future__ import annotations
 
 from typing import Any, Literal, NotRequired, TypeAlias, TypedDict
+
+
+class Access(TypedDict):
+    """
+    Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — permissions: capabilities of the tier ∪ capabilities added to the user (`trade` — real trading through BF, `virtual`, `screener`); holding `trade` ALWAYS yields `mode: full`: real trading is never held because of a window, a trial or an ended subscription. (3) `mode` — WHAT is available NOW (`full`/`basic`); all logic is decided only by `mode`. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
+    """
+
+    tier: AccessTier
+    capabilities: list[Capability]
+    limits: AccessLimits
+    mode: AccessMode
+    trial: AccessTrial
+    grace: AccessGrace
+
+
+AccessDate: TypeAlias = str
+
+
+class AccessGraceActive(TypedDict):
+    """
+    Льготный период после окончания подписки.
+    """
+
+    ends_on: AccessDate
+    days_left: int
+
+
+AccessGrace: TypeAlias = AccessGraceActive | None
+
+
+class AccessLimits(TypedDict):
+    """
+    Effective per-user limits (enforced only when ADDING objects; existing objects above a limit are never deleted or truncated). Keys mirror AFB backend/users/roles_loader.py LIMIT_KEYS.
+    """
+
+    max_favorites_tickers: int
+    max_primitives_per_user: int
+    max_sets: int
+    max_favorite_colors: int
+
+
+AccessMode: TypeAlias = Literal["full", "basic"]
+
+
+AccessTier: TypeAlias = str
+
+
+class AccessTrialActive(TypedDict):
+    """
+    Пробный период идёт.
+    """
+
+    state: Literal["active"]
+    ends_on: AccessDate
+    days_left: int
+
+
+class AccessTrialAvailable(TypedDict):
+    """
+    Пробный период доступен: пользователь может включить его сам (afbws.access.trial.start.v1).
+    """
+
+    state: Literal["available"]
+    days: int
+
+
+AccessTrial: TypeAlias = AccessTrialAvailable | AccessTrialActive | None
+
+
+AccessV1Capability: TypeAlias = Literal["trade", "virtual", "screener"]
+
+
+class AccessV1CapabilityLabel(TypedDict):
+    """
+    A capability and its label; the set and the labels are defined by the backend code (the frontend does not hardcode them).
+    """
+
+    capability: AccessV1Capability
+    title: str
+
+
+class AccessV1Denied(TypedDict):
+    """
+    Answer to a request of any schema-first channel that the current `mode` does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `basic` — feature not available in basic mode; `showcase` — basic mode with showcase, the instrument is not in the showcase; `held` — activation of an alarm/trade plan while the owner's objects are held. `feature` — gate feature id (e.g. `datasets`, `participants`, `virtual`, `screener`, `alarm.activate`). `message` — ready-to-show text (includes when `full` becomes available, if known).
+    """
+
+    channel: str
+    schema: Literal["afbws.access.denied.v1"]
+    request_id: AfbwsCommonV1RequestId
+    reason: Literal["basic", "showcase", "held"]
+    feature: str
+    message: str
+
+
+class AccessV1Error(TypedDict):
+    """
+    `code` is a closed subset of common errorCode: `forbidden` (the operation is not allowed for the connection's tier: not staff / not admin), `validation_error`, `not_found` (unknown user / tier), `invalid_channel`, `invalid_schema`, `internal_error`.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.error.v1"]
+    request_id: AfbwsCommonV1RequestId
+    code: Literal[
+        "forbidden",
+        "validation_error",
+        "not_found",
+        "invalid_channel",
+        "invalid_schema",
+        "internal_error",
+    ]
+    message: str
+
+
+class AccessV1GroupsGet(TypedDict):
+    """
+    Запрос: только `request_id`. Ответ: `groups[]`, `provider_groups[]`, `provider_groups_error`.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.groups.get.v1"]
+    request_id: AfbwsCommonV1RequestId
+    groups: NotRequired[list[AccessV1TierGroup]]
+    provider_groups: NotRequired[list[AccessV1ProviderGroup]]
+    provider_groups_error: NotRequired[str | None]
+
+
+class AccessV1GroupsSet(TypedDict):
+    """
+    Запрос: `groups[]` — замена целиком всех строк `tier_members` kind=group (неизвестный tier / tier персонала / повтор группы → `validation_error`). Ответ: как afbws.access.groups.get.v1.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.groups.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    groups: list[AccessV1TierGroup]
+    provider_groups: NotRequired[list[AccessV1ProviderGroup]]
+    provider_groups_error: NotRequired[str | None]
+
+
+class AccessV1Policy(TypedDict):
+    """
+    Политика режима tier (`tiers.policy` базы доступа). Tier С политикой — `full` (с лимитами `as_tier`), пока идёт льготный период, пробный период или временное окно (этап 3: инструмент витрины), иначе `basic` со своими лимитами. Tier без политики (null) — всегда `full` со своими лимитами. Capability `trade` и tier подписки — всегда `full`.
+    """
+
+    as_tier: AccessTier
+    trial_days: NotRequired[int]
+    grace_days: NotRequired[int]
+    workday: NotRequired[AccessV1Window | None]
+    weekend: NotRequired[AccessV1Window | None]
+    showcase: NotRequired[AccessV1Showcase]
+
+
+class AccessV1PolicyGet(TypedDict):
+    """
+    Request: only `request_id`. Response: `tiers[]` — every non-staff tier with its policy.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.policy.get.v1"]
+    request_id: AfbwsCommonV1RequestId
+    tiers: NotRequired[list[AccessV1PolicyRow]]
+
+
+class AccessV1PolicyRow(TypedDict):
+    """
+    Mode policy of one tier (afbws.access.policy.*). Staff tiers (`admin`, `manager`) have no policy and are not listed.
+    """
+
+    tier: AccessTier
+    title: str
+    rank: int
+    policy: AccessV1Policy | None
+
+
+class AccessV1PolicySet(TypedDict):
+    """
+    Request (request-only fields): `tier` (not `admin`/`manager`), `policy` (null — no policy: always `full` with own limits). Response: as afbws.access.policy.get.v1. Unknown tier -> `not_found`; staff tier -> `validation_error`.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.policy.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    tier: NotRequired[AccessTier]
+    policy: NotRequired[AccessV1Policy | None]
+    tiers: NotRequired[list[AccessV1PolicyRow]]
+
+
+AccessV1Provider: TypeAlias = str
+
+
+class AccessV1ProviderGroup(TypedDict):
+    """
+    Группа провайдера авторизации (выбор группы в составе tier).
+    """
+
+    provider: AccessV1Provider
+    group_id: str
+    title: str
+
+
+class AccessV1ProviderLabel(TypedDict):
+    """
+    Провайдер авторизации и его подпись (выбор провайдера при создании пользователя); набор и подписи задаёт код бэкенда (адаптеры провайдеров).
+    """
+
+    provider: AccessV1Provider
+    title: str
+
+
+class AccessV1Showcase(TypedDict):
+    """
+    Instrument showcase (stage 3): instruments of the global catalog collection `collection` work as in `full`.
+    """
+
+    enabled: bool
+    collection: str | None
+
+
+class AccessV1StatsWeek(TypedDict):
+    """
+    One calendar week of conversion statistics.
+    """
+
+    week: str
+    new_users: int
+    trials_started: int
+    converted: int
+    active: int
+
+
+class AccessV1TierGroup(TypedDict):
+    """
+    Группа провайдера в составе tier (строка `tier_members` kind=group): все члены группы получают этот tier (личный tier пользователя главнее). У группы один tier; только tier не-персонала.
+    """
+
+    provider: AccessV1Provider
+    group_id: str
+    tier: AccessTier
+
+
+class AccessV1TierLabel(TypedDict):
+    """
+    A tier and its label (for choosing a tier in the staff UI).
+    """
+
+    tier: AccessTier
+    title: str
+
+
+class AccessV1TierRow(TypedDict):
+    """
+    One tier (one row of the `tiers` table without `policy`; the policy is edited by afbws.access.policy.*).
+    """
+
+    tier: AccessTier
+    title: str
+    rank: int
+    subscription: bool
+    capabilities: list[AccessV1Capability]
+    limits: AccessLimits
+
+
+class AccessV1TiersGet(TypedDict):
+    """
+    Request: only `request_id`. Response: `tiers[]` — every tier incl. `admin`/`manager` (policies — afbws.access.policy.get.v1).
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.tiers.get.v1"]
+    request_id: AfbwsCommonV1RequestId
+    tiers: NotRequired[list[AccessV1TierRow]]
+
+
+class AccessV1TiersSet(TypedDict):
+    """
+    Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title`, `capabilities` and `limits` change); other ranks 1..99, unique; capabilities — из набора кода; a tier cannot be removed while referenced by `tier_members`/`policy.as_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.tiers.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    tiers: list[AccessV1TierRow]
+
+
+class AccessV1TrialStart(TypedDict):
+    """
+    Запрос: только `request_id`. Ответ: `trial` — новое состояние пробного периода (как access.trial); затем пуш afbws.auth.v1. Пробный период включается один раз: `trial_started_on` = сегодня, `trial_ends_on` = сегодня + `trial_days` − 1. Недоступен → error `validation_error` «Пробный период недоступен».
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.trial.start.v1"]
+    request_id: AfbwsCommonV1RequestId
+    trial: NotRequired[AccessTrial]
+
+
+class AccessV1UserRow(TypedDict):
+    """
+    Пользователь реестра (входил хотя бы раз или создан admin через users.add): строка `users` + вычисленные tier/capabilities и статус подписки. Только то, что показывается персоналу; даты пробного периода, первого входа, опоздания и периоды подписки остаются в базе (их использует статистика). Показываемое имя = `name` ?? `display_name` ?? `user_id`.
+    """
+
+    user_id: str
+    provider: AccessV1Provider
+    name: str | None
+    display_name: str | None
+    tier: AccessTier
+    capabilities: list[AccessV1Capability]
+    personal_capabilities: list[AccessV1Capability]
+    last_seen_at: str | None
+    grace_until: AccessDate | None
+    subscription_status: Literal["active", "grace", "ended"] | None
+
+
+class AccessV1UsersAdd(TypedDict):
+    """
+    Запрос: `items[]` — `{provider, external_id, name?, tier, capabilities?, password?}`. Ответ: `items[]` — строки userRow созданных пользователей (`last_seen_at` = null до первого входа; при входе пользователь получает назначенный tier). Пакет — всё или ничего: сначала все элементы проверяются у провайдера (нет пользователя у провайдера / ошибка API / нет пароля у `local` → `validation_error` с причиной), затем одна транзакция; ошибка → error с перечнем элементов и причин в `message`; неизвестный провайдер / tier, пользователь уже есть в реестре, повтор в `items` → `validation_error`. `password` в ответе и логах не появляется.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.users.add.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[AccessV1UsersAddItem] | list[AccessV1UserRow]
+
+
+class AccessV1UsersAddItem(TypedDict):
+    """
+    Элемент запроса users.add: пользователь провайдера `provider` с id `external_id` (`user_id` строит адаптер провайдера: `getcourse` — `gc_<id>`, `local` — `id_<логин>`).
+    """
+
+    provider: AccessV1Provider
+    external_id: str
+    name: NotRequired[str]
+    tier: AccessTier
+    capabilities: NotRequired[list[AccessV1Capability]]
+    password: NotRequired[str]
+
+
+class AccessV1UsersDelete(TypedDict):
+    """
+    Запрос: `items[]` — `{user_id}`. Ответ: `items[]` — `{user_id}` удалённых. Удаляются запись реестра, личное членство в tier и добавленные capabilities; периоды подписки и журнал действий персонала остаются; у `local` удаляется и учётная запись входа (вход невозможен). Пользователь внешнего провайдера после удаления может снова войти и появится заново по общим правилам. Объекты пользователя (настройки, алармы, планы) не трогаются. Нельзя удалить себя и последнего `admin` → `validation_error`. Пакет — всё или ничего; неизвестный `user_id` / повтор в `items` → `validation_error`.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.users.delete.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[AccessV1UsersDeleteItem]
+
+
+class AccessV1UsersDeleteItem(TypedDict):
+    """
+    Элемент запроса и ответа users.delete.
+    """
+
+    user_id: str
+
+
+class AccessV1UsersList(TypedDict):
+    """
+    Request: only `request_id`. Response: `items[]` — every user of the registry (logged in at least once or created by admin; no server-side filtering or paging), `tiers[]`, `capabilities[]` and `providers[]` — labels for the staff UI.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.users.list.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: NotRequired[list[AccessV1UserRow]]
+    tiers: NotRequired[list[AccessV1TierLabel]]
+    capabilities: NotRequired[list[AccessV1CapabilityLabel]]
+    providers: NotRequired[list[AccessV1ProviderLabel]]
+
+
+class AccessV1UsersSet(TypedDict):
+    """
+    Запрос: `items[]` — `{user_id, name?, tier?, capabilities?, grace_until?}` (хотя бы одно поле кроме `user_id`). Поле `tier` хотя бы в одном элементе от не-admin → error `forbidden`; неизвестный tier / снятие последнего `admin` → `validation_error`. Ответ: `items[]` — обновлённые строки userRow. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей.
+    """
+
+    channel: Literal["access"]
+    schema: Literal["afbws.access.users.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: list[AccessV1UsersSetItem] | list[AccessV1UserRow]
+
+
+class AccessV1UsersSetItem1(TypedDict):
+    """
+    Элемент запроса users.set: хотя бы одно из `name`, `tier`, `capabilities`, `grace_until`.
+    """
+
+    user_id: str
+    name: str | None
+    tier: NotRequired[AccessTier]
+    capabilities: NotRequired[list[AccessV1Capability]]
+    grace_until: NotRequired[AccessDate | None]
+
+
+class AccessV1UsersSetItem2(TypedDict):
+    """
+    Элемент запроса users.set: хотя бы одно из `name`, `tier`, `capabilities`, `grace_until`.
+    """
+
+    user_id: str
+    name: NotRequired[str | None]
+    tier: AccessTier
+    capabilities: NotRequired[list[AccessV1Capability]]
+    grace_until: NotRequired[AccessDate | None]
+
+
+class AccessV1UsersSetItem3(TypedDict):
+    """
+    Элемент запроса users.set: хотя бы одно из `name`, `tier`, `capabilities`, `grace_until`.
+    """
+
+    user_id: str
+    name: NotRequired[str | None]
+    tier: NotRequired[AccessTier]
+    capabilities: list[AccessV1Capability]
+    grace_until: NotRequired[AccessDate | None]
+
+
+class AccessV1UsersSetItem4(TypedDict):
+    """
+    Элемент запроса users.set: хотя бы одно из `name`, `tier`, `capabilities`, `grace_until`.
+    """
+
+    user_id: str
+    name: NotRequired[str | None]
+    tier: NotRequired[AccessTier]
+    capabilities: NotRequired[list[AccessV1Capability]]
+    grace_until: AccessDate | None
+
+
+AccessV1UsersSetItem: TypeAlias = (
+    AccessV1UsersSetItem1
+    | AccessV1UsersSetItem2
+    | AccessV1UsersSetItem3
+    | AccessV1UsersSetItem4
+)
+
+
+AccessV1Window = TypedDict(
+    "AccessV1Window",
+    {
+        "from": str,
+        "to": str,
+    },
+)
+
 
 AccountV2AccountId: TypeAlias = str
 
@@ -444,6 +888,7 @@ AfbwsCatalogChannelV1Source: TypeAlias = Literal["moex", "finam"]
 
 class AfbwsCatalogChannelV1SourceStatus(TypedDict):
     source: AfbwsCatalogChannelV1Source
+    title: str
     available: bool
     state: str
     pending: bool
@@ -581,6 +1026,37 @@ AfbwsCommonV1InstrumentKey: TypeAlias = str
 
 
 AfbwsCommonV1RequestId: TypeAlias = str
+
+
+AccessV1Stats = TypedDict(
+    "AccessV1Stats",
+    {
+        "channel": Literal["access"],
+        "schema": Literal["afbws.access.stats.v1"],
+        "request_id": AfbwsCommonV1RequestId,
+        "from": str,
+        "to": str,
+        "weeks": NotRequired[list[AccessV1StatsWeek]],
+    },
+)
+
+
+AccessChannelV1Message: TypeAlias = (
+    AccessV1UsersList
+    | AccessV1UsersAdd
+    | AccessV1UsersSet
+    | AccessV1UsersDelete
+    | AccessV1TrialStart
+    | AccessV1PolicyGet
+    | AccessV1PolicySet
+    | AccessV1TiersGet
+    | AccessV1TiersSet
+    | AccessV1GroupsGet
+    | AccessV1GroupsSet
+    | AccessV1Stats
+    | AccessV1Denied
+    | AccessV1Error
+)
 
 
 AfbwsCommonV1Root: TypeAlias = Any
@@ -1316,6 +1792,38 @@ class Alarms1(TypedDict):
     confirm_delete: NotRequired[bool]
 
 
+class AuthV1(TypedDict):
+    """
+    Request (client -> server, first message; no `user_id`): `request_id`, `support`, `version`, optional `session_id`. The session is taken from the `afb_session` cookie, or from `session_id` when the cookie is absent/invalid (iframe). `version` (frontend build) is logged for monitoring only — never parsed, compared or used to gate behaviour; all behaviour is gated on `support` alone. Response (same `request_id`): `user_id`, `timezone`, `brokers`, `support`, `access`; `support` — the backend's own declared afbws capability ids (not the intersection; the client computes it). Push (no `request_id`): the whole response, sent when the effective `access` of the connection changes; the client replaces its auth state (в т.ч. в полночь пояса сервера, когда меняется `trial.days_left`/`grace.days_left`, и после afbws.access.trial.start.v1).
+    """
+
+    channel: Literal["auth"]
+    schema: Literal["afbws.auth.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    support: list[SupportItem]
+    version: NotRequired[str]
+    session_id: NotRequired[str]
+    user_id: NotRequired[str]
+    timezone: NotRequired[str]
+    brokers: NotRequired[list[str]]
+    access: NotRequired[Access]
+
+
+class AuthV1Error(TypedDict):
+    """
+    `unauthorized` — no valid session (close code 4001); `session_invalid` — the session exists but its access profile could not be resolved (close code 4001); `invalid_request` — the first message is not a valid auth request (close code 4000). `request_id` echoes the request's when it could be read.
+    """
+
+    channel: Literal["auth"]
+    schema: Literal["afbws.auth.error.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    code: Literal["unauthorized", "invalid_request", "session_invalid"]
+    message: str
+
+
+AuthV1Message: TypeAlias = AuthV1 | AuthV1Error
+
+
 class Backstop(TypedDict):
     """
     Per-deal overrides for the hybrid-mode server-side backstop order; unset fields fall back to the executing BF's own config defaults. Meaningful only when execution_mode is `hybrid`.
@@ -1507,6 +2015,9 @@ class CalendarUpdatePayload(TypedDict):
     stale_after_sec: int
     horizon_until: str
     sections: list[Section]
+
+
+Capability: TypeAlias = str
 
 
 Change = TypedDict(
@@ -1773,6 +2284,7 @@ class ConfigProfile(TypedDict):
 
 
 class ConfigRoleTier(TypedDict):
+    title: NotRequired[str]
     limits: NotRequired[dict[str, int]]
     members: NotRequired[list[str]]
 
@@ -3252,11 +3764,13 @@ class Display(TypedDict):
 
 class Display1(TypedDict):
     instrument_label: str
+    title: str
     text: NotRequired[str]
 
 
 class Display2(TypedDict):
     connector_label: str
+    title: str
     text: NotRequired[str]
 
 
@@ -4562,6 +5076,9 @@ class Sort(TypedDict):
 class Subscription(TypedDict):
     dataset_id: Literal["positions", "orders", "hhi", "trades"]
     instrument: DealInstrument
+
+
+SupportItem: TypeAlias = str
 
 
 class TradePlanV21(TypedDict):

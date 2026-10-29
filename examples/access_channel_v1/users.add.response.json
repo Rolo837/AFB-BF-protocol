@@ -1,0 +1,23 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.users.add.v1",
+  "request_id": "r-11",
+  "items": [
+    {
+      "user_id": "id_trader1",
+      "provider": "local",
+      "name": "Трейдер",
+      "display_name": null,
+      "tier": "lite",
+      "capabilities": [
+        "virtual"
+      ],
+      "personal_capabilities": [
+        "virtual"
+      ],
+      "last_seen_at": null,
+      "grace_until": null,
+      "subscription_status": null
+    }
+  ]
+}

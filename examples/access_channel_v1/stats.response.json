@@ -1,0 +1,23 @@
+{
+  "channel": "access",
+  "schema": "afbws.access.stats.v1",
+  "request_id": "r-6",
+  "from": "2026-10-05",
+  "to": "2026-10-18",
+  "weeks": [
+    {
+      "week": "2026-10-05",
+      "new_users": 34,
+      "trials_started": 30,
+      "converted": 4,
+      "active": 210
+    },
+    {
+      "week": "2026-10-12",
+      "new_users": 28,
+      "trials_started": 25,
+      "converted": 6,
+      "active": 198
+    }
+  ]
+}
