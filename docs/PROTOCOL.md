@@ -1292,7 +1292,7 @@ staff = admin + manager. Операции разделены по обязанн
 | `trial.start` | любой пользователь | — | `trial` (как `access.trial`); затем пуш `afbws.auth.v1`. Недоступен → `validation_error` «Пробный период недоступен» |
 | `policy.get` | staff | — | `tiers[]` (`policyRow` `{tier, title, rank, policy\|null}`) — все tier, кроме `admin`/`manager` |
 | `policy.set` | staff | `tier` (не персонал), `policy` \| `null` | как `policy.get` |
-| `stats` | staff | `from`, `to` (даты, включительно, МСК) | эхо `from`/`to` + `weeks[]` `{week, new_users, trials_started, converted, active}` |
+| `stats` | staff | `from`, `to` (даты, включительно, МСК) | эхо `from`/`to` + `days[]` `{day, new_users, trials_started, converted, active, usage}` + `capabilities[]` (подписи колонок `usage`); `weeks[]` `{week, …}` — deprecated |
 | `tiers.get` | admin | — | `tiers[]` (`tierRow`) — все tier, включая персонал |
 | `tiers.set` | admin | `tiers[]` (≥1; имена уникальны — проверяет сервер) — замена таблицы целиком **без** `policy`: политика оставшегося tier сохраняется, у нового — `null` | как `tiers.get` |
 | `groups.get` | admin | — | `groups[]` (`tierGroup`), `provider_groups[]` (`providerGroup`) + `provider_groups_error` (`string\|null`) — список групп провайдера для выбора |
@@ -1366,9 +1366,16 @@ staff = admin + manager. Операции разделены по обязанн
 - `usersAddItem` — `{provider, external_id, name?, tier, capabilities?, password?}`;
   `usersSetItem` — `{user_id, name?, tier?, capabilities?, grace_until?}`; `usersDeleteItem` — `{user_id}`.
 
-Статистика `stats` по календарным неделям (`week` — понедельник): `new_users` — `first_seen_at`
-в неделе; `trials_started` — `trial_started_on` в неделе; `converted` — периоды подписки,
-начатые в неделе; `active` — `last_seen_at` в неделе.
+Статистика `stats` по дням (этап 2ж): `days[]` — каждый день диапазона (МСК), от старых к новым,
+без персонала (admin/manager): `new_users` — `first_seen_at` в этот день; `trials_started` —
+`trial_started_on` = день; `converted` — периоды подписки, начатые в этот день (пользователем,
+известным до подписки); `active` — `last_seen_at` в этот день; `usage` — по каждой capability из
+`capabilities[]` (нули включены): `actions` — сумма выполненных действий этой capability
+(`action_usage.used`, группировка действий — таблица кода бэкенда), `users` — сколько разных
+пользователей выполнили хотя бы одно. `capabilities[]` — подписи и порядок колонок `usage`,
+приходят вместе с `days`. `weeks[]` (deprecated, для фронтов 2е) — по календарным неделям
+(`week` — понедельник), пересекающим диапазон, каждая целиком, персонал включён; те же метрики
+без `usage`.
 
 Серверные сообщения:
 

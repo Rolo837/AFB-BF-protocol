@@ -256,6 +256,8 @@ const NAMED_DEF_SCHEMAS = {
     showcase: "AccessV1Showcase",
     providerGroup: "AccessV1ProviderGroup",
     statsWeek: "AccessV1StatsWeek",
+    statsDay: "AccessV1StatsDay",
+    statsUsage: "AccessV1StatsUsage",
     usersList: "AccessV1UsersList",
     usersAddItem: "AccessV1UsersAddItem",
     usersAdd: "AccessV1UsersAdd",

@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 75067d042aa63916ec14075b3fa18bdfd73028bf07ea71b964d5251665a165c9
+# source-hash: 8c1da0305e96549284c3ad20fc690e97a337bf08fe7883dfd33f8a9b30346f20
 
 from __future__ import annotations
 
@@ -236,9 +236,31 @@ class AccessV1Showcase(TypedDict):
     collection: str | None
 
 
+class AccessV1StatsDay(TypedDict):
+    """
+    One day of statistics; staff (admin/manager) excluded.
+    """
+
+    day: str
+    new_users: int
+    trials_started: int
+    converted: int
+    active: int
+    usage: dict[AccessV1Capability, AccessV1StatsUsage]
+
+
+class AccessV1StatsUsage(TypedDict):
+    """
+    Usage of one capability's services during one day.
+    """
+
+    actions: int
+    users: int
+
+
 class AccessV1StatsWeek(TypedDict):
     """
-    One calendar week of conversion statistics.
+    One calendar week of conversion statistics. Deprecated (stage 2zh): the frontend reads `days[]`; the backend keeps filling `weeks[]` for frontends of stage 2e until the release window ends.
     """
 
     week: str
@@ -1060,6 +1082,8 @@ AccessV1Stats = TypedDict(
         "from": str,
         "to": str,
         "weeks": NotRequired[list[AccessV1StatsWeek]],
+        "days": NotRequired[list[AccessV1StatsDay]],
+        "capabilities": NotRequired[list[AccessV1CapabilityLabel]],
     },
 )
 

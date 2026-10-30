@@ -601,6 +601,15 @@ def test_stats_request_vs_response(registry):
     _bad(v, {**resp, "weeks": [{**week, "converted": -1}]})
     _bad(v, {**resp, "weeks": [{k: x for k, x in week.items() if k != "active"}]})
     _bad(v, {**req, "group_by": "week"})
+    # Этап 2ж: `days[]` + `capabilities[]` — аддитивно; ответ 2е (только `weeks`) валиден.
+    _ok(v, {k: x for k, x in resp.items() if k not in ("days", "capabilities")})
+    _bad(v, {k: x for k, x in resp.items() if k != "capabilities"})
+    _bad(v, {k: x for k, x in resp.items() if k != "days"})
+    day = resp["days"][0]
+    _bad(v, {**resp, "days": [{k: x for k, x in day.items() if k != "usage"}]})
+    _bad(v, {**resp, "days": [{**day, "usage": {"local": {"actions": 1, "users": 1}}}]})
+    _bad(v, {**resp, "days": [{**day, "usage": {"trade": {"actions": 1}}}]})
+    _bad(v, {**resp, "days": [{**day, "active": -1}]})
 
 
 def test_denied_uses_refused_request_channel(registry):

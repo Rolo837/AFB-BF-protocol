@@ -9,8 +9,10 @@
 ## Unreleased
 
 ### Added
+- **`afbws.access.stats.v1`: + `days[]`, + `capabilities[]`** (аддитивно, этап 2ж): `days[]` (`$defs/statsDay`, модель `AccessV1StatsDay`) — каждый день диапазона без персонала: `new_users`, `trials_started`, `converted`, `active` + `usage` `{capability: {actions, users}}` (`$defs/statsUsage`, `AccessV1StatsUsage`) — действия и пользователи сервисов capability за день; `capabilities[]` — подписи колонок `usage` (только вместе с `days`). Пример `stats.response.json`; PROTOCOL.md §20.
 
 ### Changed
+- **`afbws.access.stats.v1.weeks[]` / `$defs/statsWeek` — deprecated**: бэкенд продолжает заполнять для фронтов 2е; новый фронт читает `days[]`.
 
 ### Fixed
 

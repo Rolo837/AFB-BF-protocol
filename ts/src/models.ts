@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 75067d042aa63916ec14075b3fa18bdfd73028bf07ea71b964d5251665a165c9
+ * source-hash: 8c1da0305e96549284c3ad20fc690e97a337bf08fe7883dfd33f8a9b30346f20
  */
 
 /**
@@ -2147,7 +2147,7 @@ export interface AccessV1GroupsSet {
   provider_groups_error?: string | null;
 }
 /**
- * Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `weeks[]` (oldest first), one per calendar week intersecting the range. `new_users` — users whose `first_seen_at` falls in the week; `trials_started` — users whose `trial_started_on` falls in the week; `converted` — subscription periods started in the week; `active` — users whose `last_seen_at` falls in the week.
+ * Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `days[]` (oldest first, every day of the range, staff excluded) with `capabilities[]` — labels of the capabilities counted in `days[].usage` (table columns, in this order). `weeks[]` — deprecated (stage 2e frontends): one per calendar week intersecting the range, counted whole, staff included. `new_users` — users whose `first_seen_at` falls in the period; `trials_started` — users whose `trial_started_on` falls in the period; `converted` — subscription periods started in the period; `active` — users whose `last_seen_at` falls in the period.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Stats".
@@ -2159,12 +2159,22 @@ export interface AccessV1Stats {
   from: string;
   to: string;
   /**
-   * Response only.
+   * @deprecated
+   * Response only. Deprecated: read `days[]`.
    */
   weeks?: AccessV1StatsWeek[];
+  /**
+   * Response only (since stage 2zh): one item per day of the range, oldest first.
+   */
+  days?: AccessV1StatsDay[];
+  /**
+   * Response only (with `days`): capabilities counted in `days[].usage`, with labels, in column order.
+   */
+  capabilities?: AccessV1CapabilityLabel[];
 }
 /**
- * One calendar week of conversion statistics.
+ * @deprecated
+ * One calendar week of conversion statistics. Deprecated (stage 2zh): the frontend reads `days[]`; the backend keeps filling `weeks[]` for frontends of stage 2e until the release window ends.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1StatsWeek".
@@ -2178,6 +2188,56 @@ export interface AccessV1StatsWeek {
   trials_started: number;
   converted: number;
   active: number;
+}
+/**
+ * One day of statistics; staff (admin/manager) excluded.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1StatsDay".
+ */
+export interface AccessV1StatsDay {
+  /**
+   * Day (Moscow).
+   */
+  day: string;
+  /**
+   * Users whose `first_seen_at` falls on the day.
+   */
+  new_users: number;
+  /**
+   * Users whose `trial_started_on` is the day.
+   */
+  trials_started: number;
+  /**
+   * Subscription periods started on the day by users known before the subscription.
+   */
+  converted: number;
+  /**
+   * Users whose `last_seen_at` falls on the day.
+   */
+  active: number;
+  /**
+   * Per capability listed in the response `capabilities[]` (zeros included): actions and users of the day.
+   */
+  usage: {
+    [k: string]: AccessV1StatsUsage;
+  };
+}
+/**
+ * Usage of one capability's services during one day.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1StatsUsage".
+ */
+export interface AccessV1StatsUsage {
+  /**
+   * Sum of `action_usage.used` over the actions of this capability (grouping — backend code table `ACTION_CAPABILITY`).
+   */
+  actions: number;
+  /**
+   * Distinct users with at least one used action of this capability.
+   */
+  users: number;
 }
 /**
  * Answer to a request of any schema-first channel that the connection's current access (capabilities) does not allow. `channel` is the channel of the REFUSED request and `request_id` echoes it, so the per-channel request/response client rejects the pending request. `reason`: `capability` — the required capability is missing from the connection's effective capabilities, `feature` is the capability name (`dataset`, `screener`, `virtual`, ...); `showcase` — the instrument is not in the showcase; `basic` (feature not available in basic mode) and `held` (activation while the owner's objects are held) — legacy, kept for compatibility, no longer sent by the backend since stage 2е. `message` — ready-to-show text (includes when `full` becomes available, if known).

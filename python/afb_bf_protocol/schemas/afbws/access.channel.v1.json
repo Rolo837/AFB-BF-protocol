@@ -487,7 +487,79 @@
           "minimum": 0
         }
       },
-      "description": "One calendar week of conversion statistics."
+      "description": "One calendar week of conversion statistics. Deprecated (stage 2zh): the frontend reads `days[]`; the backend keeps filling `weeks[]` for frontends of stage 2e until the release window ends.",
+      "deprecated": true
+    },
+    "statsUsage": {
+      "type": "object",
+      "required": [
+        "actions",
+        "users"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Sum of `action_usage.used` over the actions of this capability (grouping — backend code table `ACTION_CAPABILITY`)."
+        },
+        "users": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Distinct users with at least one used action of this capability."
+        }
+      },
+      "description": "Usage of one capability's services during one day."
+    },
+    "statsDay": {
+      "type": "object",
+      "required": [
+        "day",
+        "new_users",
+        "trials_started",
+        "converted",
+        "active",
+        "usage"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "day": {
+          "type": "string",
+          "format": "date",
+          "description": "Day (Moscow)."
+        },
+        "new_users": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Users whose `first_seen_at` falls on the day."
+        },
+        "trials_started": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Users whose `trial_started_on` is the day."
+        },
+        "converted": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Subscription periods started on the day by users known before the subscription."
+        },
+        "active": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Users whose `last_seen_at` falls on the day."
+        },
+        "usage": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/capability"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/statsUsage"
+          },
+          "description": "Per capability listed in the response `capabilities[]` (zeros included): actions and users of the day."
+        }
+      },
+      "description": "One day of statistics; staff (admin/manager) excluded."
     },
     "usersList": {
       "type": "object",
@@ -1141,8 +1213,8 @@
     },
     "stats": {
       "type": "object",
-      "title": "afbws.access.stats.v1 — weekly conversion statistics (request / response), staff.",
-      "description": "Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `weeks[]` (oldest first), one per calendar week intersecting the range. `new_users` — users whose `first_seen_at` falls in the week; `trials_started` — users whose `trial_started_on` falls in the week; `converted` — subscription periods started in the week; `active` — users whose `last_seen_at` falls in the week.",
+      "title": "afbws.access.stats.v1 — conversion and usage statistics (request / response), staff.",
+      "description": "Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `days[]` (oldest first, every day of the range, staff excluded) with `capabilities[]` — labels of the capabilities counted in `days[].usage` (table columns, in this order). `weeks[]` — deprecated (stage 2e frontends): one per calendar week intersecting the range, counted whole, staff included. `new_users` — users whose `first_seen_at` falls in the period; `trials_started` — users whose `trial_started_on` falls in the period; `converted` — subscription periods started in the period; `active` — users whose `last_seen_at` falls in the period.",
       "required": [
         "channel",
         "schema",
@@ -1171,11 +1243,34 @@
         },
         "weeks": {
           "type": "array",
-          "description": "Response only.",
+          "description": "Response only. Deprecated: read `days[]`.",
           "items": {
             "$ref": "#/$defs/statsWeek"
+          },
+          "deprecated": true
+        },
+        "days": {
+          "type": "array",
+          "description": "Response only (since stage 2zh): one item per day of the range, oldest first.",
+          "items": {
+            "$ref": "#/$defs/statsDay"
+          }
+        },
+        "capabilities": {
+          "type": "array",
+          "description": "Response only (with `days`): capabilities counted in `days[].usage`, with labels, in column order.",
+          "items": {
+            "$ref": "#/$defs/capabilityLabel"
           }
         }
+      },
+      "dependentRequired": {
+        "days": [
+          "capabilities"
+        ],
+        "capabilities": [
+          "days"
+        ]
       }
     },
     "denied": {
