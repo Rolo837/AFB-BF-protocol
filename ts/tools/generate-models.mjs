@@ -127,6 +127,7 @@ const NAMED_DEF_SCHEMAS = {
     accessTrial: "AccessTrial",
     accessGraceActive: "AccessGraceActive",
     accessGrace: "AccessGrace",
+    accessWindow: "AccessWindow",
     access: "Access",
   },
   "afbws/bfs.registry.v1.json": { entry: "BfsRegistryEntry" },
@@ -241,6 +242,7 @@ const NAMED_DEF_SCHEMAS = {
   },
   "afbws/access.channel.v1.json": {
     window: "AccessV1Window",
+    onceWindow: "AccessV1OnceWindow",
     policy: "AccessV1Policy",
     tierRow: "AccessV1TierRow",
     policyRow: "AccessV1PolicyRow",

@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 477d6f3ed59917b98c802643afc57e478b02845758436d0c67ed06e896dfe94c
+ * source-hash: 75067d042aa63916ec14075b3fa18bdfd73028bf07ea71b964d5251665a165c9
  */
 
 /**
@@ -1717,9 +1717,9 @@ export interface AccessV1UserRow {
    */
   grace_until: null | AccessDate;
   /**
-   * Статус подписки (вычисляет бэкенд): `active` — открыт период подписки; `grace` — идёт льготный период (`grace_until` ≥ сегодня); `ended` — периоды подписки были, открытого нет, льготы нет; null — подписки не было и льготы нет.
+   * Статус подписки (вычисляет бэкенд), первое сработавшее в порядке active → grace → trial → ended → trial_ended → null: `active` — открыт период подписки; `grace` — идёт льготный период (`grace_until` ≥ сегодня); `trial` — идёт пробный период (этап 2ж); `ended` — периоды подписки были, открытого нет, льготы нет; `trial_ended` — пробный период был и закончился, подписки не было (этап 2ж); null — ничего из перечисленного. Фронт неизвестный статус не рисует.
    */
-  subscription_status: 'active' | 'grace' | 'ended' | null;
+  subscription_status: 'active' | 'grace' | 'trial' | 'ended' | 'trial_ended' | null;
 }
 /**
  * A tier and its label (for choosing a tier in the staff UI).
@@ -1915,29 +1915,41 @@ export interface AccessV1PolicyRow {
   policy: null | AccessV1Policy;
 }
 /**
- * Политика режима tier (`tiers.policy` базы доступа). Tier С политикой — `full` (с лимитами `as_tier`), пока идёт льготный период, пробный период или временное окно (этап 3: инструмент витрины), иначе `basic` со своими лимитами. Tier без политики (null) — всегда `full` со своими лимитами. Capability `trade` и tier подписки — всегда `full`.
+ * Политика tier (`tiers.policy` базы доступа). Набор ключей зависит от tier (этап 2ж): tier по умолчанию (гость, минимальный rank) — `trial_days`, `trial_tier`, `grace_days` (пробный и льготный периоды); прочие не-персонал — `workday`, `weekend`, `once` (окна доступа этого tier: на время окна все пользователи, кроме персонала, получают capabilities tier в объединение со своими, лимиты — tier с наибольшим rank); персонал — политики нет. Чужой для tier ключ в afbws.access.policy.set.v1 — `validation_error`, кроме `as_tier`/`workday`/`weekend` в политике гостя от фронтов до 2ж — они игнорируются. Льготный период — на tier последней подписки пользователя. `showcase` — витрина (этап 3). Tier без политики (null) — только свои capabilities и лимиты. Capability `trade` никогда не холдится.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Policy".
  */
 export interface AccessV1Policy {
-  as_tier: AccessTier;
   /**
-   * Срок пробного периода в днях (пользователь включает сам, один раз); 0 или нет ключа — пробного периода нет.
+   * @deprecated
+   * Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `admin`, `manager`, `user`, `guest`, a new subscription tier `lite`), NOT an enum: a new tier needs no protocol change. Only the staff tiers `admin` and `manager` are reserved by code (staff functions gated on the tier independently of `mode`; `admin` additionally manages tiers, their members and groups). Состав tier — таблица `tier_members` базы доступа: tier пользователя = личный → иначе по группам провайдера (старший по rank) → иначе tier по умолчанию (минимальный rank).
+   */
+  as_tier?: string;
+  /**
+   * Только tier по умолчанию (гость): срок пробного периода в днях (пользователь включает сам, один раз; возможности `trial_tier`); 0 или нет ключа — пробного периода нет.
    */
   trial_days?: number;
   /**
-   * Льготный период в днях после окончания подписки (выход из tier подписки в этот tier); 0 или нет ключа — льготного периода нет.
+   * Tier name (axis 1 of the access model): who the user is. An open set defined by DATA (rows of the backend's `tiers` table: e.g. `admin`, `manager`, `user`, `guest`, a new subscription tier `lite`), NOT an enum: a new tier needs no protocol change. Only the staff tiers `admin` and `manager` are reserved by code (staff functions gated on the tier independently of `mode`; `admin` additionally manages tiers, their members and groups). Состав tier — таблица `tier_members` базы доступа: tier пользователя = личный → иначе по группам провайдера (старший по rank) → иначе tier по умолчанию (минимальный rank).
+   */
+  trial_tier?: string;
+  /**
+   * Только tier по умолчанию (гость): льготный период в днях после окончания подписки — пользователь работает на tier своей последней подписки; 0 или нет ключа — льготного периода нет.
    */
   grace_days?: number;
   /**
-   * Window of a trading day (MOEX calendar); null or absent = no window.
+   * Только не-гость и не-персонал: окно доступа этого tier в торговый день (календарь MOEX), HH:MM МСК; null или нет ключа — нет окна.
    */
   workday?: null | AccessV1Window;
   /**
-   * Window of a non-trading day (MOEX calendar); null or absent = no window.
+   * Только не-гость и не-персонал: окно доступа этого tier в неторговый день (календарь MOEX), HH:MM МСК; null или нет ключа — нет окна.
    */
   weekend?: null | AccessV1Window;
+  /**
+   * Только не-гость и не-персонал: разовое окно доступа этого tier (дата и время, ISO UTC; в UI — МСК); null или нет ключа — нет. Прошедшее окно просто не действует.
+   */
+  once?: null | AccessV1OnceWindow;
   showcase?: AccessV1Showcase;
 }
 /**
@@ -1947,6 +1959,16 @@ export interface AccessV1Policy {
  * via the `definition` "AccessV1Window".
  */
 export interface AccessV1Window {
+  from: string;
+  to: string;
+}
+/**
+ * Разовое окно доступа (этап 2ж): `from` — начало, `to` — конец, ISO 8601 date-time UTC; `to` > `from`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessV1OnceWindow".
+ */
+export interface AccessV1OnceWindow {
   from: string;
   to: string;
 }
@@ -2037,7 +2059,7 @@ export interface AccessLimits {
   max_favorite_colors: number;
 }
 /**
- * Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title`, `capabilities` and `limits` change); other ranks 1..99, unique; capabilities — из набора кода; a tier cannot be removed while referenced by `tier_members`/`policy.as_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.
+ * Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title`, `capabilities` and `limits` change); other ranks 1..99, unique; capabilities — из набора кода; a tier cannot be removed while referenced by `tier_members`/`policy.trial_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1TiersSet".
@@ -2464,7 +2486,7 @@ export interface AuthV1 {
   access?: Access;
 }
 /**
- * Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — ДЕЙСТВУЮЩИЕ СЕЙЧАС capabilities: готовый результат политики доступа бэкенда (tier, личные, триал/льгота/окно); фронт определяет функционал ТОЛЬКО по `capabilities` и `limits`. Real trading (`trade`) is never held because of a window, a trial or an ended subscription. (3) `mode` — DEPRECATED (этап 2е): совместимость с фронтами до 2е (`full`, если `dataset` ∈ capabilities, иначе `basic`); новый фронт не читает, удаление — после окна релизов. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
+ * Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — ДЕЙСТВУЮЩИЕ СЕЙЧАС capabilities: готовый результат политики доступа бэкенда (tier, личные, триал/льгота/окно); фронт определяет функционал ТОЛЬКО по `capabilities` и `limits`. Real trading (`trade`) is never held because of a window, a trial or an ended subscription. (3) `mode` — DEPRECATED (этап 2е): совместимость с фронтами до 2е (`full`, если `dataset` ∈ capabilities, иначе `basic`); новый фронт не читает, удаление — после окна релизов. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост); `window` (необязательное) — открытое окно доступа (тосты открытия/закрытия, бэдж). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "Access".
@@ -2479,6 +2501,10 @@ export interface Access {
   mode: AccessMode;
   trial: AccessTrial;
   grace: AccessGrace;
+  /**
+   * Необязательное (этап 2ж; бэкенды до 2ж не отдают). Открытое сейчас окно доступа пользователя: null — окна нет; объект — открыто (`title` tier, `ends_at` ISO UTC; несколько — tier с наибольшим rank). Смена (null → объект — открыто, объект → null — закрыто) приходит пушем afbws.auth.v1 на границе окна; фронт по ней показывает тосты открытия/закрытия и бэдж в строке состояния. Функционал — по-прежнему только по `capabilities`/`limits`.
+   */
+  window?: null | AccessWindow;
 }
 /**
  * Льготный период после окончания подписки.
@@ -2495,6 +2521,22 @@ export interface AccessGraceActive {
    * `ends_on` − сегодня + 1; меняется в полночь пояса сервера.
    */
   days_left: number;
+}
+/**
+ * Открытое окно доступа пользователя (этап 2ж): окно `workday`/`weekend`/`once` в политике tier, capabilities которого сейчас объединены с текущими пользователя. При нескольких открытых окнах — окно tier с наибольшим rank.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AccessWindow".
+ */
+export interface AccessWindow {
+  /**
+   * Подпись (`title`) tier открытого окна — для тостов и бэджа «<title> до HH:MM».
+   */
+  title: string;
+  /**
+   * Конец окна, ISO 8601 UTC (смежные окна слиты); фронт показывает в МСК.
+   */
+  ends_at: string;
 }
 /**
  * `unauthorized` — no valid session (close code 4001); `session_invalid` — the session exists but its access profile could not be resolved (close code 4001); `invalid_request` — the first message is not a valid auth request (close code 4000). `request_id` echoes the request's when it could be read.
