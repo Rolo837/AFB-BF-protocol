@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 8c1da0305e96549284c3ad20fc690e97a337bf08fe7883dfd33f8a9b30346f20
+ * source-hash: 0efe198af9a525921048e75b30197fb24a45da3e0174d12dd50fbe7fd93930ac
  */
 
 /**
@@ -2147,7 +2147,7 @@ export interface AccessV1GroupsSet {
   provider_groups_error?: string | null;
 }
 /**
- * Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `days[]` (oldest first, every day of the range, staff excluded) with `capabilities[]` — labels of the capabilities counted in `days[].usage` (table columns, in this order). `weeks[]` — deprecated (stage 2e frontends): one per calendar week intersecting the range, counted whole, staff included. `new_users` — users whose `first_seen_at` falls in the period; `trials_started` — users whose `trial_started_on` falls in the period; `converted` — subscription periods started in the period; `active` — users whose `last_seen_at` falls in the period.
+ * Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `days[]` (oldest first, every day of the range, staff excluded) with `capabilities[]` — labels of the capabilities counted in `days[].usage` (table columns, in this order). `weeks[]` — deprecated (stage 2e frontends): one per calendar week intersecting the range, counted whole, staff included. `new_users` — users whose `first_seen_at` falls in the period; `trials_started` — users whose `trial_started_on` falls in the period; `converted` — subscription periods started in the period; `active` — `weeks[]`: users whose `last_seen_at` falls in the period; `days[]`: users whose `last_seen_at` falls in the day or who have any `action_usage` row (used or denied) for the day.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Stats".
