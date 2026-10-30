@@ -9,16 +9,22 @@
 ## Unreleased
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## v2.9.12 — 2026-10-30
+
+### Added
 - **`common.v1#access.window`** (необязательное, этап 2ж): `null` | `{title, ends_at}` (`$defs/accessWindow`) — открытое окно доступа пользователя (`title` — подпись tier, `ends_at` — ISO 8601 UTC; несколько — tier с наибольшим rank). Смена приходит пушем `afbws.auth.v1` на границе окна. Модель `AccessWindow`; пример `examples/auth_v1/push.guest_window.json`.
 - **Политика tier: `trial_tier`, `once`** (`access.channel.v1.json#/$defs/policy`): `trial_tier` — tier на время пробного периода (только политика tier по умолчанию); `once` — `null` | `{from, to}` date-time UTC (`$defs/onceWindow`, модель `AccessV1OnceWindow`) — разовое окно доступа tier, прошедшее не действует.
 - **`userRow.subscription_status`: + `trial`, + `trial_ended`** — порядок: `active` → `grace` → `trial` → `ended` → `trial_ended` → `null`.
 
 ### Changed
 - **Политика tier — набор ключей по tier** (этап 2ж): tier по умолчанию — `trial_days`, `trial_tier`, `grace_days` (`grace_days` — только у гостя; льгота — на tier последней подписки); прочие не-персонал — окна `workday`, `weekend`, `once`. `as_tier` — deprecated и необязательный (бэкенд игнорирует при записи и не отдаёт); `as_tier`/`workday`/`weekend` в политике гостя от старого фронта игнорируются. Инвариант `tiers.set`: tier нельзя удалить, пока на него ссылается `policy.trial_tier`. Примеры `policy.*` в новой форме; PROTOCOL.md §20.
-
-### Fixed
-
-### Removed
 
 ## v2.9.11 — 2026-10-30
 
