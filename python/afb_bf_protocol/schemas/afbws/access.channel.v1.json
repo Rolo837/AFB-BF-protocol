@@ -87,26 +87,48 @@
         }
       }
     },
-    "policy": {
+    "onceWindow": {
       "type": "object",
-      "description": "Политика режима tier (`tiers.policy` базы доступа). Tier С политикой — `full` (с лимитами `as_tier`), пока идёт льготный период, пробный период или временное окно (этап 3: инструмент витрины), иначе `basic` со своими лимитами. Tier без политики (null) — всегда `full` со своими лимитами. Capability `trade` и tier подписки — всегда `full`.",
+      "description": "Разовое окно доступа (этап 2ж): `from` — начало, `to` — конец, ISO 8601 date-time UTC; `to` > `from`.",
       "required": [
-        "as_tier"
+        "from",
+        "to"
       ],
       "additionalProperties": false,
       "properties": {
+        "from": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "to": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "description": "Политика tier (`tiers.policy` базы доступа). Набор ключей зависит от tier (этап 2ж): tier по умолчанию (гость, минимальный rank) — `trial_days`, `trial_tier`, `grace_days` (пробный и льготный периоды); прочие не-персонал — `workday`, `weekend`, `once` (окна доступа этого tier: на время окна все пользователи, кроме персонала, получают capabilities tier в объединение со своими, лимиты — tier с наибольшим rank); персонал — политики нет. Чужой для tier ключ в afbws.access.policy.set.v1 — `validation_error`, кроме `as_tier`/`workday`/`weekend` в политике гостя от фронтов до 2ж — они игнорируются. Льготный период — на tier последней подписки пользователя. `showcase` — витрина (этап 3). Tier без политики (null) — только свои capabilities и лимиты. Capability `trade` никогда не холдится.",
+      "additionalProperties": false,
+      "properties": {
         "as_tier": {
-          "$ref": "#/$defs/tierName"
+          "$ref": "#/$defs/tierName",
+          "deprecated": true,
+          "description": "DEPRECATED (этап 2ж): бэкенд игнорирует при записи и не отдаёт; заменён `trial_tier` (триал), льготный период — на tier последней подписки, окна — в политике своего tier. Оставлен в схеме для фронтов до 2ж."
         },
         "trial_days": {
           "type": "integer",
           "minimum": 0,
-          "description": "Срок пробного периода в днях (пользователь включает сам, один раз); 0 или нет ключа — пробного периода нет."
+          "description": "Только tier по умолчанию (гость): срок пробного периода в днях (пользователь включает сам, один раз; возможности `trial_tier`); 0 или нет ключа — пробного периода нет."
+        },
+        "trial_tier": {
+          "$ref": "#/$defs/tierName",
+          "description": "Только tier по умолчанию (гость): tier, capabilities и лимиты которого действуют у пользователя на время пробного периода (любой не-персонал). Tier нельзя удалить, пока на него ссылается `trial_tier`."
         },
         "grace_days": {
           "type": "integer",
           "minimum": 0,
-          "description": "Льготный период в днях после окончания подписки (выход из tier подписки в этот tier); 0 или нет ключа — льготного периода нет."
+          "description": "Только tier по умолчанию (гость): льготный период в днях после окончания подписки — пользователь работает на tier своей последней подписки; 0 или нет ключа — льготного периода нет."
         },
         "workday": {
           "oneOf": [
@@ -117,7 +139,7 @@
               "$ref": "#/$defs/window"
             }
           ],
-          "description": "Window of a trading day (MOEX calendar); null or absent = no window."
+          "description": "Только не-гость и не-персонал: окно доступа этого tier в торговый день (календарь MOEX), HH:MM МСК; null или нет ключа — нет окна."
         },
         "weekend": {
           "oneOf": [
@@ -128,7 +150,18 @@
               "$ref": "#/$defs/window"
             }
           ],
-          "description": "Window of a non-trading day (MOEX calendar); null or absent = no window."
+          "description": "Только не-гость и не-персонал: окно доступа этого tier в неторговый день (календарь MOEX), HH:MM МСК; null или нет ключа — нет окна."
+        },
+        "once": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/onceWindow"
+            }
+          ],
+          "description": "Только не-гость и не-персонал: разовое окно доступа этого tier (дата и время, ISO UTC; в UI — МСК); null или нет ключа — нет. Прошедшее окно просто не действует."
         },
         "showcase": {
           "$ref": "#/$defs/showcase"
@@ -368,10 +401,12 @@
           "enum": [
             "active",
             "grace",
+            "trial",
             "ended",
+            "trial_ended",
             null
           ],
-          "description": "Статус подписки (вычисляет бэкенд): `active` — открыт период подписки; `grace` — идёт льготный период (`grace_until` ≥ сегодня); `ended` — периоды подписки были, открытого нет, льготы нет; null — подписки не было и льготы нет."
+          "description": "Статус подписки (вычисляет бэкенд), первое сработавшее в порядке active → grace → trial → ended → trial_ended → null: `active` — открыт период подписки; `grace` — идёт льготный период (`grace_until` ≥ сегодня); `trial` — идёт пробный период (этап 2ж); `ended` — периоды подписки были, открытого нет, льготы нет; `trial_ended` — пробный период был и закончился, подписки не было (этап 2ж); null — ничего из перечисленного. Фронт неизвестный статус не рисует."
         }
       }
     },
@@ -452,7 +487,79 @@
           "minimum": 0
         }
       },
-      "description": "One calendar week of conversion statistics."
+      "description": "One calendar week of conversion statistics. Deprecated (stage 2zh): the frontend reads `days[]`; the backend keeps filling `weeks[]` for frontends of stage 2e until the release window ends.",
+      "deprecated": true
+    },
+    "statsUsage": {
+      "type": "object",
+      "required": [
+        "actions",
+        "users"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Sum of `action_usage.used` over the actions of this capability (grouping — backend code table `ACTION_CAPABILITY`)."
+        },
+        "users": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Distinct users with at least one used action of this capability."
+        }
+      },
+      "description": "Usage of one capability's services during one day."
+    },
+    "statsDay": {
+      "type": "object",
+      "required": [
+        "day",
+        "new_users",
+        "trials_started",
+        "converted",
+        "active",
+        "usage"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "day": {
+          "type": "string",
+          "format": "date",
+          "description": "Day (Moscow)."
+        },
+        "new_users": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Users whose `first_seen_at` falls on the day."
+        },
+        "trials_started": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Users whose `trial_started_on` is the day."
+        },
+        "converted": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Subscription periods started on the day by users known before the subscription."
+        },
+        "active": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Users whose `last_seen_at` falls on the day."
+        },
+        "usage": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/capability"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/statsUsage"
+          },
+          "description": "Per capability listed in the response `capabilities[]` (zeros included): actions and users of the day."
+        }
+      },
+      "description": "One day of statistics; staff (admin/manager) excluded."
     },
     "usersList": {
       "type": "object",
@@ -931,7 +1038,7 @@
     "tiersSet": {
       "type": "object",
       "title": "afbws.access.tiers.set.v1 — replace the tiers (request / response), admin only.",
-      "description": "Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title`, `capabilities` and `limits` change); other ranks 1..99, unique; capabilities — из набора кода; a tier cannot be removed while referenced by `tier_members`/`policy.as_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.",
+      "description": "Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title`, `capabilities` and `limits` change); other ranks 1..99, unique; capabilities — из набора кода; a tier cannot be removed while referenced by `tier_members`/`policy.trial_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.",
       "required": [
         "channel",
         "schema",
@@ -1106,8 +1213,8 @@
     },
     "stats": {
       "type": "object",
-      "title": "afbws.access.stats.v1 — weekly conversion statistics (request / response), staff.",
-      "description": "Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `weeks[]` (oldest first), one per calendar week intersecting the range. `new_users` — users whose `first_seen_at` falls in the week; `trials_started` — users whose `trial_started_on` falls in the week; `converted` — subscription periods started in the week; `active` — users whose `last_seen_at` falls in the week.",
+      "title": "afbws.access.stats.v1 — conversion and usage statistics (request / response), staff.",
+      "description": "Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `days[]` (oldest first, every day of the range, staff excluded) with `capabilities[]` — labels of the capabilities counted in `days[].usage` (table columns, in this order). `weeks[]` — deprecated (stage 2e frontends): one per calendar week intersecting the range, counted whole, staff included. `new_users` — users whose `first_seen_at` falls in the period; `trials_started` — users whose `trial_started_on` falls in the period; `converted` — subscription periods started in the period; `active` — users whose `last_seen_at` falls in the period.",
       "required": [
         "channel",
         "schema",
@@ -1136,11 +1243,34 @@
         },
         "weeks": {
           "type": "array",
-          "description": "Response only.",
+          "description": "Response only. Deprecated: read `days[]`.",
           "items": {
             "$ref": "#/$defs/statsWeek"
+          },
+          "deprecated": true
+        },
+        "days": {
+          "type": "array",
+          "description": "Response only (since stage 2zh): one item per day of the range, oldest first.",
+          "items": {
+            "$ref": "#/$defs/statsDay"
+          }
+        },
+        "capabilities": {
+          "type": "array",
+          "description": "Response only (with `days`): capabilities counted in `days[].usage`, with labels, in column order.",
+          "items": {
+            "$ref": "#/$defs/capabilityLabel"
           }
         }
+      },
+      "dependentRequired": {
+        "days": [
+          "capabilities"
+        ],
+        "capabilities": [
+          "days"
+        ]
       }
     },
     "denied": {

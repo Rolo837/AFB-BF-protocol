@@ -133,6 +133,20 @@ def test_access_block_all_fields_required(registry):
     _bad(v, _access(mode="trial"))
 
 
+def test_access_block_window_optional(registry):
+    v = _v(_COMMON_ID, "access", registry)
+    a = _access()
+    assert "window" not in a  # stage 2е backends do not send it
+    _ok(v, a)
+    _ok(v, _access(window=None))
+    _ok(v, _access(window={"title": "Подписчик", "ends_at": "2026-11-05T17:00:00Z"}))
+    _bad(v, _access(window={"title": "Подписчик"}))
+    _bad(v, _access(window={"ends_at": "2026-11-05T17:00:00Z"}))
+    _bad(v, _access(window={"title": "", "ends_at": "2026-11-05T17:00:00Z"}))
+    _bad(v, _access(window={"title": "Подписчик", "ends_at": "2026-11-05T17:00:00Z", "tier": "user"}))
+    assert "window" not in json.loads((_SCHEMAS / "common.v1.json").read_text())["$defs"]["access"]["required"]
+
+
 def test_access_block_has_no_reason_until_showcase(registry):
     v = _v(_COMMON_ID, "access", registry)
     _bad(v, _access(reason="subscription"))
@@ -318,8 +332,9 @@ def test_policy_set_request_vs_response(registry):
     _bad(v, {k: x for k, x in req.items() if k != "policy"})
     _bad(v, {k: x for k, x in req.items() if k != "tier"})
     _bad(v, {**req, "tiers": resp["tiers"]})  # response field in a request
-    _bad(v, {**req, "policy": {"trial_days": 3}})
-    _bad(v, {**req, "policy": {"as_tier": "user", "grace_days": -1}})
+    _ok(v, {**req, "policy": {"trial_days": 3, "trial_tier": "user"}})
+    _bad(v, {**req, "policy": {"trial_days": 3, "trial_tier": 1}})
+    _bad(v, {**req, "policy": {"grace_days": -1}})
 
 
 def test_policy_row_shape(registry):
@@ -361,22 +376,38 @@ def test_groups_set_request_vs_response(registry):
         _bad(v, {k: x for k, x in resp.items() if k != key})
 
 
-def test_policy_requires_as_tier_and_closed(registry):
+def test_policy_keys_and_closed(registry):
     v = _v(_ACCESS_ID, "policy", registry)
-    _ok(v, {"as_tier": "user"})
-    _ok(v, {"as_tier": "user", "trial_days": 0, "workday": None, "weekend": None})
-    _ok(v, {"as_tier": "user", "trial_days": 14, "grace_days": 3})
-    _ok(v, {"as_tier": "user", "grace_days": 0})
-    _bad(v, {"as_tier": "user", "grace_days": -1})
-    _bad(v, {"as_tier": "user", "grace_days": 1.5})
-    _ok(v, {"as_tier": "user", "workday": {"from": "22:00", "to": "02:00"}})  # across midnight
-    _ok(v, {"as_tier": "user", "showcase": {"enabled": True, "collection": "c-1"}})
-    _bad(v, {"trial_days": 14})  # no as_tier
-    _bad(v, {"as_tier": "user", "trial_days": -1})
-    _bad(v, {"as_tier": "user", "workday": {"from": "24:00", "to": "02:00"}})
-    _bad(v, {"as_tier": "user", "workday": {"from": "19:00"}})
-    _bad(v, {"as_tier": "user", "showcase": {"enabled": True}})
-    _bad(v, {"as_tier": "user", "revision": 1})
+    _ok(v, {})
+    # guest (default tier): trial / grace (stage 2ж)
+    _ok(v, {"trial_days": 14, "trial_tier": "user", "grace_days": 3})
+    _ok(v, {"trial_days": 0, "grace_days": 0})
+    _bad(v, {"grace_days": -1})
+    _bad(v, {"grace_days": 1.5})
+    _bad(v, {"trial_days": -1})
+    _bad(v, {"trial_tier": ""})
+    # other non-staff tiers: windows
+    _ok(v, {"workday": None, "weekend": None, "once": None})
+    _ok(v, {"workday": {"from": "22:00", "to": "02:00"}})  # across midnight
+    _ok(v, {"once": {"from": "2026-11-05T15:00:00Z", "to": "2026-11-05T17:00:00Z"}})
+    _bad(v, {"once": {"from": "2026-11-05T15:00:00Z"}})
+    _bad(v, {"once": {"from": "2026-11-05T15:00:00Z", "to": "2026-11-05T17:00:00Z", "tier": "user"}})
+    _bad(v, {"workday": {"from": "24:00", "to": "02:00"}})
+    _bad(v, {"workday": {"from": "19:00"}})
+    _ok(v, {"showcase": {"enabled": True, "collection": "c-1"}})
+    _bad(v, {"showcase": {"enabled": True}})
+    _bad(v, {"revision": 1})
+
+
+def test_policy_as_tier_deprecated_but_accepted(registry):
+    # stage 2е fronts still send as_tier/workday/weekend in the guest policy — schema-valid,
+    # the backend ignores them
+    schema = json.loads((_SCHEMAS / "access.channel.v1.json").read_text())["$defs"]["policy"]
+    assert schema["properties"]["as_tier"]["deprecated"] is True
+    assert "as_tier" not in schema.get("required", [])
+    v = _v(_ACCESS_ID, "policy", registry)
+    _ok(v, {"as_tier": "user", "trial_days": 14, "grace_days": 3,
+            "workday": {"from": "22:00", "to": "02:00"}, "weekend": None})
 
 
 def test_tier_group_shape(registry):
@@ -454,9 +485,9 @@ def test_user_row_shape(registry):
     row = rows[0]
     for key in _USER_ROW_KEYS:
         _bad(v, {k: x for k, x in row.items() if k != key})  # every field required
-    for status in ("active", "grace", "ended", None):
+    for status in ("active", "grace", "trial", "ended", "trial_ended", None):
         _ok(v, {**row, "subscription_status": status})
-    _bad(v, {**row, "subscription_status": "trial"})
+    _bad(v, {**row, "subscription_status": "trialing"})
     _ok(v, {**row, "last_seen_at": None})  # created by admin, never logged in
     _ok(v, {**row, "name": "Иван", "display_name": None})
     _bad(v, {**row, "name": 1})
@@ -570,6 +601,15 @@ def test_stats_request_vs_response(registry):
     _bad(v, {**resp, "weeks": [{**week, "converted": -1}]})
     _bad(v, {**resp, "weeks": [{k: x for k, x in week.items() if k != "active"}]})
     _bad(v, {**req, "group_by": "week"})
+    # Этап 2ж: `days[]` + `capabilities[]` — аддитивно; ответ 2е (только `weeks`) валиден.
+    _ok(v, {k: x for k, x in resp.items() if k not in ("days", "capabilities")})
+    _bad(v, {k: x for k, x in resp.items() if k != "capabilities"})
+    _bad(v, {k: x for k, x in resp.items() if k != "days"})
+    day = resp["days"][0]
+    _bad(v, {**resp, "days": [{k: x for k, x in day.items() if k != "usage"}]})
+    _bad(v, {**resp, "days": [{**day, "usage": {"local": {"actions": 1, "users": 1}}}]})
+    _bad(v, {**resp, "days": [{**day, "usage": {"trade": {"actions": 1}}}]})
+    _bad(v, {**resp, "days": [{**day, "active": -1}]})
 
 
 def test_denied_uses_refused_request_channel(registry):

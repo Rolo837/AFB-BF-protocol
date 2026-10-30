@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 477d6f3ed59917b98c802643afc57e478b02845758436d0c67ed06e896dfe94c
+# source-hash: 8c1da0305e96549284c3ad20fc690e97a337bf08fe7883dfd33f8a9b30346f20
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from typing import Any, Literal, NotRequired, TypeAlias, TypedDict
 
 class Access(TypedDict):
     """
-    Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — ДЕЙСТВУЮЩИЕ СЕЙЧАС capabilities: готовый результат политики доступа бэкенда (tier, личные, триал/льгота/окно); фронт определяет функционал ТОЛЬКО по `capabilities` и `limits`. Real trading (`trade`) is never held because of a window, a trial or an ended subscription. (3) `mode` — DEPRECATED (этап 2е): совместимость с фронтами до 2е (`full`, если `dataset` ∈ capabilities, иначе `basic`); новый фронт не читает, удаление — после окна релизов. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
+    Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — ДЕЙСТВУЮЩИЕ СЕЙЧАС capabilities: готовый результат политики доступа бэкенда (tier, личные, триал/льгота/окно); фронт определяет функционал ТОЛЬКО по `capabilities` и `limits`. Real trading (`trade`) is never held because of a window, a trial or an ended subscription. (3) `mode` — DEPRECATED (этап 2е): совместимость с фронтами до 2е (`full`, если `dataset` ∈ capabilities, иначе `basic`); новый фронт не читает, удаление — после окна релизов. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост); `window` (необязательное) — открытое окно доступа (тосты открытия/закрытия, бэдж). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.
     """
 
     tier: AccessTier
@@ -19,6 +19,7 @@ class Access(TypedDict):
     mode: AccessMode
     trial: AccessTrial
     grace: AccessGrace
+    window: NotRequired[AccessWindow | None]
 
 
 AccessDate: TypeAlias = str
@@ -145,16 +146,27 @@ class AccessV1GroupsSet(TypedDict):
     provider_groups_error: NotRequired[str | None]
 
 
+AccessV1OnceWindow = TypedDict(
+    "AccessV1OnceWindow",
+    {
+        "from": str,
+        "to": str,
+    },
+)
+
+
 class AccessV1Policy(TypedDict):
     """
-    Политика режима tier (`tiers.policy` базы доступа). Tier С политикой — `full` (с лимитами `as_tier`), пока идёт льготный период, пробный период или временное окно (этап 3: инструмент витрины), иначе `basic` со своими лимитами. Tier без политики (null) — всегда `full` со своими лимитами. Capability `trade` и tier подписки — всегда `full`.
+    Политика tier (`tiers.policy` базы доступа). Набор ключей зависит от tier (этап 2ж): tier по умолчанию (гость, минимальный rank) — `trial_days`, `trial_tier`, `grace_days` (пробный и льготный периоды); прочие не-персонал — `workday`, `weekend`, `once` (окна доступа этого tier: на время окна все пользователи, кроме персонала, получают capabilities tier в объединение со своими, лимиты — tier с наибольшим rank); персонал — политики нет. Чужой для tier ключ в afbws.access.policy.set.v1 — `validation_error`, кроме `as_tier`/`workday`/`weekend` в политике гостя от фронтов до 2ж — они игнорируются. Льготный период — на tier последней подписки пользователя. `showcase` — витрина (этап 3). Tier без политики (null) — только свои capabilities и лимиты. Capability `trade` никогда не холдится.
     """
 
-    as_tier: AccessTier
+    as_tier: NotRequired[AccessTier]
     trial_days: NotRequired[int]
+    trial_tier: NotRequired[AccessTier]
     grace_days: NotRequired[int]
     workday: NotRequired[AccessV1Window | None]
     weekend: NotRequired[AccessV1Window | None]
+    once: NotRequired[AccessV1OnceWindow | None]
     showcase: NotRequired[AccessV1Showcase]
 
 
@@ -224,9 +236,31 @@ class AccessV1Showcase(TypedDict):
     collection: str | None
 
 
+class AccessV1StatsDay(TypedDict):
+    """
+    One day of statistics; staff (admin/manager) excluded.
+    """
+
+    day: str
+    new_users: int
+    trials_started: int
+    converted: int
+    active: int
+    usage: dict[AccessV1Capability, AccessV1StatsUsage]
+
+
+class AccessV1StatsUsage(TypedDict):
+    """
+    Usage of one capability's services during one day.
+    """
+
+    actions: int
+    users: int
+
+
 class AccessV1StatsWeek(TypedDict):
     """
-    One calendar week of conversion statistics.
+    One calendar week of conversion statistics. Deprecated (stage 2zh): the frontend reads `days[]`; the backend keeps filling `weeks[]` for frontends of stage 2e until the release window ends.
     """
 
     week: str
@@ -281,7 +315,7 @@ class AccessV1TiersGet(TypedDict):
 
 class AccessV1TiersSet(TypedDict):
     """
-    Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title`, `capabilities` and `limits` change); other ranks 1..99, unique; capabilities — из набора кода; a tier cannot be removed while referenced by `tier_members`/`policy.as_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.
+    Request: `tiers[]` — replace-all of the `tiers` table without policies: the policy of a kept tier is preserved, a new tier gets no policy (null). Invariants (checked by the server, `validation_error` with the reason in `message`): `tier` names unique; `admin` and `manager` present with their fixed `rank`/`subscription` (only `title`, `capabilities` and `limits` change); other ranks 1..99, unique; capabilities — из набора кода; a tier cannot be removed while referenced by `tier_members`/`policy.trial_tier` (the message lists the references). Response: the saved tiers, as afbws.access.tiers.get.v1.
     """
 
     channel: Literal["access"]
@@ -315,7 +349,9 @@ class AccessV1UserRow(TypedDict):
     personal_capabilities: list[AccessV1Capability]
     last_seen_at: str | None
     grace_until: AccessDate | None
-    subscription_status: Literal["active", "grace", "ended"] | None
+    subscription_status: (
+        Literal["active", "grace", "trial", "ended", "trial_ended"] | None
+    )
 
 
 class AccessV1UsersAdd(TypedDict):
@@ -449,6 +485,15 @@ AccessV1Window = TypedDict(
         "to": str,
     },
 )
+
+
+class AccessWindow(TypedDict):
+    """
+    Открытое окно доступа пользователя (этап 2ж): окно `workday`/`weekend`/`once` в политике tier, capabilities которого сейчас объединены с текущими пользователя. При нескольких открытых окнах — окно tier с наибольшим rank.
+    """
+
+    title: str
+    ends_at: str
 
 
 AccountV2AccountId: TypeAlias = str
@@ -1037,6 +1082,8 @@ AccessV1Stats = TypedDict(
         "from": str,
         "to": str,
         "weeks": NotRequired[list[AccessV1StatsWeek]],
+        "days": NotRequired[list[AccessV1StatsDay]],
+        "capabilities": NotRequired[list[AccessV1CapabilityLabel]],
     },
 )
 

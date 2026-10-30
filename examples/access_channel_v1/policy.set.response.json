@@ -14,7 +14,6 @@
       "title": "Лайт",
       "rank": 15,
       "policy": {
-        "as_tier": "user",
         "workday": {
           "from": "19:00",
           "to": "23:50"
@@ -22,6 +21,10 @@
         "weekend": {
           "from": "00:00",
           "to": "23:59"
+        },
+        "once": {
+          "from": "2026-11-05T15:00:00Z",
+          "to": "2026-11-05T17:00:00Z"
         }
       }
     },
@@ -30,14 +33,9 @@
       "title": "Гость",
       "rank": 10,
       "policy": {
-        "as_tier": "user",
         "trial_days": 14,
+        "trial_tier": "user",
         "grace_days": 3,
-        "workday": {
-          "from": "22:00",
-          "to": "02:00"
-        },
-        "weekend": null,
         "showcase": {
           "enabled": false,
           "collection": null

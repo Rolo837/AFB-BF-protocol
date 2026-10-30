@@ -168,10 +168,31 @@
         }
       ]
     },
+    "accessWindow": {
+      "type": "object",
+      "description": "Открытое окно доступа пользователя (этап 2ж): окно `workday`/`weekend`/`once` в политике tier, capabilities которого сейчас объединены с текущими пользователя. При нескольких открытых окнах — окно tier с наибольшим rank.",
+      "required": [
+        "title",
+        "ends_at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Подпись (`title`) tier открытого окна — для тостов и бэджа «<title> до HH:MM»."
+        },
+        "ends_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Конец окна, ISO 8601 UTC (смежные окна слиты); фронт показывает в МСК."
+        }
+      }
+    },
     "access": {
       "type": "object",
       "title": "Effective access of one connection (afbws.auth.v1 response/push `access`).",
-      "description": "Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — ДЕЙСТВУЮЩИЕ СЕЙЧАС capabilities: готовый результат политики доступа бэкенда (tier, личные, триал/льгота/окно); фронт определяет функционал ТОЛЬКО по `capabilities` и `limits`. Real trading (`trade`) is never held because of a window, a trial or an ended subscription. (3) `mode` — DEPRECATED (этап 2е): совместимость с фронтами до 2е (`full`, если `dataset` ∈ capabilities, иначе `basic`); новый фронт не читает, удаление — после окна релизов. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.",
+      "description": "Three independent axes. (1) `tier` — WHO the user is (a tier name, open set defined by data; staff functions are gated on the staff tiers `admin`/`manager` only, independently of `mode`, staff is always `full`). (2) `capabilities` — ДЕЙСТВУЮЩИЕ СЕЙЧАС capabilities: готовый результат политики доступа бэкенда (tier, личные, триал/льгота/окно); фронт определяет функционал ТОЛЬКО по `capabilities` и `limits`. Real trading (`trade`) is never held because of a window, a trial or an ended subscription. (3) `mode` — DEPRECATED (этап 2е): совместимость с фронтами до 2е (`full`, если `dataset` ∈ capabilities, иначе `basic`); новый фронт не читает, удаление — после окна релизов. `trial`/`grace` — пробный и льготный периоды (бэдж в строке состояния, модалка триала, тост); `window` (необязательное) — открытое окно доступа (тосты открытия/закрытия, бэдж). When the block changes the server pushes afbws.auth.v1 (no `request_id`) with the whole new block.",
       "required": [
         "tier",
         "capabilities",
@@ -205,6 +226,17 @@
         },
         "grace": {
           "$ref": "#/$defs/accessGrace"
+        },
+        "window": {
+          "description": "Необязательное (этап 2ж; бэкенды до 2ж не отдают). Открытое сейчас окно доступа пользователя: null — окна нет; объект — открыто (`title` tier, `ends_at` ISO UTC; несколько — tier с наибольшим rank). Смена (null → объект — открыто, объект → null — закрыто) приходит пушем afbws.auth.v1 на границе окна; фронт по ней показывает тосты открытия/закрытия и бэдж в строке состояния. Функционал — по-прежнему только по `capabilities`/`limits`.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/accessWindow"
+            }
+          ]
         }
       }
     }

@@ -16,6 +16,24 @@
 
 ### Removed
 
+## v2.9.13 — 2026-10-30
+
+### Added
+- **`afbws.access.stats.v1`: + `days[]`, + `capabilities[]`** (аддитивно, этап 2ж): `days[]` (`$defs/statsDay`, модель `AccessV1StatsDay`) — каждый день диапазона без персонала: `new_users`, `trials_started`, `converted`, `active` + `usage` `{capability: {actions, users}}` (`$defs/statsUsage`, `AccessV1StatsUsage`) — действия и пользователи сервисов capability за день; `capabilities[]` — подписи колонок `usage` (только вместе с `days`). Пример `stats.response.json`; PROTOCOL.md §20.
+
+### Changed
+- **`afbws.access.stats.v1.weeks[]` / `$defs/statsWeek` — deprecated**: бэкенд продолжает заполнять для фронтов 2е; новый фронт читает `days[]`.
+
+## v2.9.12 — 2026-10-30
+
+### Added
+- **`common.v1#access.window`** (необязательное, этап 2ж): `null` | `{title, ends_at}` (`$defs/accessWindow`) — открытое окно доступа пользователя (`title` — подпись tier, `ends_at` — ISO 8601 UTC; несколько — tier с наибольшим rank). Смена приходит пушем `afbws.auth.v1` на границе окна. Модель `AccessWindow`; пример `examples/auth_v1/push.guest_window.json`.
+- **Политика tier: `trial_tier`, `once`** (`access.channel.v1.json#/$defs/policy`): `trial_tier` — tier на время пробного периода (только политика tier по умолчанию); `once` — `null` | `{from, to}` date-time UTC (`$defs/onceWindow`, модель `AccessV1OnceWindow`) — разовое окно доступа tier, прошедшее не действует.
+- **`userRow.subscription_status`: + `trial`, + `trial_ended`** — порядок: `active` → `grace` → `trial` → `ended` → `trial_ended` → `null`.
+
+### Changed
+- **Политика tier — набор ключей по tier** (этап 2ж): tier по умолчанию — `trial_days`, `trial_tier`, `grace_days` (`grace_days` — только у гостя; льгота — на tier последней подписки); прочие не-персонал — окна `workday`, `weekend`, `once`. `as_tier` — deprecated и необязательный (бэкенд игнорирует при записи и не отдаёт); `as_tier`/`workday`/`weekend` в политике гостя от старого фронта игнорируются. Инвариант `tiers.set`: tier нельзя удалить, пока на него ссылается `policy.trial_tier`. Примеры `policy.*` в новой форме; PROTOCOL.md §20.
+
 ## v2.9.11 — 2026-10-30
 
 ### Added

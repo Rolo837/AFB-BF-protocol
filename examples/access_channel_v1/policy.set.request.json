@@ -4,8 +4,6 @@
   "request_id": "r-12",
   "tier": "lite",
   "policy": {
-    "as_tier": "user",
-    "grace_days": 2,
     "workday": {
       "from": "19:00",
       "to": "23:50"
@@ -13,6 +11,10 @@
     "weekend": {
       "from": "00:00",
       "to": "23:59"
+    },
+    "once": {
+      "from": "2026-11-05T15:00:00Z",
+      "to": "2026-11-05T17:00:00Z"
     }
   }
 }

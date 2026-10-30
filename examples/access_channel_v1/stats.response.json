@@ -2,22 +2,85 @@
   "channel": "access",
   "schema": "afbws.access.stats.v1",
   "request_id": "r-6",
-  "from": "2026-10-05",
-  "to": "2026-10-18",
+  "from": "2026-10-19",
+  "to": "2026-10-20",
   "weeks": [
     {
-      "week": "2026-10-05",
+      "week": "2026-10-19",
       "new_users": 34,
       "trials_started": 30,
       "converted": 4,
       "active": 210
+    }
+  ],
+  "days": [
+    {
+      "day": "2026-10-19",
+      "new_users": 6,
+      "trials_started": 5,
+      "converted": 1,
+      "active": 40,
+      "usage": {
+        "trade": {
+          "actions": 3,
+          "users": 1
+        },
+        "virtual": {
+          "actions": 52,
+          "users": 9
+        },
+        "screener": {
+          "actions": 14,
+          "users": 6
+        },
+        "dataset": {
+          "actions": 120,
+          "users": 21
+        }
+      }
     },
     {
-      "week": "2026-10-12",
-      "new_users": 28,
-      "trials_started": 25,
-      "converted": 6,
-      "active": 198
+      "day": "2026-10-20",
+      "new_users": 4,
+      "trials_started": 4,
+      "converted": 0,
+      "active": 37,
+      "usage": {
+        "trade": {
+          "actions": 0,
+          "users": 0
+        },
+        "virtual": {
+          "actions": 47,
+          "users": 8
+        },
+        "screener": {
+          "actions": 11,
+          "users": 5
+        },
+        "dataset": {
+          "actions": 98,
+          "users": 19
+        }
+      }
+    }
+  ],
+  "capabilities": [
+    {
+      "capability": "trade",
+      "title": "Торговля"
+    },
+    {
+      "capability": "virtual",
+      "title": "Виртуальный счёт"
+    },
+    {
+      "capability": "screener",
+      "title": "Скринер"
+    },
+    {
+      "capability": "dataset",
+      "title": "Данные"
     }
   ]
 }
