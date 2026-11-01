@@ -11,5 +11,6 @@
   ],
   "mat_from": "2030-01-01",
   "sort": "yield",
+  "sort_direction": "desc",
   "limit": 50
 }

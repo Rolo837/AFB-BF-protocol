@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 37eaf8462e9b952bbb3379174586d1e32237985854bafe6e81d102ed6a24c6a3
+ * source-hash: 6b75fbfc626a1f0c5a6599488b73294db94aaf2aebb28c99c971a72cb6ae470d
  */
 
 /**
@@ -374,7 +374,7 @@ export type AfbwsBondsChannelV1_Root =
   | AfbwsBondsChannelV1_Events
   | AfbwsBondsChannelV1_Error;
 /**
- * Request: optional filters; `query` matches secid, ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `matdate` (default), `yield`, `coupon`; `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.
+ * Request: optional filters; `query` matches secid, ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `name` (default), `matdate`, `yield`, with direction `sort_direction` `asc` (default) / `desc`; the order is fully deterministic (see `sort`); `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Search".
@@ -414,9 +414,13 @@ export type AfbwsBondsChannelV1_Search = {
    */
   include_matured?: boolean;
   /**
-   * Request. Order of the list (default `matdate`).
+   * Request. Sort key of the list (default `name`). `name`: the bond name (`name`, or `shortname` when `name` is null), compared case-insensitively with correct Cyrillic ordering; `matdate`: maturity date; `yield`: yield from the market snapshot (fallback: last daily yield). Rows without a value (null `matdate` / `yield`) are always last, in both directions. The secondary key is always `secid` ascending (in both directions), so the order is strictly deterministic: consecutive windows of the same request never overlap or skip rows.
    */
-  sort?: 'matdate' | 'yield' | 'coupon';
+  sort?: 'name' | 'matdate' | 'yield';
+  /**
+   * Request. Direction of `sort` (default `asc`). Does not affect the placement of rows without a value (always last) or the `secid` tiebreak (always ascending).
+   */
+  sort_direction?: 'asc' | 'desc';
   /**
    * Index of the first requested row in the filtered list (0-based, default 0); echoed in the response. The client asks for the window that contains the page it shows; there is no cursor.
    */

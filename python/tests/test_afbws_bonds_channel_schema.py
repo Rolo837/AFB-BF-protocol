@@ -71,7 +71,10 @@ def test_every_message_has_a_distinct_schema_const():
 def test_search(registry):
     v = _validator(registry, "search")
     v.validate(_msg("search", request_id="r"))
-    v.validate(_msg("search", request_id="r", query="ОФ", sort="coupon", limit=100, offset=0))
+    v.validate(_msg("search", request_id="r", query="ОФ", sort="yield", sort_direction="desc", limit=100, offset=0))
+    for srt in ("name", "matdate", "yield"):
+        for d in ("asc", "desc"):
+            v.validate(_msg("search", request_id="r", sort=srt, sort_direction=d))
     v.validate(_msg("search", request_id="r", offset=250))
     v.validate(_ex("search.response"))
     _bad(v, _msg("search", request_id="r", cursor="abc"))  # no cursors
@@ -89,6 +92,9 @@ def test_search(registry):
     _bad(v, _msg("search", request_id="r", query="О"))  # < 2 chars
     _bad(v, _msg("search", request_id="r", limit=101))
     _bad(v, _msg("search", request_id="r", sort="price"))
+    _bad(v, _msg("search", request_id="r", sort="coupon"))  # removed
+    _bad(v, _msg("search", request_id="r", sort_direction="up"))
+    _bad(v, _msg("search", request_id="r", sort_direction=None))
     _bad(v, _msg("search", request_id="r", categories=["cb"]))
     _bad(v, _msg("search"))  # request_id required, no body
     _bad(v, _msg("search", request_id="r", items=[]))  # partial response

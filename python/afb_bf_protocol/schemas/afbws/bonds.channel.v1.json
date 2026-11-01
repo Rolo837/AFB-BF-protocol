@@ -1457,7 +1457,7 @@
     "search": {
       "type": "object",
       "title": "afbws.bonds.search.v1 — bond search (request / response).",
-      "description": "Request: optional filters; `query` matches secid, ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `matdate` (default), `yield`, `coupon`; `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.",
+      "description": "Request: optional filters; `query` matches secid, ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `name` (default), `matdate`, `yield`, with direction `sort_direction` `asc` (default) / `desc`; the order is fully deterministic (see `sort`); `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.",
       "required": [
         "channel",
         "schema",
@@ -1518,11 +1518,18 @@
         },
         "sort": {
           "enum": [
+            "name",
             "matdate",
-            "yield",
-            "coupon"
+            "yield"
           ],
-          "description": "Request. Order of the list (default `matdate`)."
+          "description": "Request. Sort key of the list (default `name`). `name`: the bond name (`name`, or `shortname` when `name` is null), compared case-insensitively with correct Cyrillic ordering; `matdate`: maturity date; `yield`: yield from the market snapshot (fallback: last daily yield). Rows without a value (null `matdate` / `yield`) are always last, in both directions. The secondary key is always `secid` ascending (in both directions), so the order is strictly deterministic: consecutive windows of the same request never overlap or skip rows."
+        },
+        "sort_direction": {
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "description": "Request. Direction of `sort` (default `asc`). Does not affect the placement of rows without a value (always last) or the `secid` tiebreak (always ascending)."
         },
         "offset": {
           "type": "integer",
