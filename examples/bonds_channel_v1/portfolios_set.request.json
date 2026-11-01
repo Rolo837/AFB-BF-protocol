@@ -1,0 +1,20 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.portfolios.set.v1",
+  "request_id": "b-5",
+  "portfolios": [
+    {
+      "id": "p-2",
+      "name": "Вторичный",
+      "icon_color": "blue"
+    },
+    {
+      "id": "g-9",
+      "name": "Публичный",
+      "visibility": "user"
+    }
+  ],
+  "remove": [
+    "p-0"
+  ]
+}

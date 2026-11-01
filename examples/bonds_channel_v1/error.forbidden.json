@@ -1,0 +1,7 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.error.v1",
+  "request_id": "b-1",
+  "code": "forbidden",
+  "message": "capability bonds required"
+}

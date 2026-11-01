@@ -11,6 +11,7 @@ from afb_bf_protocol import (
     ALARM_CHANNEL_V2,
     ALL_CAPABILITY_IDS,
     AUTH_V1,
+    BONDS_CHANNEL_V1,
     CATALOG_CHANNEL_V1,
     CONFIG_CHANNEL_V1,
     DEAL_CHANNEL_V2,
@@ -49,6 +50,7 @@ def test_capability_ids_match_schema_declarations():
         SCREENER_CHANNEL_V1: "SCREENER_CHANNEL_V1",
         AUTH_V1: "AUTH_V1",
         ACCESS_CHANNEL_V1: "ACCESS_CHANNEL_V1",
+        BONDS_CHANNEL_V1: "BONDS_CHANNEL_V1",
     }
     assert ALL_CAPABILITY_IDS == {
         ALARM_CHANNEL_V2,
@@ -64,6 +66,7 @@ def test_capability_ids_match_schema_declarations():
         SCREENER_CHANNEL_V1,
         AUTH_V1,
         ACCESS_CHANNEL_V1,
+        BONDS_CHANNEL_V1,
     }
 
 

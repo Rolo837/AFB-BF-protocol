@@ -266,7 +266,7 @@ def test_access_description_names_admin_only_and_staff_operations():
 
 def test_capability_enum_has_no_local(registry):
     v = _v(_ACCESS_ID, "capability", registry)
-    for c in ("trade", "virtual", "screener", "dataset"):
+    for c in ("trade", "virtual", "screener", "dataset", "bonds", "broker_view"):
         _ok(v, c)
     _bad(v, "local")
     _bad(v, "Trade")
@@ -626,7 +626,7 @@ def test_denied_uses_refused_request_channel(registry):
 
 def test_capability_enum_order_stage_2e():
     enum = json.loads((_SCHEMAS / "access.channel.v1.json").read_text())["$defs"]["capability"]["enum"]
-    assert enum == ["trade", "virtual", "screener", "dataset"]
+    assert enum == ["trade", "virtual", "screener", "dataset", "bonds", "broker_view"]
 
 
 def test_denied_reason_capability(registry):

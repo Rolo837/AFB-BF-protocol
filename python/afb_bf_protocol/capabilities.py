@@ -15,6 +15,7 @@ __all__ = [
     "ACCOUNT_CHANNEL_V2",
     "ALARM_CHANNEL_V2",
     "AUTH_V1",
+    "BONDS_CHANNEL_V1",
     "CATALOG_CHANNEL_V1",
     "CONFIG_CHANNEL_V1",
     "DEAL_CHANNEL_V2",
@@ -31,6 +32,7 @@ ACCESS_CHANNEL_V1 = "afbws.access.channel.v1"
 ACCOUNT_CHANNEL_V2 = "afbws.account.channel.v2"
 ALARM_CHANNEL_V2 = "afbws.alarm.channel.v2"
 AUTH_V1 = "afbws.auth.v1"
+BONDS_CHANNEL_V1 = "afbws.bonds.channel.v1"
 CATALOG_CHANNEL_V1 = "afbws.catalog.channel.v1"
 CONFIG_CHANNEL_V1 = "afbws.config.channel.v1"
 DEAL_CHANNEL_V2 = "afbws.deal.channel.v2"
@@ -46,6 +48,7 @@ ALL_CAPABILITY_IDS: frozenset[str] = frozenset({
     ACCOUNT_CHANNEL_V2,
     ALARM_CHANNEL_V2,
     AUTH_V1,
+    BONDS_CHANNEL_V1,
     CATALOG_CHANNEL_V1,
     CONFIG_CHANNEL_V1,
     DEAL_CHANNEL_V2,

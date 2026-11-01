@@ -1,0 +1,9 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.copy.v1",
+  "request_id": "b-7",
+  "source_id": "g-1",
+  "id": "p-3",
+  "name": "Копия эталона",
+  "amount_rub": 500000
+}

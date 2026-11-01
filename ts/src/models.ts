@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 0efe198af9a525921048e75b30197fb24a45da3e0174d12dd50fbe7fd93930ac
+ * source-hash: 7cdc39dd054a0fa90de3c9647ffdc16da7bfb5a9f6fc5653518f2ef95d739f8f
  */
 
 /**
@@ -40,12 +40,12 @@ export type AfbwsCommonV1_RequestId = string;
  */
 export type AccessV1Provider = string;
 /**
- * Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF; `virtual` — виртуальный счёт и активация/оценка алармов и торговых планов (с `trade` они работают и без `virtual`); `screener` — выгрузки скринера и скоуп `futures` в market subscribe; `dataset` — наборы данных в market series, `oi`/`oi_daily` в market snapshot, screener participants. `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities.
+ * Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF; `virtual` — виртуальный счёт и активация/оценка алармов и торговых планов (с `trade` они работают и без `virtual`); `screener` — выгрузки скринера и скоуп `futures` в market subscribe; `dataset` — наборы данных в market series, `oi`/`oi_daily` в market snapshot, screener participants; `bonds` — облигации: портфели, журнал сделок, доходности, сигналы (канал afbws.bonds.channel.v1); `broker_view` — опциональная сверка портфеля облигаций со счётом брокера (токен на бэкенд не попадает). `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Capability".
  */
-export type AccessV1Capability = 'trade' | 'virtual' | 'screener' | 'dataset';
+export type AccessV1Capability = 'trade' | 'virtual' | 'screener' | 'dataset' | 'bonds' | 'broker_view';
 /**
  * Дата YYYY-MM-DD в поясе сервера; действует до конца указанного дня (до 00:00 следующего дня пояса сервера).
  *
@@ -355,6 +355,361 @@ export type BfsRegistryEntry = BfRegistryEntry & {
   daemon?: {
     [k: string]: unknown;
   };
+};
+/**
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bond portfolios: a bond search and cards, personal portfolios with a trade journal and yield analytics, public (reference) portfolios of a manager that users copy, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `copy`, `signals`, `events`. Lists are paged by an opaque cursor, at most 100 per page. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Broker reconciliation (`reconcile`, capability `broker_view`) is added later, additively. See AFB/docs/ws/bonds.md.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Root".
+ */
+export type AfbwsBondsChannelV1_Root =
+  | AfbwsBondsChannelV1_Search
+  | AfbwsBondsChannelV1_BondMsg
+  | AfbwsBondsChannelV1_Portfolios
+  | AfbwsBondsChannelV1_Portfolio
+  | AfbwsBondsChannelV1_PortfoliosSet
+  | AfbwsBondsChannelV1_TradesSet
+  | AfbwsBondsChannelV1_Copy
+  | AfbwsBondsChannelV1_Signals
+  | AfbwsBondsChannelV1_Events
+  | AfbwsBondsChannelV1_Error;
+/**
+ * Request: optional filters; `query` matches secid, ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `matdate` (default), `yield`, `coupon`; paging by the opaque `cursor` from the previous response, `limit` up to 100. Response: `items` and `next_cursor` (null at the end).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Search".
+ */
+export type AfbwsBondsChannelV1_Search = {
+  [k: string]: unknown;
+} & {
+  channel: 'bonds';
+  schema: 'afbws.bonds.search.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Request. Free-text search.
+   */
+  query?: string;
+  /**
+   * Request. Only these categories.
+   */
+  categories?: AfbwsBondsChannelV1_Category[];
+  /**
+   * Request. Only these face-value currencies.
+   */
+  faceunits?: AfbwsBondsChannelV1_Faceunit[];
+  /**
+   * Request. Maturity not earlier than.
+   */
+  mat_from?: string;
+  /**
+   * Request. Maturity not later than.
+   */
+  mat_to?: string;
+  /**
+   * Request. Include `category=default` bonds (default false).
+   */
+  include_default?: boolean;
+  /**
+   * Request. Include redeemed bonds (default false).
+   */
+  include_matured?: boolean;
+  /**
+   * Request. Order of the list (default `matdate`).
+   */
+  sort?: 'matdate' | 'yield' | 'coupon';
+  /**
+   * Request. `next_cursor` of the previous response.
+   */
+  cursor?: string;
+  /**
+   * Request. Page size, at most 100.
+   */
+  limit?: number;
+  /**
+   * Response only.
+   */
+  items?: AfbwsBondsChannelV1_BondRow[];
+  /**
+   * Response only. Cursor of the next page; null — the last page.
+   */
+  next_cursor?: string | null;
+};
+/**
+ * Bond category: `ofz` federal government, `subfederal` regions, `municipal` municipalities, `corporate`, `currency` (currency-denominated), `default` — issuers in (technical) default. Replacement bonds are not a separate category.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Category".
+ */
+export type AfbwsBondsChannelV1_Category = 'ofz' | 'subfederal' | 'municipal' | 'corporate' | 'currency' | 'default';
+/**
+ * Currency of the bond face value (ISS FACEUNIT, e.g. `SUR`, `USD`, `CNY`). All money fields without the `_rub` suffix are in this currency; fields with `_rub` are the same amount converted to rubles.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Faceunit".
+ */
+export type AfbwsBondsChannelV1_Faceunit = string;
+/**
+ * MOEX ISS bond identifier (SECID) — the bond key on this channel; case-sensitive, never normalized (.lower()/.upper()).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Secid".
+ */
+export type AfbwsBondsChannelV1_Secid = string;
+/**
+ * `market` block, or null outside trading / without data.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_MarketOrNull".
+ */
+export type AfbwsBondsChannelV1_MarketOrNull = AfbwsBondsChannelV1_Market | null;
+/**
+ * Request: `secid`. Response: the bond, its payment `schedule` and the daily `history` (columnar). Unknown secid — error `not_found`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_BondMsg".
+ */
+export type AfbwsBondsChannelV1_BondMsg = {
+  [k: string]: unknown;
+} & {
+  channel: 'bonds';
+  schema: 'afbws.bonds.bond.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  secid?: AfbwsBondsChannelV1_Secid;
+  bond?: AfbwsBondsChannelV1_Bond;
+  schedule?: AfbwsBondsChannelV1_Schedule;
+  history?: AfbwsBondsChannelV1_History;
+};
+/**
+ * Request is an empty command. Response and push carry `portfolios`: the caller's own portfolios plus public ones visible to their tier. Server push: the same body WITHOUT `request_id` whenever the list changes — to the owner for a personal portfolio, to every connection with the `bonds` capability for a public one.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Portfolios".
+ */
+export type AfbwsBondsChannelV1_Portfolios = {
+  [k: string]: unknown;
+} & {
+  channel: 'bonds';
+  schema: 'afbws.bonds.portfolios.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  /**
+   * Response only. Own and visible public portfolios.
+   */
+  portfolios?: AfbwsBondsChannelV1_PortfolioRef[];
+};
+/**
+ * Who sees a portfolio; same semantics as afbws.instrument.channel.v2 visibility. `personal` — only its owner (any user with the `bonds` capability may create these). `guest`/`user`/`manager` — a PUBLIC (reference) portfolio visible to callers whose tier is at least that one; creating, changing or deleting a public portfolio and editing its journal is manager-only (`forbidden` otherwise).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Visibility".
+ */
+export type AfbwsBondsChannelV1_Visibility = 'personal' | 'guest' | 'user' | 'manager';
+/**
+ * Same list and order as afbws.instrument.channel.v2 favoriteColor (kept in lockstep; no cross-reference on purpose).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_FavoriteColor".
+ */
+export type AfbwsBondsChannelV1_FavoriteColor =
+  'yellow' | 'red' | 'blue' | 'green' | 'gray' | 'orange' | 'cyan' | 'purple' | 'pink' | 'teal';
+/**
+ * Request: `id`. Response: the portfolio with its journal and analytics. Server push: the same body WITHOUT `request_id` once per market snapshot and after each journal edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Portfolio".
+ */
+export type AfbwsBondsChannelV1_Portfolio = {
+  [k: string]: unknown;
+} & {
+  channel: 'bonds';
+  schema: 'afbws.bonds.portfolio.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  /**
+   * Request. Portfolio id.
+   */
+  id?: string;
+  portfolio?: AfbwsBondsChannelV1_PortfolioRef1;
+  /**
+   * Response only.
+   */
+  positions?: AfbwsBondsChannelV1_Position[];
+  /**
+   * Response only. The whole journal.
+   */
+  trades?: AfbwsBondsChannelV1_Trade[];
+  /**
+   * Response only. Past and future payments of the positions.
+   */
+  payments?: AfbwsBondsChannelV1_Payment[];
+  series?: AfbwsBondsChannelV1_Series;
+  totals?: AfbwsBondsChannelV1_Totals;
+  /**
+   * Response only. Assumptions behind the portfolio totals.
+   */
+  flags?: AfbwsBondsChannelV1_Flag[];
+};
+/**
+ * Event kind: `offer` buyback offer, `maturity` redemption, `amortization` partial repayment, `call` issuer's call option.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_EventKind".
+ */
+export type AfbwsBondsChannelV1_EventKind = 'offer' | 'maturity' | 'amortization' | 'call';
+/**
+ * Data-quality marker explaining an assumption behind a figure. `float_assumed` — a future coupon is taken equal to the last known one (floater); `indexed_nominal` — a future face value of an inflation-indexed OFZ is taken equal to the current one; `no_fx` — no FX rate, `_rub` figures are missing; `no_market` — no market data, valued by the last known price; `default` — the issuer is in default; `matured` — the bond is already redeemed.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Flag".
+ */
+export type AfbwsBondsChannelV1_Flag =
+  'float_assumed' | 'indexed_nominal' | 'no_fx' | 'no_market' | 'default' | 'matured';
+/**
+ * Request: `portfolios` (upsert; an unknown id creates) and/or `remove` (ids to delete). Rules: a personal portfolio — for everyone; a public visibility — manager only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`. Response: the caller's whole current list in `portfolios` and the refused items in `rejected` (empty when all applied).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_PortfoliosSet".
+ */
+export type AfbwsBondsChannelV1_PortfoliosSet = {
+  [k: string]: unknown;
+} & {
+  channel: 'bonds';
+  schema: 'afbws.bonds.portfolios.set.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Request: upserts (`portfolioEdit`). Response: the resulting list (`portfolioRef`).
+   */
+  portfolios?: unknown[];
+  /**
+   * Request. Ids of portfolios to delete.
+   */
+  remove?: string[];
+  /**
+   * Response only.
+   */
+  rejected?: AfbwsBondsChannelV1_PortfolioRejection[];
+};
+/**
+ * Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the secid exists; in a public portfolio only a manager edits the journal; a `category=default` bond cannot be added to a public portfolio. Response: the whole journal in `trades` and the refused entries in `rejected`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_TradesSet".
+ */
+export type AfbwsBondsChannelV1_TradesSet = {
+  [k: string]: unknown;
+} & {
+  channel: 'bonds';
+  schema: 'afbws.bonds.trades.set.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Portfolio id.
+   */
+  portfolio_id?: string;
+  /**
+   * Request. Entries to add or change.
+   */
+  upsert?: AfbwsBondsChannelV1_Trade[];
+  /**
+   * Request. Ids of entries to delete.
+   */
+  remove?: string[];
+  /**
+   * Response only. The whole journal after the edit.
+   */
+  trades?: AfbwsBondsChannelV1_Trade[];
+  /**
+   * Response only.
+   */
+  rejected?: AfbwsBondsChannelV1_TradeRejection[];
+};
+/**
+ * Request: `source_id` (a visible portfolio, normally public), `id` and `name` of the new personal portfolio, `amount_rub` to invest and `trade_date` (default today). The backend buys the source composition proportionally for the amount at the prices of the date; there is no live link afterwards. Response: the new portfolio, its journal and the source positions that were skipped.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Copy".
+ */
+export type AfbwsBondsChannelV1_Copy = {
+  [k: string]: unknown;
+} & {
+  channel: 'bonds';
+  schema: 'afbws.bonds.copy.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Request. Source portfolio id.
+   */
+  source_id?: string;
+  /**
+   * Request. Id of the new personal portfolio.
+   */
+  id?: string;
+  /**
+   * Request. Name of the new portfolio.
+   */
+  name?: string;
+  /**
+   * Request. Amount to invest, rubles.
+   */
+  amount_rub?: number;
+  /**
+   * Request. Date of the generated purchases (default today).
+   */
+  trade_date?: string;
+  portfolio?: AfbwsBondsChannelV1_PortfolioRef2;
+  /**
+   * Response only. Generated journal.
+   */
+  trades?: AfbwsBondsChannelV1_Trade[];
+  /**
+   * Response only.
+   */
+  skipped?: AfbwsBondsChannelV1_Skipped[];
+};
+/**
+ * Request: `days` (1..30, default 5) — how far back, `held_only` (default false) — only the caller's bonds. Response: `items`. Server push: new and strengthened signals WITHOUT `request_id` to the connections that requested the feed.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Signals".
+ */
+export type AfbwsBondsChannelV1_Signals = {
+  [k: string]: unknown;
+} & {
+  channel: 'bonds';
+  schema: 'afbws.bonds.signals.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  /**
+   * Request. Days back (default 5).
+   */
+  days?: number;
+  /**
+   * Request. Only bonds held by the caller (default false).
+   */
+  held_only?: boolean;
+  /**
+   * Response only.
+   */
+  items?: AfbwsBondsChannelV1_Signal[];
+};
+/**
+ * Signal strength; a signal that becomes stronger is pushed again.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Severity".
+ */
+export type AfbwsBondsChannelV1_Severity = 'low' | 'medium' | 'high';
+/**
+ * Request is an empty command. Response: `items` — events of the caller's portfolios within the `notice_days` horizon of their settings. Server push: the same body WITHOUT `request_id` at the daily step.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Events".
+ */
+export type AfbwsBondsChannelV1_Events = {
+  [k: string]: unknown;
+} & {
+  channel: 'bonds';
+  schema: 'afbws.bonds.events.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  /**
+   * Response only.
+   */
+  items?: AfbwsBondsChannelV1_Event[];
 };
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.catalog.channel.v1). The asset manager's own channel; replaces the manager half of afbws.instrument (`catalog`, `pool`, `inventory`, `commit`, `refresh`, `sources`), which is left untouched. Same convention as afbws.alarm/afbws.gp/afbws.config: ONE schema id per message (`afbws.catalog.<op>.v1`), the same schema is the request, its response and, for `refresh`, a server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.catalog.error.v1`. Every non-manager request -> error `forbidden`. Any list is capped at 100 items. Operations: `snapshot`, `symbols`, `support`, `commit`, `refresh`. See AFB/docs/ws/catalog.md.
@@ -1638,6 +1993,15 @@ export type GpV1 = {
   [k: string]: unknown;
 };
 /**
+ * AFB-side MQTT notification payload published to <topic_base>/system/<user_id> about an event of a bond the user holds in a portfolio: an offer, a maturity, an amortization, an issuer call, or a price/volume anomaly signal. Consumed by the AFB informer daemon (Telegram/email) exactly like alarm/deal/link/system/expiration notifications — informer never reads AFB settings, the recipient and channels come only from `user`. Event notices are sent at most once per (user, bond, `kind`, `stage`, event date) and not at all when the user's `bonds.notice_days` is 0; anomaly notices are not sent when `bonds.notify_anomaly` is false. NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "NotificationBondV1_Root".
+ */
+export type NotificationBondV1_Root = {
+  [k: string]: unknown;
+};
+/**
  * AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -2554,7 +2918,7 @@ export interface AuthV1 {
 export interface Access {
   tier: AccessTier;
   /**
-   * Действующие сейчас capabilities (строки) — результат политики доступа бэкенда: capabilities tier (или tier, по лимитам которого пользователь работает в триале/льготе/окне) ∪ добавленные пользователю; у персонала — все capabilities кода, кроме `trade`. Значения: `trade`, `virtual`, `screener`, `dataset` (см. access.channel.v1.json#/$defs/capability). Фронт определяет функционал только по `capabilities` и `limits`. `local` — не назначаемая capability: бэкенд сам добавляет её локальным пользователям (provider `local`; фронт по ней показывает смену пароля).
+   * Действующие сейчас capabilities (строки) — результат политики доступа бэкенда: capabilities tier (или tier, по лимитам которого пользователь работает в триале/льготе/окне) ∪ добавленные пользователю; у персонала — все capabilities кода, кроме `trade`. Значения: `trade`, `virtual`, `screener`, `dataset`, `bonds`, `broker_view` (см. access.channel.v1.json#/$defs/capability). Фронт определяет функционал только по `capabilities` и `limits`. `local` — не назначаемая capability: бэкенд сам добавляет её локальным пользователям (provider `local`; фронт по ней показывает смену пароля).
    */
   capabilities: string[];
   limits: AccessLimits;
@@ -2635,6 +2999,963 @@ export interface BfsRegistryPush {
   data: {
     bfs: BfsRegistryEntry[];
   };
+}
+/**
+ * One bond in a search result list.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_BondRow".
+ */
+export interface AfbwsBondsChannelV1_BondRow {
+  secid: AfbwsBondsChannelV1_Secid;
+  /**
+   * ISIN; null when ISS has none.
+   */
+  isin: string | null;
+  /**
+   * Short display name.
+   */
+  shortname: string;
+  /**
+   * Issuer name; null when unknown.
+   */
+  emitter_title: string | null;
+  category: AfbwsBondsChannelV1_Category;
+  faceunit: AfbwsBondsChannelV1_Faceunit;
+  /**
+   * Current face value in `faceunit` (for inflation-indexed OFZ — the daily indexed value).
+   */
+  facevalue: number;
+  /**
+   * Maturity date; null for perpetual bonds.
+   */
+  matdate: string | null;
+  /**
+   * Nearest future offer date; null when none.
+   */
+  offerdate: string | null;
+  /**
+   * Current annual coupon rate, percent of face value; null when unknown.
+   */
+  coupon_percent: number | null;
+  /**
+   * Coupon payments per year; null when unknown.
+   */
+  coupon_frequency: number | null;
+  /**
+   * True when only qualified investors may buy the bond.
+   */
+  is_qualified: boolean;
+  /**
+   * `active` — traded or awaiting redemption; `matured` — redeemed (returned only with `include_matured`).
+   */
+  lifecycle: 'active' | 'matured';
+  market: AfbwsBondsChannelV1_MarketOrNull;
+}
+/**
+ * Market block of a bond. The whole block is null outside trading and when there is no data.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Market".
+ */
+export interface AfbwsBondsChannelV1_Market {
+  /**
+   * Last (or close) price in percent of face value.
+   */
+  price_pct: number | null;
+  /**
+   * Yield to maturity or to offer, percent per year.
+   */
+  yield: number | null;
+  /**
+   * What `yield` is: `ytm` to maturity, `yto` to the nearest offer; null when there is no yield.
+   */
+  ytm_kind: 'ytm' | 'yto' | null;
+  /**
+   * Modified duration, days.
+   */
+  duration_days: number | null;
+  /**
+   * Accrued coupon interest per bond, in `faceunit`.
+   */
+  accint: number | null;
+  /**
+   * Moment of the quote (ISO 8601 with zone).
+   */
+  updated_at: string;
+}
+/**
+ * Response only.
+ */
+export interface AfbwsBondsChannelV1_Bond {
+  secid: AfbwsBondsChannelV1_Secid;
+  /**
+   * ISIN; null when ISS has none.
+   */
+  isin: string | null;
+  /**
+   * Short display name.
+   */
+  shortname: string;
+  /**
+   * Issuer name; null when unknown.
+   */
+  emitter_title: string | null;
+  category: AfbwsBondsChannelV1_Category;
+  faceunit: AfbwsBondsChannelV1_Faceunit;
+  /**
+   * Current face value in `faceunit` (for inflation-indexed OFZ — the daily indexed value).
+   */
+  facevalue: number;
+  /**
+   * Maturity date; null for perpetual bonds.
+   */
+  matdate: string | null;
+  /**
+   * Nearest future offer date; null when none.
+   */
+  offerdate: string | null;
+  /**
+   * Current annual coupon rate, percent of face value; null when unknown.
+   */
+  coupon_percent: number | null;
+  /**
+   * Coupon payments per year; null when unknown.
+   */
+  coupon_frequency: number | null;
+  /**
+   * True when only qualified investors may buy the bond.
+   */
+  is_qualified: boolean;
+  /**
+   * `active` — traded or awaiting redemption; `matured` — redeemed (returned only with `include_matured`).
+   */
+  lifecycle: 'active' | 'matured';
+  market: AfbwsBondsChannelV1_MarketOrNull;
+  /**
+   * Full bond name.
+   */
+  name: string;
+  /**
+   * ISS issuer id; null when unknown.
+   */
+  emitter_id: number | null;
+  /**
+   * Issuer INN; null when unknown.
+   */
+  emitter_inn: string | null;
+  /**
+   * ISS bond type as is (SECTYPE/BONDTYPE text), for display.
+   */
+  bond_type: string | null;
+  /**
+   * Lot value in `faceunit` (lot size times face value) — the minimum purchase amount.
+   */
+  lot_value: number;
+}
+/**
+ * Response only.
+ */
+export interface AfbwsBondsChannelV1_Schedule {
+  /**
+   * All known coupons, past and future, by date.
+   */
+  coupons: AfbwsBondsChannelV1_Coupon[];
+  /**
+   * All known amortizations by date.
+   */
+  amortizations: AfbwsBondsChannelV1_Amortization[];
+  /**
+   * All known offers by date.
+   */
+  offers: AfbwsBondsChannelV1_Offer[];
+}
+/**
+ * One coupon of the bond schedule.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Coupon".
+ */
+export interface AfbwsBondsChannelV1_Coupon {
+  /**
+   * Payment date.
+   */
+  date: string;
+  /**
+   * Record date: a holder on this date receives the payment.
+   */
+  record_date: string | null;
+  /**
+   * Start of the coupon period.
+   */
+  start_date: string | null;
+  /**
+   * Payment per bond, in `faceunit`.
+   */
+  value: number | null;
+  /**
+   * Coupon rate for the period, percent of the face value.
+   */
+  value_pct: number | null;
+  /**
+   * Face value the coupon is calculated from (current, indexed for OFZ-IN).
+   */
+  facevalue: number | null;
+}
+/**
+ * One amortization (partial repayment of the face value).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Amortization".
+ */
+export interface AfbwsBondsChannelV1_Amortization {
+  /**
+   * Payment date.
+   */
+  date: string;
+  /**
+   * Repaid amount per bond, in `faceunit`.
+   */
+  value: number | null;
+  /**
+   * Repaid part, percent of the initial face value.
+   */
+  value_pct: number | null;
+}
+/**
+ * One offer of the bond schedule.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Offer".
+ */
+export interface AfbwsBondsChannelV1_Offer {
+  /**
+   * Offer (buyback) date.
+   */
+  date: string;
+  /**
+   * Start of the window for submitting the offer application.
+   */
+  window_start: string | null;
+  /**
+   * End of the window for submitting the offer application.
+   */
+  window_end: string | null;
+  /**
+   * Offer price, percent of face value.
+   */
+  price_pct: number | null;
+  /**
+   * Offer type as given by ISS (put/call etc.), for display.
+   */
+  kind: string | null;
+}
+/**
+ * Response only.
+ */
+export interface AfbwsBondsChannelV1_History {
+  /**
+   * Fixed column order: date, close, yield_close, facevalue, volume.
+   *
+   * @minItems 5
+   * @maxItems 5
+   */
+  columns: [unknown, unknown, unknown, unknown, unknown];
+  /**
+   * Each row has the same length and order as `columns`; a missing value is null (never NaN).
+   */
+  rows: (number | string | null)[][];
+}
+/**
+ * A portfolio in a list: attributes and short figures.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_PortfolioRef".
+ */
+export interface AfbwsBondsChannelV1_PortfolioRef {
+  /**
+   * Portfolio id (client-generated on create).
+   */
+  id: string;
+  /**
+   * Display name.
+   */
+  name: string;
+  visibility: AfbwsBondsChannelV1_Visibility;
+  /**
+   * Opaque icon key; null — none.
+   */
+  icon_id: string | null;
+  /**
+   * Icon color; null — none.
+   */
+  icon_color: AfbwsBondsChannelV1_FavoriteColor | null;
+  /**
+   * True when the portfolio is the caller's own; false for a public portfolio of a manager (read-only for the caller, can be copied).
+   */
+  own: boolean;
+  summary: AfbwsBondsChannelV1_PortfolioSummary;
+}
+/**
+ * Short figures of a portfolio for the list.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_PortfolioSummary".
+ */
+export interface AfbwsBondsChannelV1_PortfolioSummary {
+  /**
+   * Market value of all positions, rubles; null without data.
+   */
+  market_value_rub: number | null;
+  /**
+   * Market-value-weighted yield to maturity, percent per year; null without data.
+   */
+  ytm: number | null;
+  /**
+   * Market-value-weighted duration, days; null without data.
+   */
+  duration_days: number | null;
+  /**
+   * Number of positions with a non-zero balance.
+   */
+  positions: number;
+}
+/**
+ * A portfolio in a list: attributes and short figures.
+ */
+export interface AfbwsBondsChannelV1_PortfolioRef1 {
+  /**
+   * Portfolio id (client-generated on create).
+   */
+  id: string;
+  /**
+   * Display name.
+   */
+  name: string;
+  visibility: AfbwsBondsChannelV1_Visibility;
+  /**
+   * Opaque icon key; null — none.
+   */
+  icon_id: string | null;
+  /**
+   * Icon color; null — none.
+   */
+  icon_color: AfbwsBondsChannelV1_FavoriteColor | null;
+  /**
+   * True when the portfolio is the caller's own; false for a public portfolio of a manager (read-only for the caller, can be copied).
+   */
+  own: boolean;
+  summary: AfbwsBondsChannelV1_PortfolioSummary;
+}
+/**
+ * One row per bond with a non-zero balance.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Position".
+ */
+export interface AfbwsBondsChannelV1_Position {
+  secid: AfbwsBondsChannelV1_Secid;
+  /**
+   * Short display name.
+   */
+  shortname: string;
+  category: AfbwsBondsChannelV1_Category;
+  faceunit: AfbwsBondsChannelV1_Faceunit;
+  /**
+   * Balance, pieces (non-zero).
+   */
+  quantity: number;
+  /**
+   * Average purchase price, percent of face value.
+   */
+  avg_price_pct: number | null;
+  /**
+   * Sum of purchases including accrued interest and commission minus sales, in `faceunit`.
+   */
+  invested: number;
+  /**
+   * Current face value in `faceunit`.
+   */
+  facevalue: number;
+  /**
+   * Current price, percent of face value.
+   */
+  price_pct: number | null;
+  /**
+   * Accrued interest per bond, in `faceunit`.
+   */
+  accint: number | null;
+  /**
+   * Market value of the position in `faceunit`.
+   */
+  market_value: number | null;
+  /**
+   * Market value of the position in rubles.
+   */
+  market_value_rub: number | null;
+  /**
+   * Annual coupon / (price + accrued interest), percent.
+   */
+  current_yield: number | null;
+  /**
+   * Yield at the market price, percent per year.
+   */
+  ytm_market: number | null;
+  /**
+   * What `ytm_market` is: to maturity or to offer; null without yield.
+   */
+  ytm_kind: 'ytm' | 'yto' | null;
+  /**
+   * XIRR of the purchases and future payments, percent per year.
+   */
+  ytm_purchase: number | null;
+  /**
+   * Duration, days.
+   */
+  duration_days: number | null;
+  /**
+   * Next coupon; null when none.
+   */
+  next_coupon: AfbwsBondsChannelV1_NextCoupon | null;
+  /**
+   * Nearest event; null when none.
+   */
+  next_event: AfbwsBondsChannelV1_NextEvent | null;
+  /**
+   * Payments received so far.
+   */
+  received: {
+    /**
+     * Coupons received so far, in `faceunit`.
+     */
+    coupons: number;
+    /**
+     * Amortizations received so far, in `faceunit`.
+     */
+    amortizations: number;
+  };
+  /**
+   * Assumptions behind the figures of this position.
+   */
+  flags: AfbwsBondsChannelV1_Flag[];
+}
+/**
+ * Next coupon of a position.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_NextCoupon".
+ */
+export interface AfbwsBondsChannelV1_NextCoupon {
+  /**
+   * Date of the next coupon.
+   */
+  date: string;
+  /**
+   * Next coupon amount per position (quantity applied), in `faceunit`.
+   */
+  value: number | null;
+}
+/**
+ * Nearest offer/maturity/amortization/call of a position.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_NextEvent".
+ */
+export interface AfbwsBondsChannelV1_NextEvent {
+  kind: AfbwsBondsChannelV1_EventKind;
+  /**
+   * Event date.
+   */
+  date: string;
+}
+/**
+ * One journal entry (purchase or sale).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Trade".
+ */
+export interface AfbwsBondsChannelV1_Trade {
+  /**
+   * Journal entry id (client-generated on create); a known id updates the entry.
+   */
+  trade_id: string;
+  secid: AfbwsBondsChannelV1_Secid;
+  /**
+   * Trade date; not later than today and not earlier than the bond's issue date.
+   */
+  trade_date: string;
+  /**
+   * Pieces: positive — purchase, negative — sale. A sale cannot exceed the balance on the date.
+   */
+  quantity: number;
+  /**
+   * Price, percent of face value.
+   */
+  price_pct: number;
+  /**
+   * Accrued coupon interest per bond, in `faceunit`. Omitted: taken from the daily data of the date (ISS ACCINT).
+   */
+  accrued_int?: number;
+  /**
+   * Commission of the trade, in `faceunit`; part of the invested amount only, never affects yields.
+   */
+  commission?: number;
+}
+/**
+ * A past or future payment of a position.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Payment".
+ */
+export interface AfbwsBondsChannelV1_Payment {
+  /**
+   * Payment date.
+   */
+  date: string;
+  secid: AfbwsBondsChannelV1_Secid;
+  /**
+   * Payment kind.
+   */
+  kind: 'coupon' | 'amortization' | 'maturity' | 'offer_redemption';
+  /**
+   * Amount in `faceunit`.
+   */
+  amount: number;
+  /**
+   * Amount in rubles; null without FX rate.
+   */
+  amount_rub: number | null;
+  faceunit: AfbwsBondsChannelV1_Faceunit;
+  /**
+   * `received` — the bond was on the balance on the record date and the date has passed; `expected` — future.
+   */
+  status: 'received' | 'expected';
+  /**
+   * True when the amount is an assumption (see position flags `float_assumed`, `indexed_nominal`).
+   */
+  assumed: boolean;
+}
+/**
+ * Response only.
+ */
+export interface AfbwsBondsChannelV1_Series {
+  /**
+   * Fixed column order: date, market_value_rub, invested_rub, received_rub, ytm.
+   *
+   * @minItems 5
+   * @maxItems 5
+   */
+  columns: [unknown, unknown, unknown, unknown, unknown];
+  /**
+   * Each row has the same length and order as `columns`; a missing value is null (never NaN).
+   */
+  rows: (number | string | null)[][];
+}
+/**
+ * Response only.
+ */
+export interface AfbwsBondsChannelV1_Totals {
+  /**
+   * Invested amount, rubles.
+   */
+  invested_rub: number | null;
+  /**
+   * Market value, rubles.
+   */
+  market_value_rub: number | null;
+  /**
+   * Payments received, rubles.
+   */
+  received_rub: number | null;
+  /**
+   * Actual portfolio return (XIRR), percent per year.
+   */
+  xirr: number | null;
+  /**
+   * Market-value-weighted yield, percent per year.
+   */
+  ytm: number | null;
+  /**
+   * Market-value-weighted duration, days.
+   */
+  duration_days: number | null;
+  /**
+   * Annual coupon income at the current balance, rubles.
+   */
+  annual_coupons_rub: number | null;
+}
+/**
+ * A refused portfolio of `portfolios.set` (`forbidden`, `validation_error`, `not_found`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_PortfolioRejection".
+ */
+export interface AfbwsBondsChannelV1_PortfolioRejection {
+  /**
+   * Id of the rejected item.
+   */
+  id: string;
+  code: AfbwsCommonV1_ErrorCode;
+  /**
+   * Human-readable reason.
+   */
+  message: string;
+}
+/**
+ * A refused journal entry of `trades.set` (`validation_error`, `forbidden`, `not_found`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_TradeRejection".
+ */
+export interface AfbwsBondsChannelV1_TradeRejection {
+  /**
+   * Id of the rejected item.
+   */
+  trade_id: string;
+  code: AfbwsCommonV1_ErrorCode;
+  /**
+   * Human-readable reason.
+   */
+  message: string;
+}
+/**
+ * A portfolio in a list: attributes and short figures.
+ */
+export interface AfbwsBondsChannelV1_PortfolioRef2 {
+  /**
+   * Portfolio id (client-generated on create).
+   */
+  id: string;
+  /**
+   * Display name.
+   */
+  name: string;
+  visibility: AfbwsBondsChannelV1_Visibility;
+  /**
+   * Opaque icon key; null — none.
+   */
+  icon_id: string | null;
+  /**
+   * Icon color; null — none.
+   */
+  icon_color: AfbwsBondsChannelV1_FavoriteColor | null;
+  /**
+   * True when the portfolio is the caller's own; false for a public portfolio of a manager (read-only for the caller, can be copied).
+   */
+  own: boolean;
+  summary: AfbwsBondsChannelV1_PortfolioSummary;
+}
+/**
+ * A source position that was not bought on copy.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Skipped".
+ */
+export interface AfbwsBondsChannelV1_Skipped {
+  secid: AfbwsBondsChannelV1_Secid;
+  /**
+   * Why the position was not copied: no market price, one lot costs more than its share of the amount, bond in default, bond redeemed.
+   */
+  reason: 'no_market' | 'lot_exceeds' | 'default' | 'matured';
+}
+/**
+ * A market-wide price/volume anomaly of one bond.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Signal".
+ */
+export interface AfbwsBondsChannelV1_Signal {
+  secid: AfbwsBondsChannelV1_Secid;
+  /**
+   * Short display name.
+   */
+  shortname: string;
+  category: AfbwsBondsChannelV1_Category;
+  /**
+   * Trading day of the signal.
+   */
+  date: string;
+  /**
+   * Maximum severity over `rules`.
+   */
+  severity: 'low' | 'medium' | 'high';
+  /**
+   * Triggered rules.
+   *
+   * @minItems 1
+   */
+  rules: [AfbwsBondsChannelV1_SignalRule, ...AfbwsBondsChannelV1_SignalRule[]];
+  /**
+   * True when the caller holds the bond in any of their portfolios.
+   */
+  held: boolean;
+}
+/**
+ * One triggered anomaly rule.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_SignalRule".
+ */
+export interface AfbwsBondsChannelV1_SignalRule {
+  /**
+   * Anomaly rule code (price drop, volume spike, yield jump, G-spread jump, price below face, decline streak); an open set defined by the backend.
+   */
+  rule: string;
+  severity: AfbwsBondsChannelV1_Severity;
+  /**
+   * Values that triggered the rule (observed value, threshold, baseline); keys depend on the rule.
+   */
+  metrics: {
+    [k: string]: number | string | null;
+  };
+}
+/**
+ * An upcoming event of a bond held in the caller's portfolios, within the `notice_days` horizon.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Event".
+ */
+export interface AfbwsBondsChannelV1_Event {
+  secid: AfbwsBondsChannelV1_Secid;
+  /**
+   * Short display name.
+   */
+  shortname: string;
+  /**
+   * The caller's portfolios holding the bond.
+   */
+  portfolio_ids: string[];
+  kind: AfbwsBondsChannelV1_EventKind;
+  /**
+   * Event date.
+   */
+  date: string;
+  /**
+   * Start of the offer application window (offer only).
+   */
+  window_start?: string | null;
+  /**
+   * End of the offer application window (offer only).
+   */
+  window_end?: string | null;
+  /**
+   * Amount of the event in `faceunit` for the held quantity.
+   */
+  amount: number | null;
+  /**
+   * The same in rubles; null without FX rate.
+   */
+  amount_rub: number | null;
+  faceunit: AfbwsBondsChannelV1_Faceunit;
+  /**
+   * Calendar days from today to `date`.
+   */
+  days_left: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Error".
+ */
+export interface AfbwsBondsChannelV1_Error {
+  channel: 'bonds';
+  schema: 'afbws.bonds.error.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  code: AfbwsCommonV1_ErrorCode;
+  message: string;
+}
+/**
+ * A bond card: the search row plus issuer and lot attributes.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Bond".
+ */
+export interface AfbwsBondsChannelV1_Bond1 {
+  secid: AfbwsBondsChannelV1_Secid;
+  /**
+   * ISIN; null when ISS has none.
+   */
+  isin: string | null;
+  /**
+   * Short display name.
+   */
+  shortname: string;
+  /**
+   * Issuer name; null when unknown.
+   */
+  emitter_title: string | null;
+  category: AfbwsBondsChannelV1_Category;
+  faceunit: AfbwsBondsChannelV1_Faceunit;
+  /**
+   * Current face value in `faceunit` (for inflation-indexed OFZ — the daily indexed value).
+   */
+  facevalue: number;
+  /**
+   * Maturity date; null for perpetual bonds.
+   */
+  matdate: string | null;
+  /**
+   * Nearest future offer date; null when none.
+   */
+  offerdate: string | null;
+  /**
+   * Current annual coupon rate, percent of face value; null when unknown.
+   */
+  coupon_percent: number | null;
+  /**
+   * Coupon payments per year; null when unknown.
+   */
+  coupon_frequency: number | null;
+  /**
+   * True when only qualified investors may buy the bond.
+   */
+  is_qualified: boolean;
+  /**
+   * `active` — traded or awaiting redemption; `matured` — redeemed (returned only with `include_matured`).
+   */
+  lifecycle: 'active' | 'matured';
+  market: AfbwsBondsChannelV1_MarketOrNull;
+  /**
+   * Full bond name.
+   */
+  name: string;
+  /**
+   * ISS issuer id; null when unknown.
+   */
+  emitter_id: number | null;
+  /**
+   * Issuer INN; null when unknown.
+   */
+  emitter_inn: string | null;
+  /**
+   * ISS bond type as is (SECTYPE/BONDTYPE text), for display.
+   */
+  bond_type: string | null;
+  /**
+   * Lot value in `faceunit` (lot size times face value) — the minimum purchase amount.
+   */
+  lot_value: number;
+}
+/**
+ * Payment schedule of the bond (ISS bondization).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Schedule".
+ */
+export interface AfbwsBondsChannelV1_Schedule1 {
+  /**
+   * All known coupons, past and future, by date.
+   */
+  coupons: AfbwsBondsChannelV1_Coupon[];
+  /**
+   * All known amortizations by date.
+   */
+  amortizations: AfbwsBondsChannelV1_Amortization[];
+  /**
+   * All known offers by date.
+   */
+  offers: AfbwsBondsChannelV1_Offer[];
+}
+/**
+ * Daily history of the bond (columnar, like afbws.market.series.v1 tables), oldest first. `close` — percent of face value; `yield_close` — percent per year; `facevalue` — face value of the day in `faceunit`; `volume` — pieces.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_History".
+ */
+export interface AfbwsBondsChannelV1_History1 {
+  /**
+   * Fixed column order: date, close, yield_close, facevalue, volume.
+   *
+   * @minItems 5
+   * @maxItems 5
+   */
+  columns: [unknown, unknown, unknown, unknown, unknown];
+  /**
+   * Each row has the same length and order as `columns`; a missing value is null (never NaN).
+   */
+  rows: (number | string | null)[][];
+}
+/**
+ * A portfolio upsert item.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_PortfolioEdit".
+ */
+export interface AfbwsBondsChannelV1_PortfolioEdit {
+  /**
+   * Portfolio id; unknown id creates the portfolio.
+   */
+  id: string;
+  /**
+   * Display name.
+   */
+  name: string;
+  /**
+   * Who sees a portfolio; same semantics as afbws.instrument.channel.v2 visibility. `personal` — only its owner (any user with the `bonds` capability may create these). `guest`/`user`/`manager` — a PUBLIC (reference) portfolio visible to callers whose tier is at least that one; creating, changing or deleting a public portfolio and editing its journal is manager-only (`forbidden` otherwise).
+   */
+  visibility?: 'personal' | 'guest' | 'user' | 'manager';
+  /**
+   * Omitted: unchanged; null: clears.
+   */
+  icon_id?: string | null;
+  /**
+   * Omitted: unchanged; null: clears.
+   */
+  icon_color?: AfbwsBondsChannelV1_FavoriteColor | null;
+}
+/**
+ * Daily series of the portfolio from the date of the first trade (columnar). `market_value_rub`, `invested_rub`, `received_rub` — rubles; `ytm` — percent per year.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Series".
+ */
+export interface AfbwsBondsChannelV1_Series1 {
+  /**
+   * Fixed column order: date, market_value_rub, invested_rub, received_rub, ytm.
+   *
+   * @minItems 5
+   * @maxItems 5
+   */
+  columns: [unknown, unknown, unknown, unknown, unknown];
+  /**
+   * Each row has the same length and order as `columns`; a missing value is null (never NaN).
+   */
+  rows: (number | string | null)[][];
+}
+/**
+ * Portfolio totals; each figure is null when it cannot be computed.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Totals".
+ */
+export interface AfbwsBondsChannelV1_Totals1 {
+  /**
+   * Invested amount, rubles.
+   */
+  invested_rub: number | null;
+  /**
+   * Market value, rubles.
+   */
+  market_value_rub: number | null;
+  /**
+   * Payments received, rubles.
+   */
+  received_rub: number | null;
+  /**
+   * Actual portfolio return (XIRR), percent per year.
+   */
+  xirr: number | null;
+  /**
+   * Market-value-weighted yield, percent per year.
+   */
+  ytm: number | null;
+  /**
+   * Market-value-weighted duration, days.
+   */
+  duration_days: number | null;
+  /**
+   * Annual coupon income at the current balance, rubles.
+   */
+  annual_coupons_rub: number | null;
 }
 /**
  * `asset_ids`, when present, is the WHOLE ordered composition of the collection (the assets filed into it); an asset lives in at most one collection, so naming it here moves it. In a snapshot `asset_ids` is always present. Omit in a commit to leave the composition untouched.
@@ -2858,7 +4179,7 @@ export interface AfbwsCommonV1_Root {
   [k: string]: unknown;
 }
 /**
- * Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard`/`form`/`participants` are deep-merged (arrays such as `participants.columns` are replaced whole), `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
+ * Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard`/`form`/`participants`/`bonds` are deep-merged (arrays such as `participants.columns` are replaced whole), `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "ConfigSettingsV1".
@@ -2871,6 +4192,7 @@ export interface ConfigSettingsV1 {
   trade?: ConfigTrade;
   form?: ConfigV1_Form;
   participants?: ConfigV1_Participants;
+  bonds?: ConfigV1_Bonds;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -3149,6 +4471,22 @@ export interface ConfigV1_Participants {
     x?: string;
     y?: string;
   };
+}
+/**
+ * Notification preferences of the bond portfolios (capability `bonds`). Deep-merged on write like `interface`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "ConfigV1_Bonds".
+ */
+export interface ConfigV1_Bonds {
+  /**
+   * Horizon, calendar days: the user is notified about offers, maturities, amortizations and calls of held bonds this many days ahead (also the horizon of `afbws.bonds.events.v1`). 0 — event notifications are off. Default 14.
+   */
+  notice_days?: number;
+  /**
+   * Notify about price/volume anomaly signals on held bonds. Default true.
+   */
+  notify_anomaly?: boolean;
 }
 /**
  * Merged under every user's own settings. A write (manager only) requires `dataset`.

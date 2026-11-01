@@ -1,0 +1,42 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.portfolios.set.v1",
+  "request_id": "b-5",
+  "portfolios": [
+    {
+      "id": "p-1",
+      "name": "Основной",
+      "visibility": "personal",
+      "icon_id": null,
+      "icon_color": "green",
+      "own": true,
+      "summary": {
+        "market_value_rub": 1250000.5,
+        "ytm": 14.8,
+        "duration_days": 900,
+        "positions": 3
+      }
+    },
+    {
+      "id": "p-2",
+      "name": "Вторичный",
+      "visibility": "personal",
+      "icon_id": null,
+      "icon_color": "blue",
+      "own": true,
+      "summary": {
+        "market_value_rub": 1250000.5,
+        "ytm": 14.8,
+        "duration_days": 900,
+        "positions": 3
+      }
+    }
+  ],
+  "rejected": [
+    {
+      "id": "g-9",
+      "code": "forbidden",
+      "message": "public portfolios are manager-only"
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.portfolio.v1",
+  "portfolio": {
+    "id": "p-1",
+    "name": "Основной",
+    "visibility": "personal",
+    "icon_id": null,
+    "icon_color": "green",
+    "own": true,
+    "summary": {
+      "market_value_rub": 1250000.5,
+      "ytm": 14.8,
+      "duration_days": 900,
+      "positions": 3
+    }
+  },
+  "positions": [
+    {
+      "secid": "SU26238RMFS4",
+      "shortname": "ОФЗ 26238",
+      "category": "ofz",
+      "faceunit": "SUR",
+      "quantity": 100,
+      "avg_price_pct": 96.8,
+      "invested": 97750,
+      "facevalue": 1000,
+      "price_pct": 97.35,
+      "accint": 12.4,
+      "market_value": 98590,
+      "market_value_rub": 98590,
+      "current_yield": 7.2,
+      "ytm_market": 15.2,
+      "ytm_kind": "ytm",
+      "ytm_purchase": 15.6,
+      "duration_days": 1140,
+      "next_coupon": {
+        "date": "2026-11-18",
+        "value": 3540
+      },
+      "next_event": {
+        "kind": "maturity",
+        "date": "2041-05-15"
+      },
+      "received": {
+        "coupons": 0,
+        "amortizations": 0
+      },
+      "flags": []
+    }
+  ],
+  "trades": [
+    {
+      "trade_id": "t-1",
+      "secid": "SU26238RMFS4",
+      "trade_date": "2026-10-15",
+      "quantity": 100,
+      "price_pct": 96.8,
+      "accrued_int": 9.5,
+      "commission": 120
+    }
+  ],
+  "payments": [
+    {
+      "date": "2026-11-18",
+      "secid": "SU26238RMFS4",
+      "kind": "coupon",
+      "amount": 3540,
+      "amount_rub": 3540,
+      "faceunit": "SUR",
+      "status": "expected",
+      "assumed": false
+    }
+  ],
+  "series": {
+    "columns": [
+      "date",
+      "market_value_rub",
+      "invested_rub",
+      "received_rub",
+      "ytm"
+    ],
+    "rows": [
+      [
+        "2026-10-15",
+        97750,
+        97750,
+        0,
+        15.6
+      ],
+      [
+        "2026-11-02",
+        98590,
+        97750,
+        0,
+        15.2
+      ]
+    ]
+  },
+  "totals": {
+    "invested_rub": 97750,
+    "market_value_rub": 98590,
+    "received_rub": 0,
+    "xirr": 18.1,
+    "ytm": 15.2,
+    "duration_days": 1140,
+    "annual_coupons_rub": 7080
+  },
+  "flags": []
+}

@@ -213,7 +213,7 @@
             "type": "string",
             "minLength": 1
           },
-          "description": "Действующие сейчас capabilities (строки) — результат политики доступа бэкенда: capabilities tier (или tier, по лимитам которого пользователь работает в триале/льготе/окне) ∪ добавленные пользователю; у персонала — все capabilities кода, кроме `trade`. Значения: `trade`, `virtual`, `screener`, `dataset` (см. access.channel.v1.json#/$defs/capability). Фронт определяет функционал только по `capabilities` и `limits`. `local` — не назначаемая capability: бэкенд сам добавляет её локальным пользователям (provider `local`; фронт по ней показывает смену пароля)."
+          "description": "Действующие сейчас capabilities (строки) — результат политики доступа бэкенда: capabilities tier (или tier, по лимитам которого пользователь работает в триале/льготе/окне) ∪ добавленные пользователю; у персонала — все capabilities кода, кроме `trade`. Значения: `trade`, `virtual`, `screener`, `dataset`, `bonds`, `broker_view` (см. access.channel.v1.json#/$defs/capability). Фронт определяет функционал только по `capabilities` и `limits`. `local` — не назначаемая capability: бэкенд сам добавляет её локальным пользователям (provider `local`; фронт по ней показывает смену пароля)."
         },
         "limits": {
           "$ref": "#/$defs/accessLimits"
