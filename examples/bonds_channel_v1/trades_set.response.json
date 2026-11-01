@@ -14,6 +14,9 @@
       "commission": 120
     }
   ],
+  "secids": [
+    "SU26238RMFS4"
+  ],
   "rejected": [
     {
       "trade_id": "t-0",

@@ -9,12 +9,9 @@
     "icon_id": null,
     "icon_color": "green",
     "own": true,
-    "summary": {
-      "market_value_rub": 1250000.5,
-      "ytm": 14.8,
-      "duration_days": 900,
-      "positions": 3
-    }
+    "secids": [
+      "SU26238RMFS4"
+    ]
   },
   "positions": [
     {

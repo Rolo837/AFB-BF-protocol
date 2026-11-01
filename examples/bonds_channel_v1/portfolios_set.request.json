@@ -6,12 +6,19 @@
     {
       "id": "p-2",
       "name": "Вторичный",
-      "icon_color": "blue"
+      "icon_color": "blue",
+      "secids": [
+        "SU52005RMFS4",
+        "SU26238RMFS4"
+      ]
     },
     {
       "id": "g-9",
       "name": "Публичный",
-      "visibility": "user"
+      "visibility": "user",
+      "secids": [
+        "SU26238RMFS4"
+      ]
     }
   ],
   "remove": [

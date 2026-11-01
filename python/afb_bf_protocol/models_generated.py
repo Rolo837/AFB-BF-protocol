@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 6b75fbfc626a1f0c5a6599488b73294db94aaf2aebb28c99c971a72cb6ae470d
+# source-hash: 738705967dc62f890570c637582c2b77e4de3ff6294d3e6194243f7092307f08
 
 from __future__ import annotations
 
@@ -683,24 +683,6 @@ AfbwsBondsChannelV1Category: TypeAlias = Literal[
 ]
 
 
-class AfbwsBondsChannelV1Copy(TypedDict):
-    """
-    Request: `source_id` (a visible portfolio, normally public), `id` and `name` of the new personal portfolio, `amount_rub` to invest and `trade_date` (default today). The backend buys the source composition proportionally for the amount at the prices of the date; there is no live link afterwards. Response: the new portfolio, its journal and the source positions that were skipped.
-    """
-
-    channel: Literal["bonds"]
-    schema: Literal["afbws.bonds.copy.v1"]
-    request_id: AfbwsCommonV1RequestId
-    source_id: NotRequired[str]
-    id: NotRequired[str]
-    name: NotRequired[str]
-    amount_rub: NotRequired[float]
-    trade_date: NotRequired[str]
-    portfolio: NotRequired[AfbwsBondsChannelV1PortfolioRef]
-    trades: NotRequired[list[AfbwsBondsChannelV1Trade]]
-    skipped: NotRequired[list[AfbwsBondsChannelV1Skipped]]
-
-
 class AfbwsBondsChannelV1Coupon(TypedDict):
     """
     One coupon of the bond schedule.
@@ -765,7 +747,13 @@ AfbwsBondsChannelV1FavoriteColor: TypeAlias = Literal[
 
 
 AfbwsBondsChannelV1Flag: TypeAlias = Literal[
-    "float_assumed", "indexed_nominal", "no_fx", "no_market", "default", "matured"
+    "float_assumed",
+    "indexed_nominal",
+    "no_fx",
+    "no_market",
+    "default",
+    "matured",
+    "no_trades",
 ]
 
 
@@ -847,7 +835,7 @@ class AfbwsBondsChannelV1Payment(TypedDict):
 
 class AfbwsBondsChannelV1Portfolio(TypedDict):
     """
-    Request: `id`. Response: the portfolio with its journal and analytics. Server push: the same body WITHOUT `request_id` once per market snapshot and after each journal edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
+    Request: `id`. Response: the portfolio (`portfolioRef` with its composition) with its journal and analytics; a public portfolio is read-only: its `trades` are empty. Server push: the same body WITHOUT `request_id` once per market snapshot and after each journal edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
     """
 
     channel: Literal["bonds"]
@@ -873,11 +861,12 @@ class AfbwsBondsChannelV1PortfolioEdit(TypedDict):
     visibility: NotRequired[AfbwsBondsChannelV1Visibility]
     icon_id: NotRequired[str | None]
     icon_color: NotRequired[AfbwsBondsChannelV1FavoriteColor | None]
+    secids: NotRequired[list[AfbwsBondsChannelV1Secid]]
 
 
 class AfbwsBondsChannelV1PortfolioRef(TypedDict):
     """
-    A portfolio in a list: attributes and short figures.
+    A portfolio in a list: attributes and composition. No analytics.
     """
 
     id: str
@@ -886,7 +875,7 @@ class AfbwsBondsChannelV1PortfolioRef(TypedDict):
     icon_id: str | None
     icon_color: AfbwsBondsChannelV1FavoriteColor | None
     own: bool
-    summary: AfbwsBondsChannelV1PortfolioSummary
+    secids: list[AfbwsBondsChannelV1Secid]
 
 
 class AfbwsBondsChannelV1PortfolioRejection(TypedDict):
@@ -899,31 +888,21 @@ class AfbwsBondsChannelV1PortfolioRejection(TypedDict):
     message: str
 
 
-class AfbwsBondsChannelV1PortfolioSummary(TypedDict):
-    """
-    Short figures of a portfolio for the list.
-    """
-
-    market_value_rub: float | None
-    ytm: float | None
-    duration_days: int | None
-    positions: int
-
-
 class AfbwsBondsChannelV1Portfolios(TypedDict):
     """
-    Request is an empty command. Response and push carry `portfolios`: the caller's own portfolios plus public ones visible to their tier. Server push: the same body WITHOUT `request_id` whenever the list changes — to the owner for a personal portfolio, to every connection with the `bonds` capability for a public one.
+    Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `secids[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests. No analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
     """
 
     channel: Literal["bonds"]
     schema: Literal["afbws.bonds.portfolios.v1"]
     request_id: NotRequired[AfbwsCommonV1RequestId]
     portfolios: NotRequired[list[AfbwsBondsChannelV1PortfolioRef]]
+    bonds: NotRequired[list[AfbwsBondsChannelV1BondRow]]
 
 
 class AfbwsBondsChannelV1PortfoliosSet(TypedDict):
     """
-    Request: `portfolios` (upsert; an unknown id creates) and/or `remove` (ids to delete). Rules: a personal portfolio — for everyone; a public visibility — manager only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`. Response: the caller's whole current list in `portfolios` and the refused items in `rejected` (empty when all applied).
+    Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `secids[]` in final order (omit `secids` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every secid must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `secids`), the bond rows of all compositions in `bonds` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
     """
 
     channel: Literal["bonds"]
@@ -932,20 +911,21 @@ class AfbwsBondsChannelV1PortfoliosSet(TypedDict):
     portfolios: NotRequired[list[Any]]
     remove: NotRequired[list[RemoveItem]]
     rejected: NotRequired[list[AfbwsBondsChannelV1PortfolioRejection]]
+    bonds: NotRequired[list[AfbwsBondsChannelV1BondRow]]
 
 
 class AfbwsBondsChannelV1Position(TypedDict):
     """
-    One row per bond with a non-zero balance.
+    One row per bond of the portfolio. Fields that depend on purchases (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`, `current_yield`) are null for a bond without purchases (flag `no_trades`).
     """
 
     secid: AfbwsBondsChannelV1Secid
     shortname: str
     category: AfbwsBondsChannelV1Category
     faceunit: AfbwsBondsChannelV1Faceunit
-    quantity: int
+    quantity: int | None
     avg_price_pct: float | None
-    invested: float
+    invested: float | None
     facevalue: float
     price_pct: float | None
     accint: float | None
@@ -958,7 +938,7 @@ class AfbwsBondsChannelV1Position(TypedDict):
     duration_days: int | None
     next_coupon: AfbwsBondsChannelV1NextCoupon | None
     next_event: AfbwsBondsChannelV1NextEvent | None
-    received: Received
+    received: Received | None
     flags: list[AfbwsBondsChannelV1Flag]
 
 
@@ -1053,15 +1033,6 @@ class AfbwsBondsChannelV1Signals(TypedDict):
     items: NotRequired[list[AfbwsBondsChannelV1Signal]]
 
 
-class AfbwsBondsChannelV1Skipped(TypedDict):
-    """
-    A source position that was not bought on copy.
-    """
-
-    secid: AfbwsBondsChannelV1Secid
-    reason: Literal["no_market", "lot_exceeds", "default", "matured"]
-
-
 class AfbwsBondsChannelV1Totals(TypedDict):
     """
     Portfolio totals; each figure is null when it cannot be computed.
@@ -1102,7 +1073,7 @@ class AfbwsBondsChannelV1TradeRejection(TypedDict):
 
 class AfbwsBondsChannelV1TradesSet(TypedDict):
     """
-    Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the secid exists; in a public portfolio only a manager edits the journal; a `category=default` bond cannot be added to a public portfolio. Response: the whole journal in `trades` and the refused entries in `rejected`.
+    Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Only for a PERSONAL portfolio of the caller: a visible public portfolio is `forbidden` (public portfolios hold no purchases), an unknown or foreign personal one is `not_found`. A purchase of a bond that is not in the portfolio composition adds the bond to the composition (at the end) in the same operation. Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the secid exists (a `category=default` bond is allowed in a personal portfolio). Response: the whole journal in `trades`, the actual composition in `secids` and the refused entries in `rejected`. When the composition grew, the other connections of the owner receive a `portfolios` push.
     """
 
     channel: Literal["bonds"]
@@ -1113,6 +1084,7 @@ class AfbwsBondsChannelV1TradesSet(TypedDict):
     remove: NotRequired[list[RemoveItem]]
     trades: NotRequired[list[AfbwsBondsChannelV1Trade]]
     rejected: NotRequired[list[AfbwsBondsChannelV1TradeRejection]]
+    secids: NotRequired[list[AfbwsBondsChannelV1Secid]]
 
 
 AfbwsBondsChannelV1Root: TypeAlias = (
@@ -1122,7 +1094,6 @@ AfbwsBondsChannelV1Root: TypeAlias = (
     | AfbwsBondsChannelV1Portfolio
     | AfbwsBondsChannelV1PortfoliosSet
     | AfbwsBondsChannelV1TradesSet
-    | AfbwsBondsChannelV1Copy
     | AfbwsBondsChannelV1Signals
     | AfbwsBondsChannelV1Events
     | AfbwsBondsChannelV1Error
@@ -5501,7 +5472,7 @@ class Primitives(TypedDict):
 
 class Received(TypedDict):
     """
-    Payments received so far.
+    Payments received so far; null without purchases.
     """
 
     coupons: float

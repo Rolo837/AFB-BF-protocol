@@ -54,6 +54,7 @@ def test_examples_validate(registry):
     root = _validator(registry)
     files = sorted(EXAMPLES.glob("*.json"))
     assert len(files) >= 20
+    assert not [f for f in files if f.name.startswith('copy.')]
     for path in files:
         root.validate(json.loads(path.read_text(encoding="utf-8")))
 
@@ -64,7 +65,7 @@ def test_every_message_has_a_distinct_schema_const():
     for ref in doc["oneOf"]:
         d = doc["$defs"][ref["$ref"].split("/")[-1]]
         consts.append(d["properties"]["schema"]["const"])
-    assert len(consts) == len(set(consts)) == 10
+    assert len(consts) == len(set(consts)) == 9
     assert "afbws.bonds.error.v1" in consts
 
 
@@ -139,7 +140,27 @@ def test_portfolios_list_request_response_push(registry):
     v.validate(_ex("portfolios.response"))
     v.validate(_ex("portfolios.push"))
     _bad(v, _msg("portfolios"))  # neither request nor push
-    _bad(v, _msg("portfolios", request_id="r", portfolios=[{**_REF, "visibility": "admin"}]))
+    _bad(v, _msg("portfolios", request_id="r", portfolios=[{**_REF, "visibility": "admin"}], bonds=[]))
+    resp = _ex("portfolios.response")
+    assert "summary" not in resp["portfolios"][0] and isinstance(resp["portfolios"][0]["secids"], list)
+    for key in ("bonds", "portfolios"):
+        broken = _ex("portfolios.response")
+        del broken[key]
+        _bad(v, broken)  # a response carries both
+    push = _ex("portfolios.push")
+    del push["bonds"]
+    _bad(v, push)
+    v.validate(_msg("portfolios", portfolios=[], bonds=[]))  # empty list push
+    v.validate(_msg("portfolios", request_id="r", portfolios=[{**_REF, "secids": []}], bonds=[]))  # empty portfolio
+    ref = _validator(registry, "portfolioRef")
+    ref.validate(_REF)
+    no_secids = {k: x for k, x in _REF.items() if k != "secids"}
+    _bad(ref, no_secids)
+    _bad(ref, {**_REF, "summary": {"market_value_rub": None, "ytm": None, "duration_days": None, "positions": 0}})
+    _bad(ref, {**_REF, "secids": ["A", "A"]})
+    _bad(ref, {**_REF, "secids": [f"S{i}" for i in range(201)]})
+    ref.validate({**_REF, "secids": [f"S{i}" for i in range(200)]})
+    _bad(ref, {**_REF, "secids": [""]})
 
 
 def test_portfolio_request_response_push(registry):
@@ -154,6 +175,16 @@ def test_portfolio_request_response_push(registry):
     resp = _ex("portfolio.response")
     resp["positions"][0]["flags"] = ["unknown_flag"]
     _bad(v, resp)
+    assert "summary" not in _ex("portfolio.response")["portfolio"]
+    # a bond of the composition without purchases: purchase-based fields are null
+    resp = _ex("portfolio.response")
+    row = resp["positions"][0]
+    row.update({"quantity": None, "avg_price_pct": None, "invested": None, "market_value": None,
+                "market_value_rub": None, "current_yield": None, "ytm_purchase": None, "received": None,
+                "flags": ["no_trades"]})
+    v.validate(resp)
+    resp["portfolio"]["summary"] = {"market_value_rub": None, "ytm": None, "duration_days": None, "positions": 0}
+    _bad(v, resp)
 
 
 def test_portfolios_set(registry):
@@ -162,6 +193,16 @@ def test_portfolios_set(registry):
     v.validate(_ex("portfolios_set.response"))
     v.validate(_msg("portfolios.set", request_id="r", remove=["x"]))
     _bad(v, _msg("portfolios.set", request_id="r"))  # nothing to do
+    r = _ex("portfolios_set.request")
+    assert all("secids" in x for x in r["portfolios"])
+    v.validate(_msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "secids": []}]))
+    v.validate(_msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A"}]))  # composition untouched
+    _bad(v, _msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "secids": [f"S{i}" for i in range(201)]}]))
+    v.validate(_msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "secids": ["X", "X"]}]))  # duplicates are dropped by the backend
+    for key in ("bonds", "portfolios"):
+        broken = _ex("portfolios_set.response")
+        del broken[key]
+        _bad(v, broken)
     _bad(v, _msg("portfolios.set", request_id="r", portfolios=[{"id": "a"}]))  # no name
     _bad(v, _msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "own": True}]))
     _bad(v, _msg("portfolios.set", request_id="r", portfolios=[_REF], rejected=[]) | {"portfolios": [{"id": "a", "name": "A"}]})
@@ -172,6 +213,10 @@ def test_trades_set(registry):
     v = _validator(registry, "tradesSet")
     v.validate(_ex("trades_set.request"))
     v.validate(_ex("trades_set.response"))
+    assert _ex("trades_set.response")["secids"]
+    resp = _ex("trades_set.response")
+    del resp["secids"]
+    _bad(v, resp)
     v.validate(_msg("trades.set", request_id="r", portfolio_id="p", upsert=[_TRADE]))
     _bad(v, _msg("trades.set", request_id="r", portfolio_id="p"))
     _bad(v, _msg("trades.set", request_id="r", upsert=[_TRADE]))
@@ -183,15 +228,11 @@ def test_trades_set(registry):
     v2.validate({**_TRADE, "quantity": -5, "accrued_int": 1.2, "commission": 0})
 
 
-def test_copy(registry):
-    v = _validator(registry, "copy")
-    v.validate(_ex("copy.request"))
-    v.validate(_ex("copy.response"))
-    _bad(v, _msg("copy", request_id="r", source_id="g", id="p", name="N"))  # no amount
-    _bad(v, _msg("copy", request_id="r", source_id="g", id="p", name="N", amount_rub=0))
-    resp = _ex("copy.response")
-    resp["skipped"][0]["reason"] = "other"
-    _bad(v, resp)
+def test_copy_is_gone(registry):
+    doc = json.loads(SCHEMA_PATH.read_text())
+    assert "copy" not in doc["$defs"] and "skipped" not in doc["$defs"] and "portfolioSummary" not in doc["$defs"]
+    assert "afbws.bonds.copy.v1" not in SCHEMA_PATH.read_text()
+    _bad(_validator(registry), _msg("copy", request_id="r", source_id="g", id="p", name="N", amount_rub=1))
 
 
 def test_signals_and_events(registry):

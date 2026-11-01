@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 6b75fbfc626a1f0c5a6599488b73294db94aaf2aebb28c99c971a72cb6ae470d
+ * source-hash: 738705967dc62f890570c637582c2b77e4de3ff6294d3e6194243f7092307f08
  */
 
 /**
@@ -357,7 +357,7 @@ export type BfsRegistryEntry = BfRegistryEntry & {
   };
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bond portfolios: a bond search and cards, personal portfolios with a trade journal and yield analytics, public (reference) portfolios of a manager that users copy, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `copy`, `signals`, `events`. The bond search is paged by `offset` / `limit` (at most 100 per page); there is no cursor. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Reconciliation with the broker account (`reconcile`) is added later, additively, and is gated by the same capability `bonds`. See AFB/docs/ws/bonds.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bonds: a bond search and cards, bond portfolios, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `signals`, `events`. There is no copy operation: adding a bond, or the composition of somebody else's portfolio, to one's own portfolio is an edit of the own composition via `portfolios.set`. PORTFOLIO MODEL. A portfolio is a set (type `bond`) with a COMPOSITION: `secids[]` — bonds only, in display order, at most 200. A PUBLIC (reference) portfolio is created and edited by staff only (`visibility` guest|user|manager) and is pure structure: it has no purchases. PURCHASES (the trade journal: date, price, quantity) exist only in PERSONAL portfolios and are an attribute of a bond that is in the composition; a bond may be in the composition with no purchases (observation). Removing a bond from a personal portfolio deletes its purchases there. A personal portfolio can be created by anybody with the `bonds` capability; a public visibility needs staff (`forbidden`); the scope personal <-> public never changes (`validation_error`); a `category=default` bond cannot be in a public portfolio. The bond search is paged by `offset` / `limit` (at most 100 per page); there is no cursor. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Reconciliation with the broker account (`reconcile`) is added later, additively, and is gated by the same capability `bonds`. See AFB/docs/ws/bonds.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Root".
@@ -369,7 +369,6 @@ export type AfbwsBondsChannelV1_Root =
   | AfbwsBondsChannelV1_Portfolio
   | AfbwsBondsChannelV1_PortfoliosSet
   | AfbwsBondsChannelV1_TradesSet
-  | AfbwsBondsChannelV1_Copy
   | AfbwsBondsChannelV1_Signals
   | AfbwsBondsChannelV1_Events
   | AfbwsBondsChannelV1_Error;
@@ -486,7 +485,7 @@ export type AfbwsBondsChannelV1_BondMsg = {
   history?: AfbwsBondsChannelV1_History;
 };
 /**
- * Request is an empty command. Response and push carry `portfolios`: the caller's own portfolios plus public ones visible to their tier. Server push: the same body WITHOUT `request_id` whenever the list changes — to the owner for a personal portfolio, to every connection with the `bonds` capability for a public one.
+ * Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `secids[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests. No analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Portfolios".
@@ -498,9 +497,13 @@ export type AfbwsBondsChannelV1_Portfolios = {
   schema: 'afbws.bonds.portfolios.v1';
   request_id?: AfbwsCommonV1_RequestId;
   /**
-   * Response only. Own and visible public portfolios.
+   * Response and push. Own and visible public portfolios.
    */
   portfolios?: AfbwsBondsChannelV1_PortfolioRef[];
+  /**
+   * Response and push. Bond rows of all compositions of `portfolios`, without duplicates.
+   */
+  bonds?: AfbwsBondsChannelV1_BondRow[];
 };
 /**
  * Who sees a portfolio; same semantics as afbws.instrument.channel.v2 visibility. `personal` — only its owner (any user with the `bonds` capability may create these). `guest`/`user`/`manager` — a PUBLIC (reference) portfolio visible to callers whose tier is at least that one; creating, changing or deleting a public portfolio and editing its journal is manager-only (`forbidden` otherwise).
@@ -518,7 +521,7 @@ export type AfbwsBondsChannelV1_Visibility = 'personal' | 'guest' | 'user' | 'ma
 export type AfbwsBondsChannelV1_FavoriteColor =
   'yellow' | 'red' | 'blue' | 'green' | 'gray' | 'orange' | 'cyan' | 'purple' | 'pink' | 'teal';
 /**
- * Request: `id`. Response: the portfolio with its journal and analytics. Server push: the same body WITHOUT `request_id` once per market snapshot and after each journal edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
+ * Request: `id`. Response: the portfolio (`portfolioRef` with its composition) with its journal and analytics; a public portfolio is read-only: its `trades` are empty. Server push: the same body WITHOUT `request_id` once per market snapshot and after each journal edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Portfolio".
@@ -561,15 +564,15 @@ export type AfbwsBondsChannelV1_Portfolio = {
  */
 export type AfbwsBondsChannelV1_EventKind = 'offer' | 'maturity' | 'amortization' | 'call';
 /**
- * Data-quality marker explaining an assumption behind a figure. `float_assumed` — a future coupon is taken equal to the last known one (floater); `indexed_nominal` — a future face value of an inflation-indexed OFZ is taken equal to the current one; `no_fx` — no FX rate, `_rub` figures are missing; `no_market` — no market data, valued by the last known price; `default` — the issuer is in default; `matured` — the bond is already redeemed.
+ * Data-quality marker explaining an assumption behind a figure. `float_assumed` — a future coupon is taken equal to the last known one (floater); `indexed_nominal` — a future face value of an inflation-indexed OFZ is taken equal to the current one; `no_fx` — no FX rate, `_rub` figures are missing; `no_market` — no market data, valued by the last known price; `default` — the issuer is in default; `matured` — the bond is already redeemed. `no_trades` — the bond is in the portfolio composition but has no purchases (purchase-based figures are null).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Flag".
  */
 export type AfbwsBondsChannelV1_Flag =
-  'float_assumed' | 'indexed_nominal' | 'no_fx' | 'no_market' | 'default' | 'matured';
+  'float_assumed' | 'indexed_nominal' | 'no_fx' | 'no_market' | 'default' | 'matured' | 'no_trades';
 /**
- * Request: `portfolios` (upsert; an unknown id creates) and/or `remove` (ids to delete). Rules: a personal portfolio — for everyone; a public visibility — manager only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`. Response: the caller's whole current list in `portfolios` and the refused items in `rejected` (empty when all applied).
+ * Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `secids[]` in final order (omit `secids` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every secid must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `secids`), the bond rows of all compositions in `bonds` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_PortfoliosSet".
@@ -581,7 +584,7 @@ export type AfbwsBondsChannelV1_PortfoliosSet = {
   schema: 'afbws.bonds.portfolios.set.v1';
   request_id: AfbwsCommonV1_RequestId;
   /**
-   * Request: upserts (`portfolioEdit`). Response: the resulting list (`portfolioRef`).
+   * Request: upserts (`portfolioEdit`). Response: the resulting list (`portfolioRef`), in display order.
    */
   portfolios?: unknown[];
   /**
@@ -592,9 +595,13 @@ export type AfbwsBondsChannelV1_PortfoliosSet = {
    * Response only.
    */
   rejected?: AfbwsBondsChannelV1_PortfolioRejection[];
+  /**
+   * Response only. Bond rows of all compositions of `portfolios`, without duplicates.
+   */
+  bonds?: AfbwsBondsChannelV1_BondRow[];
 };
 /**
- * Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the secid exists; in a public portfolio only a manager edits the journal; a `category=default` bond cannot be added to a public portfolio. Response: the whole journal in `trades` and the refused entries in `rejected`.
+ * Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Only for a PERSONAL portfolio of the caller: a visible public portfolio is `forbidden` (public portfolios hold no purchases), an unknown or foreign personal one is `not_found`. A purchase of a bond that is not in the portfolio composition adds the bond to the composition (at the end) in the same operation. Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the secid exists (a `category=default` bond is allowed in a personal portfolio). Response: the whole journal in `trades`, the actual composition in `secids` and the refused entries in `rejected`. When the composition grew, the other connections of the owner receive a `portfolios` push.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_TradesSet".
@@ -625,48 +632,10 @@ export type AfbwsBondsChannelV1_TradesSet = {
    * Response only.
    */
   rejected?: AfbwsBondsChannelV1_TradeRejection[];
-};
-/**
- * Request: `source_id` (a visible portfolio, normally public), `id` and `name` of the new personal portfolio, `amount_rub` to invest and `trade_date` (default today). The backend buys the source composition proportionally for the amount at the prices of the date; there is no live link afterwards. Response: the new portfolio, its journal and the source positions that were skipped.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsBondsChannelV1_Copy".
- */
-export type AfbwsBondsChannelV1_Copy = {
-  [k: string]: unknown;
-} & {
-  channel: 'bonds';
-  schema: 'afbws.bonds.copy.v1';
-  request_id: AfbwsCommonV1_RequestId;
   /**
-   * Request. Source portfolio id.
+   * Response only. The actual composition of the portfolio in display order (a bond may have been added by a purchase).
    */
-  source_id?: string;
-  /**
-   * Request. Id of the new personal portfolio.
-   */
-  id?: string;
-  /**
-   * Request. Name of the new portfolio.
-   */
-  name?: string;
-  /**
-   * Request. Amount to invest, rubles.
-   */
-  amount_rub?: number;
-  /**
-   * Request. Date of the generated purchases (default today).
-   */
-  trade_date?: string;
-  portfolio?: AfbwsBondsChannelV1_PortfolioRef2;
-  /**
-   * Response only. Generated journal.
-   */
-  trades?: AfbwsBondsChannelV1_Trade[];
-  /**
-   * Response only.
-   */
-  skipped?: AfbwsBondsChannelV1_Skipped[];
+  secids?: AfbwsBondsChannelV1_Secid[];
 };
 /**
  * Request: `days` (1..30, default 5) — how far back, `held_only` (default false) — only the caller's bonds. Response: `items`. Server push: new and strengthened signals WITHOUT `request_id` to the connections that requested the feed.
@@ -3269,7 +3238,7 @@ export interface AfbwsBondsChannelV1_History {
   rows: (number | string | null)[][];
 }
 /**
- * A portfolio in a list: attributes and short figures.
+ * A portfolio in a list: attributes and composition. No analytics.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_PortfolioRef".
@@ -3293,37 +3262,18 @@ export interface AfbwsBondsChannelV1_PortfolioRef {
    */
   icon_color: AfbwsBondsChannelV1_FavoriteColor | null;
   /**
-   * True when the portfolio is the caller's own; false for a public portfolio of a manager (read-only for the caller, can be copied).
+   * True when the portfolio is the caller's own; false for a public portfolio of staff (read-only for the caller; its composition can be added to one's own portfolio via `portfolios.set`).
    */
   own: boolean;
-  summary: AfbwsBondsChannelV1_PortfolioSummary;
+  /**
+   * Composition: the bonds of the portfolio in display order (at most 200, no duplicates). Empty for a new portfolio.
+   *
+   * @maxItems 200
+   */
+  secids: AfbwsBondsChannelV1_Secid[];
 }
 /**
- * Short figures of a portfolio for the list.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsBondsChannelV1_PortfolioSummary".
- */
-export interface AfbwsBondsChannelV1_PortfolioSummary {
-  /**
-   * Market value of all positions, rubles; null without data.
-   */
-  market_value_rub: number | null;
-  /**
-   * Market-value-weighted yield to maturity, percent per year; null without data.
-   */
-  ytm: number | null;
-  /**
-   * Market-value-weighted duration, days; null without data.
-   */
-  duration_days: number | null;
-  /**
-   * Number of positions with a non-zero balance.
-   */
-  positions: number;
-}
-/**
- * A portfolio in a list: attributes and short figures.
+ * A portfolio in a list: attributes and composition. No analytics.
  */
 export interface AfbwsBondsChannelV1_PortfolioRef1 {
   /**
@@ -3344,13 +3294,18 @@ export interface AfbwsBondsChannelV1_PortfolioRef1 {
    */
   icon_color: AfbwsBondsChannelV1_FavoriteColor | null;
   /**
-   * True when the portfolio is the caller's own; false for a public portfolio of a manager (read-only for the caller, can be copied).
+   * True when the portfolio is the caller's own; false for a public portfolio of staff (read-only for the caller; its composition can be added to one's own portfolio via `portfolios.set`).
    */
   own: boolean;
-  summary: AfbwsBondsChannelV1_PortfolioSummary;
+  /**
+   * Composition: the bonds of the portfolio in display order (at most 200, no duplicates). Empty for a new portfolio.
+   *
+   * @maxItems 200
+   */
+  secids: AfbwsBondsChannelV1_Secid[];
 }
 /**
- * One row per bond with a non-zero balance.
+ * One row per bond of the portfolio. Fields that depend on purchases (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`, `current_yield`) are null for a bond without purchases (flag `no_trades`).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Position".
@@ -3364,17 +3319,17 @@ export interface AfbwsBondsChannelV1_Position {
   category: AfbwsBondsChannelV1_Category;
   faceunit: AfbwsBondsChannelV1_Faceunit;
   /**
-   * Balance, pieces (non-zero).
+   * Balance, pieces; null for a bond without purchases.
    */
-  quantity: number;
+  quantity: number | null;
   /**
-   * Average purchase price, percent of face value.
+   * Average purchase price, percent of face value; null without purchases.
    */
   avg_price_pct: number | null;
   /**
-   * Sum of purchases including accrued interest and commission minus sales, in `faceunit`.
+   * Sum of purchases including accrued interest and commission minus sales, in `faceunit`; null without purchases.
    */
-  invested: number;
+  invested: number | null;
   /**
    * Current face value in `faceunit`.
    */
@@ -3388,15 +3343,15 @@ export interface AfbwsBondsChannelV1_Position {
    */
   accint: number | null;
   /**
-   * Market value of the position in `faceunit`.
+   * Market value of the position in `faceunit`; null without purchases or market data.
    */
   market_value: number | null;
   /**
-   * Market value of the position in rubles.
+   * Market value of the position in rubles; null without purchases, market data or FX rate.
    */
   market_value_rub: number | null;
   /**
-   * Annual coupon / (price + accrued interest), percent.
+   * Annual coupon / (price + accrued interest), percent; null without purchases or market data.
    */
   current_yield: number | null;
   /**
@@ -3408,7 +3363,7 @@ export interface AfbwsBondsChannelV1_Position {
    */
   ytm_kind: 'ytm' | 'yto' | null;
   /**
-   * XIRR of the purchases and future payments, percent per year.
+   * XIRR of the purchases and future payments, percent per year; null without purchases.
    */
   ytm_purchase: number | null;
   /**
@@ -3424,7 +3379,7 @@ export interface AfbwsBondsChannelV1_Position {
    */
   next_event: AfbwsBondsChannelV1_NextEvent | null;
   /**
-   * Payments received so far.
+   * Payments received so far; null without purchases.
    */
   received: {
     /**
@@ -3435,7 +3390,7 @@ export interface AfbwsBondsChannelV1_Position {
      * Amortizations received so far, in `faceunit`.
      */
     amortizations: number;
-  };
+  } | null;
   /**
    * Assumptions behind the figures of this position.
    */
@@ -3619,46 +3574,6 @@ export interface AfbwsBondsChannelV1_TradeRejection {
    * Human-readable reason.
    */
   message: string;
-}
-/**
- * A portfolio in a list: attributes and short figures.
- */
-export interface AfbwsBondsChannelV1_PortfolioRef2 {
-  /**
-   * Portfolio id (client-generated on create).
-   */
-  id: string;
-  /**
-   * Display name.
-   */
-  name: string;
-  visibility: AfbwsBondsChannelV1_Visibility;
-  /**
-   * Opaque icon key; null — none.
-   */
-  icon_id: string | null;
-  /**
-   * Icon color; null — none.
-   */
-  icon_color: AfbwsBondsChannelV1_FavoriteColor | null;
-  /**
-   * True when the portfolio is the caller's own; false for a public portfolio of a manager (read-only for the caller, can be copied).
-   */
-  own: boolean;
-  summary: AfbwsBondsChannelV1_PortfolioSummary;
-}
-/**
- * A source position that was not bought on copy.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsBondsChannelV1_Skipped".
- */
-export interface AfbwsBondsChannelV1_Skipped {
-  secid: AfbwsBondsChannelV1_Secid;
-  /**
-   * Why the position was not copied: no market price, one lot costs more than its share of the amount, bond in default, bond redeemed.
-   */
-  reason: 'no_market' | 'lot_exceeds' | 'default' | 'matured';
 }
 /**
  * A market-wide price/volume anomaly of one bond.
@@ -3903,6 +3818,12 @@ export interface AfbwsBondsChannelV1_PortfolioEdit {
    * Omitted: unchanged; null: clears.
    */
   icon_color?: AfbwsBondsChannelV1_FavoriteColor | null;
+  /**
+   * The WHOLE composition in final order (omit the list to leave the composition untouched). Every secid must exist in the bond directory; duplicates are dropped by the backend; more than 200 bonds are refused (`maxItems` here; the backend enforces its own limit constant with `validation_error`); a public portfolio cannot contain a `category=default` bond. Bonds removed from the composition lose their purchases in this portfolio.
+   *
+   * @maxItems 200
+   */
+  secids?: AfbwsBondsChannelV1_Secid[];
 }
 /**
  * Daily series of the portfolio from the date of the first trade (columnar). `market_value_rub`, `invested_rub`, `received_rub` — rubles; `ytm` — percent per year.

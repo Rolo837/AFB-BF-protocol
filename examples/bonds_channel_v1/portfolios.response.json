@@ -10,12 +10,10 @@
       "icon_id": null,
       "icon_color": "green",
       "own": true,
-      "summary": {
-        "market_value_rub": 1250000.5,
-        "ytm": 14.8,
-        "duration_days": 900,
-        "positions": 3
-      }
+      "secids": [
+        "SU26238RMFS4",
+        "SU52005RMFS4"
+      ]
     },
     {
       "id": "g-1",
@@ -24,12 +22,48 @@
       "icon_id": null,
       "icon_color": null,
       "own": false,
-      "summary": {
-        "market_value_rub": null,
-        "ytm": null,
-        "duration_days": null,
-        "positions": 0
+      "secids": [
+        "SU26238RMFS4"
+      ]
+    }
+  ],
+  "bonds": [
+    {
+      "secid": "SU26238RMFS4",
+      "name": "ОФЗ-ПД 26238",
+      "shortname": "ОФЗ 26238",
+      "category": "ofz",
+      "faceunit": "SUR",
+      "facevalue": 1000,
+      "matdate": "2041-05-15",
+      "offerdate": null,
+      "coupon_percent": 7.1,
+      "coupon_frequency": 2,
+      "is_qualified": false,
+      "lifecycle": "active",
+      "market": {
+        "price_pct": 97.35,
+        "yield": 15.2,
+        "ytm_kind": "ytm",
+        "duration_days": 1140,
+        "accint": 12.4,
+        "updated_at": "2026-11-02T12:05:00+03:00"
       }
+    },
+    {
+      "secid": "SU52005RMFS4",
+      "name": "ОФЗ-ИН 52005",
+      "shortname": "ОФЗ 52005",
+      "category": "ofz",
+      "faceunit": "SUR",
+      "facevalue": 1000,
+      "matdate": "2041-05-15",
+      "offerdate": null,
+      "coupon_percent": 7.1,
+      "coupon_frequency": 2,
+      "is_qualified": false,
+      "lifecycle": "active",
+      "market": null
     }
   ]
 }
