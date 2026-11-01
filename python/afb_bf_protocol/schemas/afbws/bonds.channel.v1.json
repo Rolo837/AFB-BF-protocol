@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/bonds.channel.v1.json",
   "x-afbws-support-id": "afbws.bonds.channel.v1",
   "title": "bonds channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bond portfolios: a bond search and cards, personal portfolios with a trade journal and yield analytics, public (reference) portfolios of a manager that users copy, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `copy`, `signals`, `events`. Lists are paged by an opaque cursor, at most 100 per page. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Broker reconciliation (`reconcile`, capability `broker_view`) is added later, additively. See AFB/docs/ws/bonds.md.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bond portfolios: a bond search and cards, personal portfolios with a trade journal and yield analytics, public (reference) portfolios of a manager that users copy, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `copy`, `signals`, `events`. The bond search is paged by `offset` / `limit` (at most 100 per page); there is no cursor. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Reconciliation with the broker account (`reconcile`) is added later, additively, and is gated by the same capability `bonds`. See AFB/docs/ws/bonds.md.",
   "type": "object",
   "oneOf": [
     {
@@ -1457,7 +1457,7 @@
     "search": {
       "type": "object",
       "title": "afbws.bonds.search.v1 — bond search (request / response).",
-      "description": "Request: optional filters; `query` matches secid, ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `matdate` (default), `yield`, `coupon`; paging by the opaque `cursor` from the previous response, `limit` up to 100. Response: `items` and `next_cursor` (null at the end).",
+      "description": "Request: optional filters; `query` matches secid, ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `matdate` (default), `yield`, `coupon`; `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.",
       "required": [
         "channel",
         "schema",
@@ -1524,30 +1524,29 @@
           ],
           "description": "Request. Order of the list (default `matdate`)."
         },
-        "cursor": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Request. `next_cursor` of the previous response."
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Index of the first requested row in the filtered list (0-based, default 0); echoed in the response. The client asks for the window that contains the page it shows; there is no cursor."
         },
         "limit": {
           "type": "integer",
           "minimum": 1,
           "maximum": 100,
-          "description": "Request. Page size, at most 100."
+          "description": "Request. Page size (1..100, default 50)."
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Response only. Number of rows in the whole filtered list."
         },
         "items": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/bondRow"
           },
+          "maxItems": 100,
           "description": "Response only."
-        },
-        "next_cursor": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Response only. Cursor of the next page; null — the last page."
         }
       },
       "allOf": [
@@ -1560,7 +1559,8 @@
           "then": {
             "required": [
               "items",
-              "next_cursor"
+              "total",
+              "offset"
             ]
           }
         }

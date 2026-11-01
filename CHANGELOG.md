@@ -9,9 +9,9 @@
 ## Unreleased
 
 ### Added
-- **Канал `afbws.bonds.channel.v1`** (`afbws/bonds.channel.v1.json`, capability `BONDS_CHANNEL_V1`; портфели облигаций MOEX, этап 1): `search`, `bond`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `copy`, `signals`, `events`, `error`; один schema id на сообщение, пуши без `request_id` (`portfolios`, `portfolio`, `signals`, `events`), деньги в `faceunit` + `_rub`. `reconcile` — позже. Примеры `examples/bonds_channel_v1/`; PROTOCOL.md.
+- **Канал `afbws.bonds.channel.v1`** (`afbws/bonds.channel.v1.json`, capability `BONDS_CHANNEL_V1`; портфели облигаций MOEX, этап 1): `search`, `bond`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `copy`, `signals`, `events`, `error`; один schema id на сообщение, пуши без `request_id` (`portfolios`, `portfolio`, `signals`, `events`), деньги в `faceunit` + `_rub`. `search` — окно по смещению как `catalog.symbols` (запрос `offset`/`limit`, ответ `total`/`offset`/`items`, без курсора); `reconcile` — позже, под той же capability `bonds`. Примеры `examples/bonds_channel_v1/`; PROTOCOL.md.
 - **`notification.bond.v1.json`** (`afb.notification.bond.v1`): уведомление держателю облигации о событии (оферта, погашение, амортизация, call) или аномалии; в allow-list `validate_notification`. Примеры `examples/notifications/bond.*.json`.
-- **`access.channel.v1#/$defs/capability` += `bonds`, `broker_view`**; обновлены описания (`common.v1#access.capabilities`).
+- **`access.channel.v1#/$defs/capability` += `bonds`**; обновлены описания (`common.v1#access.capabilities`).
 - **`config.v1`: настройки пользователя += `bonds {notice_days 0..90, notify_anomaly}`** (аддитивно, deep-merge).
 
 ### Changed

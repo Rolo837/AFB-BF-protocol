@@ -41,5 +41,6 @@
       "market": null
     }
   ],
-  "next_cursor": null
+  "total": 1,
+  "offset": 0
 }

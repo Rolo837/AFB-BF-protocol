@@ -65,10 +65,9 @@
         "virtual",
         "screener",
         "dataset",
-        "bonds",
-        "broker_view"
+        "bonds"
       ],
-      "description": "Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF; `virtual` — виртуальный счёт и активация/оценка алармов и торговых планов (с `trade` они работают и без `virtual`); `screener` — выгрузки скринера и скоуп `futures` в market subscribe; `dataset` — наборы данных в market series, `oi`/`oi_daily` в market snapshot, screener participants; `bonds` — облигации: портфели, журнал сделок, доходности, сигналы (канал afbws.bonds.channel.v1); `broker_view` — опциональная сверка портфеля облигаций со счётом брокера (токен на бэкенд не попадает). `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities."
+      "description": "Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF; `virtual` — виртуальный счёт и активация/оценка алармов и торговых планов (с `trade` они работают и без `virtual`); `screener` — выгрузки скринера и скоуп `futures` в market subscribe; `dataset` — наборы данных в market series, `oi`/`oi_daily` в market snapshot, screener participants; `bonds` — облигации: портфели, журнал сделок, доходности, сигналы (канал afbws.bonds.channel.v1). `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities."
     },
     "window": {
       "type": "object",

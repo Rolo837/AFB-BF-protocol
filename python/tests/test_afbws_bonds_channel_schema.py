@@ -71,7 +71,21 @@ def test_every_message_has_a_distinct_schema_const():
 def test_search(registry):
     v = _validator(registry, "search")
     v.validate(_msg("search", request_id="r"))
-    v.validate(_msg("search", request_id="r", query="ОФ", sort="coupon", limit=100, cursor="abc"))
+    v.validate(_msg("search", request_id="r", query="ОФ", sort="coupon", limit=100, offset=0))
+    v.validate(_msg("search", request_id="r", offset=250))
+    v.validate(_ex("search.response"))
+    _bad(v, _msg("search", request_id="r", cursor="abc"))  # no cursors
+    _bad(v, _msg("search", request_id="r", offset=-1))
+    _bad(v, _msg("search", request_id="r", limit=0))
+    resp = _ex("search.response")
+    del resp["total"]
+    _bad(v, resp)  # total is required in a response
+    resp = _ex("search.response")
+    del resp["offset"]
+    _bad(v, resp)
+    resp = _ex("search.response")
+    resp["next_cursor"] = None
+    _bad(v, resp)
     _bad(v, _msg("search", request_id="r", query="О"))  # < 2 chars
     _bad(v, _msg("search", request_id="r", limit=101))
     _bad(v, _msg("search", request_id="r", sort="price"))

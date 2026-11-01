@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: a2f98cc21b4eaca54f8b6dff2887a4118134378b596ac2010e241478fb74ae8e
+ * source-hash: 37eaf8462e9b952bbb3379174586d1e32237985854bafe6e81d102ed6a24c6a3
  */
 
 /**
@@ -40,12 +40,12 @@ export type AfbwsCommonV1_RequestId = string;
  */
 export type AccessV1Provider = string;
 /**
- * Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF; `virtual` — виртуальный счёт и активация/оценка алармов и торговых планов (с `trade` они работают и без `virtual`); `screener` — выгрузки скринера и скоуп `futures` в market subscribe; `dataset` — наборы данных в market series, `oi`/`oi_daily` в market snapshot, screener participants; `bonds` — облигации: портфели, журнал сделок, доходности, сигналы (канал afbws.bonds.channel.v1); `broker_view` — опциональная сверка портфеля облигаций со счётом брокера (токен на бэкенд не попадает). `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities.
+ * Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF; `virtual` — виртуальный счёт и активация/оценка алармов и торговых планов (с `trade` они работают и без `virtual`); `screener` — выгрузки скринера и скоуп `futures` в market subscribe; `dataset` — наборы данных в market series, `oi`/`oi_daily` в market snapshot, screener participants; `bonds` — облигации: портфели, журнал сделок, доходности, сигналы (канал afbws.bonds.channel.v1). `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Capability".
  */
-export type AccessV1Capability = 'trade' | 'virtual' | 'screener' | 'dataset' | 'bonds' | 'broker_view';
+export type AccessV1Capability = 'trade' | 'virtual' | 'screener' | 'dataset' | 'bonds';
 /**
  * Дата YYYY-MM-DD в поясе сервера; действует до конца указанного дня (до 00:00 следующего дня пояса сервера).
  *
@@ -357,7 +357,7 @@ export type BfsRegistryEntry = BfRegistryEntry & {
   };
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bond portfolios: a bond search and cards, personal portfolios with a trade journal and yield analytics, public (reference) portfolios of a manager that users copy, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `copy`, `signals`, `events`. Lists are paged by an opaque cursor, at most 100 per page. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Broker reconciliation (`reconcile`, capability `broker_view`) is added later, additively. See AFB/docs/ws/bonds.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bond portfolios: a bond search and cards, personal portfolios with a trade journal and yield analytics, public (reference) portfolios of a manager that users copy, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `copy`, `signals`, `events`. The bond search is paged by `offset` / `limit` (at most 100 per page); there is no cursor. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Reconciliation with the broker account (`reconcile`) is added later, additively, and is gated by the same capability `bonds`. See AFB/docs/ws/bonds.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Root".
@@ -374,7 +374,7 @@ export type AfbwsBondsChannelV1_Root =
   | AfbwsBondsChannelV1_Events
   | AfbwsBondsChannelV1_Error;
 /**
- * Request: optional filters; `query` matches secid, ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `matdate` (default), `yield`, `coupon`; paging by the opaque `cursor` from the previous response, `limit` up to 100. Response: `items` and `next_cursor` (null at the end).
+ * Request: optional filters; `query` matches secid, ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `matdate` (default), `yield`, `coupon`; `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Search".
@@ -418,21 +418,23 @@ export type AfbwsBondsChannelV1_Search = {
    */
   sort?: 'matdate' | 'yield' | 'coupon';
   /**
-   * Request. `next_cursor` of the previous response.
+   * Index of the first requested row in the filtered list (0-based, default 0); echoed in the response. The client asks for the window that contains the page it shows; there is no cursor.
    */
-  cursor?: string;
+  offset?: number;
   /**
-   * Request. Page size, at most 100.
+   * Request. Page size (1..100, default 50).
    */
   limit?: number;
   /**
+   * Response only. Number of rows in the whole filtered list.
+   */
+  total?: number;
+  /**
    * Response only.
+   *
+   * @maxItems 100
    */
   items?: AfbwsBondsChannelV1_BondRow[];
-  /**
-   * Response only. Cursor of the next page; null — the last page.
-   */
-  next_cursor?: string | null;
 };
 /**
  * Bond category: `ofz` federal government, `subfederal` regions, `municipal` municipalities, `corporate`, `currency` (currency-denominated), `default` — issuers in (technical) default. Replacement bonds are not a separate category.
@@ -2918,7 +2920,7 @@ export interface AuthV1 {
 export interface Access {
   tier: AccessTier;
   /**
-   * Действующие сейчас capabilities (строки) — результат политики доступа бэкенда: capabilities tier (или tier, по лимитам которого пользователь работает в триале/льготе/окне) ∪ добавленные пользователю; у персонала — все capabilities кода, кроме `trade`. Значения: `trade`, `virtual`, `screener`, `dataset`, `bonds`, `broker_view` (см. access.channel.v1.json#/$defs/capability). Фронт определяет функционал только по `capabilities` и `limits`. `local` — не назначаемая capability: бэкенд сам добавляет её локальным пользователям (provider `local`; фронт по ней показывает смену пароля).
+   * Действующие сейчас capabilities (строки) — результат политики доступа бэкенда: capabilities tier (или tier, по лимитам которого пользователь работает в триале/льготе/окне) ∪ добавленные пользователю; у персонала — все capabilities кода, кроме `trade`. Значения: `trade`, `virtual`, `screener`, `dataset`, `bonds` (см. access.channel.v1.json#/$defs/capability). Фронт определяет функционал только по `capabilities` и `limits`. `local` — не назначаемая capability: бэкенд сам добавляет её локальным пользователям (provider `local`; фронт по ней показывает смену пароля).
    */
   capabilities: string[];
   limits: AccessLimits;

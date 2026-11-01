@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: a2f98cc21b4eaca54f8b6dff2887a4118134378b596ac2010e241478fb74ae8e
+# source-hash: 37eaf8462e9b952bbb3379174586d1e32237985854bafe6e81d102ed6a24c6a3
 
 from __future__ import annotations
 
@@ -77,7 +77,7 @@ AccessTrial: TypeAlias = AccessTrialAvailable | AccessTrialActive | None
 
 
 AccessV1Capability: TypeAlias = Literal[
-    "trade", "virtual", "screener", "dataset", "bonds", "broker_view"
+    "trade", "virtual", "screener", "dataset", "bonds"
 ]
 
 
@@ -974,7 +974,7 @@ class AfbwsBondsChannelV1Schedule(TypedDict):
 
 class AfbwsBondsChannelV1Search(TypedDict):
     """
-    Request: optional filters; `query` matches secid, ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `matdate` (default), `yield`, `coupon`; paging by the opaque `cursor` from the previous response, `limit` up to 100. Response: `items` and `next_cursor` (null at the end).
+    Request: optional filters; `query` matches secid, ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `matdate` (default), `yield`, `coupon`; `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.
     """
 
     channel: Literal["bonds"]
@@ -988,10 +988,10 @@ class AfbwsBondsChannelV1Search(TypedDict):
     include_default: NotRequired[bool]
     include_matured: NotRequired[bool]
     sort: NotRequired[Literal["matdate", "yield", "coupon"]]
-    cursor: NotRequired[str]
+    offset: NotRequired[int]
     limit: NotRequired[int]
+    total: NotRequired[int]
     items: NotRequired[list[AfbwsBondsChannelV1BondRow]]
-    next_cursor: NotRequired[str | None]
 
 
 AfbwsBondsChannelV1Secid: TypeAlias = str
