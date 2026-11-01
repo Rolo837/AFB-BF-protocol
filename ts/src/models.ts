@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: b588965c19871e850ca90575936c8a4daaddf07bf96bbb2f8bd2f92ad85e6726
+ * source-hash: 4e8501fce16e51555ca07550b2dd5e13e57f1ee92c74533c4c8dd8467291447d
  */
 
 /**
@@ -373,7 +373,7 @@ export type AfbwsBondsChannelV1_Root =
   | AfbwsBondsChannelV1_Events
   | AfbwsBondsChannelV1_Error;
 /**
- * Request: optional filters; `query` matches the SECID code (a search attribute, not an identifier), ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `name` (default), `matdate`, `yield`, with direction `sort_direction` `asc` (default) / `desc`; the order is fully deterministic (see `sort`); `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.
+ * Request: optional filters; `query` matches the SECID code (a search attribute, not an identifier), ISIN, short name or name (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `name` (default), `matdate`, `yield`, with direction `sort_direction` `asc` (default) / `desc`; the order is fully deterministic (see `sort`); `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Search".
@@ -2991,7 +2991,7 @@ export interface AfbwsBondsChannelV1_BondRow {
   instrument_key: string;
   secid: AfbwsBondsChannelV1_Secid;
   /**
-   * Full bond name (issue title) as given by ISS; null when unknown. Shown in the list plaque; search by ISIN or issuer stays a server-side filter (`query`) and does not add them to the row.
+   * Full bond name (issue title) as given by ISS; null when unknown. Shown in the list plaque; search by ISIN stays a server-side filter (`query`) and does not add it to the row.
    */
   name: string | null;
   /**
@@ -3079,10 +3079,6 @@ export interface AfbwsBondsChannelV1_Bond {
    * Short display name.
    */
   shortname: string;
-  /**
-   * Issuer name; null when unknown.
-   */
-  emitter_title: string | null;
   category: AfbwsBondsChannelV1_Category;
   faceunit: AfbwsBondsChannelV1_Faceunit;
   /**
@@ -3118,14 +3114,6 @@ export interface AfbwsBondsChannelV1_Bond {
    * Full bond name (issue title) as given by ISS; null when unknown.
    */
   name: string | null;
-  /**
-   * ISS issuer id; null when unknown.
-   */
-  emitter_id: number | null;
-  /**
-   * Issuer INN; null when unknown.
-   */
-  emitter_inn: string | null;
   /**
    * ISS bond type as is (SECTYPE/BONDTYPE text), for display.
    */
@@ -3708,7 +3696,7 @@ export interface AfbwsBondsChannelV1_Error {
   message: string;
 }
 /**
- * A bond card: the search row plus issuer and lot attributes.
+ * A bond card: the search row plus lot attributes.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Bond".
@@ -3727,10 +3715,6 @@ export interface AfbwsBondsChannelV1_Bond1 {
    * Short display name.
    */
   shortname: string;
-  /**
-   * Issuer name; null when unknown.
-   */
-  emitter_title: string | null;
   category: AfbwsBondsChannelV1_Category;
   faceunit: AfbwsBondsChannelV1_Faceunit;
   /**
@@ -3766,14 +3750,6 @@ export interface AfbwsBondsChannelV1_Bond1 {
    * Full bond name (issue title) as given by ISS; null when unknown.
    */
   name: string | null;
-  /**
-   * ISS issuer id; null when unknown.
-   */
-  emitter_id: number | null;
-  /**
-   * Issuer INN; null when unknown.
-   */
-  emitter_inn: string | null;
   /**
    * ISS bond type as is (SECTYPE/BONDTYPE text), for display.
    */

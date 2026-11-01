@@ -114,6 +114,17 @@ def test_bond_request_response(registry):
     _bad(v, resp)
 
 
+def test_bond_card_has_no_emitter_fields(registry):
+    v = _validator(registry, "bondMsg")
+    resp = _ex("bond.response")
+    assert not [k for k in resp["bond"] if k.startswith("emitter")]
+    v.validate(resp)
+    for field, value in (("emitter_id", 1), ("emitter_title", "Минфин России"), ("emitter_inn", "7710168360")):
+        resp = _ex("bond.response")
+        resp["bond"][field] = value
+        _bad(v, resp)
+
+
 def test_market_block_nullable(registry):
     v = _validator(registry, "bondRow")
     row = _ex("search.response")["items"][0]

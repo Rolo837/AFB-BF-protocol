@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: b588965c19871e850ca90575936c8a4daaddf07bf96bbb2f8bd2f92ad85e6726
+# source-hash: 4e8501fce16e51555ca07550b2dd5e13e57f1ee92c74533c4c8dd8467291447d
 
 from __future__ import annotations
 
@@ -620,14 +620,13 @@ class AfbwsBondsChannelV1Amortization(TypedDict):
 
 class AfbwsBondsChannelV1Bond(TypedDict):
     """
-    A bond card: the search row plus issuer and lot attributes.
+    A bond card: the search row plus lot attributes.
     """
 
     instrument_key: AfbwsCommonV1InstrumentKey
     secid: AfbwsBondsChannelV1Secid
     isin: str | None
     shortname: str
-    emitter_title: str | None
     category: AfbwsBondsChannelV1Category
     faceunit: AfbwsBondsChannelV1Faceunit
     facevalue: float
@@ -639,8 +638,6 @@ class AfbwsBondsChannelV1Bond(TypedDict):
     lifecycle: Literal["active", "matured"]
     market: AfbwsBondsChannelV1MarketOrNull
     name: str | None
-    emitter_id: int | None
-    emitter_inn: str | None
     bond_type: str | None
     lot_value: float
 
@@ -957,7 +954,7 @@ class AfbwsBondsChannelV1Schedule(TypedDict):
 
 class AfbwsBondsChannelV1Search(TypedDict):
     """
-    Request: optional filters; `query` matches the SECID code (a search attribute, not an identifier), ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `name` (default), `matdate`, `yield`, with direction `sort_direction` `asc` (default) / `desc`; the order is fully deterministic (see `sort`); `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.
+    Request: optional filters; `query` matches the SECID code (a search attribute, not an identifier), ISIN, short name or name (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `name` (default), `matdate`, `yield`, with direction `sort_direction` `asc` (default) / `desc`; the order is fully deterministic (see `sort`); `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.
     """
 
     channel: Literal["bonds"]

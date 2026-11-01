@@ -8,7 +8,6 @@
     "secid": "SU26238RMFS4",
     "isin": "RU000A1038V6",
     "shortname": "ОФЗ 26238",
-    "emitter_title": "Минфин России",
     "category": "ofz",
     "faceunit": "SUR",
     "facevalue": 1000,
@@ -27,8 +26,6 @@
       "updated_at": "2026-11-02T12:05:00+03:00"
     },
     "name": "ОФЗ-ПД 26238",
-    "emitter_id": 1,
-    "emitter_inn": "7710168360",
     "bond_type": "Федеральные облигации",
     "lot_value": 1000
   },
