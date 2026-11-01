@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 738705967dc62f890570c637582c2b77e4de3ff6294d3e6194243f7092307f08
+ * source-hash: 30590d9dba5ce80566b82823c7f5fdfa09b29fd7e52a3454fa89f002be8e8e2e
  */
 
 /**
@@ -3305,7 +3305,7 @@ export interface AfbwsBondsChannelV1_PortfolioRef1 {
   secids: AfbwsBondsChannelV1_Secid[];
 }
 /**
- * One row per bond of the portfolio. Fields that depend on purchases (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`, `current_yield`) are null for a bond without purchases (flag `no_trades`).
+ * One row per bond of the portfolio. Fields that depend on purchases (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`) are null for a bond without purchases (flag `no_trades`).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Position".
@@ -3351,7 +3351,7 @@ export interface AfbwsBondsChannelV1_Position {
    */
   market_value_rub: number | null;
   /**
-   * Annual coupon / (price + accrued interest), percent; null without purchases or market data.
+   * Annual coupon / (price + accrued interest), percent at the market price; does not depend on purchases (filled for a bond without purchases too); null only if undefined (no price or no coupon).
    */
   current_yield: number | null;
   /**
@@ -6033,7 +6033,7 @@ export interface AfbwsInstrumentChannelV2_Derivative {
   source: string;
 }
 /**
- * Request: only `request_id`. Response: `favorites` in display order (array position is the order).
+ * Request: only `request_id`. Response: `favorites` in display order (array position is the order); entries of all kinds (`instrument`, `asset`, `bond`) share ONE order. Entries of kind `bond` are returned only to connections with the capability `bonds`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsInstrumentChannelV2_Favorites".
@@ -6049,12 +6049,12 @@ export interface AfbwsInstrumentChannelV2_Favorites {
  * via the `definition` "AfbwsInstrumentChannelV2_FavoriteEntry".
  */
 export interface AfbwsInstrumentChannelV2_FavoriteEntry {
-  kind: 'instrument' | 'asset';
+  kind: 'instrument' | 'asset' | 'bond';
   key: string;
   color: AfbwsInstrumentChannelV2_FavoriteColor;
 }
 /**
- * No CAS: `mark` (paint or repaint), `unmark` (idempotent removal) and `order` (REPLACES the whole display order) are idempotent. Request: any of `mark`/`unmark`/`order`. Response: `marked`/`unmarked`/`order` — only the sections that were present in the request; `unmarked` lists only refs that really were favorites. A response is recognised by `marked`/`unmarked`; an `order`-only request and its echo have the same shape.
+ * No CAS: `mark` (paint or repaint), `unmark` (idempotent removal) and `order` (REPLACES the whole display order; refs of any kind `instrument`/`asset`/`bond`) are idempotent. A ref of kind `bond` (`key` = `secid`) requires the capability `bonds`, otherwise the request is refused with `forbidden`; an unknown `secid` in `mark` is a `validation_error`. Request: any of `mark`/`unmark`/`order`. Response: `marked`/`unmarked`/`order` — only the sections that were present in the request; `unmarked` lists only refs that really were favorites. A response is recognised by `marked`/`unmarked`; an `order`-only request and its echo have the same shape.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsInstrumentChannelV2_Paint".
@@ -6070,13 +6070,13 @@ export interface AfbwsInstrumentChannelV2_Paint {
   unmarked?: AfbwsInstrumentChannelV2_FavoriteRef[];
 }
 /**
- * `key` is an `instrument_key` for kind `instrument` and an `asset_id` for kind `asset`.
+ * `key` is an `instrument_key` for kind `instrument`, an `asset_id` for kind `asset` and the `secid` of a bond for kind `bond` (case-sensitive, as in ISS; NOT an `instrument_key`). Kind `bond` needs the capability `bonds`: `paint` with a `bond` ref (`mark`/`unmark`/`order`) from a connection without it is refused with `forbidden`, and `bond` entries are returned in `favorites` only to connections with `bonds` (without it they stay stored, just not sent).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsInstrumentChannelV2_FavoriteRef".
  */
 export interface AfbwsInstrumentChannelV2_FavoriteRef {
-  kind: 'instrument' | 'asset';
+  kind: 'instrument' | 'asset' | 'bond';
   key: string;
 }
 /**

@@ -837,7 +837,7 @@
     "position": {
       "type": "object",
       "additionalProperties": false,
-      "description": "One row per bond of the portfolio. Fields that depend on purchases (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`, `current_yield`) are null for a bond without purchases (flag `no_trades`).",
+      "description": "One row per bond of the portfolio. Fields that depend on purchases (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`) are null for a bond without purchases (flag `no_trades`).",
       "required": [
         "secid",
         "shortname",
@@ -933,7 +933,7 @@
             "number",
             "null"
           ],
-          "description": "Annual coupon / (price + accrued interest), percent; null without purchases or market data."
+          "description": "Annual coupon / (price + accrued interest), percent at the market price; does not depend on purchases (filled for a bond without purchases too); null only if undefined (no price or no coupon)."
         },
         "ytm_market": {
           "type": [

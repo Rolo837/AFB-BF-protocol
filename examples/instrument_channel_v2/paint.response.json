@@ -7,6 +7,11 @@
       "kind": "instrument",
       "key": "XNYM:futures:CL",
       "color": "red"
+    },
+    {
+      "kind": "bond",
+      "key": "SU26238RMFS4",
+      "color": "green"
     }
   ],
   "unmarked": []
