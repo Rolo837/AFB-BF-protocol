@@ -16,6 +16,7 @@
 ### Fixed
 
 ### Removed
+- **`instrument.channel.v2`: `favoriteRef.kind` / `favoriteEntry.kind` = `bond` удалён** (откат вида из `v2.10.0`): облигация в избранном — обычная запись `instrument` с `key` = `instrument_key` облигации (`MISX:<board>:<secid>`), общий список и сквозной порядок. Записи и операции, разрешающиеся в облигацию, по-прежнему только с capability `bonds` (`forbidden` на `paint`, в `favorites` не отдаются). Примеры избранного приведены к этому виду.
 
 ## v2.10.0 — 2026-11-01
 

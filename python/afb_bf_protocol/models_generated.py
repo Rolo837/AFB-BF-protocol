@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: c3fe851e43aab85bca25b9a6e71dbd7bfb6b8c15fef89060995f22dfd2406031
+# source-hash: b588965c19871e850ca90575936c8a4daaddf07bf96bbb2f8bd2f92ad85e6726
 
 from __future__ import annotations
 
@@ -1824,23 +1824,23 @@ AfbwsInstrumentChannelV2FavoriteColor: TypeAlias = Literal[
 
 
 class AfbwsInstrumentChannelV2FavoriteEntry(TypedDict):
-    kind: Literal["instrument", "asset", "bond"]
+    kind: Literal["instrument", "asset"]
     key: str
     color: AfbwsInstrumentChannelV2FavoriteColor
 
 
 class AfbwsInstrumentChannelV2FavoriteRef(TypedDict):
     """
-    `key` is an `instrument_key` for kind `instrument`, an `asset_id` for kind `asset` and the `secid` of a bond for kind `bond` (case-sensitive, as in ISS; NOT an `instrument_key`). Kind `bond` needs the capability `bonds`: `paint` with a `bond` ref (`mark`/`unmark`/`order`) from a connection without it is refused with `forbidden`, and `bond` entries are returned in `favorites` only to connections with `bonds` (without it they stay stored, just not sent).
+    `key` is an `instrument_key` for kind `instrument` (a catalog listing OR a bond: a bond is an ordinary instrument, its key is `MISX:<board>:<secid>`) and an `asset_id` for kind `asset`. Refs that resolve to a bond need the capability `bonds`: `paint` (`mark`/`unmark`/`order`) with such a ref from a connection without it is refused with `forbidden`, and bond entries are returned in `favorites` only to connections with `bonds` (without it they stay stored, just not sent).
     """
 
-    kind: Literal["instrument", "asset", "bond"]
+    kind: Literal["instrument", "asset"]
     key: str
 
 
 class AfbwsInstrumentChannelV2Favorites(TypedDict):
     """
-    Request: only `request_id`. Response: `favorites` in display order (array position is the order); entries of all kinds (`instrument`, `asset`, `bond`) share ONE order. Entries of kind `bond` are returned only to connections with the capability `bonds`.
+    Request: only `request_id`. Response: `favorites` in display order (array position is the order); entries of both kinds (`instrument`, `asset`) share ONE order; a bond is an `instrument` entry keyed by its `instrument_key`. Entries that are bonds are returned only to connections with the capability `bonds`.
     """
 
     channel: Literal["instrument"]
@@ -1883,7 +1883,7 @@ class AfbwsInstrumentChannelV2Member(TypedDict):
 
 class AfbwsInstrumentChannelV2Paint(TypedDict):
     """
-    No CAS: `mark` (paint or repaint), `unmark` (idempotent removal) and `order` (REPLACES the whole display order; refs of any kind `instrument`/`asset`/`bond`) are idempotent. A ref of kind `bond` (`key` = `secid`) requires the capability `bonds`, otherwise the request is refused with `forbidden`; an unknown `secid` in `mark` is a `validation_error`. Request: any of `mark`/`unmark`/`order`. Response: `marked`/`unmarked`/`order` — only the sections that were present in the request; `unmarked` lists only refs that really were favorites. A response is recognised by `marked`/`unmarked`; an `order`-only request and its echo have the same shape.
+    No CAS: `mark` (paint or repaint), `unmark` (idempotent removal) and `order` (REPLACES the whole display order; refs of kind `instrument`/`asset`) are idempotent. A ref that resolves to a bond (kind `instrument`, `key` = the bond's `instrument_key`) requires the capability `bonds`, otherwise the request is refused with `forbidden`; an unknown `instrument_key` in `mark` is a `validation_error`. Request: any of `mark`/`unmark`/`order`. Response: `marked`/`unmarked`/`order` — only the sections that were present in the request; `unmarked` lists only refs that really were favorites. A response is recognised by `marked`/`unmarked`; an `order`-only request and its echo have the same shape.
     """
 
     channel: Literal["instrument"]

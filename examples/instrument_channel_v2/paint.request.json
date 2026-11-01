@@ -9,8 +9,8 @@
       "color": "red"
     },
     {
-      "kind": "bond",
-      "key": "SU26238RMFS4",
+      "kind": "instrument",
+      "key": "MISX:TQCB:RU000A10A3Z4",
       "color": "green"
     }
   ],
@@ -20,8 +20,8 @@
       "key": "a1"
     },
     {
-      "kind": "bond",
-      "key": "RU000A10BQM7"
+      "kind": "instrument",
+      "key": "MISX:TQCB:RU000A10BQM7"
     }
   ]
 }
