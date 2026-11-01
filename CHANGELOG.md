@@ -15,6 +15,7 @@
 - **`config.v1`: настройки пользователя += `bonds {notice_days 0..90, notify_anomaly}`** (аддитивно, deep-merge).
 
 ### Changed
+- **`bonds.channel.v1#/$defs/bondRow`: + `name` (полное наименование выпуска, string|null; читатель — плашка списка), − `isin`, − `emitter_title`** (читателя на проводе нет; поиск по ISIN/эмитенту остаётся серверным фильтром `query`; в карточке `bond` ISIN, эмитент и `emitter_id`/`emitter_inn` сохранены, `bond.name` стал nullable). Пример `search.response.json`, тест схемы.
 
 ### Fixed
 

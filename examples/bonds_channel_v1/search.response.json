@@ -5,9 +5,8 @@
   "items": [
     {
       "secid": "SU26238RMFS4",
-      "isin": "RU000A1038V6",
+      "name": "ОФЗ-ПД 26238",
       "shortname": "ОФЗ 26238",
-      "emitter_title": "Минфин России",
       "category": "ofz",
       "faceunit": "SUR",
       "facevalue": 1000,
@@ -28,9 +27,8 @@
     },
     {
       "secid": "SU52005RMFS4",
-      "isin": "RU000A1038V6",
+      "name": "ОФЗ-ИН 52005",
       "shortname": "ОФЗ 52005",
-      "emitter_title": "Минфин России",
       "category": "ofz",
       "faceunit": "SUR",
       "facevalue": 1000,

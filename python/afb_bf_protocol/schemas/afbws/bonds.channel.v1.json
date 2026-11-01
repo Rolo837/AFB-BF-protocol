@@ -169,9 +169,8 @@
       "description": "One bond in a search result list.",
       "required": [
         "secid",
-        "isin",
+        "name",
         "shortname",
-        "emitter_title",
         "category",
         "faceunit",
         "facevalue",
@@ -187,23 +186,16 @@
         "secid": {
           "$ref": "#/$defs/secid"
         },
-        "isin": {
+        "name": {
           "type": [
             "string",
             "null"
           ],
-          "description": "ISIN; null when ISS has none."
+          "description": "Full bond name (issue title) as given by ISS; null when unknown. Shown in the list plaque; search by ISIN or issuer stays a server-side filter (`query`) and does not add them to the row."
         },
         "shortname": {
           "type": "string",
           "description": "Short display name."
-        },
-        "emitter_title": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Issuer name; null when unknown."
         },
         "category": {
           "$ref": "#/$defs/category"
@@ -369,8 +361,11 @@
           "$ref": "#/$defs/marketOrNull"
         },
         "name": {
-          "type": "string",
-          "description": "Full bond name."
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Full bond name (issue title) as given by ISS; null when unknown."
         },
         "emitter_id": {
           "type": [

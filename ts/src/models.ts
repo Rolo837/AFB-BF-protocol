@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 7cdc39dd054a0fa90de3c9647ffdc16da7bfb5a9f6fc5653518f2ef95d739f8f
+ * source-hash: a2f98cc21b4eaca54f8b6dff2887a4118134378b596ac2010e241478fb74ae8e
  */
 
 /**
@@ -3009,17 +3009,13 @@ export interface BfsRegistryPush {
 export interface AfbwsBondsChannelV1_BondRow {
   secid: AfbwsBondsChannelV1_Secid;
   /**
-   * ISIN; null when ISS has none.
+   * Full bond name (issue title) as given by ISS; null when unknown. Shown in the list plaque; search by ISIN or issuer stays a server-side filter (`query`) and does not add them to the row.
    */
-  isin: string | null;
+  name: string | null;
   /**
    * Short display name.
    */
   shortname: string;
-  /**
-   * Issuer name; null when unknown.
-   */
-  emitter_title: string | null;
   category: AfbwsBondsChannelV1_Category;
   faceunit: AfbwsBondsChannelV1_Faceunit;
   /**
@@ -3133,9 +3129,9 @@ export interface AfbwsBondsChannelV1_Bond {
   lifecycle: 'active' | 'matured';
   market: AfbwsBondsChannelV1_MarketOrNull;
   /**
-   * Full bond name.
+   * Full bond name (issue title) as given by ISS; null when unknown.
    */
-  name: string;
+  name: string | null;
   /**
    * ISS issuer id; null when unknown.
    */
@@ -3815,9 +3811,9 @@ export interface AfbwsBondsChannelV1_Bond1 {
   lifecycle: 'active' | 'matured';
   market: AfbwsBondsChannelV1_MarketOrNull;
   /**
-   * Full bond name.
+   * Full bond name (issue title) as given by ISS; null when unknown.
    */
-  name: string;
+  name: string | null;
   /**
    * ISS issuer id; null when unknown.
    */

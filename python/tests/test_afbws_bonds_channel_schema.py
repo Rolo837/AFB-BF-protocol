@@ -102,6 +102,17 @@ def test_market_block_nullable(registry):
     _bad(v, {**row, "category": "unknown"})
 
 
+def test_bond_row_name_replaces_isin_and_emitter(registry):
+    v = _validator(registry, "bondRow")
+    row = _ex("search.response")["items"][0]
+    assert "isin" not in row and "emitter_title" not in row
+    v.validate({**row, "name": None})
+    no_name = {k: x for k, x in row.items() if k != "name"}
+    _bad(v, no_name)
+    _bad(v, {**row, "isin": "RU000A1038V6"})
+    _bad(v, {**row, "emitter_title": "Минфин России"})
+
+
 def test_portfolios_list_request_response_push(registry):
     v = _validator(registry, "portfolios")
     v.validate(_ex("portfolios.request"))

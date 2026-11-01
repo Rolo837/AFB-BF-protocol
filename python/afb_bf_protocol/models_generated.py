@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 7cdc39dd054a0fa90de3c9647ffdc16da7bfb5a9f6fc5653518f2ef95d739f8f
+# source-hash: a2f98cc21b4eaca54f8b6dff2887a4118134378b596ac2010e241478fb74ae8e
 
 from __future__ import annotations
 
@@ -637,7 +637,7 @@ class AfbwsBondsChannelV1Bond(TypedDict):
     is_qualified: bool
     lifecycle: Literal["active", "matured"]
     market: AfbwsBondsChannelV1MarketOrNull
-    name: str
+    name: str | None
     emitter_id: int | None
     emitter_inn: str | None
     bond_type: str | None
@@ -664,9 +664,8 @@ class AfbwsBondsChannelV1BondRow(TypedDict):
     """
 
     secid: AfbwsBondsChannelV1Secid
-    isin: str | None
+    name: str | None
     shortname: str
-    emitter_title: str | None
     category: AfbwsBondsChannelV1Category
     faceunit: AfbwsBondsChannelV1Faceunit
     facevalue: float
