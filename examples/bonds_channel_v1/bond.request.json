@@ -2,5 +2,5 @@
   "channel": "bonds",
   "schema": "afbws.bonds.bond.v1",
   "request_id": "b-2",
-  "secid": "SU26238RMFS4"
+  "instrument_key": "MISX:TQOB:SU26238RMFS4"
 }

@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 30590d9dba5ce80566b82823c7f5fdfa09b29fd7e52a3454fa89f002be8e8e2e
+# source-hash: c3fe851e43aab85bca25b9a6e71dbd7bfb6b8c15fef89060995f22dfd2406031
 
 from __future__ import annotations
 
@@ -623,6 +623,7 @@ class AfbwsBondsChannelV1Bond(TypedDict):
     A bond card: the search row plus issuer and lot attributes.
     """
 
+    instrument_key: AfbwsCommonV1InstrumentKey
     secid: AfbwsBondsChannelV1Secid
     isin: str | None
     shortname: str
@@ -646,13 +647,13 @@ class AfbwsBondsChannelV1Bond(TypedDict):
 
 class AfbwsBondsChannelV1BondMsg(TypedDict):
     """
-    Request: `secid`. Response: the bond, its payment `schedule` and the daily `history` (columnar). Unknown secid — error `not_found`.
+    Request: `instrument_key`. Response: the bond (the card carries `instrument_key` and the display `secid`), its payment `schedule` and the daily `history` (columnar). Unknown key — error `not_found`.
     """
 
     channel: Literal["bonds"]
     schema: Literal["afbws.bonds.bond.v1"]
     request_id: AfbwsCommonV1RequestId
-    secid: NotRequired[AfbwsBondsChannelV1Secid]
+    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
     bond: NotRequired[AfbwsBondsChannelV1Bond]
     schedule: NotRequired[AfbwsBondsChannelV1Schedule]
     history: NotRequired[AfbwsBondsChannelV1History]
@@ -663,6 +664,7 @@ class AfbwsBondsChannelV1BondRow(TypedDict):
     One bond in a search result list.
     """
 
+    instrument_key: AfbwsCommonV1InstrumentKey
     secid: AfbwsBondsChannelV1Secid
     name: str | None
     shortname: str
@@ -709,7 +711,7 @@ class AfbwsBondsChannelV1Event(TypedDict):
     An upcoming event of a bond held in the caller's portfolios, within the `notice_days` horizon.
     """
 
-    secid: AfbwsBondsChannelV1Secid
+    instrument_key: AfbwsCommonV1InstrumentKey
     shortname: str
     portfolio_ids: list[str]
     kind: AfbwsBondsChannelV1EventKind
@@ -824,7 +826,7 @@ class AfbwsBondsChannelV1Payment(TypedDict):
     """
 
     date: str
-    secid: AfbwsBondsChannelV1Secid
+    instrument_key: AfbwsCommonV1InstrumentKey
     kind: Literal["coupon", "amortization", "maturity", "offer_redemption"]
     amount: float
     amount_rub: float | None
@@ -861,7 +863,7 @@ class AfbwsBondsChannelV1PortfolioEdit(TypedDict):
     visibility: NotRequired[AfbwsBondsChannelV1Visibility]
     icon_id: NotRequired[str | None]
     icon_color: NotRequired[AfbwsBondsChannelV1FavoriteColor | None]
-    secids: NotRequired[list[AfbwsBondsChannelV1Secid]]
+    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
 
 
 class AfbwsBondsChannelV1PortfolioRef(TypedDict):
@@ -875,7 +877,7 @@ class AfbwsBondsChannelV1PortfolioRef(TypedDict):
     icon_id: str | None
     icon_color: AfbwsBondsChannelV1FavoriteColor | None
     own: bool
-    secids: list[AfbwsBondsChannelV1Secid]
+    instrument_keys: list[AfbwsCommonV1InstrumentKey]
 
 
 class AfbwsBondsChannelV1PortfolioRejection(TypedDict):
@@ -890,7 +892,7 @@ class AfbwsBondsChannelV1PortfolioRejection(TypedDict):
 
 class AfbwsBondsChannelV1Portfolios(TypedDict):
     """
-    Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `secids[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests. No analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
+    Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests. No analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
     """
 
     channel: Literal["bonds"]
@@ -902,7 +904,7 @@ class AfbwsBondsChannelV1Portfolios(TypedDict):
 
 class AfbwsBondsChannelV1PortfoliosSet(TypedDict):
     """
-    Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `secids[]` in final order (omit `secids` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every secid must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `secids`), the bond rows of all compositions in `bonds` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
+    Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `instrument_keys[]` in final order (omit `instrument_keys` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every instrument key must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `instrument_keys`), the bond rows of all compositions in `bonds` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
     """
 
     channel: Literal["bonds"]
@@ -919,6 +921,7 @@ class AfbwsBondsChannelV1Position(TypedDict):
     One row per bond of the portfolio. Fields that depend on purchases (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`) are null for a bond without purchases (flag `no_trades`).
     """
 
+    instrument_key: AfbwsCommonV1InstrumentKey
     secid: AfbwsBondsChannelV1Secid
     shortname: str
     category: AfbwsBondsChannelV1Category
@@ -954,7 +957,7 @@ class AfbwsBondsChannelV1Schedule(TypedDict):
 
 class AfbwsBondsChannelV1Search(TypedDict):
     """
-    Request: optional filters; `query` matches secid, ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `name` (default), `matdate`, `yield`, with direction `sort_direction` `asc` (default) / `desc`; the order is fully deterministic (see `sort`); `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.
+    Request: optional filters; `query` matches the SECID code (a search attribute, not an identifier), ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `name` (default), `matdate`, `yield`, with direction `sort_direction` `asc` (default) / `desc`; the order is fully deterministic (see `sort`); `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.
     """
 
     channel: Literal["bonds"]
@@ -1001,7 +1004,7 @@ class AfbwsBondsChannelV1Signal(TypedDict):
     A market-wide price/volume anomaly of one bond.
     """
 
-    secid: AfbwsBondsChannelV1Secid
+    instrument_key: AfbwsCommonV1InstrumentKey
     shortname: str
     category: AfbwsBondsChannelV1Category
     date: str
@@ -1053,7 +1056,7 @@ class AfbwsBondsChannelV1Trade(TypedDict):
     """
 
     trade_id: str
-    secid: AfbwsBondsChannelV1Secid
+    instrument_key: AfbwsCommonV1InstrumentKey
     trade_date: str
     quantity: int
     price_pct: float
@@ -1073,7 +1076,7 @@ class AfbwsBondsChannelV1TradeRejection(TypedDict):
 
 class AfbwsBondsChannelV1TradesSet(TypedDict):
     """
-    Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Only for a PERSONAL portfolio of the caller: a visible public portfolio is `forbidden` (public portfolios hold no purchases), an unknown or foreign personal one is `not_found`. A purchase of a bond that is not in the portfolio composition adds the bond to the composition (at the end) in the same operation. Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the secid exists (a `category=default` bond is allowed in a personal portfolio). Response: the whole journal in `trades`, the actual composition in `secids` and the refused entries in `rejected`. When the composition grew, the other connections of the owner receive a `portfolios` push.
+    Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Only for a PERSONAL portfolio of the caller: a visible public portfolio is `forbidden` (public portfolios hold no purchases), an unknown or foreign personal one is `not_found`. A purchase of a bond that is not in the portfolio composition adds the bond to the composition (at the end) in the same operation. Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the instrument key exists (a `category=default` bond is allowed in a personal portfolio). Response: the whole journal in `trades`, the actual composition in `instrument_keys` and the refused entries in `rejected`. When the composition grew, the other connections of the owner receive a `portfolios` push.
     """
 
     channel: Literal["bonds"]
@@ -1084,7 +1087,7 @@ class AfbwsBondsChannelV1TradesSet(TypedDict):
     remove: NotRequired[list[RemoveItem]]
     trades: NotRequired[list[AfbwsBondsChannelV1Trade]]
     rejected: NotRequired[list[AfbwsBondsChannelV1TradeRejection]]
-    secids: NotRequired[list[AfbwsBondsChannelV1Secid]]
+    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
 
 
 AfbwsBondsChannelV1Root: TypeAlias = (
@@ -5209,7 +5212,8 @@ class NotificationBondV1Root(TypedDict):
     notification_id: str
     kind: Literal["offer", "maturity", "amortization", "call", "anomaly"]
     stage: Literal["warn", "window_open", "window_last_day", "d0", "signal"]
-    secid: str
+    instrument_key: AfbwsCommonV1InstrumentKey
+    ticker: str
     isin: NotRequired[str]
     shortname: NotRequired[str]
     event_date: NotRequired[str]

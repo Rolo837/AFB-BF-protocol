@@ -1,9 +1,10 @@
 {
   "schema": "afb.notification.bond.v1",
-  "notification_id": "u1:SU26238RMFS4:offer:warn:2027-03-10",
+  "notification_id": "u1:MISX:TQOB:SU26238RMFS4:offer:warn:2027-03-10",
   "kind": "offer",
   "stage": "warn",
-  "secid": "SU26238RMFS4",
+  "instrument_key": "MISX:TQOB:SU26238RMFS4",
+  "ticker": "SU26238RMFS4",
   "isin": "RU000A1038V6",
   "shortname": "ОФЗ 26238",
   "event_date": "2027-03-10",

@@ -2,8 +2,9 @@
   "channel": "bonds",
   "schema": "afbws.bonds.bond.v1",
   "request_id": "b-2",
-  "secid": "SU26238RMFS4",
+  "instrument_key": "MISX:TQOB:SU26238RMFS4",
   "bond": {
+    "instrument_key": "MISX:TQOB:SU26238RMFS4",
     "secid": "SU26238RMFS4",
     "isin": "RU000A1038V6",
     "shortname": "ОФЗ 26238",

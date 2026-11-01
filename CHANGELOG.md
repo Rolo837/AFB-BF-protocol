@@ -11,6 +11,7 @@
 ### Added
 
 ### Changed
+- **`bonds.channel.v1` и `notification.bond.v1`: бумага идентифицируется ТОЛЬКО `instrument_key`** (`MISX:<основной борд>:<secid>`, например `MISX:TQCB:RU000A10A3Z4`; общий `common.v1#instrumentKey`, регистр не нормализуется; смена борда = другой ключ = другая бумага). `bondRow`, `bond` (карточка) и `position` получают обязательный `instrument_key` и СОХРАНЯЮТ `secid` как поле показа; `trade`, `payment`, `signal`, `event`: `secid` → `instrument_key`; `portfolioRef.secids[]` → `instrument_keys[]`; `portfolioEdit.secids` → `instrument_keys` (maxItems 200); `trades.set`: ответ `secids[]` → `instrument_keys[]`; операция `bond`: запрос `instrument_key`; `search.query` по-прежнему ищет по secid/ISIN/названию/эмитенту. `notification.bond.v1`: `secid` → `instrument_key` + `ticker` (как `notification.expiration.v1`; `notification_id` строится по ключу). `instrument.channel.v2` не менялся. Примеры и тесты переписаны.
 
 ### Fixed
 

@@ -4,7 +4,7 @@
   "request_id": "b-9",
   "items": [
     {
-      "secid": "SU26238RMFS4",
+      "instrument_key": "MISX:TQOB:SU26238RMFS4",
       "shortname": "ОФЗ 26238",
       "portfolio_ids": [
         "p-1"
