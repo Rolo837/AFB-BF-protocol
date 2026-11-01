@@ -9,6 +9,16 @@
 ## Unreleased
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## v2.10.0 — 2026-11-01
+
+### Added
 - **Канал `afbws.bonds.channel.v1`** (`afbws/bonds.channel.v1.json`, capability `BONDS_CHANNEL_V1`; облигации MOEX и портфели облигаций): `search`, `bond`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `signals`, `events`, `error`; один schema id на сообщение, пуши без `request_id` (`portfolios`, `portfolio`, `signals`, `events`), деньги в `faceunit` + `_rub`. Модель портфеля: портфель = набор (`set_type=bond`) + СОСТАВ `secids[]` (бумаги в порядке показа, не более 200); публичный (эталонный) портфель создаёт только персонал и это чистая структура без покупок; покупки (`trades`) — только в личных портфелях, атрибут бумаги в составе (бумага может быть в составе без покупок, флаг `no_trades`); удаление бумаги из личного портфеля удаляет её покупки; операции `copy` нет — «добавить бумагу/состав чужого портфеля» это правка состава своего портфеля через `portfolios.set`. `portfolioRef` = `{id, name, visibility, icon_id, icon_color, own, secids[]}` без аналитики; `portfolios` — ответ/пуш `portfolios[portfolioRef]` + `bonds[bondRow]` (строки бумаг всех составов без дублей), пуш без `request_id` при изменении структуры, каждому получателю свой список по его tier; `portfolios.set` — upsert `portfolios[]` с ПОЛНЫМ составом `secids[]` в итоговом порядке (как `instrument.sets.v2`; без `secids` состав не меняется), `remove[]`, порядок элементов = порядок показа (личные и публичные раздельно), ответ — `portfolios` + `bonds` + `rejected[]`; `trades.set` — только личный портфель, ответ дополнен `secids[]` (покупка вне состава добавляет бумагу в состав); `portfolio` — `portfolio` с `secids`, поля позиции, зависящие от покупок (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`), допускают null, флаг `no_trades`; `current_yield` от покупок не зависит (по рыночной цене, заполнен и у бумаги без покупок), null только если неопределима — нет цены или купона. `search` — окно по смещению как `catalog.symbols` (запрос `offset`/`limit`, ответ `total`/`offset`/`items`, без курсора); сортировка — `sort` `name` (по умолчанию) | `matdate` | `yield` и `sort_direction` `asc` (по умолчанию) | `desc`, пропуски (null `matdate`/`yield`) всегда в конце, вторичный ключ `secid` по возрастанию — порядок детерминирован между окнами; `reconcile` — позже, под той же capability `bonds`. Примеры `examples/bonds_channel_v1/`; PROTOCOL.md.
 - **`instrument.channel.v2`: `favoriteRef.kind` += `bond`** (избранное облигаций; `key` = `secid` облигации, регистрозависимый, не `instrument_key`; цвет, сквозной порядок и лимит цветов — как у остальных видов). Гейт описан в схеме: операции `paint` со ссылкой `bond` требуют capability `bonds` (иначе `forbidden`), записи `bond` в `favorites` отдаются только соединениям с `bonds`. Примеры `examples/instrument_channel_v2/`, тест схемы; PROTOCOL.md.
 - **`notification.bond.v1.json`** (`afb.notification.bond.v1`): уведомление держателю облигации о событии (оферта, погашение, амортизация, call) или аномалии; в allow-list `validate_notification`. Примеры `examples/notifications/bond.*.json`.
@@ -17,10 +27,6 @@
 
 ### Changed
 - **`bonds.channel.v1#/$defs/bondRow`: + `name` (полное наименование выпуска, string|null; читатель — плашка списка), − `isin`, − `emitter_title`** (читателя на проводе нет; поиск по ISIN/эмитенту остаётся серверным фильтром `query`; в карточке `bond` ISIN, эмитент и `emitter_id`/`emitter_inn` сохранены, `bond.name` стал nullable). Пример `search.response.json`, тест схемы.
-
-### Fixed
-
-### Removed
 
 ## v2.9.13 — 2026-10-30
 
