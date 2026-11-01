@@ -1,0 +1,7 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.signals.v1",
+  "request_id": "b-8",
+  "days": 5,
+  "held_only": false
+}

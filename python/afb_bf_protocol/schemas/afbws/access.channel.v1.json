@@ -64,9 +64,10 @@
         "trade",
         "virtual",
         "screener",
-        "dataset"
+        "dataset",
+        "bonds"
       ],
-      "description": "Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF; `virtual` — виртуальный счёт и активация/оценка алармов и торговых планов (с `trade` они работают и без `virtual`); `screener` — выгрузки скринера и скоуп `futures` в market subscribe; `dataset` — наборы данных в market series, `oi`/`oi_daily` в market snapshot, screener participants. `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities."
+      "description": "Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF; `virtual` — виртуальный счёт и активация/оценка алармов и торговых планов (с `trade` они работают и без `virtual`); `screener` — выгрузки скринера и скоуп `futures` в market subscribe; `dataset` — наборы данных в market series, `oi`/`oi_daily` в market snapshot, screener participants; `bonds` — облигации: портфели, журнал сделок, доходности, сигналы (канал afbws.bonds.channel.v1). `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities."
     },
     "window": {
       "type": "object",
@@ -1214,7 +1215,7 @@
     "stats": {
       "type": "object",
       "title": "afbws.access.stats.v1 — conversion and usage statistics (request / response), staff.",
-      "description": "Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `days[]` (oldest first, every day of the range, staff excluded) with `capabilities[]` — labels of the capabilities counted in `days[].usage` (table columns, in this order). `weeks[]` — deprecated (stage 2e frontends): one per calendar week intersecting the range, counted whole, staff included. `new_users` — users whose `first_seen_at` falls in the period; `trials_started` — users whose `trial_started_on` falls in the period; `converted` — subscription periods started in the period; `active` — users whose `last_seen_at` falls in the period.",
+      "description": "Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `days[]` (oldest first, every day of the range, staff excluded) with `capabilities[]` — labels of the capabilities counted in `days[].usage` (table columns, in this order). `weeks[]` — deprecated (stage 2e frontends): one per calendar week intersecting the range, counted whole, staff included. `new_users` — users whose `first_seen_at` falls in the period; `trials_started` — users whose `trial_started_on` falls in the period; `converted` — subscription periods started in the period; `active` — `weeks[]`: users whose `last_seen_at` falls in the period; `days[]`: users whose `last_seen_at` falls in the day or who have any `action_usage` row (used or denied) for the day.",
       "required": [
         "channel",
         "schema",

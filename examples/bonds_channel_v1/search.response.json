@@ -1,0 +1,46 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.search.v1",
+  "request_id": "b-1",
+  "items": [
+    {
+      "secid": "SU26238RMFS4",
+      "name": "ОФЗ-ПД 26238",
+      "shortname": "ОФЗ 26238",
+      "category": "ofz",
+      "faceunit": "SUR",
+      "facevalue": 1000,
+      "matdate": "2041-05-15",
+      "offerdate": null,
+      "coupon_percent": 7.1,
+      "coupon_frequency": 2,
+      "is_qualified": false,
+      "lifecycle": "active",
+      "market": {
+        "price_pct": 97.35,
+        "yield": 15.2,
+        "ytm_kind": "ytm",
+        "duration_days": 1140,
+        "accint": 12.4,
+        "updated_at": "2026-11-02T12:05:00+03:00"
+      }
+    },
+    {
+      "secid": "SU52005RMFS4",
+      "name": "ОФЗ-ИН 52005",
+      "shortname": "ОФЗ 52005",
+      "category": "ofz",
+      "faceunit": "SUR",
+      "facevalue": 1000,
+      "matdate": "2041-05-15",
+      "offerdate": null,
+      "coupon_percent": 7.1,
+      "coupon_frequency": 2,
+      "is_qualified": false,
+      "lifecycle": "active",
+      "market": null
+    }
+  ],
+  "total": 1,
+  "offset": 0
+}

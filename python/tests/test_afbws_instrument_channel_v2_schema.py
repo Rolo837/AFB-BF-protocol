@@ -79,6 +79,12 @@ def test_favorites_and_paint(registry):
     p.validate(_msg("paint", request_id="r", mark=[{"kind": "instrument", "key": "MISX:TQBR:SBER", "color": "red"}], order=[{"kind": "asset", "key": "a1"}]))
     p.validate(_msg("paint", request_id="r", marked=[], unmarked=[]))
     _bad(p, _msg("paint", request_id="r", mark=[{"kind": "ticker", "key": "SBER", "color": "red"}]))
+    # bond: key = secid (case-sensitive), in all favorite sections
+    v.validate(_msg("favorites", request_id="r", favorites=[{"kind": "bond", "key": "SU26238RMFS4", "color": "green"}]))
+    p.validate(_msg("paint", request_id="r", mark=[{"kind": "bond", "key": "SU26238RMFS4", "color": "red"}],
+                    unmark=[{"kind": "bond", "key": "RU000A10BQM7"}], order=[{"kind": "bond", "key": "SU26238RMFS4"}]))
+    p.validate(_msg("paint", request_id="r", marked=[{"kind": "bond", "key": "SU26238RMFS4", "color": "red"}]))
+    _bad(p, _msg("paint", request_id="r", mark=[{"kind": "bond", "key": "SU26238RMFS4", "color": "pinkish"}]))
 
 
 def test_expiration_is_request_response_and_push(registry):

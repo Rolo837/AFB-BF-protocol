@@ -1,0 +1,16 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.search.v1",
+  "request_id": "b-1",
+  "query": "ОФЗ 262",
+  "categories": [
+    "ofz"
+  ],
+  "faceunits": [
+    "SUR"
+  ],
+  "mat_from": "2030-01-01",
+  "sort": "yield",
+  "sort_direction": "desc",
+  "limit": 50
+}

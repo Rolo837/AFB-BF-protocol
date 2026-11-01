@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 8c1da0305e96549284c3ad20fc690e97a337bf08fe7883dfd33f8a9b30346f20
+# source-hash: 30590d9dba5ce80566b82823c7f5fdfa09b29fd7e52a3454fa89f002be8e8e2e
 
 from __future__ import annotations
 
@@ -76,7 +76,9 @@ class AccessTrialAvailable(TypedDict):
 AccessTrial: TypeAlias = AccessTrialAvailable | AccessTrialActive | None
 
 
-AccessV1Capability: TypeAlias = Literal["trade", "virtual", "screener", "dataset"]
+AccessV1Capability: TypeAlias = Literal[
+    "trade", "virtual", "screener", "dataset", "bonds"
+]
 
 
 class AccessV1CapabilityLabel(TypedDict):
@@ -604,6 +606,503 @@ class AfbwsAccountChannelV2Position(TypedDict):
     unrealized_pnl: NotRequired[str | None]
     instrument: NotRequired[dict[str, Any]]
     broker_ref: NotRequired[dict[str, Any]]
+
+
+class AfbwsBondsChannelV1Amortization(TypedDict):
+    """
+    One amortization (partial repayment of the face value).
+    """
+
+    date: str
+    value: float | None
+    value_pct: float | None
+
+
+class AfbwsBondsChannelV1Bond(TypedDict):
+    """
+    A bond card: the search row plus issuer and lot attributes.
+    """
+
+    secid: AfbwsBondsChannelV1Secid
+    isin: str | None
+    shortname: str
+    emitter_title: str | None
+    category: AfbwsBondsChannelV1Category
+    faceunit: AfbwsBondsChannelV1Faceunit
+    facevalue: float
+    matdate: str | None
+    offerdate: str | None
+    coupon_percent: float | None
+    coupon_frequency: int | None
+    is_qualified: bool
+    lifecycle: Literal["active", "matured"]
+    market: AfbwsBondsChannelV1MarketOrNull
+    name: str | None
+    emitter_id: int | None
+    emitter_inn: str | None
+    bond_type: str | None
+    lot_value: float
+
+
+class AfbwsBondsChannelV1BondMsg(TypedDict):
+    """
+    Request: `secid`. Response: the bond, its payment `schedule` and the daily `history` (columnar). Unknown secid — error `not_found`.
+    """
+
+    channel: Literal["bonds"]
+    schema: Literal["afbws.bonds.bond.v1"]
+    request_id: AfbwsCommonV1RequestId
+    secid: NotRequired[AfbwsBondsChannelV1Secid]
+    bond: NotRequired[AfbwsBondsChannelV1Bond]
+    schedule: NotRequired[AfbwsBondsChannelV1Schedule]
+    history: NotRequired[AfbwsBondsChannelV1History]
+
+
+class AfbwsBondsChannelV1BondRow(TypedDict):
+    """
+    One bond in a search result list.
+    """
+
+    secid: AfbwsBondsChannelV1Secid
+    name: str | None
+    shortname: str
+    category: AfbwsBondsChannelV1Category
+    faceunit: AfbwsBondsChannelV1Faceunit
+    facevalue: float
+    matdate: str | None
+    offerdate: str | None
+    coupon_percent: float | None
+    coupon_frequency: int | None
+    is_qualified: bool
+    lifecycle: Literal["active", "matured"]
+    market: AfbwsBondsChannelV1MarketOrNull
+
+
+AfbwsBondsChannelV1Category: TypeAlias = Literal[
+    "ofz", "subfederal", "municipal", "corporate", "currency", "default"
+]
+
+
+class AfbwsBondsChannelV1Coupon(TypedDict):
+    """
+    One coupon of the bond schedule.
+    """
+
+    date: str
+    record_date: str | None
+    start_date: str | None
+    value: float | None
+    value_pct: float | None
+    facevalue: float | None
+
+
+class AfbwsBondsChannelV1Error(TypedDict):
+    channel: Literal["bonds"]
+    schema: Literal["afbws.bonds.error.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    code: AfbwsCommonV1ErrorCode
+    message: str
+
+
+class AfbwsBondsChannelV1Event(TypedDict):
+    """
+    An upcoming event of a bond held in the caller's portfolios, within the `notice_days` horizon.
+    """
+
+    secid: AfbwsBondsChannelV1Secid
+    shortname: str
+    portfolio_ids: list[str]
+    kind: AfbwsBondsChannelV1EventKind
+    date: str
+    window_start: NotRequired[str | None]
+    window_end: NotRequired[str | None]
+    amount: float | None
+    amount_rub: float | None
+    faceunit: AfbwsBondsChannelV1Faceunit
+    days_left: int
+
+
+AfbwsBondsChannelV1EventKind: TypeAlias = Literal[
+    "offer", "maturity", "amortization", "call"
+]
+
+
+class AfbwsBondsChannelV1Events(TypedDict):
+    """
+    Request is an empty command. Response: `items` — events of the caller's portfolios within the `notice_days` horizon of their settings. Server push: the same body WITHOUT `request_id` at the daily step.
+    """
+
+    channel: Literal["bonds"]
+    schema: Literal["afbws.bonds.events.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    items: NotRequired[list[AfbwsBondsChannelV1Event]]
+
+
+AfbwsBondsChannelV1Faceunit: TypeAlias = str
+
+
+AfbwsBondsChannelV1FavoriteColor: TypeAlias = Literal[
+    "yellow", "red", "blue", "green", "gray", "orange", "cyan", "purple", "pink", "teal"
+]
+
+
+AfbwsBondsChannelV1Flag: TypeAlias = Literal[
+    "float_assumed",
+    "indexed_nominal",
+    "no_fx",
+    "no_market",
+    "default",
+    "matured",
+    "no_trades",
+]
+
+
+class AfbwsBondsChannelV1History(TypedDict):
+    """
+    Daily history of the bond (columnar, like afbws.market.series.v1 tables), oldest first. `close` — percent of face value; `yield_close` — percent per year; `facevalue` — face value of the day in `faceunit`; `volume` — pieces.
+    """
+
+    columns: tuple[
+        Literal["date"],
+        Literal["close"],
+        Literal["yield_close"],
+        Literal["facevalue"],
+        Literal["volume"],
+    ]
+    rows: list[list[float | str | None]]
+
+
+AfbwsBondsChannelV1Market = TypedDict(
+    "AfbwsBondsChannelV1Market",
+    {
+        "price_pct": float | None,
+        "yield": float | None,
+        "ytm_kind": Literal["ytm", "yto"] | None,
+        "duration_days": int | None,
+        "accint": float | None,
+        "updated_at": str,
+    },
+)
+
+
+AfbwsBondsChannelV1MarketOrNull: TypeAlias = AfbwsBondsChannelV1Market | None
+
+
+class AfbwsBondsChannelV1NextCoupon(TypedDict):
+    """
+    Next coupon of a position.
+    """
+
+    date: str
+    value: float | None
+
+
+class AfbwsBondsChannelV1NextEvent(TypedDict):
+    """
+    Nearest offer/maturity/amortization/call of a position.
+    """
+
+    kind: AfbwsBondsChannelV1EventKind
+    date: str
+
+
+class AfbwsBondsChannelV1Offer(TypedDict):
+    """
+    One offer of the bond schedule.
+    """
+
+    date: str
+    window_start: str | None
+    window_end: str | None
+    price_pct: float | None
+    kind: str | None
+
+
+class AfbwsBondsChannelV1Payment(TypedDict):
+    """
+    A past or future payment of a position.
+    """
+
+    date: str
+    secid: AfbwsBondsChannelV1Secid
+    kind: Literal["coupon", "amortization", "maturity", "offer_redemption"]
+    amount: float
+    amount_rub: float | None
+    faceunit: AfbwsBondsChannelV1Faceunit
+    status: Literal["received", "expected"]
+    assumed: bool
+
+
+class AfbwsBondsChannelV1Portfolio(TypedDict):
+    """
+    Request: `id`. Response: the portfolio (`portfolioRef` with its composition) with its journal and analytics; a public portfolio is read-only: its `trades` are empty. Server push: the same body WITHOUT `request_id` once per market snapshot and after each journal edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
+    """
+
+    channel: Literal["bonds"]
+    schema: Literal["afbws.bonds.portfolio.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    id: NotRequired[str]
+    portfolio: NotRequired[AfbwsBondsChannelV1PortfolioRef]
+    positions: NotRequired[list[AfbwsBondsChannelV1Position]]
+    trades: NotRequired[list[AfbwsBondsChannelV1Trade]]
+    payments: NotRequired[list[AfbwsBondsChannelV1Payment]]
+    series: NotRequired[AfbwsBondsChannelV1Series]
+    totals: NotRequired[AfbwsBondsChannelV1Totals]
+    flags: NotRequired[list[AfbwsBondsChannelV1Flag]]
+
+
+class AfbwsBondsChannelV1PortfolioEdit(TypedDict):
+    """
+    A portfolio upsert item.
+    """
+
+    id: str
+    name: str
+    visibility: NotRequired[AfbwsBondsChannelV1Visibility]
+    icon_id: NotRequired[str | None]
+    icon_color: NotRequired[AfbwsBondsChannelV1FavoriteColor | None]
+    secids: NotRequired[list[AfbwsBondsChannelV1Secid]]
+
+
+class AfbwsBondsChannelV1PortfolioRef(TypedDict):
+    """
+    A portfolio in a list: attributes and composition. No analytics.
+    """
+
+    id: str
+    name: str
+    visibility: AfbwsBondsChannelV1Visibility
+    icon_id: str | None
+    icon_color: AfbwsBondsChannelV1FavoriteColor | None
+    own: bool
+    secids: list[AfbwsBondsChannelV1Secid]
+
+
+class AfbwsBondsChannelV1PortfolioRejection(TypedDict):
+    """
+    A refused portfolio of `portfolios.set` (`forbidden`, `validation_error`, `not_found`).
+    """
+
+    id: str
+    code: AfbwsCommonV1ErrorCode
+    message: str
+
+
+class AfbwsBondsChannelV1Portfolios(TypedDict):
+    """
+    Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `secids[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests. No analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
+    """
+
+    channel: Literal["bonds"]
+    schema: Literal["afbws.bonds.portfolios.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    portfolios: NotRequired[list[AfbwsBondsChannelV1PortfolioRef]]
+    bonds: NotRequired[list[AfbwsBondsChannelV1BondRow]]
+
+
+class AfbwsBondsChannelV1PortfoliosSet(TypedDict):
+    """
+    Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `secids[]` in final order (omit `secids` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every secid must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `secids`), the bond rows of all compositions in `bonds` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
+    """
+
+    channel: Literal["bonds"]
+    schema: Literal["afbws.bonds.portfolios.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    portfolios: NotRequired[list[Any]]
+    remove: NotRequired[list[RemoveItem]]
+    rejected: NotRequired[list[AfbwsBondsChannelV1PortfolioRejection]]
+    bonds: NotRequired[list[AfbwsBondsChannelV1BondRow]]
+
+
+class AfbwsBondsChannelV1Position(TypedDict):
+    """
+    One row per bond of the portfolio. Fields that depend on purchases (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`) are null for a bond without purchases (flag `no_trades`).
+    """
+
+    secid: AfbwsBondsChannelV1Secid
+    shortname: str
+    category: AfbwsBondsChannelV1Category
+    faceunit: AfbwsBondsChannelV1Faceunit
+    quantity: int | None
+    avg_price_pct: float | None
+    invested: float | None
+    facevalue: float
+    price_pct: float | None
+    accint: float | None
+    market_value: float | None
+    market_value_rub: float | None
+    current_yield: float | None
+    ytm_market: float | None
+    ytm_kind: Literal["ytm", "yto"] | None
+    ytm_purchase: float | None
+    duration_days: int | None
+    next_coupon: AfbwsBondsChannelV1NextCoupon | None
+    next_event: AfbwsBondsChannelV1NextEvent | None
+    received: Received | None
+    flags: list[AfbwsBondsChannelV1Flag]
+
+
+class AfbwsBondsChannelV1Schedule(TypedDict):
+    """
+    Payment schedule of the bond (ISS bondization).
+    """
+
+    coupons: list[AfbwsBondsChannelV1Coupon]
+    amortizations: list[AfbwsBondsChannelV1Amortization]
+    offers: list[AfbwsBondsChannelV1Offer]
+
+
+class AfbwsBondsChannelV1Search(TypedDict):
+    """
+    Request: optional filters; `query` matches secid, ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `name` (default), `matdate`, `yield`, with direction `sort_direction` `asc` (default) / `desc`; the order is fully deterministic (see `sort`); `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.
+    """
+
+    channel: Literal["bonds"]
+    schema: Literal["afbws.bonds.search.v1"]
+    request_id: AfbwsCommonV1RequestId
+    query: NotRequired[str]
+    categories: NotRequired[list[AfbwsBondsChannelV1Category]]
+    faceunits: NotRequired[list[AfbwsBondsChannelV1Faceunit]]
+    mat_from: NotRequired[str]
+    mat_to: NotRequired[str]
+    include_default: NotRequired[bool]
+    include_matured: NotRequired[bool]
+    sort: NotRequired[Literal["name", "matdate", "yield"]]
+    sort_direction: NotRequired[Literal["asc", "desc"]]
+    offset: NotRequired[int]
+    limit: NotRequired[int]
+    total: NotRequired[int]
+    items: NotRequired[list[AfbwsBondsChannelV1BondRow]]
+
+
+AfbwsBondsChannelV1Secid: TypeAlias = str
+
+
+class AfbwsBondsChannelV1Series(TypedDict):
+    """
+    Daily series of the portfolio from the date of the first trade (columnar). `market_value_rub`, `invested_rub`, `received_rub` — rubles; `ytm` — percent per year.
+    """
+
+    columns: tuple[
+        Literal["date"],
+        Literal["market_value_rub"],
+        Literal["invested_rub"],
+        Literal["received_rub"],
+        Literal["ytm"],
+    ]
+    rows: list[list[float | str | None]]
+
+
+AfbwsBondsChannelV1Severity: TypeAlias = Literal["low", "medium", "high"]
+
+
+class AfbwsBondsChannelV1Signal(TypedDict):
+    """
+    A market-wide price/volume anomaly of one bond.
+    """
+
+    secid: AfbwsBondsChannelV1Secid
+    shortname: str
+    category: AfbwsBondsChannelV1Category
+    date: str
+    severity: AfbwsBondsChannelV1Severity
+    rules: list[AfbwsBondsChannelV1SignalRule]
+    held: bool
+
+
+class AfbwsBondsChannelV1SignalRule(TypedDict):
+    """
+    One triggered anomaly rule.
+    """
+
+    rule: str
+    severity: AfbwsBondsChannelV1Severity
+    metrics: dict[str, float | str | None]
+
+
+class AfbwsBondsChannelV1Signals(TypedDict):
+    """
+    Request: `days` (1..30, default 5) — how far back, `held_only` (default false) — only the caller's bonds. Response: `items`. Server push: new and strengthened signals WITHOUT `request_id` to the connections that requested the feed.
+    """
+
+    channel: Literal["bonds"]
+    schema: Literal["afbws.bonds.signals.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    days: NotRequired[int]
+    held_only: NotRequired[bool]
+    items: NotRequired[list[AfbwsBondsChannelV1Signal]]
+
+
+class AfbwsBondsChannelV1Totals(TypedDict):
+    """
+    Portfolio totals; each figure is null when it cannot be computed.
+    """
+
+    invested_rub: float | None
+    market_value_rub: float | None
+    received_rub: float | None
+    xirr: float | None
+    ytm: float | None
+    duration_days: int | None
+    annual_coupons_rub: float | None
+
+
+class AfbwsBondsChannelV1Trade(TypedDict):
+    """
+    One journal entry (purchase or sale).
+    """
+
+    trade_id: str
+    secid: AfbwsBondsChannelV1Secid
+    trade_date: str
+    quantity: int
+    price_pct: float
+    accrued_int: NotRequired[float]
+    commission: NotRequired[float]
+
+
+class AfbwsBondsChannelV1TradeRejection(TypedDict):
+    """
+    A refused journal entry of `trades.set` (`validation_error`, `forbidden`, `not_found`).
+    """
+
+    trade_id: str
+    code: AfbwsCommonV1ErrorCode
+    message: str
+
+
+class AfbwsBondsChannelV1TradesSet(TypedDict):
+    """
+    Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Only for a PERSONAL portfolio of the caller: a visible public portfolio is `forbidden` (public portfolios hold no purchases), an unknown or foreign personal one is `not_found`. A purchase of a bond that is not in the portfolio composition adds the bond to the composition (at the end) in the same operation. Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the secid exists (a `category=default` bond is allowed in a personal portfolio). Response: the whole journal in `trades`, the actual composition in `secids` and the refused entries in `rejected`. When the composition grew, the other connections of the owner receive a `portfolios` push.
+    """
+
+    channel: Literal["bonds"]
+    schema: Literal["afbws.bonds.trades.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    portfolio_id: NotRequired[str]
+    upsert: NotRequired[list[AfbwsBondsChannelV1Trade]]
+    remove: NotRequired[list[RemoveItem]]
+    trades: NotRequired[list[AfbwsBondsChannelV1Trade]]
+    rejected: NotRequired[list[AfbwsBondsChannelV1TradeRejection]]
+    secids: NotRequired[list[AfbwsBondsChannelV1Secid]]
+
+
+AfbwsBondsChannelV1Root: TypeAlias = (
+    AfbwsBondsChannelV1Search
+    | AfbwsBondsChannelV1BondMsg
+    | AfbwsBondsChannelV1Portfolios
+    | AfbwsBondsChannelV1Portfolio
+    | AfbwsBondsChannelV1PortfoliosSet
+    | AfbwsBondsChannelV1TradesSet
+    | AfbwsBondsChannelV1Signals
+    | AfbwsBondsChannelV1Events
+    | AfbwsBondsChannelV1Error
+)
+
+
+AfbwsBondsChannelV1Visibility: TypeAlias = Literal[
+    "personal", "guest", "user", "manager"
+]
 
 
 class AfbwsCatalogChannelV1ArchiveItem(TypedDict):
@@ -1322,23 +1821,23 @@ AfbwsInstrumentChannelV2FavoriteColor: TypeAlias = Literal[
 
 
 class AfbwsInstrumentChannelV2FavoriteEntry(TypedDict):
-    kind: Literal["instrument", "asset"]
+    kind: Literal["instrument", "asset", "bond"]
     key: str
     color: AfbwsInstrumentChannelV2FavoriteColor
 
 
 class AfbwsInstrumentChannelV2FavoriteRef(TypedDict):
     """
-    `key` is an `instrument_key` for kind `instrument` and an `asset_id` for kind `asset`.
+    `key` is an `instrument_key` for kind `instrument`, an `asset_id` for kind `asset` and the `secid` of a bond for kind `bond` (case-sensitive, as in ISS; NOT an `instrument_key`). Kind `bond` needs the capability `bonds`: `paint` with a `bond` ref (`mark`/`unmark`/`order`) from a connection without it is refused with `forbidden`, and `bond` entries are returned in `favorites` only to connections with `bonds` (without it they stay stored, just not sent).
     """
 
-    kind: Literal["instrument", "asset"]
+    kind: Literal["instrument", "asset", "bond"]
     key: str
 
 
 class AfbwsInstrumentChannelV2Favorites(TypedDict):
     """
-    Request: only `request_id`. Response: `favorites` in display order (array position is the order).
+    Request: only `request_id`. Response: `favorites` in display order (array position is the order); entries of all kinds (`instrument`, `asset`, `bond`) share ONE order. Entries of kind `bond` are returned only to connections with the capability `bonds`.
     """
 
     channel: Literal["instrument"]
@@ -1381,7 +1880,7 @@ class AfbwsInstrumentChannelV2Member(TypedDict):
 
 class AfbwsInstrumentChannelV2Paint(TypedDict):
     """
-    No CAS: `mark` (paint or repaint), `unmark` (idempotent removal) and `order` (REPLACES the whole display order) are idempotent. Request: any of `mark`/`unmark`/`order`. Response: `marked`/`unmarked`/`order` — only the sections that were present in the request; `unmarked` lists only refs that really were favorites. A response is recognised by `marked`/`unmarked`; an `order`-only request and its echo have the same shape.
+    No CAS: `mark` (paint or repaint), `unmark` (idempotent removal) and `order` (REPLACES the whole display order; refs of any kind `instrument`/`asset`/`bond`) are idempotent. A ref of kind `bond` (`key` = `secid`) requires the capability `bonds`, otherwise the request is refused with `forbidden`; an unknown `secid` in `mark` is a `validation_error`. Request: any of `mark`/`unmark`/`order`. Response: `marked`/`unmarked`/`order` — only the sections that were present in the request; `unmarked` lists only refs that really were favorites. A response is recognised by `marked`/`unmarked`; an `order`-only request and its echo have the same shape.
     """
 
     channel: Literal["instrument"]
@@ -1837,6 +2336,15 @@ class Alarms(TypedDict):
 
 class Alarms1(TypedDict):
     confirm_delete: NotRequired[bool]
+
+
+class Amount(TypedDict):
+    """
+    Amount of the event for the held quantity.
+    """
+
+    value: float
+    currency: str
 
 
 class AuthV1(TypedDict):
@@ -2366,7 +2874,7 @@ class ConfigSettings(TypedDict):
 
 class ConfigSettingsV1(TypedDict):
     """
-    Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard`/`form`/`participants` are deep-merged (arrays such as `participants.columns` are replaced whole), `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
+    Canon of the user settings carried by `afbws.config.settings.v1` (root = the `settings` object) and of the platform defaults carried by `afbws.config.defaults.v1` (`$defs/defaults`). Replaces the parked `draft/` schemas and the legacy `settings` channel payload. Every property is optional: the on-disk user file stores only what the user overrode and a write is a partial patch (blocks `profile`/`interface`/`dataset`/`dashboard`/`form`/`participants`/`bonds` are deep-merged (arrays such as `participants.columns` are replaced whole), `trade` is replaced whole). Not part of the payload any more: `limits` (travels in `auth_ok`), `favorites` (channel `instrument`), `indicators`/`primitives` (channel `gp`), alarms/tradeplans (their own channels). Booleans are real JSON booleans.
     """
 
     profile: NotRequired[ConfigProfile]
@@ -2376,6 +2884,7 @@ class ConfigSettingsV1(TypedDict):
     trade: NotRequired[ConfigTrade]
     form: NotRequired[ConfigV1Form]
     participants: NotRequired[ConfigV1Participants]
+    bonds: NotRequired[ConfigV1Bonds]
 
 
 class ConfigToken1(TypedDict):
@@ -2427,6 +2936,15 @@ class ConfigTrade(TypedDict):
     default_risk_pct: NotRequired[float]
     notify: NotRequired[ConfigV1TradeNotify]
     chart_deal_markers: NotRequired[bool]
+
+
+class ConfigV1Bonds(TypedDict):
+    """
+    Notification preferences of the bond portfolios (capability `bonds`). Deep-merged on write like `interface`.
+    """
+
+    notice_days: NotRequired[int]
+    notify_anomaly: NotRequired[bool]
 
 
 class ConfigV1ChartToolbar(TypedDict):
@@ -4682,6 +5200,30 @@ class NotificationAlarmV1(TypedDict):
     timestamp: NotRequired[str]
 
 
+class NotificationBondV1Root(TypedDict):
+    """
+    AFB-side MQTT notification payload published to <topic_base>/system/<user_id> about an event of a bond the user holds in a portfolio: an offer, a maturity, an amortization, an issuer call, or a price/volume anomaly signal. Consumed by the AFB informer daemon (Telegram/email) exactly like alarm/deal/link/system/expiration notifications — informer never reads AFB settings, the recipient and channels come only from `user`. Event notices are sent at most once per (user, bond, `kind`, `stage`, event date) and not at all when the user's `bonds.notice_days` is 0; anomaly notices are not sent when `bonds.notify_anomaly` is false. NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time.
+    """
+
+    schema: Literal["afb.notification.bond.v1"]
+    notification_id: str
+    kind: Literal["offer", "maturity", "amortization", "call", "anomaly"]
+    stage: Literal["warn", "window_open", "window_last_day", "d0", "signal"]
+    secid: str
+    isin: NotRequired[str]
+    shortname: NotRequired[str]
+    event_date: NotRequired[str]
+    window_start: NotRequired[str]
+    window_end: NotRequired[str]
+    days_left: NotRequired[int]
+    amount: NotRequired[Amount]
+    portfolios: list[Portfolio]
+    severity: NotRequired[Literal["low", "medium", "high"]]
+    rules: NotRequired[list[str]]
+    user: User
+    timestamp: NotRequired[str]
+
+
 class NotificationDealV1(TypedDict):
     """
     AFB-side MQTT notification payload published to <topic_base>/deals/<user_id> for a deal lifecycle event the user opted into (Настройки → Торговля). Consumed by the AFB informer daemon (Telegram/email). NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time; `at` (when present) is the BF event-occurrence time carried through from the underlying order.*/position.*/deal.* payload. `display` carries human-readable strings pre-rendered by AFB backend, mirroring the alarm notification design.
@@ -4893,6 +5435,11 @@ class Plans1(TypedDict):
     risk_top: NotRequired[bool]
 
 
+class Portfolio(TypedDict):
+    id: str
+    name: str
+
+
 class Position(TypedDict):
     symbol: NotRequired[str]
     quantity: NotRequired[int]
@@ -4921,6 +5468,18 @@ class PresetTimeframes(TypedDict):
 
 class Primitives(TypedDict):
     confirm_delete: NotRequired[bool]
+
+
+class Received(TypedDict):
+    """
+    Payments received so far; null without purchases.
+    """
+
+    coupons: float
+    amortizations: float
+
+
+RemoveItem: TypeAlias = str
 
 
 class ScreenerV1Error(TypedDict):

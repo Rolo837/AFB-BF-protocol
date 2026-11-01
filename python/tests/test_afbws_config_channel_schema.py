@@ -68,6 +68,16 @@ def test_settings_form_block_is_strict(registry):
             v.validate(_msg("settings", request_id="r1", settings=bad))
 
 
+def test_settings_bonds_block(registry):
+    v = _validator("settings", registry)
+    v.validate(_msg("settings", request_id="r1", settings={"bonds": {}}))
+    v.validate(_msg("settings", request_id="r1", settings={"bonds": {"notice_days": 0, "notify_anomaly": False}}))
+    v.validate(_msg("settings", request_id="r1", settings={"bonds": {"notice_days": 90}}))
+    for bad in ({"notice_days": 91}, {"notice_days": -1}, {"notice_days": 1.5}, {"notify_anomaly": "yes"}, {"unknown": 1}):
+        with pytest.raises(Exception):
+            v.validate(_msg("settings", request_id="r1", settings={"bonds": bad}))
+
+
 def test_settings_participants_block_is_strict(registry):
     v = _validator("settings", registry)
     v.validate(_msg("settings", request_id="r1", settings={"participants": {}}))

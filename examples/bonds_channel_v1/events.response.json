@@ -1,0 +1,22 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.events.v1",
+  "request_id": "b-9",
+  "items": [
+    {
+      "secid": "SU26238RMFS4",
+      "shortname": "ОФЗ 26238",
+      "portfolio_ids": [
+        "p-1"
+      ],
+      "kind": "offer",
+      "date": "2027-03-10",
+      "window_start": "2027-02-20",
+      "window_end": "2027-03-05",
+      "amount": 100000,
+      "amount_rub": 100000,
+      "faceunit": "SUR",
+      "days_left": 14
+    }
+  ]
+}

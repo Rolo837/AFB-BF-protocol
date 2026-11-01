@@ -1,0 +1,32 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.signals.v1",
+  "request_id": "b-8",
+  "items": [
+    {
+      "secid": "RU000A105XYZ",
+      "shortname": "Компания БО-01",
+      "category": "corporate",
+      "date": "2026-11-02",
+      "severity": "high",
+      "rules": [
+        {
+          "rule": "price_drop",
+          "severity": "high",
+          "metrics": {
+            "drop_pp": 7.2,
+            "threshold_pp": 5.0
+          }
+        },
+        {
+          "rule": "rvol",
+          "severity": "medium",
+          "metrics": {
+            "rvol": 4.1
+          }
+        }
+      ],
+      "held": true
+    }
+  ]
+}

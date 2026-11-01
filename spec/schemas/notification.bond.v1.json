@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/notification.bond.v1.json",
+  "title": "Bond notification afb.notification.bond.v1",
+  "description": "AFB-side MQTT notification payload published to <topic_base>/system/<user_id> about an event of a bond the user holds in a portfolio: an offer, a maturity, an amortization, an issuer call, or a price/volume anomaly signal. Consumed by the AFB informer daemon (Telegram/email) exactly like alarm/deal/link/system/expiration notifications — informer never reads AFB settings, the recipient and channels come only from `user`. Event notices are sent at most once per (user, bond, `kind`, `stage`, event date) and not at all when the user's `bonds.notice_days` is 0; anomaly notices are not sent when `bonds.notify_anomaly` is false. NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time.",
+  "type": "object",
+  "required": [
+    "schema",
+    "notification_id",
+    "kind",
+    "stage",
+    "secid",
+    "portfolios",
+    "user"
+  ],
+  "properties": {
+    "schema": {
+      "const": "afb.notification.bond.v1"
+    },
+    "notification_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable id for informer-side deduplication, built from user + secid + kind + stage + event date (signal date for an anomaly)."
+    },
+    "kind": {
+      "enum": [
+        "offer",
+        "maturity",
+        "amortization",
+        "call",
+        "anomaly"
+      ],
+      "description": "`offer` — buyback offer (with the application window); `maturity` — redemption; `amortization` — partial repayment of the face value; `call` — issuer's call option; `anomaly` — price/volume anomaly signal."
+    },
+    "stage": {
+      "enum": [
+        "warn",
+        "window_open",
+        "window_last_day",
+        "d0",
+        "signal"
+      ],
+      "description": "`warn` — `notice_days` threshold reached; `window_open` — the offer application window has opened; `window_last_day` — the last day of the offer window; `d0` — the event day; `signal` — an anomaly (only with kind `anomaly`, and only it)."
+    },
+    "secid": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32,
+      "description": "MOEX bond identifier. Case-sensitive."
+    },
+    "isin": {
+      "type": "string",
+      "description": "ISIN, when known."
+    },
+    "shortname": {
+      "type": "string",
+      "description": "Short display name of the bond."
+    },
+    "event_date": {
+      "type": "string",
+      "format": "date",
+      "description": "`YYYY-MM-DD`: date of the event (absent for an anomaly)."
+    },
+    "window_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Start of the offer application window (offer only)."
+    },
+    "window_end": {
+      "type": "string",
+      "format": "date",
+      "description": "End of the offer application window (offer only)."
+    },
+    "days_left": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Calendar days from the notice date to `event_date` (0 on the event day)."
+    },
+    "amount": {
+      "type": "object",
+      "required": [
+        "value",
+        "currency"
+      ],
+      "additionalProperties": false,
+      "description": "Amount of the event for the held quantity.",
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "currency": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Currency of the bond face value."
+        }
+      }
+    },
+    "portfolios": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The user's portfolios that hold the bond.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "severity": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "description": "Anomaly strength (anomaly only)."
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Codes of the triggered anomaly rules (anomaly only)."
+    },
+    "user": {
+      "type": "object",
+      "required": [
+        "name",
+        "telegram",
+        "email",
+        "notify_telegram",
+        "notify_email"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "telegram": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "notify_telegram": {
+          "type": "boolean"
+        },
+        "notify_email": {
+          "type": "boolean"
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO-8601 publish time; added by MQTTPublisher, not by the notification builder."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "anomaly"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stage": {
+            "const": "signal"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "stage": {
+            "not": {
+              "const": "signal"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

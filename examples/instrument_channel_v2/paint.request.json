@@ -7,12 +7,21 @@
       "kind": "instrument",
       "key": "XNYM:futures:CL",
       "color": "red"
+    },
+    {
+      "kind": "bond",
+      "key": "SU26238RMFS4",
+      "color": "green"
     }
   ],
   "unmark": [
     {
       "kind": "asset",
       "key": "a1"
+    },
+    {
+      "kind": "bond",
+      "key": "RU000A10BQM7"
     }
   ]
 }

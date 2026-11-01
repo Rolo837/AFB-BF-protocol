@@ -1,0 +1,2157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/bonds.channel.v1.json",
+  "x-afbws-support-id": "afbws.bonds.channel.v1",
+  "title": "bonds channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bonds: a bond search and cards, bond portfolios, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `signals`, `events`. There is no copy operation: adding a bond, or the composition of somebody else's portfolio, to one's own portfolio is an edit of the own composition via `portfolios.set`. PORTFOLIO MODEL. A portfolio is a set (type `bond`) with a COMPOSITION: `secids[]` — bonds only, in display order, at most 200. A PUBLIC (reference) portfolio is created and edited by staff only (`visibility` guest|user|manager) and is pure structure: it has no purchases. PURCHASES (the trade journal: date, price, quantity) exist only in PERSONAL portfolios and are an attribute of a bond that is in the composition; a bond may be in the composition with no purchases (observation). Removing a bond from a personal portfolio deletes its purchases there. A personal portfolio can be created by anybody with the `bonds` capability; a public visibility needs staff (`forbidden`); the scope personal <-> public never changes (`validation_error`); a `category=default` bond cannot be in a public portfolio. The bond search is paged by `offset` / `limit` (at most 100 per page); there is no cursor. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Reconciliation with the broker account (`reconcile`) is added later, additively, and is gated by the same capability `bonds`. See AFB/docs/ws/bonds.md.",
+  "type": "object",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/search"
+    },
+    {
+      "$ref": "#/$defs/bondMsg"
+    },
+    {
+      "$ref": "#/$defs/portfolios"
+    },
+    {
+      "$ref": "#/$defs/portfolio"
+    },
+    {
+      "$ref": "#/$defs/portfoliosSet"
+    },
+    {
+      "$ref": "#/$defs/tradesSet"
+    },
+    {
+      "$ref": "#/$defs/signals"
+    },
+    {
+      "$ref": "#/$defs/events"
+    },
+    {
+      "$ref": "#/$defs/error"
+    }
+  ],
+  "$defs": {
+    "secid": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32,
+      "description": "MOEX ISS bond identifier (SECID) — the bond key on this channel; case-sensitive, never normalized (.lower()/.upper())."
+    },
+    "category": {
+      "enum": [
+        "ofz",
+        "subfederal",
+        "municipal",
+        "corporate",
+        "currency",
+        "default"
+      ],
+      "description": "Bond category: `ofz` federal government, `subfederal` regions, `municipal` municipalities, `corporate`, `currency` (currency-denominated), `default` — issuers in (technical) default. Replacement bonds are not a separate category."
+    },
+    "visibility": {
+      "enum": [
+        "personal",
+        "guest",
+        "user",
+        "manager"
+      ],
+      "description": "Who sees a portfolio; same semantics as afbws.instrument.channel.v2 visibility. `personal` — only its owner (any user with the `bonds` capability may create these). `guest`/`user`/`manager` — a PUBLIC (reference) portfolio visible to callers whose tier is at least that one; creating, changing or deleting a public portfolio and editing its journal is manager-only (`forbidden` otherwise)."
+    },
+    "favoriteColor": {
+      "enum": [
+        "yellow",
+        "red",
+        "blue",
+        "green",
+        "gray",
+        "orange",
+        "cyan",
+        "purple",
+        "pink",
+        "teal"
+      ],
+      "description": "Same list and order as afbws.instrument.channel.v2 favoriteColor (kept in lockstep; no cross-reference on purpose)."
+    },
+    "faceunit": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8,
+      "description": "Currency of the bond face value (ISS FACEUNIT, e.g. `SUR`, `USD`, `CNY`). All money fields without the `_rub` suffix are in this currency; fields with `_rub` are the same amount converted to rubles."
+    },
+    "flag": {
+      "enum": [
+        "float_assumed",
+        "indexed_nominal",
+        "no_fx",
+        "no_market",
+        "default",
+        "matured",
+        "no_trades"
+      ],
+      "description": "Data-quality marker explaining an assumption behind a figure. `float_assumed` — a future coupon is taken equal to the last known one (floater); `indexed_nominal` — a future face value of an inflation-indexed OFZ is taken equal to the current one; `no_fx` — no FX rate, `_rub` figures are missing; `no_market` — no market data, valued by the last known price; `default` — the issuer is in default; `matured` — the bond is already redeemed. `no_trades` — the bond is in the portfolio composition but has no purchases (purchase-based figures are null)."
+    },
+    "market": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Market block of a bond. The whole block is null outside trading and when there is no data.",
+      "required": [
+        "price_pct",
+        "yield",
+        "ytm_kind",
+        "duration_days",
+        "accint",
+        "updated_at"
+      ],
+      "properties": {
+        "price_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Last (or close) price in percent of face value."
+        },
+        "yield": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Yield to maturity or to offer, percent per year."
+        },
+        "ytm_kind": {
+          "enum": [
+            "ytm",
+            "yto",
+            null
+          ],
+          "description": "What `yield` is: `ytm` to maturity, `yto` to the nearest offer; null when there is no yield."
+        },
+        "duration_days": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Modified duration, days."
+        },
+        "accint": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Accrued coupon interest per bond, in `faceunit`."
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Moment of the quote (ISO 8601 with zone)."
+        }
+      }
+    },
+    "marketOrNull": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/market"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "`market` block, or null outside trading / without data."
+    },
+    "bondRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One bond in a search result list.",
+      "required": [
+        "secid",
+        "name",
+        "shortname",
+        "category",
+        "faceunit",
+        "facevalue",
+        "matdate",
+        "offerdate",
+        "coupon_percent",
+        "coupon_frequency",
+        "is_qualified",
+        "lifecycle",
+        "market"
+      ],
+      "properties": {
+        "secid": {
+          "$ref": "#/$defs/secid"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Full bond name (issue title) as given by ISS; null when unknown. Shown in the list plaque; search by ISIN or issuer stays a server-side filter (`query`) and does not add them to the row."
+        },
+        "shortname": {
+          "type": "string",
+          "description": "Short display name."
+        },
+        "category": {
+          "$ref": "#/$defs/category"
+        },
+        "faceunit": {
+          "$ref": "#/$defs/faceunit"
+        },
+        "facevalue": {
+          "type": "number",
+          "description": "Current face value in `faceunit` (for inflation-indexed OFZ — the daily indexed value)."
+        },
+        "matdate": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Maturity date; null for perpetual bonds."
+        },
+        "offerdate": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Nearest future offer date; null when none."
+        },
+        "coupon_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Current annual coupon rate, percent of face value; null when unknown."
+        },
+        "coupon_frequency": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Coupon payments per year; null when unknown."
+        },
+        "is_qualified": {
+          "type": "boolean",
+          "description": "True when only qualified investors may buy the bond."
+        },
+        "lifecycle": {
+          "enum": [
+            "active",
+            "matured"
+          ],
+          "description": "`active` — traded or awaiting redemption; `matured` — redeemed (returned only with `include_matured`)."
+        },
+        "market": {
+          "$ref": "#/$defs/marketOrNull"
+        }
+      }
+    },
+    "bond": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A bond card: the search row plus issuer and lot attributes.",
+      "required": [
+        "secid",
+        "isin",
+        "shortname",
+        "emitter_title",
+        "category",
+        "faceunit",
+        "facevalue",
+        "matdate",
+        "offerdate",
+        "coupon_percent",
+        "coupon_frequency",
+        "is_qualified",
+        "lifecycle",
+        "market",
+        "name",
+        "emitter_id",
+        "emitter_inn",
+        "bond_type",
+        "lot_value"
+      ],
+      "properties": {
+        "secid": {
+          "$ref": "#/$defs/secid"
+        },
+        "isin": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "ISIN; null when ISS has none."
+        },
+        "shortname": {
+          "type": "string",
+          "description": "Short display name."
+        },
+        "emitter_title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Issuer name; null when unknown."
+        },
+        "category": {
+          "$ref": "#/$defs/category"
+        },
+        "faceunit": {
+          "$ref": "#/$defs/faceunit"
+        },
+        "facevalue": {
+          "type": "number",
+          "description": "Current face value in `faceunit` (for inflation-indexed OFZ — the daily indexed value)."
+        },
+        "matdate": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Maturity date; null for perpetual bonds."
+        },
+        "offerdate": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Nearest future offer date; null when none."
+        },
+        "coupon_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Current annual coupon rate, percent of face value; null when unknown."
+        },
+        "coupon_frequency": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Coupon payments per year; null when unknown."
+        },
+        "is_qualified": {
+          "type": "boolean",
+          "description": "True when only qualified investors may buy the bond."
+        },
+        "lifecycle": {
+          "enum": [
+            "active",
+            "matured"
+          ],
+          "description": "`active` — traded or awaiting redemption; `matured` — redeemed (returned only with `include_matured`)."
+        },
+        "market": {
+          "$ref": "#/$defs/marketOrNull"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Full bond name (issue title) as given by ISS; null when unknown."
+        },
+        "emitter_id": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "ISS issuer id; null when unknown."
+        },
+        "emitter_inn": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Issuer INN; null when unknown."
+        },
+        "bond_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "ISS bond type as is (SECTYPE/BONDTYPE text), for display."
+        },
+        "lot_value": {
+          "type": "number",
+          "description": "Lot value in `faceunit` (lot size times face value) — the minimum purchase amount."
+        }
+      }
+    },
+    "coupon": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One coupon of the bond schedule.",
+      "required": [
+        "date",
+        "record_date",
+        "start_date",
+        "value",
+        "value_pct",
+        "facevalue"
+      ],
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Payment date."
+        },
+        "record_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Record date: a holder on this date receives the payment."
+        },
+        "start_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Start of the coupon period."
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Payment per bond, in `faceunit`."
+        },
+        "value_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Coupon rate for the period, percent of the face value."
+        },
+        "facevalue": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Face value the coupon is calculated from (current, indexed for OFZ-IN)."
+        }
+      }
+    },
+    "amortization": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One amortization (partial repayment of the face value).",
+      "required": [
+        "date",
+        "value",
+        "value_pct"
+      ],
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Payment date."
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Repaid amount per bond, in `faceunit`."
+        },
+        "value_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Repaid part, percent of the initial face value."
+        }
+      }
+    },
+    "offer": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One offer of the bond schedule.",
+      "required": [
+        "date",
+        "window_start",
+        "window_end",
+        "price_pct",
+        "kind"
+      ],
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Offer (buyback) date."
+        },
+        "window_start": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Start of the window for submitting the offer application."
+        },
+        "window_end": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "End of the window for submitting the offer application."
+        },
+        "price_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Offer price, percent of face value."
+        },
+        "kind": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Offer type as given by ISS (put/call etc.), for display."
+        }
+      }
+    },
+    "schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Payment schedule of the bond (ISS bondization).",
+      "required": [
+        "coupons",
+        "amortizations",
+        "offers"
+      ],
+      "properties": {
+        "coupons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/coupon"
+          },
+          "description": "All known coupons, past and future, by date."
+        },
+        "amortizations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/amortization"
+          },
+          "description": "All known amortizations by date."
+        },
+        "offers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/offer"
+          },
+          "description": "All known offers by date."
+        }
+      }
+    },
+    "history": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "columns",
+        "rows"
+      ],
+      "description": "Daily history of the bond (columnar, like afbws.market.series.v1 tables), oldest first. `close` — percent of face value; `yield_close` — percent per year; `facevalue` — face value of the day in `faceunit`; `volume` — pieces.",
+      "properties": {
+        "columns": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "prefixItems": [
+            {
+              "const": "date"
+            },
+            {
+              "const": "close"
+            },
+            {
+              "const": "yield_close"
+            },
+            {
+              "const": "facevalue"
+            },
+            {
+              "const": "volume"
+            }
+          ],
+          "description": "Fixed column order: date, close, yield_close, facevalue, volume."
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": [
+                "number",
+                "string",
+                "null"
+              ]
+            }
+          },
+          "description": "Each row has the same length and order as `columns`; a missing value is null (never NaN)."
+        }
+      }
+    },
+    "portfolioRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A portfolio in a list: attributes and composition. No analytics.",
+      "required": [
+        "id",
+        "name",
+        "visibility",
+        "icon_id",
+        "icon_color",
+        "own",
+        "secids"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Portfolio id (client-generated on create)."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display name."
+        },
+        "visibility": {
+          "$ref": "#/$defs/visibility"
+        },
+        "icon_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128,
+          "description": "Opaque icon key; null — none."
+        },
+        "icon_color": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/favoriteColor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Icon color; null — none."
+        },
+        "own": {
+          "type": "boolean",
+          "description": "True when the portfolio is the caller's own; false for a public portfolio of staff (read-only for the caller; its composition can be added to one's own portfolio via `portfolios.set`)."
+        },
+        "secids": {
+          "type": "array",
+          "maxItems": 200,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/secid"
+          },
+          "description": "Composition: the bonds of the portfolio in display order (at most 200, no duplicates). Empty for a new portfolio."
+        }
+      }
+    },
+    "portfolioEdit": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A portfolio upsert item.",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Portfolio id; unknown id creates the portfolio."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display name."
+        },
+        "visibility": {
+          "$ref": "#/$defs/visibility",
+          "description": "Omitted: `personal` on create, unchanged on update. A public visibility is staff-only (`forbidden`). The scope personal <-> public cannot change (`validation_error`)."
+        },
+        "icon_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128,
+          "description": "Omitted: unchanged; null: clears."
+        },
+        "icon_color": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/favoriteColor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Omitted: unchanged; null: clears."
+        },
+        "secids": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "$ref": "#/$defs/secid"
+          },
+          "description": "The WHOLE composition in final order (omit the list to leave the composition untouched). Every secid must exist in the bond directory; duplicates are dropped by the backend; more than 200 bonds are refused (`maxItems` here; the backend enforces its own limit constant with `validation_error`); a public portfolio cannot contain a `category=default` bond. Bonds removed from the composition lose their purchases in this portfolio."
+        }
+      }
+    },
+    "trade": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One journal entry (purchase or sale).",
+      "required": [
+        "trade_id",
+        "secid",
+        "trade_date",
+        "quantity",
+        "price_pct"
+      ],
+      "properties": {
+        "trade_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Journal entry id (client-generated on create); a known id updates the entry."
+        },
+        "secid": {
+          "$ref": "#/$defs/secid"
+        },
+        "trade_date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Trade date; not later than today and not earlier than the bond's issue date."
+        },
+        "quantity": {
+          "type": "integer",
+          "not": {
+            "const": 0
+          },
+          "description": "Pieces: positive — purchase, negative — sale. A sale cannot exceed the balance on the date."
+        },
+        "price_pct": {
+          "type": "number",
+          "description": "Price, percent of face value.",
+          "exclusiveMinimum": 0
+        },
+        "accrued_int": {
+          "type": "number",
+          "description": "Accrued coupon interest per bond, in `faceunit`. Omitted: taken from the daily data of the date (ISS ACCINT).",
+          "minimum": 0
+        },
+        "commission": {
+          "type": "number",
+          "description": "Commission of the trade, in `faceunit`; part of the invested amount only, never affects yields.",
+          "minimum": 0
+        }
+      }
+    },
+    "nextCoupon": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Next coupon of a position.",
+      "required": [
+        "date",
+        "value"
+      ],
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Date of the next coupon."
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Next coupon amount per position (quantity applied), in `faceunit`."
+        }
+      }
+    },
+    "nextEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Nearest offer/maturity/amortization/call of a position.",
+      "required": [
+        "kind",
+        "date"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/eventKind"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Event date."
+        }
+      }
+    },
+    "eventKind": {
+      "enum": [
+        "offer",
+        "maturity",
+        "amortization",
+        "call"
+      ],
+      "description": "Event kind: `offer` buyback offer, `maturity` redemption, `amortization` partial repayment, `call` issuer's call option."
+    },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One row per bond of the portfolio. Fields that depend on purchases (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`) are null for a bond without purchases (flag `no_trades`).",
+      "required": [
+        "secid",
+        "shortname",
+        "category",
+        "faceunit",
+        "quantity",
+        "avg_price_pct",
+        "invested",
+        "facevalue",
+        "price_pct",
+        "accint",
+        "market_value",
+        "market_value_rub",
+        "current_yield",
+        "ytm_market",
+        "ytm_kind",
+        "ytm_purchase",
+        "duration_days",
+        "next_coupon",
+        "next_event",
+        "received",
+        "flags"
+      ],
+      "properties": {
+        "secid": {
+          "$ref": "#/$defs/secid"
+        },
+        "shortname": {
+          "type": "string",
+          "description": "Short display name."
+        },
+        "category": {
+          "$ref": "#/$defs/category"
+        },
+        "faceunit": {
+          "$ref": "#/$defs/faceunit"
+        },
+        "quantity": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Balance, pieces; null for a bond without purchases."
+        },
+        "avg_price_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Average purchase price, percent of face value; null without purchases."
+        },
+        "invested": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Sum of purchases including accrued interest and commission minus sales, in `faceunit`; null without purchases."
+        },
+        "facevalue": {
+          "type": "number",
+          "description": "Current face value in `faceunit`."
+        },
+        "price_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Current price, percent of face value."
+        },
+        "accint": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Accrued interest per bond, in `faceunit`."
+        },
+        "market_value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Market value of the position in `faceunit`; null without purchases or market data."
+        },
+        "market_value_rub": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Market value of the position in rubles; null without purchases, market data or FX rate."
+        },
+        "current_yield": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Annual coupon / (price + accrued interest), percent at the market price; does not depend on purchases (filled for a bond without purchases too); null only if undefined (no price or no coupon)."
+        },
+        "ytm_market": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Yield at the market price, percent per year."
+        },
+        "ytm_kind": {
+          "enum": [
+            "ytm",
+            "yto",
+            null
+          ],
+          "description": "What `ytm_market` is: to maturity or to offer; null without yield."
+        },
+        "ytm_purchase": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "XIRR of the purchases and future payments, percent per year; null without purchases."
+        },
+        "duration_days": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Duration, days."
+        },
+        "next_coupon": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/nextCoupon"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Next coupon; null when none."
+        },
+        "next_event": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/nextEvent"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Nearest event; null when none."
+        },
+        "received": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "description": "Payments received so far; null without purchases.",
+          "required": [
+            "coupons",
+            "amortizations"
+          ],
+          "properties": {
+            "coupons": {
+              "type": "number",
+              "description": "Coupons received so far, in `faceunit`."
+            },
+            "amortizations": {
+              "type": "number",
+              "description": "Amortizations received so far, in `faceunit`."
+            }
+          }
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/flag"
+          },
+          "uniqueItems": true,
+          "description": "Assumptions behind the figures of this position."
+        }
+      }
+    },
+    "payment": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A past or future payment of a position.",
+      "required": [
+        "date",
+        "secid",
+        "kind",
+        "amount",
+        "amount_rub",
+        "faceunit",
+        "status",
+        "assumed"
+      ],
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Payment date."
+        },
+        "secid": {
+          "$ref": "#/$defs/secid"
+        },
+        "kind": {
+          "enum": [
+            "coupon",
+            "amortization",
+            "maturity",
+            "offer_redemption"
+          ],
+          "description": "Payment kind."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount in `faceunit`."
+        },
+        "amount_rub": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Amount in rubles; null without FX rate."
+        },
+        "faceunit": {
+          "$ref": "#/$defs/faceunit"
+        },
+        "status": {
+          "enum": [
+            "received",
+            "expected"
+          ],
+          "description": "`received` — the bond was on the balance on the record date and the date has passed; `expected` — future."
+        },
+        "assumed": {
+          "type": "boolean",
+          "description": "True when the amount is an assumption (see position flags `float_assumed`, `indexed_nominal`)."
+        }
+      }
+    },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "columns",
+        "rows"
+      ],
+      "description": "Daily series of the portfolio from the date of the first trade (columnar). `market_value_rub`, `invested_rub`, `received_rub` — rubles; `ytm` — percent per year.",
+      "properties": {
+        "columns": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "prefixItems": [
+            {
+              "const": "date"
+            },
+            {
+              "const": "market_value_rub"
+            },
+            {
+              "const": "invested_rub"
+            },
+            {
+              "const": "received_rub"
+            },
+            {
+              "const": "ytm"
+            }
+          ],
+          "description": "Fixed column order: date, market_value_rub, invested_rub, received_rub, ytm."
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": [
+                "number",
+                "string",
+                "null"
+              ]
+            }
+          },
+          "description": "Each row has the same length and order as `columns`; a missing value is null (never NaN)."
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Portfolio totals; each figure is null when it cannot be computed.",
+      "required": [
+        "invested_rub",
+        "market_value_rub",
+        "received_rub",
+        "xirr",
+        "ytm",
+        "duration_days",
+        "annual_coupons_rub"
+      ],
+      "properties": {
+        "invested_rub": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Invested amount, rubles."
+        },
+        "market_value_rub": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Market value, rubles."
+        },
+        "received_rub": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Payments received, rubles."
+        },
+        "xirr": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Actual portfolio return (XIRR), percent per year."
+        },
+        "ytm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Market-value-weighted yield, percent per year."
+        },
+        "duration_days": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Market-value-weighted duration, days."
+        },
+        "annual_coupons_rub": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Annual coupon income at the current balance, rubles."
+        }
+      }
+    },
+    "errorCode": {
+      "$ref": "common.v1.json#/$defs/errorCode"
+    },
+    "portfolioRejection": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A refused portfolio of `portfolios.set` (`forbidden`, `validation_error`, `not_found`).",
+      "required": [
+        "id",
+        "code",
+        "message"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Id of the rejected item."
+        },
+        "code": {
+          "$ref": "#/$defs/errorCode"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable reason."
+        }
+      }
+    },
+    "tradeRejection": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A refused journal entry of `trades.set` (`validation_error`, `forbidden`, `not_found`).",
+      "required": [
+        "trade_id",
+        "code",
+        "message"
+      ],
+      "properties": {
+        "trade_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Id of the rejected item."
+        },
+        "code": {
+          "$ref": "#/$defs/errorCode"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable reason."
+        }
+      }
+    },
+    "severity": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "description": "Signal strength; a signal that becomes stronger is pushed again."
+    },
+    "signalRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One triggered anomaly rule.",
+      "required": [
+        "rule",
+        "severity",
+        "metrics"
+      ],
+      "properties": {
+        "rule": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Anomaly rule code (price drop, volume spike, yield jump, G-spread jump, price below face, decline streak); an open set defined by the backend."
+        },
+        "severity": {
+          "$ref": "#/$defs/severity"
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "description": "Values that triggered the rule (observed value, threshold, baseline); keys depend on the rule."
+        }
+      }
+    },
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A market-wide price/volume anomaly of one bond.",
+      "required": [
+        "secid",
+        "shortname",
+        "category",
+        "date",
+        "severity",
+        "rules",
+        "held"
+      ],
+      "properties": {
+        "secid": {
+          "$ref": "#/$defs/secid"
+        },
+        "shortname": {
+          "type": "string",
+          "description": "Short display name."
+        },
+        "category": {
+          "$ref": "#/$defs/category"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Trading day of the signal."
+        },
+        "severity": {
+          "$ref": "#/$defs/severity",
+          "description": "Maximum severity over `rules`."
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/signalRule"
+          },
+          "description": "Triggered rules."
+        },
+        "held": {
+          "type": "boolean",
+          "description": "True when the caller holds the bond in any of their portfolios."
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "An upcoming event of a bond held in the caller's portfolios, within the `notice_days` horizon.",
+      "required": [
+        "secid",
+        "shortname",
+        "portfolio_ids",
+        "kind",
+        "date",
+        "amount",
+        "amount_rub",
+        "faceunit",
+        "days_left"
+      ],
+      "properties": {
+        "secid": {
+          "$ref": "#/$defs/secid"
+        },
+        "shortname": {
+          "type": "string",
+          "description": "Short display name."
+        },
+        "portfolio_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "The caller's portfolios holding the bond."
+        },
+        "kind": {
+          "$ref": "#/$defs/eventKind"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Event date."
+        },
+        "window_start": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Start of the offer application window (offer only)."
+        },
+        "window_end": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "End of the offer application window (offer only)."
+        },
+        "amount": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Amount of the event in `faceunit` for the held quantity."
+        },
+        "amount_rub": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The same in rubles; null without FX rate."
+        },
+        "faceunit": {
+          "$ref": "#/$defs/faceunit"
+        },
+        "days_left": {
+          "type": "integer",
+          "description": "Calendar days from today to `date`.",
+          "minimum": 0
+        }
+      }
+    },
+    "search": {
+      "type": "object",
+      "title": "afbws.bonds.search.v1 — bond search (request / response).",
+      "description": "Request: optional filters; `query` matches secid, ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `name` (default), `matdate`, `yield`, with direction `sort_direction` `asc` (default) / `desc`; the order is fully deterministic (see `sort`); `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "bonds"
+        },
+        "schema": {
+          "const": "afbws.bonds.search.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "query": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100,
+          "description": "Request. Free-text search."
+        },
+        "categories": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/category"
+          },
+          "description": "Request. Only these categories."
+        },
+        "faceunits": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/faceunit"
+          },
+          "description": "Request. Only these face-value currencies."
+        },
+        "mat_from": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Request. Maturity not earlier than."
+        },
+        "mat_to": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Request. Maturity not later than."
+        },
+        "include_default": {
+          "type": "boolean",
+          "description": "Request. Include `category=default` bonds (default false)."
+        },
+        "include_matured": {
+          "type": "boolean",
+          "description": "Request. Include redeemed bonds (default false)."
+        },
+        "sort": {
+          "enum": [
+            "name",
+            "matdate",
+            "yield"
+          ],
+          "description": "Request. Sort key of the list (default `name`). `name`: the bond name (`name`, or `shortname` when `name` is null), compared case-insensitively with correct Cyrillic ordering; `matdate`: maturity date; `yield`: yield from the market snapshot (fallback: last daily yield). Rows without a value (null `matdate` / `yield`) are always last, in both directions. The secondary key is always `secid` ascending (in both directions), so the order is strictly deterministic: consecutive windows of the same request never overlap or skip rows."
+        },
+        "sort_direction": {
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "description": "Request. Direction of `sort` (default `asc`). Does not affect the placement of rows without a value (always last) or the `secid` tiebreak (always ascending)."
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Index of the first requested row in the filtered list (0-based, default 0); echoed in the response. The client asks for the window that contains the page it shows; there is no cursor."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Request. Page size (1..100, default 50)."
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Response only. Number of rows in the whole filtered list."
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/bondRow"
+          },
+          "maxItems": 100,
+          "description": "Response only."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "items"
+            ]
+          },
+          "then": {
+            "required": [
+              "items",
+              "total",
+              "offset"
+            ]
+          }
+        }
+      ]
+    },
+    "bondMsg": {
+      "type": "object",
+      "title": "afbws.bonds.bond.v1 — one bond card (request / response).",
+      "description": "Request: `secid`. Response: the bond, its payment `schedule` and the daily `history` (columnar). Unknown secid — error `not_found`.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "bonds"
+        },
+        "schema": {
+          "const": "afbws.bonds.bond.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "secid": {
+          "$ref": "#/$defs/secid"
+        },
+        "bond": {
+          "$ref": "#/$defs/bond",
+          "description": "Response only."
+        },
+        "schedule": {
+          "$ref": "#/$defs/schedule",
+          "description": "Response only."
+        },
+        "history": {
+          "$ref": "#/$defs/history",
+          "description": "Response only."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "bond"
+            ]
+          },
+          "then": {
+            "required": [
+              "secid",
+              "bond",
+              "schedule",
+              "history"
+            ]
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "required": [
+                "bond"
+              ]
+            }
+          },
+          "then": {
+            "required": [
+              "secid"
+            ]
+          }
+        }
+      ]
+    },
+    "portfolios": {
+      "type": "object",
+      "title": "afbws.bonds.portfolios.v1 — portfolio list with the bonds of their compositions (request / response / push).",
+      "description": "Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `secids[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests. No analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.",
+      "required": [
+        "channel",
+        "schema"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "bonds"
+        },
+        "schema": {
+          "const": "afbws.bonds.portfolios.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "portfolios": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/portfolioRef"
+          },
+          "description": "Response and push. Own and visible public portfolios."
+        },
+        "bonds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/bondRow"
+          },
+          "description": "Response and push. Bond rows of all compositions of `portfolios`, without duplicates."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "request_id"
+            ]
+          },
+          "then": {
+            "dependentRequired": {
+              "portfolios": [
+                "bonds"
+              ],
+              "bonds": [
+                "portfolios"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "portfolios",
+              "bonds"
+            ]
+          }
+        }
+      ]
+    },
+    "portfolio": {
+      "type": "object",
+      "title": "afbws.bonds.portfolio.v1 — one portfolio with the journal and analytics (request / response / push).",
+      "description": "Request: `id`. Response: the portfolio (`portfolioRef` with its composition) with its journal and analytics; a public portfolio is read-only: its `trades` are empty. Server push: the same body WITHOUT `request_id` once per market snapshot and after each journal edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.",
+      "required": [
+        "channel",
+        "schema"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "bonds"
+        },
+        "schema": {
+          "const": "afbws.bonds.portfolio.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Request. Portfolio id."
+        },
+        "portfolio": {
+          "$ref": "#/$defs/portfolioRef",
+          "description": "Response only."
+        },
+        "positions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/position"
+          },
+          "description": "Response only."
+        },
+        "trades": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/trade"
+          },
+          "description": "Response only. The whole journal."
+        },
+        "payments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/payment"
+          },
+          "description": "Response only. Past and future payments of the positions."
+        },
+        "series": {
+          "$ref": "#/$defs/series",
+          "description": "Response only."
+        },
+        "totals": {
+          "$ref": "#/$defs/totals",
+          "description": "Response only."
+        },
+        "flags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/flag"
+          },
+          "description": "Response only. Assumptions behind the portfolio totals."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "portfolio"
+            ]
+          },
+          "then": {
+            "required": [
+              "portfolio",
+              "positions",
+              "trades",
+              "payments",
+              "series",
+              "totals",
+              "flags"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "request_id"
+            ]
+          },
+          "then": {
+            "anyOf": [
+              {
+                "required": [
+                  "id"
+                ]
+              },
+              {
+                "required": [
+                  "portfolio"
+                ]
+              }
+            ]
+          },
+          "else": {
+            "required": [
+              "portfolio"
+            ]
+          }
+        }
+      ]
+    },
+    "portfoliosSet": {
+      "type": "object",
+      "title": "afbws.bonds.portfolios.set.v1 — create / change / reorder / delete portfolios and their compositions (request / response).",
+      "description": "Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `secids[]` in final order (omit `secids` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every secid must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `secids`), the bond rows of all compositions in `bonds` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "bonds"
+        },
+        "schema": {
+          "const": "afbws.bonds.portfolios.set.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "portfolios": {
+          "type": "array",
+          "description": "Request: upserts (`portfolioEdit`). Response: the resulting list (`portfolioRef`), in display order."
+        },
+        "remove": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Request. Ids of portfolios to delete."
+        },
+        "rejected": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/portfolioRejection"
+          },
+          "description": "Response only."
+        },
+        "bonds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/bondRow"
+          },
+          "description": "Response only. Bond rows of all compositions of `portfolios`, without duplicates."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "rejected"
+            ]
+          },
+          "then": {
+            "required": [
+              "portfolios",
+              "bonds",
+              "rejected"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "rejected"
+            ]
+          },
+          "then": {
+            "properties": {
+              "portfolios": {
+                "items": {
+                  "$ref": "#/$defs/portfolioRef"
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "portfolios": {
+                "items": {
+                  "$ref": "#/$defs/portfolioEdit"
+                }
+              }
+            },
+            "anyOf": [
+              {
+                "required": [
+                  "portfolios"
+                ]
+              },
+              {
+                "required": [
+                  "remove"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "tradesSet": {
+      "type": "object",
+      "title": "afbws.bonds.trades.set.v1 — edit the trade journal (request / response).",
+      "description": "Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Only for a PERSONAL portfolio of the caller: a visible public portfolio is `forbidden` (public portfolios hold no purchases), an unknown or foreign personal one is `not_found`. A purchase of a bond that is not in the portfolio composition adds the bond to the composition (at the end) in the same operation. Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the secid exists (a `category=default` bond is allowed in a personal portfolio). Response: the whole journal in `trades`, the actual composition in `secids` and the refused entries in `rejected`. When the composition grew, the other connections of the owner receive a `portfolios` push.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "bonds"
+        },
+        "schema": {
+          "const": "afbws.bonds.trades.set.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "portfolio_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Portfolio id."
+        },
+        "upsert": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/trade"
+          },
+          "description": "Request. Entries to add or change."
+        },
+        "remove": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Request. Ids of entries to delete."
+        },
+        "trades": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/trade"
+          },
+          "description": "Response only. The whole journal after the edit."
+        },
+        "rejected": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tradeRejection"
+          },
+          "description": "Response only."
+        },
+        "secids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/secid"
+          },
+          "description": "Response only. The actual composition of the portfolio in display order (a bond may have been added by a purchase)."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "rejected"
+            ]
+          },
+          "then": {
+            "required": [
+              "portfolio_id",
+              "trades",
+              "secids",
+              "rejected"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "rejected"
+            ]
+          },
+          "else": {
+            "required": [
+              "portfolio_id"
+            ],
+            "anyOf": [
+              {
+                "required": [
+                  "upsert"
+                ]
+              },
+              {
+                "required": [
+                  "remove"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "signals": {
+      "type": "object",
+      "title": "afbws.bonds.signals.v1 — market anomaly feed (request / response / push).",
+      "description": "Request: `days` (1..30, default 5) — how far back, `held_only` (default false) — only the caller's bonds. Response: `items`. Server push: new and strengthened signals WITHOUT `request_id` to the connections that requested the feed.",
+      "required": [
+        "channel",
+        "schema"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "bonds"
+        },
+        "schema": {
+          "const": "afbws.bonds.signals.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "description": "Request. Days back (default 5)."
+        },
+        "held_only": {
+          "type": "boolean",
+          "description": "Request. Only bonds held by the caller (default false)."
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/signal"
+          },
+          "description": "Response only."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "items"
+            ]
+          },
+          "then": {
+            "required": [
+              "items"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "request_id"
+            ]
+          },
+          "then": {},
+          "else": {
+            "required": [
+              "items"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "request_id"
+            ]
+          },
+          "else": {
+            "required": [
+              "items"
+            ]
+          }
+        }
+      ]
+    },
+    "events": {
+      "type": "object",
+      "title": "afbws.bonds.events.v1 — upcoming events of the caller's bonds (request / response / push).",
+      "description": "Request is an empty command. Response: `items` — events of the caller's portfolios within the `notice_days` horizon of their settings. Server push: the same body WITHOUT `request_id` at the daily step.",
+      "required": [
+        "channel",
+        "schema"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "bonds"
+        },
+        "schema": {
+          "const": "afbws.bonds.events.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/event"
+          },
+          "description": "Response only."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "items"
+            ]
+          },
+          "then": {
+            "required": [
+              "items"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "request_id"
+            ]
+          },
+          "then": {},
+          "else": {
+            "required": [
+              "items"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "request_id"
+            ]
+          },
+          "else": {
+            "required": [
+              "items"
+            ]
+          }
+        }
+      ]
+    },
+    "error": {
+      "type": "object",
+      "title": "afbws.bonds.error.v1 — typed error for a whole request (server -> client).",
+      "required": [
+        "channel",
+        "schema",
+        "code",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "bonds"
+        },
+        "schema": {
+          "const": "afbws.bonds.error.v1"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "code": {
+          "$ref": "#/$defs/errorCode"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

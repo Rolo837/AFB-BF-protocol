@@ -40,6 +40,7 @@ _ALARM_SCHEMAS = {"afb.alarm.v1", "afb.alarm.v2"}
 _GP_SCHEMAS = {"afb.gp.v1", "afb.gp.v2"}
 _NOTIFICATION_SCHEMAS = {
     "afb.notification.alarm.v1",
+    "afb.notification.bond.v1",
     "afb.notification.deal.v1",
     "afb.notification.expiration.v1",
     "afb.notification.link.v1",
@@ -172,7 +173,7 @@ def validate_gp(obj: dict[str, Any]) -> str:
 
 def validate_notification(obj: dict[str, Any]) -> str:
     """Validate an AFB MQTT notification against afb.notification.alarm.v1,
-    afb.notification.deal.v1, afb.notification.expiration.v1,
+    afb.notification.bond.v1, afb.notification.deal.v1, afb.notification.expiration.v1,
     afb.notification.link.v1 or afb.notification.system.v1 (dispatched on ``obj["schema"]``). Returns the
     resolved schema id. Like alarms, notifications never cross the AFB<->BF
     wire."""

@@ -1,0 +1,27 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.portfolios.set.v1",
+  "request_id": "b-5",
+  "portfolios": [
+    {
+      "id": "p-2",
+      "name": "Вторичный",
+      "icon_color": "blue",
+      "secids": [
+        "SU52005RMFS4",
+        "SU26238RMFS4"
+      ]
+    },
+    {
+      "id": "g-9",
+      "name": "Публичный",
+      "visibility": "user",
+      "secids": [
+        "SU26238RMFS4"
+      ]
+    }
+  ],
+  "remove": [
+    "p-0"
+  ]
+}

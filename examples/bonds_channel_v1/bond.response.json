@@ -1,0 +1,87 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.bond.v1",
+  "request_id": "b-2",
+  "secid": "SU26238RMFS4",
+  "bond": {
+    "secid": "SU26238RMFS4",
+    "isin": "RU000A1038V6",
+    "shortname": "ОФЗ 26238",
+    "emitter_title": "Минфин России",
+    "category": "ofz",
+    "faceunit": "SUR",
+    "facevalue": 1000,
+    "matdate": "2041-05-15",
+    "offerdate": null,
+    "coupon_percent": 7.1,
+    "coupon_frequency": 2,
+    "is_qualified": false,
+    "lifecycle": "active",
+    "market": {
+      "price_pct": 97.35,
+      "yield": 15.2,
+      "ytm_kind": "ytm",
+      "duration_days": 1140,
+      "accint": 12.4,
+      "updated_at": "2026-11-02T12:05:00+03:00"
+    },
+    "name": "ОФЗ-ПД 26238",
+    "emitter_id": 1,
+    "emitter_inn": "7710168360",
+    "bond_type": "Федеральные облигации",
+    "lot_value": 1000
+  },
+  "schedule": {
+    "coupons": [
+      {
+        "date": "2026-11-18",
+        "record_date": "2026-11-17",
+        "start_date": "2026-05-20",
+        "value": 35.4,
+        "value_pct": 3.55,
+        "facevalue": 1000
+      }
+    ],
+    "amortizations": [
+      {
+        "date": "2041-05-15",
+        "value": 1000,
+        "value_pct": 100
+      }
+    ],
+    "offers": [
+      {
+        "date": "2027-03-10",
+        "window_start": "2027-02-20",
+        "window_end": "2027-03-05",
+        "price_pct": 100,
+        "kind": "put"
+      }
+    ]
+  },
+  "history": {
+    "columns": [
+      "date",
+      "close",
+      "yield_close",
+      "facevalue",
+      "volume"
+    ],
+    "rows": [
+      [
+        "2026-10-30",
+        97.1,
+        15.3,
+        1000,
+        12500
+      ],
+      [
+        "2026-11-02",
+        97.35,
+        15.2,
+        1000,
+        9800
+      ]
+    ]
+  }
+}
