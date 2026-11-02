@@ -49,3 +49,15 @@ def test_payload_validation_accepts_it():
 
     for path in NOTIFICATION_EXAMPLES:
         assert validate_notification(json.loads(path.read_text())) == "afb.notification.bond.v1"
+
+
+def test_identity_is_instrument_key_with_ticker(registry):
+    from jsonschema import ValidationError
+
+    base = json.loads((EXAMPLES / "notifications" / "bond.offer_warn.json").read_text())
+    assert "secid" not in base and base["instrument_key"].endswith(":" + base["ticker"])
+    for missing in ("instrument_key", "ticker"):
+        with pytest.raises(ValidationError):
+            _validator(registry).validate({k: v for k, v in base.items() if k != missing})
+    with pytest.raises(ValidationError):
+        _validator(registry).validate({**base, "secid": base["ticker"]})

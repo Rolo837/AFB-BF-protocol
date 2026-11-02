@@ -10,9 +10,9 @@
       "icon_id": null,
       "icon_color": "green",
       "own": true,
-      "secids": [
-        "SU26238RMFS4",
-        "SU52005RMFS4"
+      "instrument_keys": [
+        "MISX:TQOB:SU26238RMFS4",
+        "MISX:TQOB:SU52005RMFS4"
       ]
     },
     {
@@ -22,13 +22,14 @@
       "icon_id": null,
       "icon_color": null,
       "own": false,
-      "secids": [
-        "SU26238RMFS4"
+      "instrument_keys": [
+        "MISX:TQOB:SU26238RMFS4"
       ]
     }
   ],
   "bonds": [
     {
+      "instrument_key": "MISX:TQOB:SU26238RMFS4",
       "secid": "SU26238RMFS4",
       "name": "ОФЗ-ПД 26238",
       "shortname": "ОФЗ 26238",
@@ -51,6 +52,7 @@
       }
     },
     {
+      "instrument_key": "MISX:TQOB:SU52005RMFS4",
       "secid": "SU52005RMFS4",
       "name": "ОФЗ-ИН 52005",
       "shortname": "ОФЗ 52005",

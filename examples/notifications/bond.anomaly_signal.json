@@ -1,9 +1,10 @@
 {
   "schema": "afb.notification.bond.v1",
-  "notification_id": "u1:RU000A105XYZ:anomaly:signal:2026-11-02",
+  "notification_id": "u1:MISX:TQCB:RU000A105XYZ:anomaly:signal:2026-11-02",
   "kind": "anomaly",
   "stage": "signal",
-  "secid": "RU000A105XYZ",
+  "instrument_key": "MISX:TQCB:RU000A105XYZ",
+  "ticker": "RU000A105XYZ",
   "shortname": "Компания БО-01",
   "severity": "high",
   "rules": [

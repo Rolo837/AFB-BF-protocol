@@ -33,7 +33,7 @@ def _ex(name: str):
     return json.loads((EXAMPLES / f"{name}.json").read_text(encoding="utf-8"))
 
 
-_TRADE = {"trade_id": "t1", "secid": "SU26238RMFS4", "trade_date": "2026-10-15", "quantity": 10, "price_pct": 97.5}
+_TRADE = {"trade_id": "t1", "instrument_key": "MISX:TQOB:SU26238RMFS4", "trade_date": "2026-10-15", "quantity": 10, "price_pct": 97.5}
 _REF = _ex("portfolios.response")["portfolios"][0]
 
 
@@ -114,6 +114,17 @@ def test_bond_request_response(registry):
     _bad(v, resp)
 
 
+def test_bond_card_has_no_emitter_fields(registry):
+    v = _validator(registry, "bondMsg")
+    resp = _ex("bond.response")
+    assert not [k for k in resp["bond"] if k.startswith("emitter")]
+    v.validate(resp)
+    for field, value in (("emitter_id", 1), ("emitter_title", "Минфин России"), ("emitter_inn", "7710168360")):
+        resp = _ex("bond.response")
+        resp["bond"][field] = value
+        _bad(v, resp)
+
+
 def test_market_block_nullable(registry):
     v = _validator(registry, "bondRow")
     row = _ex("search.response")["items"][0]
@@ -142,7 +153,7 @@ def test_portfolios_list_request_response_push(registry):
     _bad(v, _msg("portfolios"))  # neither request nor push
     _bad(v, _msg("portfolios", request_id="r", portfolios=[{**_REF, "visibility": "admin"}], bonds=[]))
     resp = _ex("portfolios.response")
-    assert "summary" not in resp["portfolios"][0] and isinstance(resp["portfolios"][0]["secids"], list)
+    assert "summary" not in resp["portfolios"][0] and isinstance(resp["portfolios"][0]["instrument_keys"], list)
     for key in ("bonds", "portfolios"):
         broken = _ex("portfolios.response")
         del broken[key]
@@ -151,16 +162,16 @@ def test_portfolios_list_request_response_push(registry):
     del push["bonds"]
     _bad(v, push)
     v.validate(_msg("portfolios", portfolios=[], bonds=[]))  # empty list push
-    v.validate(_msg("portfolios", request_id="r", portfolios=[{**_REF, "secids": []}], bonds=[]))  # empty portfolio
+    v.validate(_msg("portfolios", request_id="r", portfolios=[{**_REF, "instrument_keys": []}], bonds=[]))  # empty portfolio
     ref = _validator(registry, "portfolioRef")
     ref.validate(_REF)
-    no_secids = {k: x for k, x in _REF.items() if k != "secids"}
-    _bad(ref, no_secids)
+    no_keys = {k: x for k, x in _REF.items() if k != "instrument_keys"}
+    _bad(ref, no_keys)
     _bad(ref, {**_REF, "summary": {"market_value_rub": None, "ytm": None, "duration_days": None, "positions": 0}})
-    _bad(ref, {**_REF, "secids": ["A", "A"]})
-    _bad(ref, {**_REF, "secids": [f"S{i}" for i in range(201)]})
-    ref.validate({**_REF, "secids": [f"S{i}" for i in range(200)]})
-    _bad(ref, {**_REF, "secids": [""]})
+    _bad(ref, {**_REF, "instrument_keys": ["A", "A"]})
+    _bad(ref, {**_REF, "instrument_keys": [f"S{i}" for i in range(201)]})
+    ref.validate({**_REF, "instrument_keys": [f"S{i}" for i in range(200)]})
+    _bad(ref, {**_REF, "instrument_keys": [""]})
 
 
 def test_portfolio_request_response_push(registry):
@@ -194,11 +205,11 @@ def test_portfolios_set(registry):
     v.validate(_msg("portfolios.set", request_id="r", remove=["x"]))
     _bad(v, _msg("portfolios.set", request_id="r"))  # nothing to do
     r = _ex("portfolios_set.request")
-    assert all("secids" in x for x in r["portfolios"])
-    v.validate(_msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "secids": []}]))
+    assert all("instrument_keys" in x for x in r["portfolios"])
+    v.validate(_msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "instrument_keys": []}]))
     v.validate(_msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A"}]))  # composition untouched
-    _bad(v, _msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "secids": [f"S{i}" for i in range(201)]}]))
-    v.validate(_msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "secids": ["X", "X"]}]))  # duplicates are dropped by the backend
+    _bad(v, _msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "instrument_keys": [f"S{i}" for i in range(201)]}]))
+    v.validate(_msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "instrument_keys": ["X", "X"]}]))  # duplicates are dropped by the backend
     for key in ("bonds", "portfolios"):
         broken = _ex("portfolios_set.response")
         del broken[key]
@@ -213,9 +224,9 @@ def test_trades_set(registry):
     v = _validator(registry, "tradesSet")
     v.validate(_ex("trades_set.request"))
     v.validate(_ex("trades_set.response"))
-    assert _ex("trades_set.response")["secids"]
+    assert _ex("trades_set.response")["instrument_keys"]
     resp = _ex("trades_set.response")
-    del resp["secids"]
+    del resp["instrument_keys"]
     _bad(v, resp)
     v.validate(_msg("trades.set", request_id="r", portfolio_id="p", upsert=[_TRADE]))
     _bad(v, _msg("trades.set", request_id="r", portfolio_id="p"))
@@ -267,3 +278,31 @@ def test_root_dispatches_each_example(registry):
     for path in sorted(EXAMPLES.glob("*.json")):
         root.validate(json.loads(path.read_text(encoding="utf-8")))
     _bad(root, _msg("reconcile", request_id="r"))
+
+
+def test_bond_identity_is_instrument_key_only(registry):
+    """R3: `secid` is a display attribute; every identifier on the wire is `instrument_key`."""
+    doc = json.loads(SCHEMA_PATH.read_text())
+    defs = doc["$defs"]
+    for name in ("bondRow", "bond", "position"):
+        assert "instrument_key" in defs[name]["required"], name
+        assert "secid" in defs[name]["properties"], name  # display field is kept
+    for name in ("trade", "payment", "signal", "event"):
+        assert "instrument_key" in defs[name]["required"], name
+        assert "secid" not in defs[name]["properties"], name
+    for name in ("portfolioRef", "portfolioEdit", "tradesSet"):
+        assert "secids" not in defs[name]["properties"], name
+        assert "instrument_keys" in defs[name]["properties"], name
+    assert "secids" not in json.dumps(doc)
+    # key is the shared instrumentKey def, no local pattern
+    assert defs["trade"]["properties"]["instrument_key"]["$ref"] == "common.v1.json#/$defs/instrumentKey"
+    row = _ex("search.response")["items"][0]
+    v = _validator(registry, "search")
+    broken = {k: x for k, x in row.items() if k != "instrument_key"}
+    resp = _ex("search.response")
+    resp["items"] = [broken]
+    _bad(v, resp)  # a row without the key is not valid even with secid
+    only_secid_trade = {k: x for k, x in _TRADE.items() if k != "instrument_key"} | {"secid": "SU26238RMFS4"}
+    _bad(_validator(registry, "tradesSet"), _msg("trades.set", request_id="r", portfolio_id="p", upsert=[only_secid_trade]))
+    _bad(_validator(registry, "bondMsg"), _msg("bond", request_id="r", secid="SU26238RMFS4"))
+    _validator(registry, "bondMsg").validate(_msg("bond", request_id="r", instrument_key="MISX:TQOB:SU26238RMFS4"))

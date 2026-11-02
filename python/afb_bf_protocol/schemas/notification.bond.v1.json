@@ -9,7 +9,8 @@
     "notification_id",
     "kind",
     "stage",
-    "secid",
+    "instrument_key",
+    "ticker",
     "portfolios",
     "user"
   ],
@@ -20,7 +21,7 @@
     "notification_id": {
       "type": "string",
       "minLength": 1,
-      "description": "Stable id for informer-side deduplication, built from user + secid + kind + stage + event date (signal date for an anomaly)."
+      "description": "Stable id for informer-side deduplication, built from user + instrument_key + kind + stage + event date (signal date for an anomaly)."
     },
     "kind": {
       "enum": [
@@ -42,11 +43,15 @@
       ],
       "description": "`warn` — `notice_days` threshold reached; `window_open` — the offer application window has opened; `window_last_day` — the last day of the offer window; `d0` — the event day; `signal` — an anomaly (only with kind `anomaly`, and only it)."
     },
-    "secid": {
+    "instrument_key": {
+      "$ref": "afbws/common.v1.json#/$defs/instrumentKey",
+      "description": "Bond identifier: the composite instrument key `MISX:<primary board>:<secid>` (the only way to identify a bond; case-sensitive, never normalized)."
+    },
+    "ticker": {
       "type": "string",
       "minLength": 1,
       "maxLength": 32,
-      "description": "MOEX bond identifier. Case-sensitive."
+      "description": "Short bond code (SECID) for the message text: a display attribute derived from `instrument_key`, never an identifier. Case-sensitive."
     },
     "isin": {
       "type": "string",

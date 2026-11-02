@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 30590d9dba5ce80566b82823c7f5fdfa09b29fd7e52a3454fa89f002be8e8e2e
+ * source-hash: 4e8501fce16e51555ca07550b2dd5e13e57f1ee92c74533c4c8dd8467291447d
  */
 
 /**
@@ -357,7 +357,7 @@ export type BfsRegistryEntry = BfRegistryEntry & {
   };
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bonds: a bond search and cards, bond portfolios, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `signals`, `events`. There is no copy operation: adding a bond, or the composition of somebody else's portfolio, to one's own portfolio is an edit of the own composition via `portfolios.set`. PORTFOLIO MODEL. A portfolio is a set (type `bond`) with a COMPOSITION: `secids[]` — bonds only, in display order, at most 200. A PUBLIC (reference) portfolio is created and edited by staff only (`visibility` guest|user|manager) and is pure structure: it has no purchases. PURCHASES (the trade journal: date, price, quantity) exist only in PERSONAL portfolios and are an attribute of a bond that is in the composition; a bond may be in the composition with no purchases (observation). Removing a bond from a personal portfolio deletes its purchases there. A personal portfolio can be created by anybody with the `bonds` capability; a public visibility needs staff (`forbidden`); the scope personal <-> public never changes (`validation_error`); a `category=default` bond cannot be in a public portfolio. The bond search is paged by `offset` / `limit` (at most 100 per page); there is no cursor. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Reconciliation with the broker account (`reconcile`) is added later, additively, and is gated by the same capability `bonds`. See AFB/docs/ws/bonds.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bonds: a bond search and cards, bond portfolios, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `signals`, `events`. There is no copy operation: adding a bond, or the composition of somebody else's portfolio, to one's own portfolio is an edit of the own composition via `portfolios.set`. IDENTITY. A bond is identified ONLY by `instrument_key` (the same composite catalog key as any instrument: `MISX:<primary board>:<secid>`, e.g. `MISX:TQCB:RU000A10A3Z4`; case-sensitive, never normalized). `secid`, `isin` and `shortname` are plain display/search attributes (`bondRow.secid`, `position.secid`) and never an identifier in any request, response or push. A board change (e.g. TQCB -> TQRD after a default) is another key, i.e. another bond: nothing is renamed or migrated. PORTFOLIO MODEL. A portfolio is a set (type `bond`) with a COMPOSITION: `instrument_keys[]` — bonds only, in display order, at most 200. A PUBLIC (reference) portfolio is created and edited by staff only (`visibility` guest|user|manager) and is pure structure: it has no purchases. PURCHASES (the trade journal: date, price, quantity) exist only in PERSONAL portfolios and are an attribute of a bond that is in the composition; a bond may be in the composition with no purchases (observation). Removing a bond from a personal portfolio deletes its purchases there. A personal portfolio can be created by anybody with the `bonds` capability; a public visibility needs staff (`forbidden`); the scope personal <-> public never changes (`validation_error`); a `category=default` bond cannot be in a public portfolio. The bond search is paged by `offset` / `limit` (at most 100 per page); there is no cursor. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Reconciliation with the broker account (`reconcile`) is added later, additively, and is gated by the same capability `bonds`. See AFB/docs/ws/bonds.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Root".
@@ -373,7 +373,7 @@ export type AfbwsBondsChannelV1_Root =
   | AfbwsBondsChannelV1_Events
   | AfbwsBondsChannelV1_Error;
 /**
- * Request: optional filters; `query` matches secid, ISIN, name, issuer name or issuer INN (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `name` (default), `matdate`, `yield`, with direction `sort_direction` `asc` (default) / `desc`; the order is fully deterministic (see `sort`); `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.
+ * Request: optional filters; `query` matches the SECID code (a search attribute, not an identifier), ISIN, short name or name (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `name` (default), `matdate`, `yield`, with direction `sort_direction` `asc` (default) / `desc`; the order is fully deterministic (see `sort`); `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Search".
@@ -413,11 +413,11 @@ export type AfbwsBondsChannelV1_Search = {
    */
   include_matured?: boolean;
   /**
-   * Request. Sort key of the list (default `name`). `name`: the bond name (`name`, or `shortname` when `name` is null), compared case-insensitively with correct Cyrillic ordering; `matdate`: maturity date; `yield`: yield from the market snapshot (fallback: last daily yield). Rows without a value (null `matdate` / `yield`) are always last, in both directions. The secondary key is always `secid` ascending (in both directions), so the order is strictly deterministic: consecutive windows of the same request never overlap or skip rows.
+   * Request. Sort key of the list (default `name`). `name`: the bond name (`name`, or `shortname` when `name` is null), compared case-insensitively with correct Cyrillic ordering; `matdate`: maturity date; `yield`: yield from the market snapshot (fallback: last daily yield). Rows without a value (null `matdate` / `yield`) are always last, in both directions. The secondary key is always the bond's `secid` code ascending, then `instrument_key` (in both directions), so the order is strictly deterministic: consecutive windows of the same request never overlap or skip rows.
    */
   sort?: 'name' | 'matdate' | 'yield';
   /**
-   * Request. Direction of `sort` (default `asc`). Does not affect the placement of rows without a value (always last) or the `secid` tiebreak (always ascending).
+   * Request. Direction of `sort` (default `asc`). Does not affect the placement of rows without a value (always last) or the `secid`/`instrument_key` tiebreak (always ascending).
    */
   sort_direction?: 'asc' | 'desc';
   /**
@@ -454,7 +454,7 @@ export type AfbwsBondsChannelV1_Category = 'ofz' | 'subfederal' | 'municipal' | 
  */
 export type AfbwsBondsChannelV1_Faceunit = string;
 /**
- * MOEX ISS bond identifier (SECID) — the bond key on this channel; case-sensitive, never normalized (.lower()/.upper()).
+ * MOEX ISS bond code (SECID): a DISPLAY and search attribute only, never an identifier (the identifier is `instrument_key`). Case-sensitive, never normalized (.lower()/.upper()).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Secid".
@@ -468,7 +468,7 @@ export type AfbwsBondsChannelV1_Secid = string;
  */
 export type AfbwsBondsChannelV1_MarketOrNull = AfbwsBondsChannelV1_Market | null;
 /**
- * Request: `secid`. Response: the bond, its payment `schedule` and the daily `history` (columnar). Unknown secid — error `not_found`.
+ * Request: `instrument_key`. Response: the bond (the card carries `instrument_key` and the display `secid`), its payment `schedule` and the daily `history` (columnar). Unknown key — error `not_found`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_BondMsg".
@@ -479,13 +479,16 @@ export type AfbwsBondsChannelV1_BondMsg = {
   channel: 'bonds';
   schema: 'afbws.bonds.bond.v1';
   request_id: AfbwsCommonV1_RequestId;
-  secid?: AfbwsBondsChannelV1_Secid;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key?: string;
   bond?: AfbwsBondsChannelV1_Bond;
   schedule?: AfbwsBondsChannelV1_Schedule;
   history?: AfbwsBondsChannelV1_History;
 };
 /**
- * Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `secids[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests. No analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
+ * Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests. No analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Portfolios".
@@ -572,7 +575,7 @@ export type AfbwsBondsChannelV1_EventKind = 'offer' | 'maturity' | 'amortization
 export type AfbwsBondsChannelV1_Flag =
   'float_assumed' | 'indexed_nominal' | 'no_fx' | 'no_market' | 'default' | 'matured' | 'no_trades';
 /**
- * Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `secids[]` in final order (omit `secids` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every secid must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `secids`), the bond rows of all compositions in `bonds` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
+ * Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `instrument_keys[]` in final order (omit `instrument_keys` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every instrument key must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `instrument_keys`), the bond rows of all compositions in `bonds` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_PortfoliosSet".
@@ -601,7 +604,7 @@ export type AfbwsBondsChannelV1_PortfoliosSet = {
   bonds?: AfbwsBondsChannelV1_BondRow[];
 };
 /**
- * Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Only for a PERSONAL portfolio of the caller: a visible public portfolio is `forbidden` (public portfolios hold no purchases), an unknown or foreign personal one is `not_found`. A purchase of a bond that is not in the portfolio composition adds the bond to the composition (at the end) in the same operation. Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the secid exists (a `category=default` bond is allowed in a personal portfolio). Response: the whole journal in `trades`, the actual composition in `secids` and the refused entries in `rejected`. When the composition grew, the other connections of the owner receive a `portfolios` push.
+ * Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Only for a PERSONAL portfolio of the caller: a visible public portfolio is `forbidden` (public portfolios hold no purchases), an unknown or foreign personal one is `not_found`. A purchase of a bond that is not in the portfolio composition adds the bond to the composition (at the end) in the same operation. Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the instrument key exists (a `category=default` bond is allowed in a personal portfolio). Response: the whole journal in `trades`, the actual composition in `instrument_keys` and the refused entries in `rejected`. When the composition grew, the other connections of the owner receive a `portfolios` push.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_TradesSet".
@@ -633,9 +636,9 @@ export type AfbwsBondsChannelV1_TradesSet = {
    */
   rejected?: AfbwsBondsChannelV1_TradeRejection[];
   /**
-   * Response only. The actual composition of the portfolio in display order (a bond may have been added by a purchase).
+   * Response only. The actual composition of the portfolio (instrument keys) in display order (a bond may have been added by a purchase).
    */
-  secids?: AfbwsBondsChannelV1_Secid[];
+  instrument_keys?: AfbwsCommonV1_InstrumentKey[];
 };
 /**
  * Request: `days` (1..30, default 5) — how far back, `held_only` (default false) — only the caller's bonds. Response: `items`. Server push: new and strengthened signals WITHOUT `request_id` to the connections that requested the feed.
@@ -2982,9 +2985,13 @@ export interface BfsRegistryPush {
  * via the `definition` "AfbwsBondsChannelV1_BondRow".
  */
 export interface AfbwsBondsChannelV1_BondRow {
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key: string;
   secid: AfbwsBondsChannelV1_Secid;
   /**
-   * Full bond name (issue title) as given by ISS; null when unknown. Shown in the list plaque; search by ISIN or issuer stays a server-side filter (`query`) and does not add them to the row.
+   * Full bond name (issue title) as given by ISS; null when unknown. Shown in the list plaque; search by ISIN stays a server-side filter (`query`) and does not add it to the row.
    */
   name: string | null;
   /**
@@ -3059,6 +3066,10 @@ export interface AfbwsBondsChannelV1_Market {
  * Response only.
  */
 export interface AfbwsBondsChannelV1_Bond {
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key: string;
   secid: AfbwsBondsChannelV1_Secid;
   /**
    * ISIN; null when ISS has none.
@@ -3068,10 +3079,6 @@ export interface AfbwsBondsChannelV1_Bond {
    * Short display name.
    */
   shortname: string;
-  /**
-   * Issuer name; null when unknown.
-   */
-  emitter_title: string | null;
   category: AfbwsBondsChannelV1_Category;
   faceunit: AfbwsBondsChannelV1_Faceunit;
   /**
@@ -3107,14 +3114,6 @@ export interface AfbwsBondsChannelV1_Bond {
    * Full bond name (issue title) as given by ISS; null when unknown.
    */
   name: string | null;
-  /**
-   * ISS issuer id; null when unknown.
-   */
-  emitter_id: number | null;
-  /**
-   * Issuer INN; null when unknown.
-   */
-  emitter_inn: string | null;
   /**
    * ISS bond type as is (SECTYPE/BONDTYPE text), for display.
    */
@@ -3266,11 +3265,11 @@ export interface AfbwsBondsChannelV1_PortfolioRef {
    */
   own: boolean;
   /**
-   * Composition: the bonds of the portfolio in display order (at most 200, no duplicates). Empty for a new portfolio.
+   * Composition: the instrument keys of the bonds of the portfolio in display order (at most 200, no duplicates). Empty for a new portfolio.
    *
    * @maxItems 200
    */
-  secids: AfbwsBondsChannelV1_Secid[];
+  instrument_keys: AfbwsCommonV1_InstrumentKey[];
 }
 /**
  * A portfolio in a list: attributes and composition. No analytics.
@@ -3298,11 +3297,11 @@ export interface AfbwsBondsChannelV1_PortfolioRef1 {
    */
   own: boolean;
   /**
-   * Composition: the bonds of the portfolio in display order (at most 200, no duplicates). Empty for a new portfolio.
+   * Composition: the instrument keys of the bonds of the portfolio in display order (at most 200, no duplicates). Empty for a new portfolio.
    *
    * @maxItems 200
    */
-  secids: AfbwsBondsChannelV1_Secid[];
+  instrument_keys: AfbwsCommonV1_InstrumentKey[];
 }
 /**
  * One row per bond of the portfolio. Fields that depend on purchases (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`) are null for a bond without purchases (flag `no_trades`).
@@ -3311,6 +3310,10 @@ export interface AfbwsBondsChannelV1_PortfolioRef1 {
  * via the `definition` "AfbwsBondsChannelV1_Position".
  */
 export interface AfbwsBondsChannelV1_Position {
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key: string;
   secid: AfbwsBondsChannelV1_Secid;
   /**
    * Short display name.
@@ -3436,7 +3439,10 @@ export interface AfbwsBondsChannelV1_Trade {
    * Journal entry id (client-generated on create); a known id updates the entry.
    */
   trade_id: string;
-  secid: AfbwsBondsChannelV1_Secid;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key: string;
   /**
    * Trade date; not later than today and not earlier than the bond's issue date.
    */
@@ -3469,7 +3475,10 @@ export interface AfbwsBondsChannelV1_Payment {
    * Payment date.
    */
   date: string;
-  secid: AfbwsBondsChannelV1_Secid;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key: string;
   /**
    * Payment kind.
    */
@@ -3582,7 +3591,10 @@ export interface AfbwsBondsChannelV1_TradeRejection {
  * via the `definition` "AfbwsBondsChannelV1_Signal".
  */
 export interface AfbwsBondsChannelV1_Signal {
-  secid: AfbwsBondsChannelV1_Secid;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key: string;
   /**
    * Short display name.
    */
@@ -3633,7 +3645,10 @@ export interface AfbwsBondsChannelV1_SignalRule {
  * via the `definition` "AfbwsBondsChannelV1_Event".
  */
 export interface AfbwsBondsChannelV1_Event {
-  secid: AfbwsBondsChannelV1_Secid;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key: string;
   /**
    * Short display name.
    */
@@ -3681,12 +3696,16 @@ export interface AfbwsBondsChannelV1_Error {
   message: string;
 }
 /**
- * A bond card: the search row plus issuer and lot attributes.
+ * A bond card: the search row plus lot attributes.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Bond".
  */
 export interface AfbwsBondsChannelV1_Bond1 {
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key: string;
   secid: AfbwsBondsChannelV1_Secid;
   /**
    * ISIN; null when ISS has none.
@@ -3696,10 +3715,6 @@ export interface AfbwsBondsChannelV1_Bond1 {
    * Short display name.
    */
   shortname: string;
-  /**
-   * Issuer name; null when unknown.
-   */
-  emitter_title: string | null;
   category: AfbwsBondsChannelV1_Category;
   faceunit: AfbwsBondsChannelV1_Faceunit;
   /**
@@ -3735,14 +3750,6 @@ export interface AfbwsBondsChannelV1_Bond1 {
    * Full bond name (issue title) as given by ISS; null when unknown.
    */
   name: string | null;
-  /**
-   * ISS issuer id; null when unknown.
-   */
-  emitter_id: number | null;
-  /**
-   * Issuer INN; null when unknown.
-   */
-  emitter_inn: string | null;
   /**
    * ISS bond type as is (SECTYPE/BONDTYPE text), for display.
    */
@@ -3819,11 +3826,11 @@ export interface AfbwsBondsChannelV1_PortfolioEdit {
    */
   icon_color?: AfbwsBondsChannelV1_FavoriteColor | null;
   /**
-   * The WHOLE composition in final order (omit the list to leave the composition untouched). Every secid must exist in the bond directory; duplicates are dropped by the backend; more than 200 bonds are refused (`maxItems` here; the backend enforces its own limit constant with `validation_error`); a public portfolio cannot contain a `category=default` bond. Bonds removed from the composition lose their purchases in this portfolio.
+   * The WHOLE composition (instrument keys) in final order (omit the list to leave the composition untouched). Every key must exist in the bond directory; duplicates are dropped by the backend; more than 200 bonds are refused (`maxItems` here; the backend enforces its own limit constant with `validation_error`); a public portfolio cannot contain a `category=default` bond. Bonds removed from the composition lose their purchases in this portfolio.
    *
    * @maxItems 200
    */
-  secids?: AfbwsBondsChannelV1_Secid[];
+  instrument_keys?: AfbwsCommonV1_InstrumentKey[];
 }
 /**
  * Daily series of the portfolio from the date of the first trade (columnar). `market_value_rub`, `invested_rub`, `received_rub` — rubles; `ytm` — percent per year.
@@ -6033,7 +6040,7 @@ export interface AfbwsInstrumentChannelV2_Derivative {
   source: string;
 }
 /**
- * Request: only `request_id`. Response: `favorites` in display order (array position is the order); entries of all kinds (`instrument`, `asset`, `bond`) share ONE order. Entries of kind `bond` are returned only to connections with the capability `bonds`.
+ * Request: only `request_id`. Response: `favorites` in display order (array position is the order); entries of both kinds (`instrument`, `asset`) share ONE order; a bond is an `instrument` entry keyed by its `instrument_key`. Entries that are bonds are returned only to connections with the capability `bonds`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsInstrumentChannelV2_Favorites".
@@ -6049,12 +6056,12 @@ export interface AfbwsInstrumentChannelV2_Favorites {
  * via the `definition` "AfbwsInstrumentChannelV2_FavoriteEntry".
  */
 export interface AfbwsInstrumentChannelV2_FavoriteEntry {
-  kind: 'instrument' | 'asset' | 'bond';
+  kind: 'instrument' | 'asset';
   key: string;
   color: AfbwsInstrumentChannelV2_FavoriteColor;
 }
 /**
- * No CAS: `mark` (paint or repaint), `unmark` (idempotent removal) and `order` (REPLACES the whole display order; refs of any kind `instrument`/`asset`/`bond`) are idempotent. A ref of kind `bond` (`key` = `secid`) requires the capability `bonds`, otherwise the request is refused with `forbidden`; an unknown `secid` in `mark` is a `validation_error`. Request: any of `mark`/`unmark`/`order`. Response: `marked`/`unmarked`/`order` — only the sections that were present in the request; `unmarked` lists only refs that really were favorites. A response is recognised by `marked`/`unmarked`; an `order`-only request and its echo have the same shape.
+ * No CAS: `mark` (paint or repaint), `unmark` (idempotent removal) and `order` (REPLACES the whole display order; refs of kind `instrument`/`asset`) are idempotent. A ref that resolves to a bond (kind `instrument`, `key` = the bond's `instrument_key`) requires the capability `bonds`, otherwise the request is refused with `forbidden`; an unknown `instrument_key` in `mark` is a `validation_error`. Request: any of `mark`/`unmark`/`order`. Response: `marked`/`unmarked`/`order` — only the sections that were present in the request; `unmarked` lists only refs that really were favorites. A response is recognised by `marked`/`unmarked`; an `order`-only request and its echo have the same shape.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsInstrumentChannelV2_Paint".
@@ -6070,13 +6077,13 @@ export interface AfbwsInstrumentChannelV2_Paint {
   unmarked?: AfbwsInstrumentChannelV2_FavoriteRef[];
 }
 /**
- * `key` is an `instrument_key` for kind `instrument`, an `asset_id` for kind `asset` and the `secid` of a bond for kind `bond` (case-sensitive, as in ISS; NOT an `instrument_key`). Kind `bond` needs the capability `bonds`: `paint` with a `bond` ref (`mark`/`unmark`/`order`) from a connection without it is refused with `forbidden`, and `bond` entries are returned in `favorites` only to connections with `bonds` (without it they stay stored, just not sent).
+ * `key` is an `instrument_key` for kind `instrument` (a catalog listing OR a bond: a bond is an ordinary instrument, its key is `MISX:<board>:<secid>`) and an `asset_id` for kind `asset`. Refs that resolve to a bond need the capability `bonds`: `paint` (`mark`/`unmark`/`order`) with such a ref from a connection without it is refused with `forbidden`, and bond entries are returned in `favorites` only to connections with `bonds` (without it they stay stored, just not sent).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsInstrumentChannelV2_FavoriteRef".
  */
 export interface AfbwsInstrumentChannelV2_FavoriteRef {
-  kind: 'instrument' | 'asset' | 'bond';
+  kind: 'instrument' | 'asset';
   key: string;
 }
 /**

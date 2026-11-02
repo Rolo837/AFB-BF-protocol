@@ -4,6 +4,7 @@
   "request_id": "b-1",
   "items": [
     {
+      "instrument_key": "MISX:TQOB:SU26238RMFS4",
       "secid": "SU26238RMFS4",
       "name": "ОФЗ-ПД 26238",
       "shortname": "ОФЗ 26238",
@@ -26,6 +27,7 @@
       }
     },
     {
+      "instrument_key": "MISX:TQOB:SU52005RMFS4",
       "secid": "SU52005RMFS4",
       "name": "ОФЗ-ИН 52005",
       "shortname": "ОФЗ 52005",

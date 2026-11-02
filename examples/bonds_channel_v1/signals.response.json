@@ -4,7 +4,7 @@
   "request_id": "b-8",
   "items": [
     {
-      "secid": "RU000A105XYZ",
+      "instrument_key": "MISX:TQCB:RU000A105XYZ",
       "shortname": "Компания БО-01",
       "category": "corporate",
       "date": "2026-11-02",

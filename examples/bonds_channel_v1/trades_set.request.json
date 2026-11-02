@@ -6,7 +6,7 @@
   "upsert": [
     {
       "trade_id": "t-1",
-      "secid": "SU26238RMFS4",
+      "instrument_key": "MISX:TQOB:SU26238RMFS4",
       "trade_date": "2026-10-15",
       "quantity": 100,
       "price_pct": 96.8,

@@ -9,12 +9,13 @@
     "icon_id": null,
     "icon_color": "green",
     "own": true,
-    "secids": [
-      "SU26238RMFS4"
+    "instrument_keys": [
+      "MISX:TQOB:SU26238RMFS4"
     ]
   },
   "positions": [
     {
+      "instrument_key": "MISX:TQOB:SU26238RMFS4",
       "secid": "SU26238RMFS4",
       "shortname": "ОФЗ 26238",
       "category": "ofz",
@@ -50,7 +51,7 @@
   "trades": [
     {
       "trade_id": "t-1",
-      "secid": "SU26238RMFS4",
+      "instrument_key": "MISX:TQOB:SU26238RMFS4",
       "trade_date": "2026-10-15",
       "quantity": 100,
       "price_pct": 96.8,
@@ -61,7 +62,7 @@
   "payments": [
     {
       "date": "2026-11-18",
-      "secid": "SU26238RMFS4",
+      "instrument_key": "MISX:TQOB:SU26238RMFS4",
       "kind": "coupon",
       "amount": 3540,
       "amount_rub": 3540,

@@ -653,13 +653,12 @@
         "key"
       ],
       "additionalProperties": false,
-      "description": "`key` is an `instrument_key` for kind `instrument`, an `asset_id` for kind `asset` and the `secid` of a bond for kind `bond` (case-sensitive, as in ISS; NOT an `instrument_key`). Kind `bond` needs the capability `bonds`: `paint` with a `bond` ref (`mark`/`unmark`/`order`) from a connection without it is refused with `forbidden`, and `bond` entries are returned in `favorites` only to connections with `bonds` (without it they stay stored, just not sent).",
+      "description": "`key` is an `instrument_key` for kind `instrument` (a catalog listing OR a bond: a bond is an ordinary instrument, its key is `MISX:<board>:<secid>`) and an `asset_id` for kind `asset`. Refs that resolve to a bond need the capability `bonds`: `paint` (`mark`/`unmark`/`order`) with such a ref from a connection without it is refused with `forbidden`, and bond entries are returned in `favorites` only to connections with `bonds` (without it they stay stored, just not sent).",
       "properties": {
         "kind": {
           "enum": [
             "instrument",
-            "asset",
-            "bond"
+            "asset"
           ]
         },
         "key": {
@@ -680,8 +679,7 @@
         "kind": {
           "enum": [
             "instrument",
-            "asset",
-            "bond"
+            "asset"
           ]
         },
         "key": {
@@ -696,7 +694,7 @@
     "favorites": {
       "type": "object",
       "title": "afbws.instrument.favorites.v2 — the caller's colored favorites (request / response)",
-      "description": "Request: only `request_id`. Response: `favorites` in display order (array position is the order); entries of all kinds (`instrument`, `asset`, `bond`) share ONE order. Entries of kind `bond` are returned only to connections with the capability `bonds`.",
+      "description": "Request: only `request_id`. Response: `favorites` in display order (array position is the order); entries of both kinds (`instrument`, `asset`) share ONE order; a bond is an `instrument` entry keyed by its `instrument_key`. Entries that are bonds are returned only to connections with the capability `bonds`.",
       "required": [
         "channel",
         "schema"
@@ -723,7 +721,7 @@
     "paint": {
       "type": "object",
       "title": "afbws.instrument.paint.v2 — additive delta on the caller's favorites (request / response)",
-      "description": "No CAS: `mark` (paint or repaint), `unmark` (idempotent removal) and `order` (REPLACES the whole display order; refs of any kind `instrument`/`asset`/`bond`) are idempotent. A ref of kind `bond` (`key` = `secid`) requires the capability `bonds`, otherwise the request is refused with `forbidden`; an unknown `secid` in `mark` is a `validation_error`. Request: any of `mark`/`unmark`/`order`. Response: `marked`/`unmarked`/`order` — only the sections that were present in the request; `unmarked` lists only refs that really were favorites. A response is recognised by `marked`/`unmarked`; an `order`-only request and its echo have the same shape.",
+      "description": "No CAS: `mark` (paint or repaint), `unmark` (idempotent removal) and `order` (REPLACES the whole display order; refs of kind `instrument`/`asset`) are idempotent. A ref that resolves to a bond (kind `instrument`, `key` = the bond's `instrument_key`) requires the capability `bonds`, otherwise the request is refused with `forbidden`; an unknown `instrument_key` in `mark` is a `validation_error`. Request: any of `mark`/`unmark`/`order`. Response: `marked`/`unmarked`/`order` — only the sections that were present in the request; `unmarked` lists only refs that really were favorites. A response is recognised by `marked`/`unmarked`; an `order`-only request and its echo have the same shape.",
       "required": [
         "channel",
         "schema"
