@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 4e8501fce16e51555ca07550b2dd5e13e57f1ee92c74533c4c8dd8467291447d
+# source-hash: 7f060720e14e222cf65eac8b802047b6a3cbc6c65beca625264424d93d3915be
 
 from __future__ import annotations
 
@@ -4098,6 +4098,7 @@ class DealV2RealizedPnl(TypedDict):
 
     value: str | None
     degraded: Literal["missing_price", "missing_step_price"] | None
+    realized_at: NotRequired[str]
 
 
 class DealV2Rebind(TypedDict):
@@ -5433,6 +5434,7 @@ class Plans1(TypedDict):
     auto_execute: NotRequired[bool]
     editor_left: NotRequired[bool]
     hide_on_share: NotRequired[bool]
+    show_archived: NotRequired[bool]
     risk_top: NotRequired[bool]
 
 
@@ -5884,7 +5886,7 @@ class TradeplanV2LegItem(TypedDict):
 
 class TradeplanV2List(TypedDict):
     """
-    Request: optional filters `ids[]` and/or `instrument_keys[]` (both = intersection; none = every non-archived plan of the caller; archived plans are returned only when named in `ids`). Response (same `request_id`): `items[]`. There is no separate `get`: use `ids`. A request carrying `items` is invalid, as is a response carrying a filter.
+    Request: optional filters `ids[]` and/or `instrument_keys[]` (both = intersection; none = every non-archived plan of the caller; archived plans are returned only when named in `ids` or when `archived: true`). Response (same `request_id`): `items[]`. There is no separate `get`: use `ids`. A request carrying `items` is invalid, as is a response carrying a filter.
     """
 
     channel: Literal["tradeplan"]
@@ -5892,6 +5894,7 @@ class TradeplanV2List(TypedDict):
     request_id: AfbwsCommonV1RequestId
     ids: NotRequired[list[TradeplanId]]
     instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
+    archived: NotRequired[bool]
     items: NotRequired[list[TradeplanV2PlanItem]]
 
 

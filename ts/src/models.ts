@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 4e8501fce16e51555ca07550b2dd5e13e57f1ee92c74533c4c8dd8467291447d
+ * source-hash: 7f060720e14e222cf65eac8b802047b6a3cbc6c65beca625264424d93d3915be
  */
 
 /**
@@ -4354,6 +4354,10 @@ export interface ConfigV1_Form {
      */
     hide_on_share?: boolean;
     /**
+     * Include archived plans in the plans panel list (default false).
+     */
+    show_archived?: boolean;
+    /**
      * Show the 'Risk and volume' section first in the plan modal (default true).
      */
     risk_top?: boolean;
@@ -4654,6 +4658,10 @@ export interface DealV2RealizedPnl {
    */
   value: string | null;
   degraded: null | 'missing_price' | 'missing_step_price';
+  /**
+   * Market-time ISO timestamp of the deal's LAST exit fill (any non-entry fill: take_profit, stop_loss, cancel_close, ...). Absent when the ledger has no exit fill yet (open deal, or a deal that never entered). The day of the final realization — clients use it to attribute the result to a trading day; a deal's result belongs to the day it was closed, not to the days of partial exits.
+   */
+  realized_at?: string;
 }
 /**
  * Absent entirely means flat (no open position) or not yet known — distinct from a present qty of 0, which is never emitted.
@@ -6631,7 +6639,7 @@ export interface ScreenerV1Error {
   message: string;
 }
 /**
- * Request: optional filters `ids[]` and/or `instrument_keys[]` (both = intersection; none = every non-archived plan of the caller; archived plans are returned only when named in `ids`). Response (same `request_id`): `items[]`. There is no separate `get`: use `ids`. A request carrying `items` is invalid, as is a response carrying a filter.
+ * Request: optional filters `ids[]` and/or `instrument_keys[]` (both = intersection; none = every non-archived plan of the caller; archived plans are returned only when named in `ids` or when `archived: true`). Response (same `request_id`): `items[]`. There is no separate `get`: use `ids`. A request carrying `items` is invalid, as is a response carrying a filter.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2List".
@@ -6648,6 +6656,10 @@ export interface TradeplanV2List {
    * @minItems 1
    */
   instrument_keys?: [AfbwsCommonV1_InstrumentKey, ...AfbwsCommonV1_InstrumentKey[]];
+  /**
+   * Request only. true = include archived plans in the list; false/absent = non-archived only (default). Ignored when `ids` is given (named plans are returned regardless of status).
+   */
+  archived?: boolean;
   items?: TradeplanV2PlanItem[];
 }
 /**
