@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 8b1078a2dbaaed582d8603d6cbca65ab52b7adab24740df346f2d073ab85b607
+# source-hash: 7f060720e14e222cf65eac8b802047b6a3cbc6c65beca625264424d93d3915be
 
 from __future__ import annotations
 
@@ -4098,6 +4098,7 @@ class DealV2RealizedPnl(TypedDict):
 
     value: str | None
     degraded: Literal["missing_price", "missing_step_price"] | None
+    realized_at: NotRequired[str]
 
 
 class DealV2Rebind(TypedDict):

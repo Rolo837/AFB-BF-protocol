@@ -140,6 +140,10 @@
             "missing_price",
             "missing_step_price"
           ]
+        },
+        "realized_at": {
+          "type": "string",
+          "description": "Market-time ISO timestamp of the deal's LAST exit fill (any non-entry fill: take_profit, stop_loss, cancel_close, ...). Absent when the ledger has no exit fill yet (open deal, or a deal that never entered). The day of the final realization — clients use it to attribute the result to a trading day; a deal's result belongs to the day it was closed, not to the days of partial exits."
         }
       },
       "if": {

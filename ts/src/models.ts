@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 8b1078a2dbaaed582d8603d6cbca65ab52b7adab24740df346f2d073ab85b607
+ * source-hash: 7f060720e14e222cf65eac8b802047b6a3cbc6c65beca625264424d93d3915be
  */
 
 /**
@@ -4658,6 +4658,10 @@ export interface DealV2RealizedPnl {
    */
   value: string | null;
   degraded: null | 'missing_price' | 'missing_step_price';
+  /**
+   * Market-time ISO timestamp of the deal's LAST exit fill (any non-entry fill: take_profit, stop_loss, cancel_close, ...). Absent when the ledger has no exit fill yet (open deal, or a deal that never entered). The day of the final realization — clients use it to attribute the result to a trading day; a deal's result belongs to the day it was closed, not to the days of partial exits.
+   */
+  realized_at?: string;
 }
 /**
  * Absent entirely means flat (no open position) or not yet known — distinct from a present qty of 0, which is never emitted.
