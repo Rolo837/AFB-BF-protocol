@@ -252,6 +252,7 @@
             "auto_execute": { "type": "boolean", "description": "Activate the deal automatically after a plan is published (default false)." },
             "editor_left": { "type": "boolean", "description": "Plan editor is placed beside the list (left) instead of over it (default true)." },
             "hide_on_share": { "type": "boolean", "description": "Hide commercial information when opening the plan description for copying (default false)." },
+            "show_archived": { "type": "boolean", "description": "Include archived plans in the plans panel list (default false)." },
             "risk_top": { "type": "boolean", "description": "Show the 'Risk and volume' section first in the plan modal (default true)." }
           }
         },

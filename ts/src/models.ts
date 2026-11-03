@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 4e8501fce16e51555ca07550b2dd5e13e57f1ee92c74533c4c8dd8467291447d
+ * source-hash: 8b1078a2dbaaed582d8603d6cbca65ab52b7adab24740df346f2d073ab85b607
  */
 
 /**
@@ -4354,6 +4354,10 @@ export interface ConfigV1_Form {
      */
     hide_on_share?: boolean;
     /**
+     * Include archived plans in the plans panel list (default false).
+     */
+    show_archived?: boolean;
+    /**
      * Show the 'Risk and volume' section first in the plan modal (default true).
      */
     risk_top?: boolean;
@@ -6631,7 +6635,7 @@ export interface ScreenerV1Error {
   message: string;
 }
 /**
- * Request: optional filters `ids[]` and/or `instrument_keys[]` (both = intersection; none = every non-archived plan of the caller; archived plans are returned only when named in `ids`). Response (same `request_id`): `items[]`. There is no separate `get`: use `ids`. A request carrying `items` is invalid, as is a response carrying a filter.
+ * Request: optional filters `ids[]` and/or `instrument_keys[]` (both = intersection; none = every non-archived plan of the caller; archived plans are returned only when named in `ids` or when `archived: true`). Response (same `request_id`): `items[]`. There is no separate `get`: use `ids`. A request carrying `items` is invalid, as is a response carrying a filter.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2List".
@@ -6648,6 +6652,10 @@ export interface TradeplanV2List {
    * @minItems 1
    */
   instrument_keys?: [AfbwsCommonV1_InstrumentKey, ...AfbwsCommonV1_InstrumentKey[]];
+  /**
+   * Request only. true = include archived plans in the list; false/absent = non-archived only (default). Ignored when `ids` is given (named plans are returned regardless of status).
+   */
+  archived?: boolean;
   items?: TradeplanV2PlanItem[];
 }
 /**
