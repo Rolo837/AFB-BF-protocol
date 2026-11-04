@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/instrument.channel.v2.json",
   "x-afbws-support-id": "afbws.instrument.channel.v2",
   "title": "instrument channel v2 — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v2). Provides only the operations the project uses and that afbws.catalog.channel.v1 does not already cover. Same convention as afbws.catalog/afbws.alarm.v2/afbws.gp.v2: ONE schema id per message (`afbws.instrument.<op>.v2`), the same schema is the request, its response and, for `expiration`, the server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.instrument.error.v2`. Operations: `catalog`, `sets`, `favorites`, `paint`, `expiration`, `replace`, `detail`. Instruments are addressed ONLY by `instrument_key`; `ticker` appears solely as a display attribute of a listing / notice. All operations are open to any authenticated caller; manager rights (global sets) are checked by the backend per `visibility`. See AFB/docs/ws/instrument.md.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v2). Provides only the operations the project uses and that afbws.catalog.channel.v1 does not already cover. Same convention as afbws.catalog/afbws.alarm.v2/afbws.gp.v2: ONE schema id per message (`afbws.instrument.<op>.v2`), the same schema is the request, its response and, for `expiration`, the server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.instrument.error.v2`. Operations: `catalog`, `sets`, `favorites`, `paint`, `expiration`, `replace`, `detail`, `lookup`. Instruments are addressed ONLY by `instrument_key`; `ticker` appears solely as a display attribute of a card / notice. All operations are open to any authenticated caller; manager rights (global sets) are checked by the backend per `visibility`. See AFB/docs/ws/instrument.md.",
   "type": "object",
   "oneOf": [
     {
@@ -26,6 +26,9 @@
     },
     {
       "$ref": "#/$defs/detail"
+    },
+    {
+      "$ref": "#/$defs/lookup"
     },
     {
       "$ref": "#/$defs/error"
@@ -363,7 +366,54 @@
         }
       }
     },
-    "listing": {
+    "traits": {
+      "type": "object",
+      "required": [
+        "price_unit",
+        "charts",
+        "primitives",
+        "alarms",
+        "datasets",
+        "plans",
+        "virtual_trading"
+      ],
+      "additionalProperties": false,
+      "description": "Which functions an instrument supports. The frontend enables buttons by traits; a request for a function the traits switch off is answered with `not_supported` (unknown key: `not_found`).",
+      "properties": {
+        "price_unit": {
+          "enum": [
+            "money",
+            "percent_of_face"
+          ],
+          "description": "How the price is quoted: in currency units, or in percent of the face value (bonds). Drives price labels and P&L."
+        },
+        "charts": {
+          "type": "boolean",
+          "description": "Candle chart is available."
+        },
+        "primitives": {
+          "type": "boolean",
+          "description": "Chart drawing primitives are available."
+        },
+        "alarms": {
+          "type": "boolean",
+          "description": "Alarms are available."
+        },
+        "datasets": {
+          "type": "boolean",
+          "description": "Bottom panel and `dataset` conditions are available."
+        },
+        "plans": {
+          "type": "boolean",
+          "description": "Trade plans and deals are available."
+        },
+        "virtual_trading": {
+          "type": "boolean",
+          "description": "Deals on the virtual account are available. Real-account trading is per account in `detail` and is not duplicated here."
+        }
+      }
+    },
+    "instrumentCard": {
       "type": "object",
       "required": [
         "instrument_key",
@@ -371,10 +421,14 @@
         "market",
         "ticker",
         "name",
-        "source"
+        "source",
+        "class",
+        "lifecycle",
+        "archived_reason",
+        "traits"
       ],
       "additionalProperties": false,
-      "description": "An active catalog listing. `instrument_key` is the identity; `ticker` is a display attribute only (for non-MISX it is `MIC:TICKER`) and is never an address in this channel.",
+      "description": "A catalog instrument card of ANY class (stock, future, index, currency, bond, option): the single card shape for `catalog` and `lookup`. `instrument_key` is the identity; `ticker` is a display attribute only (for non-MISX it is `MIC:TICKER`) and is never an address in this channel. `class`, `lifecycle`, `archived_reason` and `traits` were added to the former listing (additive for older readers). `catalog` carries only active curated instruments; `lookup` may also return archived ones.",
       "properties": {
         "instrument_key": {
           "$ref": "common.v1.json#/$defs/instrumentKey"
@@ -456,6 +510,34 @@
         },
         "source": {
           "type": "string"
+        },
+        "class": {
+          "enum": [
+            "stock",
+            "future",
+            "index",
+            "currency",
+            "bond",
+            "option"
+          ],
+          "description": "Instrument class. Drives the badge and the plaque choice (a bond opens the bond plaque)."
+        },
+        "lifecycle": {
+          "enum": [
+            "active",
+            "archived"
+          ],
+          "description": "`archived`: the instrument is no longer in the source (expired contract, matured bond, delisted), but is still addressable by key (`lookup`)."
+        },
+        "archived_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Why the instrument was archived (`expired`, `missing_from_source`, `matured`, `delisted`); null while `lifecycle` is `active`."
+        },
+        "traits": {
+          "$ref": "#/$defs/traits"
         }
       }
     },
@@ -546,7 +628,7 @@
         "listings": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/listing"
+            "$ref": "#/$defs/instrumentCard"
           }
         },
         "derivatives": {
@@ -653,7 +735,7 @@
         "key"
       ],
       "additionalProperties": false,
-      "description": "`key` is an `instrument_key` for kind `instrument` (a catalog listing OR a bond: a bond is an ordinary instrument, its key is `MISX:<board>:<secid>`) and an `asset_id` for kind `asset`. Refs that resolve to a bond need the capability `bonds`: `paint` (`mark`/`unmark`/`order`) with such a ref from a connection without it is refused with `forbidden`, and bond entries are returned in `favorites` only to connections with `bonds` (without it they stay stored, just not sent).",
+      "description": "`key` is an `instrument_key` for kind `instrument` (any class: a bond is an ordinary instrument, its key is `MISX:<board>:<secid>`) and an `asset_id` for kind `asset`. The capability `bonds` is checked by the instrument's `class`: `paint` (`mark`/`unmark`/`order`) with a ref that resolves to a bond from a connection without it is refused with `forbidden`, and bond entries are returned in `favorites` only to connections with `bonds` (without it they stay stored, just not sent).",
       "properties": {
         "kind": {
           "enum": [
@@ -1173,6 +1255,82 @@
         }
       ]
     },
+    "lookup": {
+      "type": "object",
+      "title": "afbws.instrument.lookup.v2 — instrument cards by key (request / response)",
+      "description": "Request: `instrument_keys[]` (1..100, unique). Response (same `request_id`): `items[]` — cards of the keys that were found and are visible to the caller; `missing[]` — a refusal PER KEY (`not_found`: unknown key; `forbidden`: the key exists but the caller may not see it, e.g. a bond without the capability `bonds`), the other keys are still returned. Visibility is the class policy WITHOUT regard to `lifecycle`: an archived instrument (expired contract of a visible asset) is returned with `lifecycle: archived`. Used by the frontend to open an instrument that is not in the `catalog` snapshot. Any authenticated caller.",
+      "required": [
+        "channel",
+        "schema"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "instrument"
+        },
+        "schema": {
+          "const": "afbws.instrument.lookup.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "instrument_keys": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.v1.json#/$defs/instrumentKey"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/instrumentCard"
+          }
+        },
+        "missing": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/lookupMissing"
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "items"
+                ]
+              },
+              {
+                "required": [
+                  "missing"
+                ]
+              }
+            ]
+          },
+          "required": [
+            "request_id",
+            "instrument_keys"
+          ]
+        },
+        {
+          "required": [
+            "request_id",
+            "items",
+            "missing"
+          ],
+          "not": {
+            "required": [
+              "instrument_keys"
+            ]
+          }
+        }
+      ]
+    },
     "detail": {
       "type": "object",
       "title": "afbws.instrument.detail.v2 — trading parameters of an instrument for every account of the caller (request / response)",
@@ -1237,7 +1395,7 @@
     "error": {
       "type": "object",
       "title": "afbws.instrument.error.v2 — typed error for a whole request (server -> client).",
-      "description": "`details`: `catalog_revision` / `user_revision` for `conflict`; `set_ids` / `asset_ids` / `instrument_keys` naming the rows at fault for `forbidden` / `validation_error`; `limit` for a tier-limit overflow.",
+      "description": "`details`: `catalog_revision` / `user_revision` for `conflict`; `set_ids` / `asset_ids` / `instrument_keys` naming the rows at fault for `forbidden` / `validation_error`; `limit` for a tier-limit overflow. `not_supported`: the key is known, but the function is switched off by the instrument's traits (e.g. `detail` of a bond).",
       "required": [
         "channel",
         "schema",
@@ -1265,6 +1423,7 @@
             "not_found",
             "conflict",
             "bf_offline",
+            "not_supported",
             "internal_error"
           ]
         },
@@ -1327,6 +1486,26 @@
               }
             }
           }
+        }
+      }
+    },
+    "lookupMissing": {
+      "type": "object",
+      "required": [
+        "instrument_key",
+        "code"
+      ],
+      "additionalProperties": false,
+      "description": "A key that `lookup` did not return.",
+      "properties": {
+        "instrument_key": {
+          "$ref": "common.v1.json#/$defs/instrumentKey"
+        },
+        "code": {
+          "enum": [
+            "not_found",
+            "forbidden"
+          ]
         }
       }
     }

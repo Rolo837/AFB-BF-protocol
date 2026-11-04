@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 7f060720e14e222cf65eac8b802047b6a3cbc6c65beca625264424d93d3915be
+ * source-hash: d6b51e5a78ba2ed26865093cc9dcea4a06c413998f8b162baaea679e12d91488
  */
 
 /**
@@ -177,7 +177,8 @@ export type AfbwsCommonV1_ErrorCode =
   | 'unsupported_action'
   | 'not_paired'
   | 'superseded'
-  | 'busy';
+  | 'busy'
+  | 'not_supported';
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.alarm.channel.v2). Items are afb.alarm.v2 (`instrument_key` instead of `ticker`). Same convention as afbws.market: ONE schema id per message (`afbws.alarm.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`). Collections are arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. `triggered` is the only server push (no `request_id`). See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
@@ -1280,7 +1281,7 @@ export type GpV2Style = {
   styles?: GpV2PrimitiveStyles;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v2). Provides only the operations the project uses and that afbws.catalog.channel.v1 does not already cover. Same convention as afbws.catalog/afbws.alarm.v2/afbws.gp.v2: ONE schema id per message (`afbws.instrument.<op>.v2`), the same schema is the request, its response and, for `expiration`, the server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.instrument.error.v2`. Operations: `catalog`, `sets`, `favorites`, `paint`, `expiration`, `replace`, `detail`. Instruments are addressed ONLY by `instrument_key`; `ticker` appears solely as a display attribute of a listing / notice. All operations are open to any authenticated caller; manager rights (global sets) are checked by the backend per `visibility`. See AFB/docs/ws/instrument.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.instrument.channel.v2). Provides only the operations the project uses and that afbws.catalog.channel.v1 does not already cover. Same convention as afbws.catalog/afbws.alarm.v2/afbws.gp.v2: ONE schema id per message (`afbws.instrument.<op>.v2`), the same schema is the request, its response and, for `expiration`, the server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.instrument.error.v2`. Operations: `catalog`, `sets`, `favorites`, `paint`, `expiration`, `replace`, `detail`, `lookup`. Instruments are addressed ONLY by `instrument_key`; `ticker` appears solely as a display attribute of a card / notice. All operations are open to any authenticated caller; manager rights (global sets) are checked by the backend per `visibility`. See AFB/docs/ws/instrument.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsInstrumentChannelV2_Root".
@@ -1293,6 +1294,7 @@ export type AfbwsInstrumentChannelV2_Root =
   | AfbwsInstrumentChannelV2_Expiration
   | AfbwsInstrumentChannelV2_Replace
   | AfbwsInstrumentChannelV2_Detail
+  | AfbwsInstrumentChannelV2_Lookup
   | AfbwsInstrumentChannelV2_Error;
 /**
  * Request: only `request_id`. Response (same `request_id`): what the caller may see — ordered `collections`, `sets` (global sets published for the caller's tier plus the caller's own `personal` ones, in display order), `assets` with members, the active `listings` the caller may see and the `derivatives` axis. Completeness is applied by the backend from the caller's role (a manager also sees unassigned assets). `revision` is the global catalog revision (`catalog_revision` of `sets`), `user_revision` the revision of the caller's personal sets aggregate. Any authenticated caller.
@@ -1309,7 +1311,7 @@ export type AfbwsInstrumentChannelV2_Catalog = {
   collections?: AfbwsInstrumentChannelV2_Collection[];
   sets?: AfbwsInstrumentChannelV2_Set[];
   assets?: AfbwsInstrumentChannelV2_Asset[];
-  listings?: AfbwsInstrumentChannelV2_Listing[];
+  listings?: AfbwsInstrumentChannelV2_InstrumentCard[];
   derivatives?: AfbwsInstrumentChannelV2_Derivative[];
 } & AfbwsInstrumentChannelV2_Catalog1;
 /**
@@ -1486,6 +1488,27 @@ export type AfbwsInstrumentChannelV2_AccountDetail = {
   };
 };
 export type AfbwsInstrumentChannelV2_Detail1 = {
+  [k: string]: unknown;
+};
+/**
+ * Request: `instrument_keys[]` (1..100, unique). Response (same `request_id`): `items[]` — cards of the keys that were found and are visible to the caller; `missing[]` — a refusal PER KEY (`not_found`: unknown key; `forbidden`: the key exists but the caller may not see it, e.g. a bond without the capability `bonds`), the other keys are still returned. Visibility is the class policy WITHOUT regard to `lifecycle`: an archived instrument (expired contract of a visible asset) is returned with `lifecycle: archived`. Used by the frontend to open an instrument that is not in the `catalog` snapshot. Any authenticated caller.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Lookup".
+ */
+export type AfbwsInstrumentChannelV2_Lookup = {
+  channel: 'instrument';
+  schema: 'afbws.instrument.lookup.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  /**
+   * @minItems 1
+   * @maxItems 100
+   */
+  instrument_keys?: [AfbwsCommonV1_InstrumentKey, ...AfbwsCommonV1_InstrumentKey[]];
+  items?: AfbwsInstrumentChannelV2_InstrumentCard[];
+  missing?: AfbwsInstrumentChannelV2_LookupMissing[];
+} & AfbwsInstrumentChannelV2_Lookup1;
+export type AfbwsInstrumentChannelV2_Lookup1 = {
   [k: string]: unknown;
 };
 /**
@@ -6007,12 +6030,12 @@ export interface AfbwsInstrumentChannelV2_Member {
   ref: string;
 }
 /**
- * An active catalog listing. `instrument_key` is the identity; `ticker` is a display attribute only (for non-MISX it is `MIC:TICKER`) and is never an address in this channel.
+ * A catalog instrument card of ANY class (stock, future, index, currency, bond, option): the single card shape for `catalog` and `lookup`. `instrument_key` is the identity; `ticker` is a display attribute only (for non-MISX it is `MIC:TICKER`) and is never an address in this channel. `class`, `lifecycle`, `archived_reason` and `traits` were added to the former listing (additive for older readers). `catalog` carries only active curated instruments; `lookup` may also return archived ones.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsInstrumentChannelV2_Listing".
+ * via the `definition` "AfbwsInstrumentChannelV2_InstrumentCard".
  */
-export interface AfbwsInstrumentChannelV2_Listing {
+export interface AfbwsInstrumentChannelV2_InstrumentCard {
   instrument_key: AfbwsCommonV1_InstrumentKey;
   mic: string;
   board?: string | null;
@@ -6035,6 +6058,55 @@ export interface AfbwsInstrumentChannelV2_Listing {
   isin?: string | null;
   derivative?: string | null;
   source: string;
+  /**
+   * Instrument class. Drives the badge and the plaque choice (a bond opens the bond plaque).
+   */
+  class: 'stock' | 'future' | 'index' | 'currency' | 'bond' | 'option';
+  /**
+   * `archived`: the instrument is no longer in the source (expired contract, matured bond, delisted), but is still addressable by key (`lookup`).
+   */
+  lifecycle: 'active' | 'archived';
+  /**
+   * Why the instrument was archived (`expired`, `missing_from_source`, `matured`, `delisted`); null while `lifecycle` is `active`.
+   */
+  archived_reason: string | null;
+  traits: AfbwsInstrumentChannelV2_Traits;
+}
+/**
+ * Which functions an instrument supports. The frontend enables buttons by traits; a request for a function the traits switch off is answered with `not_supported` (unknown key: `not_found`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_Traits".
+ */
+export interface AfbwsInstrumentChannelV2_Traits {
+  /**
+   * How the price is quoted: in currency units, or in percent of the face value (bonds). Drives price labels and P&L.
+   */
+  price_unit: 'money' | 'percent_of_face';
+  /**
+   * Candle chart is available.
+   */
+  charts: boolean;
+  /**
+   * Chart drawing primitives are available.
+   */
+  primitives: boolean;
+  /**
+   * Alarms are available.
+   */
+  alarms: boolean;
+  /**
+   * Bottom panel and `dataset` conditions are available.
+   */
+  datasets: boolean;
+  /**
+   * Trade plans and deals are available.
+   */
+  plans: boolean;
+  /**
+   * Deals on the virtual account are available. Real-account trading is per account in `detail` and is not duplicated here.
+   */
+  virtual_trading: boolean;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -6085,7 +6157,7 @@ export interface AfbwsInstrumentChannelV2_Paint {
   unmarked?: AfbwsInstrumentChannelV2_FavoriteRef[];
 }
 /**
- * `key` is an `instrument_key` for kind `instrument` (a catalog listing OR a bond: a bond is an ordinary instrument, its key is `MISX:<board>:<secid>`) and an `asset_id` for kind `asset`. Refs that resolve to a bond need the capability `bonds`: `paint` (`mark`/`unmark`/`order`) with such a ref from a connection without it is refused with `forbidden`, and bond entries are returned in `favorites` only to connections with `bonds` (without it they stay stored, just not sent).
+ * `key` is an `instrument_key` for kind `instrument` (any class: a bond is an ordinary instrument, its key is `MISX:<board>:<secid>`) and an `asset_id` for kind `asset`. The capability `bonds` is checked by the instrument's `class`: `paint` (`mark`/`unmark`/`order`) with a ref that resolves to a bond from a connection without it is refused with `forbidden`, and bond entries are returned in `favorites` only to connections with `bonds` (without it they stay stored, just not sent).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsInstrumentChannelV2_FavoriteRef".
@@ -6150,7 +6222,17 @@ export interface AfbwsInstrumentChannelV2_AccountRef {
   account_id: string;
 }
 /**
- * `details`: `catalog_revision` / `user_revision` for `conflict`; `set_ids` / `asset_ids` / `instrument_keys` naming the rows at fault for `forbidden` / `validation_error`; `limit` for a tier-limit overflow.
+ * A key that `lookup` did not return.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsInstrumentChannelV2_LookupMissing".
+ */
+export interface AfbwsInstrumentChannelV2_LookupMissing {
+  instrument_key: AfbwsCommonV1_InstrumentKey;
+  code: 'not_found' | 'forbidden';
+}
+/**
+ * `details`: `catalog_revision` / `user_revision` for `conflict`; `set_ids` / `asset_ids` / `instrument_keys` naming the rows at fault for `forbidden` / `validation_error`; `limit` for a tier-limit overflow. `not_supported`: the key is known, but the function is switched off by the instrument's traits (e.g. `detail` of a bond).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsInstrumentChannelV2_Error".
@@ -6168,6 +6250,7 @@ export interface AfbwsInstrumentChannelV2_Error {
     | 'not_found'
     | 'conflict'
     | 'bf_offline'
+    | 'not_supported'
     | 'internal_error';
   message: string;
   details?: {

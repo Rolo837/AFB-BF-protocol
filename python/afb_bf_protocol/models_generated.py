@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 7f060720e14e222cf65eac8b802047b6a3cbc6c65beca625264424d93d3915be
+# source-hash: d6b51e5a78ba2ed26865093cc9dcea4a06c413998f8b162baaea679e12d91488
 
 from __future__ import annotations
 
@@ -1563,6 +1563,7 @@ AfbwsCommonV1ErrorCode: TypeAlias = Literal[
     "not_paired",
     "superseded",
     "busy",
+    "not_supported",
 ]
 
 
@@ -1646,7 +1647,7 @@ class AfbwsInstrumentChannelV2Catalog1(TypedDict):
     collections: NotRequired[list[AfbwsInstrumentChannelV2Collection]]
     sets: NotRequired[list[AfbwsInstrumentChannelV2Set]]
     assets: NotRequired[list[AfbwsInstrumentChannelV2Asset]]
-    listings: NotRequired[list[AfbwsInstrumentChannelV2Listing]]
+    listings: NotRequired[list[AfbwsInstrumentChannelV2InstrumentCard]]
     derivatives: NotRequired[list[AfbwsInstrumentChannelV2Derivative]]
 
 
@@ -1663,7 +1664,7 @@ class AfbwsInstrumentChannelV2Catalog2(TypedDict):
     collections: list[AfbwsInstrumentChannelV2Collection]
     sets: list[AfbwsInstrumentChannelV2Set]
     assets: list[AfbwsInstrumentChannelV2Asset]
-    listings: list[AfbwsInstrumentChannelV2Listing]
+    listings: list[AfbwsInstrumentChannelV2InstrumentCard]
     derivatives: list[AfbwsInstrumentChannelV2Derivative]
 
 
@@ -1726,7 +1727,7 @@ AfbwsInstrumentChannelV2Detail: TypeAlias = (
 
 class AfbwsInstrumentChannelV2Error(TypedDict):
     """
-    `details`: `catalog_revision` / `user_revision` for `conflict`; `set_ids` / `asset_ids` / `instrument_keys` naming the rows at fault for `forbidden` / `validation_error`; `limit` for a tier-limit overflow.
+    `details`: `catalog_revision` / `user_revision` for `conflict`; `set_ids` / `asset_ids` / `instrument_keys` naming the rows at fault for `forbidden` / `validation_error`; `limit` for a tier-limit overflow. `not_supported`: the key is known, but the function is switched off by the instrument's traits (e.g. `detail` of a bond).
     """
 
     channel: Literal["instrument"]
@@ -1741,6 +1742,7 @@ class AfbwsInstrumentChannelV2Error(TypedDict):
         "not_found",
         "conflict",
         "bf_offline",
+        "not_supported",
         "internal_error",
     ]
     message: str
@@ -1828,7 +1830,7 @@ class AfbwsInstrumentChannelV2FavoriteEntry(TypedDict):
 
 class AfbwsInstrumentChannelV2FavoriteRef(TypedDict):
     """
-    `key` is an `instrument_key` for kind `instrument` (a catalog listing OR a bond: a bond is an ordinary instrument, its key is `MISX:<board>:<secid>`) and an `asset_id` for kind `asset`. Refs that resolve to a bond need the capability `bonds`: `paint` (`mark`/`unmark`/`order`) with such a ref from a connection without it is refused with `forbidden`, and bond entries are returned in `favorites` only to connections with `bonds` (without it they stay stored, just not sent).
+    `key` is an `instrument_key` for kind `instrument` (any class: a bond is an ordinary instrument, its key is `MISX:<board>:<secid>`) and an `asset_id` for kind `asset`. The capability `bonds` is checked by the instrument's `class`: `paint` (`mark`/`unmark`/`order`) with a ref that resolves to a bond from a connection without it is refused with `forbidden`, and bond entries are returned in `favorites` only to connections with `bonds` (without it they stay stored, just not sent).
     """
 
     kind: Literal["instrument", "asset"]
@@ -1846,27 +1848,44 @@ class AfbwsInstrumentChannelV2Favorites(TypedDict):
     favorites: NotRequired[list[AfbwsInstrumentChannelV2FavoriteEntry]]
 
 
-class AfbwsInstrumentChannelV2Listing(TypedDict):
+class AfbwsInstrumentChannelV2Lookup1(TypedDict):
     """
-    An active catalog listing. `instrument_key` is the identity; `ticker` is a display attribute only (for non-MISX it is `MIC:TICKER`) and is never an address in this channel.
+    Request: `instrument_keys[]` (1..100, unique). Response (same `request_id`): `items[]` — cards of the keys that were found and are visible to the caller; `missing[]` — a refusal PER KEY (`not_found`: unknown key; `forbidden`: the key exists but the caller may not see it, e.g. a bond without the capability `bonds`), the other keys are still returned. Visibility is the class policy WITHOUT regard to `lifecycle`: an archived instrument (expired contract of a visible asset) is returned with `lifecycle: archived`. Used by the frontend to open an instrument that is not in the `catalog` snapshot. Any authenticated caller.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.lookup.v2"]
+    request_id: AfbwsCommonV1RequestId
+    instrument_keys: list[AfbwsCommonV1InstrumentKey]
+    items: NotRequired[list[AfbwsInstrumentChannelV2InstrumentCard]]
+    missing: NotRequired[list[AfbwsInstrumentChannelV2LookupMissing]]
+
+
+class AfbwsInstrumentChannelV2Lookup2(TypedDict):
+    """
+    Request: `instrument_keys[]` (1..100, unique). Response (same `request_id`): `items[]` — cards of the keys that were found and are visible to the caller; `missing[]` — a refusal PER KEY (`not_found`: unknown key; `forbidden`: the key exists but the caller may not see it, e.g. a bond without the capability `bonds`), the other keys are still returned. Visibility is the class policy WITHOUT regard to `lifecycle`: an archived instrument (expired contract of a visible asset) is returned with `lifecycle: archived`. Used by the frontend to open an instrument that is not in the `catalog` snapshot. Any authenticated caller.
+    """
+
+    channel: Literal["instrument"]
+    schema: Literal["afbws.instrument.lookup.v2"]
+    request_id: AfbwsCommonV1RequestId
+    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
+    items: list[AfbwsInstrumentChannelV2InstrumentCard]
+    missing: list[AfbwsInstrumentChannelV2LookupMissing]
+
+
+AfbwsInstrumentChannelV2Lookup: TypeAlias = (
+    AfbwsInstrumentChannelV2Lookup1 | AfbwsInstrumentChannelV2Lookup2
+)
+
+
+class AfbwsInstrumentChannelV2LookupMissing(TypedDict):
+    """
+    A key that `lookup` did not return.
     """
 
     instrument_key: AfbwsCommonV1InstrumentKey
-    mic: str
-    board: NotRequired[str | None]
-    market: str
-    ticker: str
-    name: str
-    shortname: NotRequired[str | None]
-    currency: NotRequired[str | None]
-    decimals: NotRequired[int | None]
-    lot_size: NotRequired[int | None]
-    price_step: NotRequired[str | None]
-    step_price: NotRequired[str | None]
-    expiration: NotRequired[str | None]
-    isin: NotRequired[str | None]
-    derivative: NotRequired[str | None]
-    source: str
+    code: Literal["not_found", "forbidden"]
 
 
 class AfbwsInstrumentChannelV2Member(TypedDict):
@@ -2017,7 +2036,49 @@ AfbwsInstrumentChannelV2Root: TypeAlias = (
     | AfbwsInstrumentChannelV2Expiration
     | AfbwsInstrumentChannelV2Replace
     | AfbwsInstrumentChannelV2Detail
+    | AfbwsInstrumentChannelV2Lookup
     | AfbwsInstrumentChannelV2Error
+)
+
+
+class AfbwsInstrumentChannelV2Traits(TypedDict):
+    """
+    Which functions an instrument supports. The frontend enables buttons by traits; a request for a function the traits switch off is answered with `not_supported` (unknown key: `not_found`).
+    """
+
+    price_unit: Literal["money", "percent_of_face"]
+    charts: bool
+    primitives: bool
+    alarms: bool
+    datasets: bool
+    plans: bool
+    virtual_trading: bool
+
+
+AfbwsInstrumentChannelV2InstrumentCard = TypedDict(
+    "AfbwsInstrumentChannelV2InstrumentCard",
+    {
+        "instrument_key": AfbwsCommonV1InstrumentKey,
+        "mic": str,
+        "board": NotRequired[str | None],
+        "market": str,
+        "ticker": str,
+        "name": str,
+        "shortname": NotRequired[str | None],
+        "currency": NotRequired[str | None],
+        "decimals": NotRequired[int | None],
+        "lot_size": NotRequired[int | None],
+        "price_step": NotRequired[str | None],
+        "step_price": NotRequired[str | None],
+        "expiration": NotRequired[str | None],
+        "isin": NotRequired[str | None],
+        "derivative": NotRequired[str | None],
+        "source": str,
+        "class": Literal["stock", "future", "index", "currency", "bond", "option"],
+        "lifecycle": Literal["active", "archived"],
+        "archived_reason": str | None,
+        "traits": AfbwsInstrumentChannelV2Traits,
+    },
 )
 
 

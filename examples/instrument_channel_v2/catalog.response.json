@@ -59,7 +59,19 @@
       "lot_size": 10,
       "price_step": "0.01",
       "decimals": 2,
-      "currency": "RUB"
+      "currency": "RUB",
+      "class": "stock",
+      "lifecycle": "active",
+      "archived_reason": null,
+      "traits": {
+        "price_unit": "money",
+        "charts": true,
+        "primitives": true,
+        "alarms": true,
+        "datasets": true,
+        "plans": true,
+        "virtual_trading": true
+      }
     }
   ],
   "derivatives": []

@@ -23,7 +23,8 @@
         "unsupported_action",
         "not_paired",
         "superseded",
-        "busy"
+        "busy",
+        "not_supported"
       ]
     },
     "instrumentKey": {

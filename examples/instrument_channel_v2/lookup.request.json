@@ -1,0 +1,10 @@
+{
+  "channel": "instrument",
+  "schema": "afbws.instrument.lookup.v2",
+  "request_id": "i-8",
+  "instrument_keys": [
+    "MISX:RFUD:SiZ5",
+    "MISX:TQCB:RU000A10A3Z4",
+    "MISX:TQBR:XXXX"
+  ]
+}

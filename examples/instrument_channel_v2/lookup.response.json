@@ -1,0 +1,61 @@
+{
+  "channel": "instrument",
+  "schema": "afbws.instrument.lookup.v2",
+  "request_id": "i-8",
+  "items": [
+    {
+      "instrument_key": "MISX:RFUD:SiZ5",
+      "class": "future",
+      "mic": "MISX",
+      "board": "RFUD",
+      "market": "futures",
+      "ticker": "SiZ5",
+      "name": "Si-12.25",
+      "source": "moex",
+      "lot_size": 1,
+      "price_step": "1",
+      "step_price": "1",
+      "expiration": "2025-12-18",
+      "derivative": "MISX:Si",
+      "lifecycle": "archived",
+      "archived_reason": "expired",
+      "traits": {
+        "price_unit": "money",
+        "charts": true,
+        "primitives": true,
+        "alarms": true,
+        "datasets": true,
+        "plans": true,
+        "virtual_trading": true
+      }
+    },
+    {
+      "instrument_key": "MISX:TQCB:RU000A10A3Z4",
+      "class": "bond",
+      "mic": "MISX",
+      "board": "TQCB",
+      "market": "bonds",
+      "ticker": "RU000A10A3Z4",
+      "name": "Пример облигация",
+      "source": "iss_bonds",
+      "isin": "RU000A10A3Z4",
+      "lifecycle": "active",
+      "archived_reason": null,
+      "traits": {
+        "price_unit": "percent_of_face",
+        "charts": false,
+        "primitives": false,
+        "alarms": false,
+        "datasets": false,
+        "plans": false,
+        "virtual_trading": false
+      }
+    }
+  ],
+  "missing": [
+    {
+      "instrument_key": "MISX:TQBR:XXXX",
+      "code": "not_found"
+    }
+  ]
+}
