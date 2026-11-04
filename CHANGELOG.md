@@ -16,6 +16,17 @@
 
 ### Removed
 
+## v2.10.3 — 2026-11-04
+
+### Added
+- **`afbws.instrument.lookup.v2`** (канал `instrument`): карточки инструментов по `instrument_keys[]` (1..100, уникальные) — для открытия инструмента, которого нет в снимке `catalog`. Ответ: `items[]` (`instrumentCard`) и `missing[]` (`{instrument_key, code: not_found|forbidden}`) — отказ по каждому ключу, остальные отдаются. Видимость — по политике класса без учёта `lifecycle` (архивный контракт видимого актива открывается; облигация — при capability `bonds`).
+- **`$defs/traits`** в `instrument.channel.v2`: `price_unit` (`money|percent_of_face`), `charts`, `primitives`, `alarms`, `datasets`, `plans`, `virtual_trading` — функции, поддерживаемые инструментом.
+- **`not_supported`** в `error.code` канала `instrument` и в общем `afbws/common.v1#errorCode` (его используют `market.channel.v1`, `gp.channel.v2`, `bonds.channel.v1`): ключ известен, функция выключена трейтами.
+
+### Changed
+- **`instrument.channel.v2`: `$defs/listing` → `$defs/instrumentCard`** — единая карточка инструмента любого класса для `catalog` и `lookup` (имя массива на проводе `catalog.listings` прежнее). Новые обязательные поля карточки: `class` (`stock|future|index|currency|bond|option`), `lifecycle` (`active|archived`), `archived_reason` (string|null), `traits`. Для читателей снимка это добавочные поля; `ticker` — только отображение.
+- **`favoriteRef`**: описание больше не выделяет отдельную ветку облигаций — облигация обычный `instrument`, гейт `bonds` проверяется по классу инструмента.
+
 ## v2.10.2 — 2026-11-03
 
 ### Added

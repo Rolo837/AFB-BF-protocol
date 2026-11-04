@@ -41,7 +41,7 @@ def test_capability_id_declared():
 def test_examples_validate(registry):
     root = _validator(registry)
     files = sorted(EXAMPLES.glob("*.json"))
-    assert len(files) >= 14
+    assert len(files) >= 18
     for path in files:
         root.validate(json.loads(path.read_text(encoding="utf-8")))
 
@@ -142,3 +142,38 @@ def test_root_rejects_v1_schema_ids_and_other_channels(registry):
     _bad(root, {"channel": "instrument", "schema": "afbws.instrument.user.request.v1", "request_id": "r"})
     _bad(root, {"channel": "instrument", "schema": "afbws.instrument.detail.request.v2", "request_id": "r"})
     _bad(root, {**_msg("catalog", request_id="r"), "channel": "catalog"})
+
+
+_TRAITS = {"price_unit": "money", "charts": True, "primitives": True, "alarms": True, "datasets": True, "plans": True, "virtual_trading": True}
+_CARD = {"instrument_key": "MISX:TQBR:SBER", "class": "stock", "mic": "MISX", "market": "stock", "ticker": "SBER", "name": "Сбербанк",
+         "source": "moex", "lifecycle": "active", "archived_reason": None, "traits": _TRAITS}
+
+
+def test_instrument_card_and_traits(registry):
+    v = _validator(registry, "instrumentCard")
+    v.validate(_CARD)
+    v.validate({**_CARD, "class": "bond", "lifecycle": "archived", "archived_reason": "matured", "traits": {**_TRAITS, "price_unit": "percent_of_face", "charts": False}})
+    for k in ("class", "lifecycle", "archived_reason", "traits"):
+        _bad(v, {x: y for x, y in _CARD.items() if x != k})
+    _bad(v, {**_CARD, "class": "etf"})
+    _bad(v, {**_CARD, "lifecycle": "deleted"})
+    _bad(v, {**_CARD, "traits": {k: v_ for k, v_ in _TRAITS.items() if k != "plans"}})
+    _bad(v, {**_CARD, "traits": {**_TRAITS, "extra": True}})
+    _bad(v, {**_CARD, "traits": {**_TRAITS, "price_unit": "points"}})
+
+
+def test_lookup_request_response(registry):
+    v = _validator(registry, "lookup")
+    v.validate(_msg("lookup", request_id="r", instrument_keys=["MISX:TQBR:SBER", "MISX:TQCB:RU000A10A3Z4"]))
+    v.validate(_msg("lookup", request_id="r", items=[_CARD], missing=[{"instrument_key": "MISX:TQBR:XX", "code": "not_found"}, {"instrument_key": "MISX:TQCB:B1", "code": "forbidden"}]))
+    _bad(v, _msg("lookup", request_id="r", instrument_keys=[]))
+    _bad(v, _msg("lookup", request_id="r", instrument_keys=["MISX:TQBR:SBER", "MISX:TQBR:SBER"]))
+    _bad(v, _msg("lookup", request_id="r", instrument_keys=[f"MISX:TQBR:T{i}" for i in range(101)]))
+    _bad(v, _msg("lookup", request_id="r", items=[_CARD]))  # partial response
+    _bad(v, _msg("lookup", request_id="r", items=[], missing=[{"instrument_key": "MISX:TQBR:XX", "code": "archived"}]))
+    _bad(v, _msg("lookup", instrument_keys=["MISX:TQBR:SBER"]))
+
+
+def test_not_supported_error_code(registry):
+    v = _validator(registry, "error")
+    v.validate(_msg("error", request_id="r", code="not_supported", message="bond has no detail").copy() | {"schema": "afbws.instrument.error.v2"})
