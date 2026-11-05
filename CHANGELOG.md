@@ -17,6 +17,7 @@
 
 ### Changed
 
+- `tradeplan.v2.json` (хранимая схема плана): `instrument_key` обязателен (вместо `anyOf [ticker] | [instrument_key]`); `ticker` помечен `deprecated` — производная подпись для отображения, не идентификатор, будет удалена; остаётся объявленным, пока закрытая схема должна принимать старые файлы с ним. `afbws/tradeplan.channel.v2.json` (исход, `planItem`): `instrument_key` обязателен (убраны `if/then` про `instrument_missing`), `ticker` необязателен и `deprecated`; `instrument_missing` теперь означает «ключ не найден в справочнике» (архивный инструмент найден). Вход `set` не менялся (ключ уже обязателен, `ticker` не принимается). Примеры `examples/tradeplans/tradeplan.v2*.json` — с `instrument_key` вместо `ticker`.
 - `notification.alarm.v1.json`: `instrument_key` стал обязательным; `ticker` остаётся полем отображения (в description явно: не идентификатор). Примеры `examples/notifications/alarm.*.json` дополнены ключом.
 
 ### Fixed

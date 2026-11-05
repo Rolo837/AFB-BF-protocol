@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 80b09ae4fa5768f63547b069caacd06fdec27cc430047ee8f63f3b19c1bec824
+ * source-hash: f13163800db33ca3214e3b50730b8d07922e175f70451a1a99971f63f521051c
  */
 
 /**
@@ -2079,7 +2079,7 @@ export type AfbwsScreenerChannelV1_FavoriteColor =
  */
 export type AfbwsScreenerChannelV1_ExportRef = string;
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v2). Same convention as afbws.alarm/account/market v2: ONE schema id per message (`afbws.tradeplan.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`), and the server push `sync` is the same kind of message without `request_id`. Collections are arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; per-plan failures of a batch come back in `rejected[]`, `error` is only for a whole request. There is no separate `get`: use `list` with `ids`. Two plan shapes: `planInput` (what the client sends in `set` — the plan the user edits, NOT server-owned fields) and `planItem` (what the server returns — the stored plan minus `delivery_at`/`archived_components`/`archived_at`/`editor`, plus `instrument_missing`). Both are projections of the AFB-internal storage schema `../tradeplan.v2.json` (afb.tradeplan.v2), which stays the single source for the condition vocabulary; this channel schema is strict (additionalProperties:false) and carries no legacy forms: `leg_id` is never the synthetic `legacy:{role}:{index}`, `op` is mandatory on every condition, `schema` is mandatory, `instrument_key` is mandatory on input and on output either present or replaced by `instrument_missing:true`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v2). Same convention as afbws.alarm/account/market v2: ONE schema id per message (`afbws.tradeplan.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`), and the server push `sync` is the same kind of message without `request_id`. Collections are arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; per-plan failures of a batch come back in `rejected[]`, `error` is only for a whole request. There is no separate `get`: use `list` with `ids`. Two plan shapes: `planInput` (what the client sends in `set` — the plan the user edits, NOT server-owned fields) and `planItem` (what the server returns — the stored plan minus `delivery_at`/`archived_components`/`archived_at`/`editor`, plus `instrument_missing`). Both are projections of the AFB-internal storage schema `../tradeplan.v2.json` (afb.tradeplan.v2), which stays the single source for the condition vocabulary; this channel schema is strict (additionalProperties:false) and carries no legacy forms: `leg_id` is never the synthetic `legacy:{role}:{index}`, `op` is mandatory on every condition, `schema` is mandatory, `instrument_key` is mandatory on input and on output. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanChannelV2Message".
@@ -2183,15 +2183,6 @@ export type GpV1 = {
  * via the `definition` "NotificationBondV1_Root".
  */
 export type NotificationBondV1_Root = {
-  [k: string]: unknown;
-};
-/**
- * AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradePlanV2".
- */
-export type TradePlanV2 = {
   [k: string]: unknown;
 };
 /**
@@ -7672,7 +7663,7 @@ export interface TradeplanV2List {
   items?: TradeplanV2PlanItem[];
 }
 /**
- * An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is present whenever the server could resolve one; a plan whose instrument is not in the catalog comes with `instrument_missing: true` (and possibly without `ticker`) — at least one of the two is always there. `ticker` is the derived wire ticker. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.
+ * An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is always present and is the only identifier. `instrument_missing: true` means the key is not found in the instrument catalog (an archived instrument is found, so not missing; a plan stored before the key became mandatory whose old reference the server could not resolve comes with that old reference echoed in `instrument_key` and `instrument_missing: true`). `ticker` is deprecated: a derived display form (the wire ticker) the server takes from the catalog while the key resolves, kept for older frontends that still read it; may be absent when the key is not found. Never an identifier. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2PlanItem".
@@ -7680,10 +7671,14 @@ export interface TradeplanV2List {
 export interface TradeplanV2PlanItem {
   schema: 'afb.tradeplan.v2';
   id: TradeplanId;
-  ticker?: string;
-  instrument_key?: AfbwsCommonV1_InstrumentKey;
   /**
-   * Overlaid on output only (not persisted): the plan's instrument is not found in the catalog. A reference note, not a lifecycle state. Absent otherwise.
+   * @deprecated
+   * Deprecated display form of the instrument (derived by the server from the catalog; NOT an identifier). Kept for older frontends; will be removed.
+   */
+  ticker?: string;
+  instrument_key: AfbwsCommonV1_InstrumentKey;
+  /**
+   * Overlaid on output only (not persisted): the plan's `instrument_key` is not found in the instrument catalog (an archived instrument is found). A reference note, not a lifecycle state. Absent otherwise.
    */
   instrument_missing?: true;
   direction: 'long' | 'short';
@@ -9457,14 +9452,66 @@ export interface SessionResyncResponsePayload {
   [k: string]: unknown;
 }
 /**
- * Server-owned storage field, written once when the plan is archived: a self-contained snapshot of the chart components the plan used (the plan's own line primitives — physically removed from the live gp store on archive — and the indicators its conditions reference), so an archived plan keeps its historical drawing without depending on gp. Items are copies of AFB's internal gp/indicator storage records, deliberately not formalized here (they are never sent to clients; the channel drops this field). Re-archiving an archived plan carries the snapshot forward unchanged.
+ * AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV2_ArchivedComponents".
+ * via the `definition` "TradePlanV2".
  */
-export interface TradeplanV2_ArchivedComponents {
-  primitives: {}[];
-  indicators: {}[];
+export interface TradePlanV2 {
+  id: TradeplanId;
+  /**
+   * @deprecated
+   * Deprecated: a derived short display form of the instrument, NOT an identifier; will be removed. AFB no longer writes it (the identity is `instrument_key`). It stays declared only so the closed storage schema still accepts plan files written before the key became mandatory; a reader must never resolve the instrument from it when `instrument_key` is present.
+   */
+  ticker?: string;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key: string;
+  status?: 'draft' | 'published' | 'completed' | 'archived';
+  /**
+   * AFB frontend hint only — which of the two editor modes owns this plan. Never crosses the AFB<->BF channel and is dropped at compile time (not copied into the deal). Absence means "advanced": a plan written by a frontend older than this field, or by any non-UI producer, opens in the advanced editor. `simple` additionally asserts the plan is expressible in the simple editor (single leg per role, price/market conditions with above/below, no timeframe/percent/logic) — a `simple` plan that violates this is opened in the advanced editor anyway (see AFB frontend/src/utils/planEditorMode.ts).
+   */
+  editor?: 'simple' | 'advanced';
+  direction: 'long' | 'short';
+  schema: 'afb.tradeplan.v2';
+  activated_at?: string;
+  closed_at?: string;
+  archived_at?: string;
+  /**
+   * Only for outgoing messages: the plan's `instrument_key` is not found in the instrument catalog (an archived instrument is found, so not missing). Not persisted — overlaid in plans_for_ws_response on read. Not a lifecycle state.
+   */
+  instrument_missing?: boolean;
+  /**
+   * @minItems 1
+   */
+  entries: [TradeplanV2_TpLeg, ...TradeplanV2_TpLeg[]];
+  stop_loss?: TradeplanV2_TpExitList;
+  take_profit?: TradeplanV2_TpExitList;
+  sizing: DealSizing;
+  publish?: TradeplanV2_Publish;
+  /**
+   * @deprecated
+   * Deprecated pre-`publish` top-level connector id. AFB's parser still reads it as a fallback when `publish.bf_id` is absent (TradePlanV2.from_dict -> _coerce_publish_block) and rewrites the plan into `publish` on the next save, so the closed storage schema must keep accepting it until that fallback is removed. Never part of the channel contract.
+   */
+  connector?: string;
+  /**
+   * @deprecated
+   * Deprecated pre-`publish` top-level account id — the companion of the deprecated `connector` (fallback for `publish.account_id`); see `connector`.
+   */
+  account_id?: string;
+  /**
+   * Server-owned storage field: AFB mail/deals read watermark (notifications with created_at <= delivery_at are treated as read on reconnect), advanced by the backend. Never part of the channel contract (afbws/tradeplan.channel.v2.json neither accepts nor returns it).
+   */
+  delivery_at?: string;
+  archived_components?: TradeplanV2_ArchivedComponents;
+  /**
+   * @deprecated
+   * Deprecated storage leftover of the pre-separation plan->deal link (an empty string in the only stored file that has it, an archived plan from 2026-08). The plan does not store the link — deals reference plans via deal.source.tradeplan_id. Never written by new AFB (TradePlanV2.to_dict drops it), never part of the channel contract; declared only so the closed storage schema accepts that file as it lies on disk.
+   */
+  deal_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -9493,4 +9540,14 @@ export interface TradeplanV2_TpConditionNode {
   duration?: ConditionV1_Duration;
   left: TradeplanV2_ConditionLeft;
   right: TradeplanV2_ConditionRight;
+}
+/**
+ * Server-owned storage field, written once when the plan is archived: a self-contained snapshot of the chart components the plan used (the plan's own line primitives — physically removed from the live gp store on archive — and the indicators its conditions reference), so an archived plan keeps its historical drawing without depending on gp. Items are copies of AFB's internal gp/indicator storage records, deliberately not formalized here (they are never sent to clients; the channel drops this field). Re-archiving an archived plan carries the snapshot forward unchanged.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanV2_ArchivedComponents".
+ */
+export interface TradeplanV2_ArchivedComponents {
+  primitives: {}[];
+  indicators: {}[];
 }

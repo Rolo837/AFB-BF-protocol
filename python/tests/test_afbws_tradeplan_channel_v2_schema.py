@@ -154,14 +154,15 @@ def test_tradeplan_v2_plan_item(registry):
     v = _v("planItem", registry)
     v.validate(_ITEM)
     v.validate(_with(_ITEM, publish={"bf_id": "virtual"}))
-    # instrument: key, or instrument_missing (possibly without ticker)
-    missing = _with(_ITEM, instrument_key=None, ticker=None, instrument_missing=True)
-    v.validate(missing)
+    # instrument: the key is mandatory; `ticker` (deprecated) is optional; `instrument_missing` = key not in the catalog
+    v.validate(_with(_ITEM, ticker=None))
+    v.validate(_with(_ITEM, ticker=None, instrument_missing=True))
     v.validate(_with(_ITEM, instrument_missing=True))
-    v.validate(_with(_ITEM, instrument_key=None, instrument_missing=True))
     _invalid(v, _with(_ITEM, instrument_key=None))
+    _invalid(v, _with(_ITEM, instrument_key=None, instrument_missing=True))
+    _invalid(v, _with(_ITEM, instrument_key=""))
     _invalid(v, _with(_ITEM, instrument_missing=False))
-    for field in ("schema", "id", "direction", "status", "entries", "stop_loss", "take_profit", "sizing",
+    for field in ("schema", "id", "instrument_key", "direction", "status", "entries", "stop_loss", "take_profit", "sizing",
                   "activated_at", "closed_at", "created_at", "updated_at"):
         _invalid(v, _with(_ITEM, **{field: None}))
     for status in ("draft", "published", "completed", "archived"):

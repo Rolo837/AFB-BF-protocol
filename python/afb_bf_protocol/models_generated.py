@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 80b09ae4fa5768f63547b069caacd06fdec27cc430047ee8f63f3b19c1bec824
+# source-hash: f13163800db33ca3214e3b50730b8d07922e175f70451a1a99971f63f521051c
 
 from __future__ import annotations
 
@@ -6103,37 +6103,7 @@ class Subscription(TypedDict):
 SupportItem: TypeAlias = str
 
 
-class TradePlanV21(TypedDict):
-    """
-    AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
-    """
-
-    id: TradeplanId
-    ticker: str
-    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
-    status: NotRequired[Literal["draft", "published", "completed", "archived"]]
-    editor: NotRequired[Literal["simple", "advanced"]]
-    direction: Literal["long", "short"]
-    schema: Literal["afb.tradeplan.v2"]
-    activated_at: NotRequired[str]
-    closed_at: NotRequired[str]
-    archived_at: NotRequired[str]
-    instrument_missing: NotRequired[bool]
-    entries: list[TradeplanV2TpLeg]
-    stop_loss: NotRequired[TradeplanV2TpExitList]
-    take_profit: NotRequired[TradeplanV2TpExitList]
-    sizing: DealSizing
-    publish: NotRequired[TradeplanV2Publish]
-    connector: NotRequired[str]
-    account_id: NotRequired[str]
-    delivery_at: NotRequired[str]
-    archived_components: NotRequired[TradeplanV2ArchivedComponents]
-    deal_id: NotRequired[str]
-    created_at: NotRequired[str]
-    updated_at: NotRequired[str]
-
-
-class TradePlanV22(TypedDict):
+class TradePlanV2(TypedDict):
     """
     AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
     """
@@ -6161,9 +6131,6 @@ class TradePlanV22(TypedDict):
     deal_id: NotRequired[str]
     created_at: NotRequired[str]
     updated_at: NotRequired[str]
-
-
-TradePlanV2: TypeAlias = TradePlanV21 | TradePlanV22
 
 
 TradeplanId: TypeAlias = str
@@ -6329,13 +6296,13 @@ class TradeplanV2PlanInput(TypedDict):
 
 class TradeplanV2PlanItem(TypedDict):
     """
-    An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is present whenever the server could resolve one; a plan whose instrument is not in the catalog comes with `instrument_missing: true` (and possibly without `ticker`) — at least one of the two is always there. `ticker` is the derived wire ticker. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.
+    An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is always present and is the only identifier. `instrument_missing: true` means the key is not found in the instrument catalog (an archived instrument is found, so not missing; a plan stored before the key became mandatory whose old reference the server could not resolve comes with that old reference echoed in `instrument_key` and `instrument_missing: true`). `ticker` is deprecated: a derived display form (the wire ticker) the server takes from the catalog while the key resolves, kept for older frontends that still read it; may be absent when the key is not found. Never an identifier. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.
     """
 
     schema: Literal["afb.tradeplan.v2"]
     id: TradeplanId
     ticker: NotRequired[str]
-    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    instrument_key: AfbwsCommonV1InstrumentKey
     instrument_missing: NotRequired[Literal[True]]
     direction: Literal["long", "short"]
     status: Literal["draft", "published", "completed", "archived"]

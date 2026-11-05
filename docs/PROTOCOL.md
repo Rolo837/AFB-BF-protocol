@@ -584,10 +584,14 @@ Top-level `period` — общий таймфрейм вычисления ала
       `stop_loss[]`, `take_profit[]`, `sizing`, `publish?`. Серверных полей (`status`,
       `activated_at`/`closed_at`/`created_at`/`updated_at`, `delivery_at`, `archived_*`,
       `instrument_missing`) во входе нет — сервер хранит их у себя (создание начинается с `draft`).
-    - `planItem` — то, что отдаёт сервер: `planInput` + `ticker?`, `status`, `activated_at`,
+    - `planItem` — то, что отдаёт сервер: `planInput` + `ticker?` (deprecated), `status`, `activated_at`,
       `closed_at`, `created_at`, `updated_at`, `instrument_missing?`; у каждой ноги есть `leg_id`.
       `delivery_at`, `archived_components`, `archived_at`, `editor` наружу не уходят. Инструмент:
-      либо `instrument_key`, либо `instrument_missing: true`.
+      `instrument_key` есть всегда (единственный идентификатор); `instrument_missing: true` — ключа нет в
+      справочнике (архивный инструмент найден, значит не missing); `ticker` — устаревшая производная подпись
+      из справочника для старых фронтов, не идентификатор, будет удалена. То же в хранимой схеме
+      `tradeplan.v2.json`: `instrument_key` обязателен, `ticker` помечен `deprecated` (объявлен только ради
+      файлов, записанных до обязательности ключа; AFB его больше не пишет).
     - Условие ноги — `op` обязателен всегда; `leg_id` — только настоящий (синтетического
       `legacy:{role}:{index}` в канале нет). Общие `legId`/`tradeplanId` живут в
       `common.v1.json`. Внутренняя схема хранилища `tradeplan.v2.json` закрыта

@@ -1,6 +1,6 @@
 {
   "id": "tradeplan-6f2a-4d18",
-  "ticker": "GDU6",
+  "instrument_key": "MISX:RFUD:GDU6",
   "status": "draft",
   "direction": "long",
   "schema": "afb.tradeplan.v2",
