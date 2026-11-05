@@ -7,6 +7,7 @@
   "required": [
     "schema",
     "alarm_id",
+    "instrument_key",
     "ticker",
     "condition",
     "display",
@@ -15,10 +16,14 @@
   "properties": {
     "schema": {"const": "afb.notification.alarm.v1"},
     "alarm_id": {"type": "string", "minLength": 1},
-    "ticker": {"type": "string", "minLength": 1},
     "instrument_key": {
-      "description": "Optional full instrument key; set when the alarm is stored as afb.alarm.v2.",
+      "description": "Full instrument key of the alarm's instrument; the identity of the instrument (afb.alarm.v2).",
       "$ref": "afbws/common.v1.json#/$defs/instrumentKey"
+    },
+    "ticker": {
+      "description": "Display name of the instrument's ticker (e.g. SBER, CL). Not an identifier: the instrument is identified by `instrument_key` only.",
+      "type": "string",
+      "minLength": 1
     },
     "instrument": {
       "type": "object",

@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 6b7c9a19491f156ad29c8c64e8cdc204ed934f8cefdbee8e205b3114bc08373d
+# source-hash: 80b09ae4fa5768f63547b069caacd06fdec27cc430047ee8f63f3b19c1bec824
 
 from __future__ import annotations
 
@@ -5600,8 +5600,8 @@ class NotificationAlarmV1(TypedDict):
 
     schema: Literal["afb.notification.alarm.v1"]
     alarm_id: str
+    instrument_key: AfbwsCommonV1InstrumentKey
     ticker: str
-    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
     instrument: NotRequired[Instrument]
     condition: AlarmV1AlarmConditionNode
     period: NotRequired[ConditionV1Timeframe]

@@ -1,6 +1,7 @@
 {
   "schema": "afb.notification.alarm.v1",
   "alarm_id": "alarm-dataset-position-0001",
+  "instrument_key": "MISX:TQBR:SBER",
   "ticker": "SBER",
   "instrument": {
     "shortname": "Сбербанк",

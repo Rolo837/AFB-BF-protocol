@@ -1,6 +1,7 @@
 {
   "schema": "afb.notification.alarm.v1",
   "alarm_id": "alarm-breakout-0001",
+  "instrument_key": "MISX:RFUD:GDU6",
   "ticker": "GDU6",
   "instrument": {
     "shortname": "GOLD-12.26",

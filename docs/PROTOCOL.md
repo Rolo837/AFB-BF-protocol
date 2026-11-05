@@ -666,8 +666,8 @@ Top-level `period` — общий таймфрейм вычисления ала
   `gp.v2.json`: `color` hex, `lineWidth` 1–4, `lineStyle` 0–4). Запрос без `styles` —
   чтение, с `styles` — запись (переданные виды заменяют хранимые); ответ и push на
   остальные соединения несут полный `styles`.
-- `notification.alarm.v1.json`: опциональное `instrument_key` (добавляется, когда
-  аларм хранится как v2).
+- `notification.alarm.v1.json`: `instrument_key` (изначально опциональное; с Этапа 6
+  программы единого каталога — обязательное, `ticker` — только отображение).
 - Валидация: `payload_validation.validate_alarm` (v1/v2), `validate_gp` (v1/v2).
 
 ## 12. Семантика операторов условий (condition.v1.json)
@@ -891,6 +891,7 @@ Telegram/e-mail.
 
 | Поле | Смысл |
 |---|---|
+| `instrument_key` | **обязательное**; идентичность инструмента. `ticker` — только отображаемое имя, не идентификатор |
 | `triggered_value` | значение, по которому сработало условие (цена, индикатор, поле dataset) |
 | `instrument_price` | цена инструмента (`price_data.last`) в момент срабатывания |
 | `timestamp` | добавляется `MQTTPublisher` при публикации (ISO-8601) |

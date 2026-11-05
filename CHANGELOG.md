@@ -17,6 +17,8 @@
 
 ### Changed
 
+- `notification.alarm.v1.json`: `instrument_key` стал обязательным; `ticker` остаётся полем отображения (в description явно: не идентификатор). Примеры `examples/notifications/alarm.*.json` дополнены ключом.
+
 ### Fixed
 
 ### Removed

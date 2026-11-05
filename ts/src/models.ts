@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 6b7c9a19491f156ad29c8c64e8cdc204ed934f8cefdbee8e205b3114bc08373d
+ * source-hash: 80b09ae4fa5768f63547b069caacd06fdec27cc430047ee8f63f3b19c1bec824
  */
 
 /**
@@ -8176,11 +8176,14 @@ export interface IssMarketsStock_Root {
 export interface NotificationAlarmV1 {
   schema: 'afb.notification.alarm.v1';
   alarm_id: string;
-  ticker: string;
   /**
    * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
    */
-  instrument_key?: string;
+  instrument_key: string;
+  /**
+   * Display name of the instrument's ticker (e.g. SBER, CL). Not an identifier: the instrument is identified by `instrument_key` only.
+   */
+  ticker: string;
   instrument?: {
     shortname?: string;
     secname?: string;
