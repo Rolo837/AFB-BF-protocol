@@ -10,6 +10,11 @@
 
 ### Added
 
+- `afbws/bonds.channel.v1.json`: операции `afbws.bonds.screener.v1` (скринер: `filters`, колоночный ответ `columns`/`rows` фиксированного порядка, словарь `emitters`, пуш без `request_id`), `afbws.bonds.emitter.v1` (все активные бумаги эмитента + `outstanding_rub`), `afbws.bonds.rates.v1` и `afbws.bonds.rates.set.v1` (ставки баз плавающих купонов, запись только персоналу; `rejected[]`). Новые `$defs`: `couponKind`, `redemptionKind`, `ratingGroup`, `range`, `screenerFilters`, `breakdown`, `calendarMonth`; флаг `float_projected`.
+- `bond.v1`: паспорт бумаги (`coupon_kind`, `coupon_benchmark`, `coupon_spread_pct`, `redemption_kind`, `call_date`, `has_amortization`, `next_amort_date`, `issue_size`, `issue_date`, `list_level`, `liquidity_class`, `high_risk`, `is_collateral`, `current_yield`, `liquidity`, `emitter`, `passport_at`, `schedule_scan_at`); `schedule.coupons[].projected`.
+- `portfolio.v1`: `breakdown` (структура по категории, типу купона, валюте, рейтингу, сроку, эмитенту), `calendar` (выплаты по месяцам), `payments[].projected`.
+- Примеры `examples/bonds_channel_v1/`: `screener.*`, `emitter.*`, `rates.*`, `rates_set.*`, `bond_floater.response`; обновлены `bond.response`, `portfolio.response/push`.
+
 ### Changed
 
 ### Fixed

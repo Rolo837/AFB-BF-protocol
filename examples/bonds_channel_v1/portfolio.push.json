@@ -67,7 +67,8 @@
       "amount_rub": 3540,
       "faceunit": "SUR",
       "status": "expected",
-      "assumed": false
+      "assumed": false,
+      "projected": false
     }
   ],
   "series": {
@@ -104,5 +105,76 @@
     "duration_days": 1140,
     "annual_coupons_rub": 7080
   },
-  "flags": []
+  "flags": [],
+  "breakdown": {
+    "by_category": [
+      {
+        "key": "ofz",
+        "label": "ofz",
+        "market_value_rub": 98590,
+        "share": 1,
+        "ytm": 15.2,
+        "positions": 1
+      }
+    ],
+    "by_coupon_kind": [
+      {
+        "key": "fixed",
+        "label": "fixed",
+        "market_value_rub": 98590,
+        "share": 1,
+        "ytm": 15.2,
+        "positions": 1
+      }
+    ],
+    "by_currency": [
+      {
+        "key": "SUR",
+        "label": "SUR",
+        "market_value_rub": 98590,
+        "share": 1,
+        "ytm": 15.2,
+        "positions": 1
+      }
+    ],
+    "by_rating": [
+      {
+        "key": "none",
+        "label": "Без рейтинга",
+        "market_value_rub": 98590,
+        "share": 1,
+        "ytm": 15.2,
+        "positions": 1
+      }
+    ],
+    "by_maturity": [
+      {
+        "key": ">5",
+        "label": "более 5 лет",
+        "market_value_rub": 98590,
+        "share": 1,
+        "ytm": 15.2,
+        "positions": 1
+      }
+    ],
+    "by_emitter": [
+      {
+        "key": "none",
+        "label": "Эмитент не определён",
+        "market_value_rub": 98590,
+        "share": 1,
+        "ytm": 15.2,
+        "positions": 1
+      }
+    ]
+  },
+  "calendar": [
+    {
+      "month": "2026-11",
+      "coupons_rub": 3540,
+      "amortizations_rub": 0,
+      "redemptions_rub": 0,
+      "items_count": 1
+    }
+  ]
 }

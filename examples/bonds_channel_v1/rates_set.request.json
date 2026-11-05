@@ -1,0 +1,19 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.rates.set.v1",
+  "request_id": "b-13",
+  "items": [
+    {
+      "code": "RREFKEYR",
+      "value_pct": 16.5
+    },
+    {
+      "code": "RUONIA",
+      "value_pct": null
+    },
+    {
+      "code": "NOPE",
+      "value_pct": 10
+    }
+  ]
+}

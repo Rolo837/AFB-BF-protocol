@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: d6b51e5a78ba2ed26865093cc9dcea4a06c413998f8b162baaea679e12d91488
+ * source-hash: 6b7c9a19491f156ad29c8c64e8cdc204ed934f8cefdbee8e205b3114bc08373d
  */
 
 /**
@@ -358,7 +358,7 @@ export type BfsRegistryEntry = BfRegistryEntry & {
   };
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bonds: a bond search and cards, bond portfolios, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `signals`, `events`. There is no copy operation: adding a bond, or the composition of somebody else's portfolio, to one's own portfolio is an edit of the own composition via `portfolios.set`. IDENTITY. A bond is identified ONLY by `instrument_key` (the same composite catalog key as any instrument: `MISX:<primary board>:<secid>`, e.g. `MISX:TQCB:RU000A10A3Z4`; case-sensitive, never normalized). `secid`, `isin` and `shortname` are plain display/search attributes (`bondRow.secid`, `position.secid`) and never an identifier in any request, response or push. A board change (e.g. TQCB -> TQRD after a default) is another key, i.e. another bond: nothing is renamed or migrated. PORTFOLIO MODEL. A portfolio is a set (type `bond`) with a COMPOSITION: `instrument_keys[]` — bonds only, in display order, at most 200. A PUBLIC (reference) portfolio is created and edited by staff only (`visibility` guest|user|manager) and is pure structure: it has no purchases. PURCHASES (the trade journal: date, price, quantity) exist only in PERSONAL portfolios and are an attribute of a bond that is in the composition; a bond may be in the composition with no purchases (observation). Removing a bond from a personal portfolio deletes its purchases there. A personal portfolio can be created by anybody with the `bonds` capability; a public visibility needs staff (`forbidden`); the scope personal <-> public never changes (`validation_error`); a `category=default` bond cannot be in a public portfolio. The bond search is paged by `offset` / `limit` (at most 100 per page); there is no cursor. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Reconciliation with the broker account (`reconcile`) is added later, additively, and is gated by the same capability `bonds`. See AFB/docs/ws/bonds.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bonds: a bond search and cards, bond portfolios, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `screener`, `emitter`, `rates`, `rates.set`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `signals`, `events`. `screener` is the bond screener (columnar, filters are kept per connection and applied to its pushes), `emitter` lists all bonds of an issuer, `rates`/`rates.set` are the base rates (key rate, RUONIA) from which floating coupons are forecast (set by staff only). There is no copy operation: adding a bond, or the composition of somebody else's portfolio, to one's own portfolio is an edit of the own composition via `portfolios.set`. IDENTITY. A bond is identified ONLY by `instrument_key` (the same composite catalog key as any instrument: `MISX:<primary board>:<secid>`, e.g. `MISX:TQCB:RU000A10A3Z4`; case-sensitive, never normalized). `secid`, `isin` and `shortname` are plain display/search attributes (`bondRow.secid`, `position.secid`) and never an identifier in any request, response or push. A board change (e.g. TQCB -> TQRD after a default) is another key, i.e. another bond: nothing is renamed or migrated. PORTFOLIO MODEL. A portfolio is a set (type `bond`) with a COMPOSITION: `instrument_keys[]` — bonds only, in display order, at most 200. A PUBLIC (reference) portfolio is created and edited by staff only (`visibility` guest|user|manager) and is pure structure: it has no purchases. PURCHASES (the trade journal: date, price, quantity) exist only in PERSONAL portfolios and are an attribute of a bond that is in the composition; a bond may be in the composition with no purchases (observation). Removing a bond from a personal portfolio deletes its purchases there. A personal portfolio can be created by anybody with the `bonds` capability; a public visibility needs staff (`forbidden`); the scope personal <-> public never changes (`validation_error`); a `category=default` bond cannot be in a public portfolio. The bond search is paged by `offset` / `limit` (at most 100 per page); there is no cursor. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Reconciliation with the broker account (`reconcile`) is added later, additively, and is gated by the same capability `bonds`. See AFB/docs/ws/bonds.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Root".
@@ -372,6 +372,10 @@ export type AfbwsBondsChannelV1_Root =
   | AfbwsBondsChannelV1_TradesSet
   | AfbwsBondsChannelV1_Signals
   | AfbwsBondsChannelV1_Events
+  | AfbwsBondsChannelV1_Screener
+  | AfbwsBondsChannelV1_Emitter
+  | AfbwsBondsChannelV1_Rates
+  | AfbwsBondsChannelV1_RatesSet
   | AfbwsBondsChannelV1_Error;
 /**
  * Request: optional filters; `query` matches the SECID code (a search attribute, not an identifier), ISIN, short name or name (case-insensitive, at least 2 characters); `categories` / `faceunits` filter by the listed values; `mat_from` / `mat_to` bound the maturity date inclusively; `include_default` (default false) adds `category=default` bonds; `include_matured` (default false) adds redeemed bonds; `sort`: `name` (default), `matdate`, `yield`, with direction `sort_direction` `asc` (default) / `desc`; the order is fully deterministic (see `sort`); `limit` (1..100, default 50) and `offset` (default 0): a window of `limit` rows starting at `offset` of the filtered, sorted list. Response: `total` (rows in the whole filtered list), `offset` (echo of the requested offset), `items[]` (<=100); an offset past the end gives empty `items` and the correct `total`.
@@ -469,7 +473,7 @@ export type AfbwsBondsChannelV1_Secid = string;
  */
 export type AfbwsBondsChannelV1_MarketOrNull = AfbwsBondsChannelV1_Market | null;
 /**
- * Request: `instrument_key`. Response: the bond (the card carries `instrument_key` and the display `secid`), its payment `schedule` and the daily `history` (columnar). Unknown key — error `not_found`.
+ * Request: `instrument_key`. Response: the bond (the card carries `instrument_key` and the display `secid`), its payment `schedule` and the daily `history` (columnar). Unknown key — error `not_found`. Coupons of the schedule have `projected`: true when the amount is a FORECAST from the base rate (see `rates`).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_BondMsg".
@@ -488,6 +492,33 @@ export type AfbwsBondsChannelV1_BondMsg = {
   schedule?: AfbwsBondsChannelV1_Schedule;
   history?: AfbwsBondsChannelV1_History;
 };
+/**
+ * Rating group of the ISSUER as given by the exchange (no agency, scale or outlook), best first: AAA ... D. An issuer without a rating has `null` where the field is nullable.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_RatingGroup".
+ */
+export type AfbwsBondsChannelV1_RatingGroup =
+  | 'AAA'
+  | 'AA+'
+  | 'AA'
+  | 'AA-'
+  | 'A+'
+  | 'A'
+  | 'A-'
+  | 'BBB+'
+  | 'BBB'
+  | 'BBB-'
+  | 'BB+'
+  | 'BB'
+  | 'BB-'
+  | 'B+'
+  | 'B'
+  | 'B-'
+  | 'CCC'
+  | 'CC'
+  | 'C'
+  | 'D';
 /**
  * Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests. No analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
  *
@@ -559,6 +590,11 @@ export type AfbwsBondsChannelV1_Portfolio = {
    * Response only. Assumptions behind the portfolio totals.
    */
   flags?: AfbwsBondsChannelV1_Flag[];
+  breakdown?: AfbwsBondsChannelV1_Breakdown;
+  /**
+   * Response only. Expected payments grouped by month, ascending (the grouping of `payments[]` with status `expected`).
+   */
+  calendar?: AfbwsBondsChannelV1_CalendarMonth[];
 };
 /**
  * Event kind: `offer` buyback offer, `maturity` redemption, `amortization` partial repayment, `call` issuer's call option.
@@ -568,13 +604,13 @@ export type AfbwsBondsChannelV1_Portfolio = {
  */
 export type AfbwsBondsChannelV1_EventKind = 'offer' | 'maturity' | 'amortization' | 'call';
 /**
- * Data-quality marker explaining an assumption behind a figure. `float_assumed` — a future coupon is taken equal to the last known one (floater); `indexed_nominal` — a future face value of an inflation-indexed OFZ is taken equal to the current one; `no_fx` — no FX rate, `_rub` figures are missing; `no_market` — no market data, valued by the last known price; `default` — the issuer is in default; `matured` — the bond is already redeemed. `no_trades` — the bond is in the portfolio composition but has no purchases (purchase-based figures are null).
+ * Data-quality marker explaining an assumption behind a figure. `float_assumed` — a future coupon is taken equal to the last known one (floater); `float_projected` — a future floater coupon is a FORECAST from the base rate set by a manager (`rates`) plus the spread (such payments carry `projected`); `indexed_nominal` — a future face value of an inflation-indexed OFZ is taken equal to the current one; `no_fx` — no FX rate, `_rub` figures are missing; `no_market` — no market data, valued by the last known price; `default` — the issuer is in default; `matured` — the bond is already redeemed. `no_trades` — the bond is in the portfolio composition but has no purchases (purchase-based figures are null).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Flag".
  */
 export type AfbwsBondsChannelV1_Flag =
-  'float_assumed' | 'indexed_nominal' | 'no_fx' | 'no_market' | 'default' | 'matured' | 'no_trades';
+  'float_assumed' | 'float_projected' | 'indexed_nominal' | 'no_fx' | 'no_market' | 'default' | 'matured' | 'no_trades';
 /**
  * Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `instrument_keys[]` in final order (omit `instrument_keys` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every instrument key must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `instrument_keys`), the bond rows of all compositions in `bonds` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
  *
@@ -690,6 +726,153 @@ export type AfbwsBondsChannelV1_Events = {
    */
   items?: AfbwsBondsChannelV1_Event[];
 };
+/**
+ * Request: optional `filters` (`screenerFilters`); the server stores them as THE filters of this connection (replacing the previous ones, an absent `filters` means no filters) and answers at once. Response: the whole filtered set without pages, columnar: `asof` (time of the market snapshot the rows are built from, null before the first snapshot), `liquidity_days` (window of `value_avg`/`numtrades_avg`), `total` (= number of rows), `emitters` (dictionary issuer id -> {title, rating_group}, only the issuers present in the rows; JSON keys are strings), `columns` and `rows`. Sorting is the client's job. Server push: the same body WITHOUT `request_id` after every market snapshot (about every 5 minutes) to the connections whose last state is an open screener, built by their stored filters. A filter the schema allows but the backend refuses (e.g. `min` > `max`) — error `validation_error`. Needs the `bonds` capability.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Screener".
+ */
+export type AfbwsBondsChannelV1_Screener = {
+  [k: string]: unknown;
+} & {
+  channel: 'bonds';
+  schema: 'afbws.bonds.screener.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  filters?: AfbwsBondsChannelV1_ScreenerFilters;
+  /**
+   * Response and push. Date (YYYY-MM-DD) or time (ISO 8601) of the market snapshot the rows are built from; null before the first snapshot.
+   */
+  asof?: string | null;
+  /**
+   * Response and push. Length in trading days of the window behind `value_avg` and `numtrades_avg`.
+   */
+  liquidity_days?: number;
+  /**
+   * Response and push. Number of rows.
+   */
+  total?: number;
+  /**
+   * Response and push. Issuers of the rows by issuer id (a string key); the rating of a row is read here by its `emitter_id`.
+   */
+  emitters?: {
+    [k: string]: AfbwsBondsChannelV1_ScreenerEmitter;
+  };
+  columns?: AfbwsBondsChannelV1_ScreenerColumns;
+  /**
+   * Response and push. Bonds in the order of the reference.
+   */
+  rows?: AfbwsBondsChannelV1_ScreenerRow[];
+};
+/**
+ * Coupon type of a bond (bond passport). `fixed` — fixed rate; `fixed_unknown` — fixed, but future coupons are not announced yet; `key_rate` — floater on the CBR key rate (+ spread); `ruonia` — floater on RUONIA (+ spread); `cpi` — inflation-linked; `other_float` — another floating coupon; `zero` — zero coupon; `unknown` — not determined. Read by the screener (filter, column, bubble colour), the bond card and the portfolio structure; `key_rate`/`ruonia` are the kinds a coupon forecast is built for.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_CouponKind".
+ */
+export type AfbwsBondsChannelV1_CouponKind =
+  'fixed' | 'fixed_unknown' | 'key_rate' | 'ruonia' | 'cpi' | 'other_float' | 'zero' | 'unknown';
+/**
+ * Response and push.
+ *
+ * @minItems 31
+ * @maxItems 31
+ */
+export type AfbwsBondsChannelV1_ScreenerColumns = never[];
+/**
+ * One bond: values in the order of `columns`. Market columns (`price_pct`, `ytm`, `ytm_kind`, `current_yield`, `duration_days`, `accint`, `value_today`) are null without a quote; `value_avg`/`numtrades_avg` are null while the liquidity store is empty; the issuer rating of the row is taken from the `emitters` dictionary by `emitter_id`. `years_to_event` — years to the nearest maturity/put/call, null for a perpetual bond with no event.
+ *
+ * @minItems 31
+ * @maxItems 31
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_ScreenerRow".
+ */
+export type AfbwsBondsChannelV1_ScreenerRow = never[];
+/**
+ * Rotation by issuer. Request: `emitter_id`. Response: the issuer (`emitterCard`) and ALL its active bonds, qualified-only ones included (the `is_qualified` column tells them), without filters, in the `columns`/`rows` format of `screener`. Comparing with the bond the user came from is done by the client on the rows already received. Unknown issuer — error `not_found`. Needs the `bonds` capability.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Emitter".
+ */
+export type AfbwsBondsChannelV1_Emitter = {
+  [k: string]: unknown;
+} & {
+  channel: 'bonds';
+  schema: 'afbws.bonds.emitter.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Request. Issuer id; the response echoes it.
+   */
+  emitter_id?: number;
+  emitter?: AfbwsBondsChannelV1_EmitterCard;
+  columns?: AfbwsBondsChannelV1_ScreenerColumns1;
+  /**
+   * Response only.
+   */
+  rows?: AfbwsBondsChannelV1_ScreenerRow[];
+};
+/**
+ * Response only.
+ *
+ * @minItems 31
+ * @maxItems 31
+ */
+export type AfbwsBondsChannelV1_ScreenerColumns1 = never[];
+/**
+ * Request is an empty command. Response and push: `items` — every base with its current rate. Read by everyone with the `bonds` capability (the bond card shows which rate a forecast is built with). Server push: the same body WITHOUT `request_id` to every connection with `bonds` after `rates.set` changed a rate.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Rates".
+ */
+export type AfbwsBondsChannelV1_Rates = {
+  [k: string]: unknown;
+} & {
+  channel: 'bonds';
+  schema: 'afbws.bonds.rates.v1';
+  request_id?: AfbwsCommonV1_RequestId;
+  /**
+   * Response and push only.
+   */
+  items?: AfbwsBondsChannelV1_RateItem[];
+};
+/**
+ * Staff only (manager or admin); anybody else gets `forbidden`. Request: `items[{code, value_pct}]`; `value_pct` null clears a rate. An unknown `code` or an invalid value goes to `rejected[]`, the others are applied. Response: the current state of ALL bases in `items` (as in `rates`) and `rejected` (empty when all applied). After a write the server pushes `rates` to every connection with `bonds` and recomputes the `portfolio` pushes of the open portfolios (a forecast coupon changes).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_RatesSet".
+ */
+export type AfbwsBondsChannelV1_RatesSet = {
+  [k: string]: unknown;
+} & {
+  channel: 'bonds';
+  schema: 'afbws.bonds.rates.set.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Request: edits (`rateEdit`). Response: all bases (`rateItem`).
+   */
+  items?: unknown[];
+  /**
+   * Response only.
+   */
+  rejected?: AfbwsBondsChannelV1_RateRejection[];
+};
+/**
+ * How the issue ends (ISS BONDSUBTYPE): `maturity` — redemption at the maturity date; `put` — with a holder put offer; `call` — with an issuer call option; `perpetual` — no maturity. Read by the screener and the bond card.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_RedemptionKind".
+ */
+export type AfbwsBondsChannelV1_RedemptionKind = 'maturity' | 'put' | 'call' | 'perpetual';
+/**
+ * Column names of `rows`, ALWAYS exactly this list in exactly this order (the order is part of the contract; a column is added only by a new schema version): instrument_key, secid, shortname, category, faceunit, coupon_kind, coupon_percent, coupon_benchmark, coupon_spread_pct, coupon_frequency, matdate, offerdate, call_date, redemption_kind, has_amortization, next_amort_date, is_qualified, high_risk, liquidity_class, list_level, emitter_id, price_pct, ytm, ytm_kind, current_yield, duration_days, accint, value_avg, numtrades_avg, value_today, years_to_event. Shared by `screener` and `emitter`.
+ *
+ * @minItems 31
+ * @maxItems 31
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_ScreenerColumns".
+ */
+export type AfbwsBondsChannelV1_ScreenerColumns2 = never[];
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.catalog.channel.v1). The asset manager's own channel; replaces the manager half of afbws.instrument (`catalog`, `pool`, `inventory`, `commit`, `refresh`, `sources`), which is left untouched. Same convention as afbws.alarm/afbws.gp/afbws.config: ONE schema id per message (`afbws.catalog.<op>.v1`), the same schema is the request, its response and, for `refresh`, a server push; a message WITHOUT `request_id` is a server push; a failed request is answered with `afbws.catalog.error.v1`. Every non-manager request -> error `forbidden`. Any list is capped at 100 items. Operations: `snapshot`, `symbols`, `support`, `commit`, `refresh`. See AFB/docs/ws/catalog.md.
  *
@@ -3145,6 +3328,112 @@ export interface AfbwsBondsChannelV1_Bond {
    * Lot value in `faceunit` (lot size times face value) — the minimum purchase amount.
    */
   lot_value: number;
+  /**
+   * Coupon type (passport).
+   */
+  coupon_kind: 'fixed' | 'fixed_unknown' | 'key_rate' | 'ruonia' | 'cpi' | 'other_float' | 'zero' | 'unknown';
+  /**
+   * Base of a floating coupon as in the source (`RREFKEYR`, `RUONIA`...), also the code in `rates`; null for fixed coupons.
+   */
+  coupon_benchmark: string | null;
+  /**
+   * Spread over the base, percentage points; null when none. The card shows e.g. `key rate + 2.5`.
+   */
+  coupon_spread_pct: number | null;
+  /**
+   * How the issue ends.
+   */
+  redemption_kind: 'maturity' | 'put' | 'call' | 'perpetual';
+  /**
+   * Nearest future issuer call date; null when none.
+   */
+  call_date: string | null;
+  /**
+   * True when a future partial amortization is scheduled.
+   */
+  has_amortization: boolean;
+  /**
+   * Nearest future partial amortization date; null when none.
+   */
+  next_amort_date: string | null;
+  /**
+   * Issue size, pieces; null when unknown.
+   */
+  issue_size: number | null;
+  /**
+   * Placement date; null when unknown.
+   */
+  issue_date: string | null;
+  /**
+   * Exchange listing level; null when unknown.
+   */
+  list_level: number | null;
+  /**
+   * Exchange liquidity class: 0 low, 1 medium, 2 high; null when unknown.
+   */
+  liquidity_class: 0 | 1 | 2 | null;
+  /**
+   * The exchange marks the bond as high-risk.
+   */
+  high_risk: boolean;
+  /**
+   * The bond is on the exchange collateral (lombard) list.
+   */
+  is_collateral: boolean;
+  /**
+   * Current yield: annual coupon / (clean price + accrued interest), percent; null when there is no price or coupon. The same figure as in the screener and the portfolio position.
+   */
+  current_yield: number | null;
+  /**
+   * Liquidity over the last trading days; null while the liquidity data is not calculated.
+   */
+  liquidity: {
+    /**
+     * Average daily turnover, rubles.
+     */
+    value_avg: number;
+    /**
+     * Average daily number of trades.
+     */
+    numtrades_avg: number;
+    /**
+     * Window length in trading days.
+     */
+    days: number;
+  } | null;
+  /**
+   * The issuer; null when the bond has none in the reference.
+   */
+  emitter: {
+    /**
+     * Issuer id (argument of `emitter`).
+     */
+    emitter_id: number;
+    /**
+     * Issuer name.
+     */
+    title: string;
+    /**
+     * Issuer INN.
+     */
+    inn: string | null;
+    /**
+     * Issuer rating group; null — unrated.
+     */
+    rating_group: AfbwsBondsChannelV1_RatingGroup | null;
+    /**
+     * When our collection last saw the rating group change (badge `rating changed`); null — never.
+     */
+    rating_changed_at: string | null;
+  } | null;
+  /**
+   * UTC time of the passport collection step that filled the fields above; null — never (freshness of the card).
+   */
+  passport_at: string | null;
+  /**
+   * UTC time of the market-wide schedule scan (amortization, offers); null — never.
+   */
+  schedule_scan_at: string | null;
 }
 /**
  * Response only.
@@ -3194,6 +3483,10 @@ export interface AfbwsBondsChannelV1_Coupon {
    * Face value the coupon is calculated from (current, indexed for OFZ-IN).
    */
   facevalue: number | null;
+  /**
+   * True when `value`/`value_pct` is a forecast of a floating coupon: base rate set by a manager (`rates`) plus spread. False for announced coupons and for the 'last known' assumption.
+   */
+  projected: boolean;
 }
 /**
  * One amortization (partial repayment of the face value).
@@ -3523,6 +3816,10 @@ export interface AfbwsBondsChannelV1_Payment {
    * True when the amount is an assumption (see position flags `float_assumed`, `indexed_nominal`).
    */
   assumed: boolean;
+  /**
+   * True when the amount is a forecast from the base rate (flag `float_projected`); such a payment is also `assumed`.
+   */
+  projected: boolean;
 }
 /**
  * Response only.
@@ -3572,6 +3869,95 @@ export interface AfbwsBondsChannelV1_Totals {
    * Annual coupon income at the current balance, rubles.
    */
   annual_coupons_rub: number | null;
+}
+/**
+ * Response only. Portfolio structure.
+ */
+export interface AfbwsBondsChannelV1_Breakdown {
+  /**
+   * By bond category, largest first.
+   */
+  by_category: AfbwsBondsChannelV1_BreakdownItem[];
+  /**
+   * By coupon type, largest first.
+   */
+  by_coupon_kind: AfbwsBondsChannelV1_BreakdownItem[];
+  /**
+   * By face value currency, largest first.
+   */
+  by_currency: AfbwsBondsChannelV1_BreakdownItem[];
+  /**
+   * By issuer rating group AAA..D, then `none` (unrated).
+   */
+  by_rating: AfbwsBondsChannelV1_BreakdownItem[];
+  /**
+   * By years to the nearest event (maturity or put offer): `<1`, `1-3`, `3-5`, `>5`, `none`.
+   */
+  by_maturity: AfbwsBondsChannelV1_BreakdownItem[];
+  /**
+   * By issuer: the top 10 largest, then `other`.
+   */
+  by_emitter: AfbwsBondsChannelV1_BreakdownItem[];
+}
+/**
+ * One group of a portfolio structure.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_BreakdownItem".
+ */
+export interface AfbwsBondsChannelV1_BreakdownItem {
+  /**
+   * Group key: category / coupon kind / currency / rating group (`none` — unrated) / maturity bucket (`<1`, `1-3`, `3-5`, `>5`, `none`) / issuer id (`other` — the rest after the top 10, `none` — unknown).
+   */
+  key: string;
+  /**
+   * Display name when the key is not self-explanatory (issuer name, bucket, 'No rating'). Absent — show the key.
+   */
+  label?: string;
+  /**
+   * Market value of the group in rubles (with accrued interest).
+   */
+  market_value_rub: number;
+  /**
+   * Share of the group in the valued part of the portfolio, 0..1; shares of one grouping sum to 1.
+   */
+  share: number;
+  /**
+   * Market-value-weighted yield of the group, percent per year; null when none can be computed.
+   */
+  ytm: number | null;
+  /**
+   * Number of held positions in the group.
+   */
+  positions: number;
+}
+/**
+ * Expected payments of one month, in rubles; a sum is null when some payment of the month has no FX rate. Forecast and assumed amounts are included (they are marked in `payments[]`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_CalendarMonth".
+ */
+export interface AfbwsBondsChannelV1_CalendarMonth {
+  /**
+   * Month, YYYY-MM.
+   */
+  month: string;
+  /**
+   * Coupons.
+   */
+  coupons_rub: number | null;
+  /**
+   * Partial amortizations.
+   */
+  amortizations_rub: number | null;
+  /**
+   * Redemptions: maturity and offer redemption.
+   */
+  redemptions_rub: number | null;
+  /**
+   * Number of payments in the month.
+   */
+  items_count: number;
 }
 /**
  * A refused portfolio of `portfolios.set` (`forbidden`, `validation_error`, `not_found`).
@@ -3708,6 +4094,253 @@ export interface AfbwsBondsChannelV1_Event {
   days_left: number;
 }
 /**
+ * Request only.
+ */
+export interface AfbwsBondsChannelV1_ScreenerFilters {
+  /**
+   * Case-insensitive text search over secid, ISIN, bond name, issuer name and issuer INN; at least 2 characters.
+   */
+  query?: string;
+  /**
+   * Multi-select by category; empty or absent — all.
+   */
+  categories?: AfbwsBondsChannelV1_Category[];
+  /**
+   * Multi-select by face value currency; empty or absent — all.
+   */
+  faceunits?: AfbwsBondsChannelV1_Faceunit[];
+  /**
+   * Multi-select by coupon type; empty or absent — all.
+   */
+  coupon_kinds?: AfbwsBondsChannelV1_CouponKind[];
+  /**
+   * Rating group of the ISSUER as given by the exchange (no agency, scale or outlook), best first: AAA ... D. An issuer without a rating has `null` where the field is nullable.
+   */
+  rating_min?:
+    | 'AAA'
+    | 'AA+'
+    | 'AA'
+    | 'AA-'
+    | 'A+'
+    | 'A'
+    | 'A-'
+    | 'BBB+'
+    | 'BBB'
+    | 'BBB-'
+    | 'BB+'
+    | 'BB'
+    | 'BB-'
+    | 'B+'
+    | 'B'
+    | 'B-'
+    | 'CCC'
+    | 'CC'
+    | 'C'
+    | 'D';
+  /**
+   * Used together with `rating_min`: whether bonds of unrated issuers pass. Default true.
+   */
+  include_unrated?: boolean;
+  ytm?: AfbwsBondsChannelV1_Range;
+  current_yield?: AfbwsBondsChannelV1_Range1;
+  coupon_percent?: AfbwsBondsChannelV1_Range2;
+  years_to_event?: AfbwsBondsChannelV1_Range3;
+  duration_days?: AfbwsBondsChannelV1_Range4;
+  /**
+   * `with` — only bonds with a future amortization, `without` — only without; default `any`.
+   */
+  amortization?: 'any' | 'with' | 'without';
+  /**
+   * `with` — only bonds with a future put/call offer, `without` — only without; default `any`.
+   */
+  offer?: 'any' | 'with' | 'without';
+  /**
+   * Exchange liquidity classes (0 low, 1 medium, 2 high); empty or absent — all.
+   */
+  liquidity_classes?: (0 | 1 | 2)[];
+  /**
+   * Minimum average daily turnover, rubles, over `liquidity_days`.
+   */
+  min_value_avg?: number;
+  /**
+   * Minimum average daily number of trades over `liquidity_days`.
+   */
+  min_numtrades_avg?: number;
+  /**
+   * Only the bonds of this issuer.
+   */
+  emitter_id?: number;
+  /**
+   * Include bonds for qualified investors only. Default false.
+   */
+  include_qualified?: boolean;
+  /**
+   * Include bonds of defaulted issuers. Default false.
+   */
+  include_default?: boolean;
+  /**
+   * Include bonds the exchange marks as high-risk. Default false.
+   */
+  include_high_risk?: boolean;
+}
+/**
+ * Yield, percent per year.
+ */
+export interface AfbwsBondsChannelV1_Range {
+  /**
+   * Lower bound, inclusive.
+   */
+  min?: number;
+  /**
+   * Upper bound, inclusive.
+   */
+  max?: number;
+}
+/**
+ * Current yield, percent per year.
+ */
+export interface AfbwsBondsChannelV1_Range1 {
+  /**
+   * Lower bound, inclusive.
+   */
+  min?: number;
+  /**
+   * Upper bound, inclusive.
+   */
+  max?: number;
+}
+/**
+ * Coupon rate, percent per year.
+ */
+export interface AfbwsBondsChannelV1_Range2 {
+  /**
+   * Lower bound, inclusive.
+   */
+  min?: number;
+  /**
+   * Upper bound, inclusive.
+   */
+  max?: number;
+}
+/**
+ * Years to the nearest event (maturity, put or call offer).
+ */
+export interface AfbwsBondsChannelV1_Range3 {
+  /**
+   * Lower bound, inclusive.
+   */
+  min?: number;
+  /**
+   * Upper bound, inclusive.
+   */
+  max?: number;
+}
+/**
+ * Modified duration, days.
+ */
+export interface AfbwsBondsChannelV1_Range4 {
+  /**
+   * Lower bound, inclusive.
+   */
+  min?: number;
+  /**
+   * Upper bound, inclusive.
+   */
+  max?: number;
+}
+/**
+ * Issuer entry of the `emitters` dictionary of a screener response.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema definition
+ * via the `patternProperty` "^[0-9]+$".
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_ScreenerEmitter".
+ */
+export interface AfbwsBondsChannelV1_ScreenerEmitter {
+  /**
+   * Issuer name.
+   */
+  title: string;
+  /**
+   * Issuer rating group; null — unrated.
+   */
+  rating_group: AfbwsBondsChannelV1_RatingGroup | null;
+}
+/**
+ * Response only.
+ */
+export interface AfbwsBondsChannelV1_EmitterCard {
+  /**
+   * Exchange issuer id.
+   */
+  emitter_id: number;
+  /**
+   * Issuer name.
+   */
+  title: string;
+  /**
+   * Issuer INN; null when unknown.
+   */
+  inn: string | null;
+  /**
+   * Issuer rating group; null — unrated.
+   */
+  rating_group: AfbwsBondsChannelV1_RatingGroup | null;
+  /**
+   * Number of the issuer's active bonds (= rows of the response).
+   */
+  bonds_count: number;
+  /**
+   * Outstanding debt in rubles: sum of issue size times face value over the active bonds, currency bonds converted at the current rate. Null when it cannot be computed (a bond without issue size or without an FX rate).
+   */
+  outstanding_rub: number | null;
+}
+/**
+ * A base rate for the forecast of floating coupons.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_RateItem".
+ */
+export interface AfbwsBondsChannelV1_RateItem {
+  /**
+   * Base code = the bond's `coupon_benchmark` (e.g. `RREFKEYR` key rate, `RUONIA`). Case-sensitive.
+   */
+  code: string;
+  /**
+   * Name for the manager's form and the bond card.
+   */
+  title: string;
+  /**
+   * Rate, percent per year (0..100); null — not set, no forecast is built for the bonds of this base.
+   */
+  value_pct: number | null;
+  /**
+   * When the rate was last set (ISO 8601); null — never.
+   */
+  updated_at: string | null;
+}
+/**
+ * A refused item of `rates.set`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_RateRejection".
+ */
+export interface AfbwsBondsChannelV1_RateRejection {
+  /**
+   * Code of the refused item as sent.
+   */
+  code: string;
+  /**
+   * `unknown_code` — no such base; `invalid_value` — not a number in 0..100 (or null).
+   */
+  reason: 'unknown_code' | 'invalid_value';
+  /**
+   * Optional human-readable detail.
+   */
+  message?: string;
+}
+/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Error".
  */
@@ -3719,7 +4352,7 @@ export interface AfbwsBondsChannelV1_Error {
   message: string;
 }
 /**
- * A bond card: the search row plus lot attributes.
+ * A bond card: the search row plus lot attributes and the passport (coupon type, redemption kind, amortization, issue, liquidity, issuer).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Bond".
@@ -3781,6 +4414,112 @@ export interface AfbwsBondsChannelV1_Bond1 {
    * Lot value in `faceunit` (lot size times face value) — the minimum purchase amount.
    */
   lot_value: number;
+  /**
+   * Coupon type (passport).
+   */
+  coupon_kind: 'fixed' | 'fixed_unknown' | 'key_rate' | 'ruonia' | 'cpi' | 'other_float' | 'zero' | 'unknown';
+  /**
+   * Base of a floating coupon as in the source (`RREFKEYR`, `RUONIA`...), also the code in `rates`; null for fixed coupons.
+   */
+  coupon_benchmark: string | null;
+  /**
+   * Spread over the base, percentage points; null when none. The card shows e.g. `key rate + 2.5`.
+   */
+  coupon_spread_pct: number | null;
+  /**
+   * How the issue ends.
+   */
+  redemption_kind: 'maturity' | 'put' | 'call' | 'perpetual';
+  /**
+   * Nearest future issuer call date; null when none.
+   */
+  call_date: string | null;
+  /**
+   * True when a future partial amortization is scheduled.
+   */
+  has_amortization: boolean;
+  /**
+   * Nearest future partial amortization date; null when none.
+   */
+  next_amort_date: string | null;
+  /**
+   * Issue size, pieces; null when unknown.
+   */
+  issue_size: number | null;
+  /**
+   * Placement date; null when unknown.
+   */
+  issue_date: string | null;
+  /**
+   * Exchange listing level; null when unknown.
+   */
+  list_level: number | null;
+  /**
+   * Exchange liquidity class: 0 low, 1 medium, 2 high; null when unknown.
+   */
+  liquidity_class: 0 | 1 | 2 | null;
+  /**
+   * The exchange marks the bond as high-risk.
+   */
+  high_risk: boolean;
+  /**
+   * The bond is on the exchange collateral (lombard) list.
+   */
+  is_collateral: boolean;
+  /**
+   * Current yield: annual coupon / (clean price + accrued interest), percent; null when there is no price or coupon. The same figure as in the screener and the portfolio position.
+   */
+  current_yield: number | null;
+  /**
+   * Liquidity over the last trading days; null while the liquidity data is not calculated.
+   */
+  liquidity: {
+    /**
+     * Average daily turnover, rubles.
+     */
+    value_avg: number;
+    /**
+     * Average daily number of trades.
+     */
+    numtrades_avg: number;
+    /**
+     * Window length in trading days.
+     */
+    days: number;
+  } | null;
+  /**
+   * The issuer; null when the bond has none in the reference.
+   */
+  emitter: {
+    /**
+     * Issuer id (argument of `emitter`).
+     */
+    emitter_id: number;
+    /**
+     * Issuer name.
+     */
+    title: string;
+    /**
+     * Issuer INN.
+     */
+    inn: string | null;
+    /**
+     * Issuer rating group; null — unrated.
+     */
+    rating_group: AfbwsBondsChannelV1_RatingGroup | null;
+    /**
+     * When our collection last saw the rating group change (badge `rating changed`); null — never.
+     */
+    rating_changed_at: string | null;
+  } | null;
+  /**
+   * UTC time of the passport collection step that filled the fields above; null — never (freshness of the card).
+   */
+  passport_at: string | null;
+  /**
+   * UTC time of the market-wide schedule scan (amortization, offers); null — never.
+   */
+  schedule_scan_at: string | null;
 }
 /**
  * Payment schedule of the bond (ISS bondization).
@@ -3909,6 +4648,193 @@ export interface AfbwsBondsChannelV1_Totals1 {
    * Annual coupon income at the current balance, rubles.
    */
   annual_coupons_rub: number | null;
+}
+/**
+ * Numeric range filter; both bounds inclusive, each optional. A value of a bond that is null does not pass a range with any bound set.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Range".
+ */
+export interface AfbwsBondsChannelV1_Range5 {
+  /**
+   * Lower bound, inclusive.
+   */
+  min?: number;
+  /**
+   * Upper bound, inclusive.
+   */
+  max?: number;
+}
+/**
+ * Screener filters; every field is optional, an absent field does not filter. By default the screener is for a non-qualified investor: qualified-only, defaulted and high-risk bonds are excluded unless the matching `include_*` is true. A redeemed bond never gets into the screener. The server keeps ONE set of filters per connection (the last `screener` request) and applies it to the pushes.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_ScreenerFilters".
+ */
+export interface AfbwsBondsChannelV1_ScreenerFilters1 {
+  /**
+   * Case-insensitive text search over secid, ISIN, bond name, issuer name and issuer INN; at least 2 characters.
+   */
+  query?: string;
+  /**
+   * Multi-select by category; empty or absent — all.
+   */
+  categories?: AfbwsBondsChannelV1_Category[];
+  /**
+   * Multi-select by face value currency; empty or absent — all.
+   */
+  faceunits?: AfbwsBondsChannelV1_Faceunit[];
+  /**
+   * Multi-select by coupon type; empty or absent — all.
+   */
+  coupon_kinds?: AfbwsBondsChannelV1_CouponKind[];
+  /**
+   * Rating group of the ISSUER as given by the exchange (no agency, scale or outlook), best first: AAA ... D. An issuer without a rating has `null` where the field is nullable.
+   */
+  rating_min?:
+    | 'AAA'
+    | 'AA+'
+    | 'AA'
+    | 'AA-'
+    | 'A+'
+    | 'A'
+    | 'A-'
+    | 'BBB+'
+    | 'BBB'
+    | 'BBB-'
+    | 'BB+'
+    | 'BB'
+    | 'BB-'
+    | 'B+'
+    | 'B'
+    | 'B-'
+    | 'CCC'
+    | 'CC'
+    | 'C'
+    | 'D';
+  /**
+   * Used together with `rating_min`: whether bonds of unrated issuers pass. Default true.
+   */
+  include_unrated?: boolean;
+  ytm?: AfbwsBondsChannelV1_Range;
+  current_yield?: AfbwsBondsChannelV1_Range1;
+  coupon_percent?: AfbwsBondsChannelV1_Range2;
+  years_to_event?: AfbwsBondsChannelV1_Range3;
+  duration_days?: AfbwsBondsChannelV1_Range4;
+  /**
+   * `with` — only bonds with a future amortization, `without` — only without; default `any`.
+   */
+  amortization?: 'any' | 'with' | 'without';
+  /**
+   * `with` — only bonds with a future put/call offer, `without` — only without; default `any`.
+   */
+  offer?: 'any' | 'with' | 'without';
+  /**
+   * Exchange liquidity classes (0 low, 1 medium, 2 high); empty or absent — all.
+   */
+  liquidity_classes?: (0 | 1 | 2)[];
+  /**
+   * Minimum average daily turnover, rubles, over `liquidity_days`.
+   */
+  min_value_avg?: number;
+  /**
+   * Minimum average daily number of trades over `liquidity_days`.
+   */
+  min_numtrades_avg?: number;
+  /**
+   * Only the bonds of this issuer.
+   */
+  emitter_id?: number;
+  /**
+   * Include bonds for qualified investors only. Default false.
+   */
+  include_qualified?: boolean;
+  /**
+   * Include bonds of defaulted issuers. Default false.
+   */
+  include_default?: boolean;
+  /**
+   * Include bonds the exchange marks as high-risk. Default false.
+   */
+  include_high_risk?: boolean;
+}
+/**
+ * An issuer with the size of its debt.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_EmitterCard".
+ */
+export interface AfbwsBondsChannelV1_EmitterCard1 {
+  /**
+   * Exchange issuer id.
+   */
+  emitter_id: number;
+  /**
+   * Issuer name.
+   */
+  title: string;
+  /**
+   * Issuer INN; null when unknown.
+   */
+  inn: string | null;
+  /**
+   * Issuer rating group; null — unrated.
+   */
+  rating_group: AfbwsBondsChannelV1_RatingGroup | null;
+  /**
+   * Number of the issuer's active bonds (= rows of the response).
+   */
+  bonds_count: number;
+  /**
+   * Outstanding debt in rubles: sum of issue size times face value over the active bonds, currency bonds converted at the current rate. Null when it cannot be computed (a bond without issue size or without an FX rate).
+   */
+  outstanding_rub: number | null;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_RateEdit".
+ */
+export interface AfbwsBondsChannelV1_RateEdit {
+  /**
+   * Base code (an existing one; an unknown code goes to `rejected`).
+   */
+  code: string;
+  /**
+   * New rate, percent per year (0..100); null clears it.
+   */
+  value_pct: number | null;
+}
+/**
+ * Structure of the portfolio over held positions that have a ruble market value (positions without one are not counted in any group). Shares are of market value in rubles. Empty arrays for a portfolio with no valued positions.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Breakdown".
+ */
+export interface AfbwsBondsChannelV1_Breakdown1 {
+  /**
+   * By bond category, largest first.
+   */
+  by_category: AfbwsBondsChannelV1_BreakdownItem[];
+  /**
+   * By coupon type, largest first.
+   */
+  by_coupon_kind: AfbwsBondsChannelV1_BreakdownItem[];
+  /**
+   * By face value currency, largest first.
+   */
+  by_currency: AfbwsBondsChannelV1_BreakdownItem[];
+  /**
+   * By issuer rating group AAA..D, then `none` (unrated).
+   */
+  by_rating: AfbwsBondsChannelV1_BreakdownItem[];
+  /**
+   * By years to the nearest event (maturity or put offer): `<1`, `1-3`, `3-5`, `>5`, `none`.
+   */
+  by_maturity: AfbwsBondsChannelV1_BreakdownItem[];
+  /**
+   * By issuer: the top 10 largest, then `other`.
+   */
+  by_emitter: AfbwsBondsChannelV1_BreakdownItem[];
 }
 /**
  * `asset_ids`, when present, is the WHOLE ordered composition of the collection (the assets filed into it); an asset lives in at most one collection, so naming it here moves it. In a snapshot `asset_ids` is always present. Omit in a commit to leave the composition untouched.

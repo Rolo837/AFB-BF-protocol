@@ -1,0 +1,111 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.bond.v1",
+  "request_id": "b-14",
+  "instrument_key": "MISX:TQCB:RU000A10A3Z4",
+  "bond": {
+    "instrument_key": "MISX:TQCB:RU000A10A3Z4",
+    "secid": "RU000A10A3Z4",
+    "isin": "RU000A10A3Z4",
+    "shortname": "Сэтл БО-П03",
+    "category": "corporate",
+    "faceunit": "SUR",
+    "facevalue": 1000,
+    "matdate": "2028-09-14",
+    "offerdate": null,
+    "coupon_percent": 19.0,
+    "coupon_frequency": 12,
+    "is_qualified": false,
+    "lifecycle": "active",
+    "market": {
+      "price_pct": 97.35,
+      "yield": 15.2,
+      "ytm_kind": "ytm",
+      "duration_days": 1140,
+      "accint": 12.4,
+      "updated_at": "2026-11-02T12:05:00+03:00"
+    },
+    "name": "Сэтл Групп БО-П03",
+    "bond_type": "Федеральные облигации",
+    "lot_value": 1000,
+    "coupon_kind": "key_rate",
+    "coupon_benchmark": "RREFKEYR",
+    "coupon_spread_pct": 2.5,
+    "redemption_kind": "call",
+    "call_date": "2027-09-14",
+    "has_amortization": true,
+    "next_amort_date": "2027-03-14",
+    "issue_size": 15000000,
+    "issue_date": "2023-05-17",
+    "list_level": 1,
+    "liquidity_class": 1,
+    "high_risk": false,
+    "is_collateral": false,
+    "current_yield": 19.04,
+    "liquidity": null,
+    "emitter": {
+      "emitter_id": 1234,
+      "title": "ООО «Сэтл Групп»",
+      "inn": "7801234567",
+      "rating_group": "A-",
+      "rating_changed_at": "2026-09-01"
+    },
+    "passport_at": "2026-11-05T03:10:00+00:00",
+    "schedule_scan_at": "2026-11-03T03:20:00+00:00"
+  },
+  "schedule": {
+    "coupons": [
+      {
+        "date": "2026-11-14",
+        "record_date": "2026-11-13",
+        "start_date": "2026-10-15",
+        "value": 15.6,
+        "value_pct": 19.0,
+        "facevalue": 1000,
+        "projected": false
+      },
+      {
+        "date": "2026-12-14",
+        "record_date": "2026-12-13",
+        "start_date": "2026-11-14",
+        "value": 15.9,
+        "value_pct": 19.0,
+        "facevalue": 1000,
+        "projected": true
+      }
+    ],
+    "amortizations": [
+      {
+        "date": "2027-03-14",
+        "value": 100,
+        "value_pct": 10
+      }
+    ],
+    "offers": []
+  },
+  "history": {
+    "columns": [
+      "date",
+      "close",
+      "yield_close",
+      "facevalue",
+      "volume"
+    ],
+    "rows": [
+      [
+        "2026-10-30",
+        97.1,
+        15.3,
+        1000,
+        12500
+      ],
+      [
+        "2026-11-02",
+        97.35,
+        15.2,
+        1000,
+        9800
+      ]
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.rates.v1",
+  "items": [
+    {
+      "code": "RREFKEYR",
+      "title": "Ключевая ставка ЦБ",
+      "value_pct": 16.5,
+      "updated_at": "2026-10-24T15:10:00+00:00"
+    },
+    {
+      "code": "RUONIA",
+      "title": "RUONIA",
+      "value_pct": null,
+      "updated_at": null
+    }
+  ]
+}
