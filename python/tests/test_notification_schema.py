@@ -45,3 +45,19 @@ def test_rejects_unknown_schema(registry):
     data["schema"] = "afb.notification.alarm.v2"
     with pytest.raises(ValidationError):
         _validator(registry).validate(data)
+
+
+def test_rejects_missing_instrument_key(registry):
+    from jsonschema import ValidationError
+
+    data = json.loads((EXAMPLES / "notifications" / "alarm.touch.json").read_text())
+    del data["instrument_key"]
+    with pytest.raises(ValidationError):
+        _validator(registry).validate(data)
+
+
+def test_accepts_finam_instrument_key(registry):
+    data = json.loads((EXAMPLES / "notifications" / "alarm.touch.json").read_text())
+    data["instrument_key"] = "XNYM:futures:CL"
+    data["ticker"] = "CL"
+    _validator(registry).validate(data)

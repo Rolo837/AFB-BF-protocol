@@ -584,10 +584,14 @@ Top-level `period` — общий таймфрейм вычисления ала
       `stop_loss[]`, `take_profit[]`, `sizing`, `publish?`. Серверных полей (`status`,
       `activated_at`/`closed_at`/`created_at`/`updated_at`, `delivery_at`, `archived_*`,
       `instrument_missing`) во входе нет — сервер хранит их у себя (создание начинается с `draft`).
-    - `planItem` — то, что отдаёт сервер: `planInput` + `ticker?`, `status`, `activated_at`,
+    - `planItem` — то, что отдаёт сервер: `planInput` + `ticker?` (deprecated), `status`, `activated_at`,
       `closed_at`, `created_at`, `updated_at`, `instrument_missing?`; у каждой ноги есть `leg_id`.
       `delivery_at`, `archived_components`, `archived_at`, `editor` наружу не уходят. Инструмент:
-      либо `instrument_key`, либо `instrument_missing: true`.
+      `instrument_key` есть всегда (единственный идентификатор); `instrument_missing: true` — ключа нет в
+      справочнике (архивный инструмент найден, значит не missing); `ticker` — устаревшая производная подпись
+      из справочника для старых фронтов, не идентификатор, будет удалена. То же в хранимой схеме
+      `tradeplan.v2.json`: `instrument_key` обязателен, `ticker` помечен `deprecated` (объявлен только ради
+      файлов, записанных до обязательности ключа; AFB его больше не пишет).
     - Условие ноги — `op` обязателен всегда; `leg_id` — только настоящий (синтетического
       `legacy:{role}:{index}` в канале нет). Общие `legId`/`tradeplanId` живут в
       `common.v1.json`. Внутренняя схема хранилища `tradeplan.v2.json` закрыта
@@ -666,8 +670,8 @@ Top-level `period` — общий таймфрейм вычисления ала
   `gp.v2.json`: `color` hex, `lineWidth` 1–4, `lineStyle` 0–4). Запрос без `styles` —
   чтение, с `styles` — запись (переданные виды заменяют хранимые); ответ и push на
   остальные соединения несут полный `styles`.
-- `notification.alarm.v1.json`: опциональное `instrument_key` (добавляется, когда
-  аларм хранится как v2).
+- `notification.alarm.v1.json`: `instrument_key` (изначально опциональное; с Этапа 6
+  программы единого каталога — обязательное, `ticker` — только отображение).
 - Валидация: `payload_validation.validate_alarm` (v1/v2), `validate_gp` (v1/v2).
 
 ## 12. Семантика операторов условий (condition.v1.json)
@@ -891,6 +895,7 @@ Telegram/e-mail.
 
 | Поле | Смысл |
 |---|---|
+| `instrument_key` | **обязательное**; идентичность инструмента. `ticker` — только отображаемое имя, не идентификатор |
 | `triggered_value` | значение, по которому сработало условие (цена, индикатор, поле dataset) |
 | `instrument_price` | цена инструмента (`price_data.last`) в момент срабатывания |
 | `timestamp` | добавляется `MQTTPublisher` при публикации (ISO-8601) |

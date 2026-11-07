@@ -27,7 +27,35 @@
     },
     "name": "ОФЗ-ПД 26238",
     "bond_type": "Федеральные облигации",
-    "lot_value": 1000
+    "lot_value": 1000,
+    "coupon_kind": "fixed",
+    "coupon_benchmark": null,
+    "coupon_spread_pct": null,
+    "redemption_kind": "maturity",
+    "call_date": null,
+    "has_amortization": false,
+    "next_amort_date": null,
+    "issue_size": 500000000,
+    "issue_date": "2023-05-17",
+    "list_level": 1,
+    "liquidity_class": 2,
+    "high_risk": false,
+    "is_collateral": true,
+    "current_yield": 7.29,
+    "liquidity": {
+      "value_avg": 2100000000.0,
+      "numtrades_avg": 5400.5,
+      "days": 20
+    },
+    "emitter": {
+      "emitter_id": 1,
+      "title": "Минфин России",
+      "inn": "7710168360",
+      "rating_group": "AAA",
+      "rating_changed_at": null
+    },
+    "passport_at": "2026-11-05T03:10:00+00:00",
+    "schedule_scan_at": "2026-11-03T03:20:00+00:00"
   },
   "schedule": {
     "coupons": [
@@ -37,7 +65,8 @@
         "start_date": "2026-05-20",
         "value": 35.4,
         "value_pct": 3.55,
-        "facevalue": 1000
+        "facevalue": 1000,
+        "projected": false
       }
     ],
     "amortizations": [

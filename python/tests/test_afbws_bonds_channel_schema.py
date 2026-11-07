@@ -65,7 +65,7 @@ def test_every_message_has_a_distinct_schema_const():
     for ref in doc["oneOf"]:
         d = doc["$defs"][ref["$ref"].split("/")[-1]]
         consts.append(d["properties"]["schema"]["const"])
-    assert len(consts) == len(set(consts)) == 9
+    assert len(consts) == len(set(consts)) == 13
     assert "afbws.bonds.error.v1" in consts
 
 
@@ -114,15 +114,33 @@ def test_bond_request_response(registry):
     _bad(v, resp)
 
 
-def test_bond_card_has_no_emitter_fields(registry):
+def test_bond_card_passport_and_emitter_block(registry):
     v = _validator(registry, "bondMsg")
     resp = _ex("bond.response")
-    assert not [k for k in resp["bond"] if k.startswith("emitter")]
+    # the card carries the issuer ONLY as one `emitter` object, not as flat emitter_* fields
+    assert not [k for k in resp["bond"] if k.startswith("emitter_")]
     v.validate(resp)
+    v.validate(_ex("bond_floater.response"))
     for field, value in (("emitter_id", 1), ("emitter_title", "Минфин России"), ("emitter_inn", "7710168360")):
         resp = _ex("bond.response")
         resp["bond"][field] = value
         _bad(v, resp)
+    for field in ("coupon_kind", "redemption_kind", "liquidity", "emitter", "current_yield", "is_collateral", "passport_at"):
+        resp = _ex("bond.response")
+        del resp["bond"][field]
+        _bad(v, resp)
+    resp = _ex("bond.response")
+    resp["bond"]["emitter"] = None
+    resp["bond"]["liquidity"] = None
+    v.validate(resp)
+    resp["bond"]["coupon_kind"] = "floating"
+    _bad(v, resp)
+    resp = _ex("bond.response")
+    resp["bond"]["emitter"]["rating_group"] = "AAAA"
+    _bad(v, resp)
+    resp = _ex("bond.response")
+    del resp["schedule"]["coupons"][0]["projected"]
+    _bad(v, resp)
 
 
 def test_market_block_nullable(registry):
@@ -306,3 +324,154 @@ def test_bond_identity_is_instrument_key_only(registry):
     _bad(_validator(registry, "tradesSet"), _msg("trades.set", request_id="r", portfolio_id="p", upsert=[only_secid_trade]))
     _bad(_validator(registry, "bondMsg"), _msg("bond", request_id="r", secid="SU26238RMFS4"))
     _validator(registry, "bondMsg").validate(_msg("bond", request_id="r", instrument_key="MISX:TQOB:SU26238RMFS4"))
+
+
+def test_projected_flag_and_payment(registry):
+    v = _validator(registry, "portfolio")
+    resp = _ex("portfolio.response")
+    resp["flags"] = ["float_assumed", "float_projected"]
+    resp["positions"][0]["flags"] = ["float_projected"]
+    resp["payments"][0]["projected"] = True
+    v.validate(resp)
+    del resp["payments"][0]["projected"]
+    _bad(v, resp)
+
+
+def test_portfolio_breakdown_and_calendar(registry):
+    v = _validator(registry, "portfolio")
+    for name in ("portfolio.response", "portfolio.push"):
+        v.validate(_ex(name))
+        for key in ("breakdown", "calendar"):
+            broken = _ex(name)
+            del broken[key]
+            _bad(v, broken)
+    resp = _ex("portfolio.response")
+    resp["breakdown"] = {k: [] for k in resp["breakdown"]}
+    resp["calendar"] = []
+    v.validate(resp)
+    resp["breakdown"]["by_rating"] = [{"key": "A", "market_value_rub": 1, "share": 1, "ytm": None, "positions": 1}]  # label optional
+    v.validate(resp)
+    resp["breakdown"]["by_rating"][0]["share"] = 1.5
+    _bad(v, resp)
+    resp = _ex("portfolio.response")
+    del resp["breakdown"]["by_emitter"]
+    _bad(v, resp)
+    resp = _ex("portfolio.response")
+    resp["breakdown"]["by_year"] = []
+    _bad(v, resp)
+    resp = _ex("portfolio.response")
+    resp["calendar"][0]["month"] = "2026-1"
+    _bad(v, resp)
+
+
+def _screener_columns():
+    return json.loads(SCHEMA_PATH.read_text())["$defs"]["screenerColumns"]["prefixItems"]
+
+
+def test_screener(registry):
+    v = _validator(registry, "screener")
+    v.validate(_ex("screener.request"))
+    v.validate(_ex("screener.response"))
+    v.validate(_ex("screener.push"))
+    v.validate(_msg("screener", request_id="r"))  # no filters = all defaults
+    v.validate(_msg("screener", request_id="r", filters={}))
+    assert [c["const"] for c in _screener_columns()][:3] == ["instrument_key", "secid", "shortname"]
+    assert "request_id" not in _ex("screener.push")
+    _bad(v, _msg("screener"))  # neither request nor push
+    for key in ("asof", "liquidity_days", "total", "emitters", "columns"):  # without `rows` it is a request
+        broken = _ex("screener.response")
+        del broken[key]
+        _bad(v, broken)
+    push = _ex("screener.push")
+    del push["rows"]
+    _bad(v, push)  # a push without request_id carries rows
+    bad_filters = [
+        {"query": "О"}, {"rating_min": "AAAA"}, {"coupon_kinds": ["floating"]}, {"ytm": {"min": "1"}},
+        {"ytm": {"lo": 1}}, {"amortization": "yes"}, {"liquidity_classes": [3]}, {"min_value_avg": -1},
+        {"unknown": 1}, {"include_default": "no"}, {"categories": ["cb"]}, {"emitter_id": "1"},
+    ]
+    for f in bad_filters:
+        _bad(v, _msg("screener", request_id="r", filters=f))
+    # columns: fixed list and order
+    resp = _ex("screener.response")
+    resp["columns"] = list(reversed(resp["columns"]))
+    _bad(v, resp)
+    resp = _ex("screener.response")
+    resp["columns"] = resp["columns"][:-1]
+    _bad(v, resp)
+    # rows: typed per column and of full width
+    resp = _ex("screener.response")
+    resp["rows"][0] = resp["rows"][0][:-1]
+    _bad(v, resp)
+    resp = _ex("screener.response")
+    resp["rows"][0][resp["columns"].index("coupon_kind")] = "floating"
+    _bad(v, resp)
+    resp = _ex("screener.response")
+    resp["rows"][0][resp["columns"].index("high_risk")] = None
+    _bad(v, resp)
+    resp = _ex("screener.response")
+    resp["emitters"]["abc"] = {"title": "X", "rating_group": None}
+    _bad(v, resp)
+    resp = _ex("screener.response")
+    resp["emitters"]["1234"]["rating_group"] = "ZZ"
+    _bad(v, resp)
+    resp = _ex("screener.response")
+    resp["emitters"]["1234"]["rating_group"] = None
+    resp["rows"] = []
+    resp["total"] = 0
+    v.validate(resp)
+
+
+def test_emitter(registry):
+    v = _validator(registry, "emitter")
+    v.validate(_ex("emitter.request"))
+    v.validate(_ex("emitter.response"))
+    _bad(v, _msg("emitter", request_id="r"))  # no emitter_id
+    _bad(v, _msg("emitter", request_id="r", emitter_id="1"))
+    for key in ("columns", "rows"):  # without `emitter` it is a request
+        broken = _ex("emitter.response")
+        del broken[key]
+        _bad(v, broken)
+    resp = _ex("emitter.response")
+    resp["emitter"]["outstanding_rub"] = None  # no FX rate
+    resp["emitter"]["rating_group"] = None
+    resp["emitter"]["inn"] = None
+    v.validate(resp)
+    del resp["emitter"]["bonds_count"]
+    _bad(v, resp)
+    # the same columns as the screener
+    assert _ex("emitter.response")["columns"] == _ex("screener.response")["columns"]
+
+
+def test_rates_and_rates_set(registry):
+    v = _validator(registry, "rates")
+    v.validate(_ex("rates.request"))
+    v.validate(_ex("rates.response"))
+    v.validate(_ex("rates.push"))
+    _bad(v, _msg("rates"))  # neither request nor push
+    resp = _ex("rates.response")
+    resp["items"][0]["title"] = None
+    _bad(v, resp)
+    resp = _ex("rates.response")
+    del resp["items"][0]["updated_at"]
+    _bad(v, resp)
+    s = _validator(registry, "ratesSet")
+    s.validate(_ex("rates_set.request"))
+    s.validate(_ex("rates_set.response"))
+    _bad(s, _msg("rates.set", request_id="r"))  # nothing to do
+    _bad(s, _msg("rates.set", request_id="r", items=[]))
+    _bad(s, _msg("rates.set", request_id="r", items=[{"code": "RUONIA"}]))  # value_pct is required (null clears)
+    _bad(s, _msg("rates.set", request_id="r", items=[{"code": "RUONIA", "value_pct": "7"}]))
+    _bad(s, _msg("rates.set", request_id="r", items=[{"code": "", "value_pct": 7}]))
+    s.validate(_msg("rates.set", request_id="r", items=[{"code": "RUONIA", "value_pct": 7.25}]))
+    s.validate(_msg("rates.set", request_id="r", items=[{"code": "RUONIA", "value_pct": None}]))
+    resp = _ex("rates_set.response")
+    del resp["rejected"]
+    _bad(s, resp)  # the request-shaped items would not satisfy rateItem either
+    resp = _ex("rates_set.response")
+    resp["rejected"] = []
+    s.validate(resp)
+    resp["rejected"] = [{"code": "X", "reason": "boom"}]
+    _bad(s, resp)
+    resp["rejected"] = [{"code": "X", "reason": "invalid_value", "message": "ставка вне диапазона"}]
+    s.validate(resp)

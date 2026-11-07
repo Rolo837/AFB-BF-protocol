@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: d6b51e5a78ba2ed26865093cc9dcea4a06c413998f8b162baaea679e12d91488
+# source-hash: f13163800db33ca3214e3b50730b8d07922e175f70451a1a99971f63f521051c
 
 from __future__ import annotations
 
@@ -620,7 +620,7 @@ class AfbwsBondsChannelV1Amortization(TypedDict):
 
 class AfbwsBondsChannelV1Bond(TypedDict):
     """
-    A bond card: the search row plus lot attributes.
+    A bond card: the search row plus lot attributes and the passport (coupon type, redemption kind, amortization, issue, liquidity, issuer).
     """
 
     instrument_key: AfbwsCommonV1InstrumentKey
@@ -640,11 +640,29 @@ class AfbwsBondsChannelV1Bond(TypedDict):
     name: str | None
     bond_type: str | None
     lot_value: float
+    coupon_kind: AfbwsBondsChannelV1CouponKind
+    coupon_benchmark: str | None
+    coupon_spread_pct: float | None
+    redemption_kind: AfbwsBondsChannelV1RedemptionKind
+    call_date: str | None
+    has_amortization: bool
+    next_amort_date: str | None
+    issue_size: int | None
+    issue_date: str | None
+    list_level: int | None
+    liquidity_class: Literal[0, 1, 2] | None
+    high_risk: bool
+    is_collateral: bool
+    current_yield: float | None
+    liquidity: Liquidity | None
+    emitter: Emitter | None
+    passport_at: str | None
+    schedule_scan_at: str | None
 
 
 class AfbwsBondsChannelV1BondMsg(TypedDict):
     """
-    Request: `instrument_key`. Response: the bond (the card carries `instrument_key` and the display `secid`), its payment `schedule` and the daily `history` (columnar). Unknown key — error `not_found`.
+    Request: `instrument_key`. Response: the bond (the card carries `instrument_key` and the display `secid`), its payment `schedule` and the daily `history` (columnar). Unknown key — error `not_found`. Coupons of the schedule have `projected`: true when the amount is a FORECAST from the base rate (see `rates`).
     """
 
     channel: Literal["bonds"]
@@ -677,6 +695,44 @@ class AfbwsBondsChannelV1BondRow(TypedDict):
     market: AfbwsBondsChannelV1MarketOrNull
 
 
+class AfbwsBondsChannelV1Breakdown(TypedDict):
+    """
+    Structure of the portfolio over held positions that have a ruble market value (positions without one are not counted in any group). Shares are of market value in rubles. Empty arrays for a portfolio with no valued positions.
+    """
+
+    by_category: list[AfbwsBondsChannelV1BreakdownItem]
+    by_coupon_kind: list[AfbwsBondsChannelV1BreakdownItem]
+    by_currency: list[AfbwsBondsChannelV1BreakdownItem]
+    by_rating: list[AfbwsBondsChannelV1BreakdownItem]
+    by_maturity: list[AfbwsBondsChannelV1BreakdownItem]
+    by_emitter: list[AfbwsBondsChannelV1BreakdownItem]
+
+
+class AfbwsBondsChannelV1BreakdownItem(TypedDict):
+    """
+    One group of a portfolio structure.
+    """
+
+    key: str
+    label: NotRequired[str]
+    market_value_rub: float
+    share: float
+    ytm: float | None
+    positions: int
+
+
+class AfbwsBondsChannelV1CalendarMonth(TypedDict):
+    """
+    Expected payments of one month, in rubles; a sum is null when some payment of the month has no FX rate. Forecast and assumed amounts are included (they are marked in `payments[]`).
+    """
+
+    month: str
+    coupons_rub: float | None
+    amortizations_rub: float | None
+    redemptions_rub: float | None
+    items_count: int
+
+
 AfbwsBondsChannelV1Category: TypeAlias = Literal[
     "ofz", "subfederal", "municipal", "corporate", "currency", "default"
 ]
@@ -693,6 +749,46 @@ class AfbwsBondsChannelV1Coupon(TypedDict):
     value: float | None
     value_pct: float | None
     facevalue: float | None
+    projected: bool
+
+
+AfbwsBondsChannelV1CouponKind: TypeAlias = Literal[
+    "fixed",
+    "fixed_unknown",
+    "key_rate",
+    "ruonia",
+    "cpi",
+    "other_float",
+    "zero",
+    "unknown",
+]
+
+
+class AfbwsBondsChannelV1Emitter(TypedDict):
+    """
+    Rotation by issuer. Request: `emitter_id`. Response: the issuer (`emitterCard`) and ALL its active bonds, qualified-only ones included (the `is_qualified` column tells them), without filters, in the `columns`/`rows` format of `screener`. Comparing with the bond the user came from is done by the client on the rows already received. Unknown issuer — error `not_found`. Needs the `bonds` capability.
+    """
+
+    channel: Literal["bonds"]
+    schema: Literal["afbws.bonds.emitter.v1"]
+    request_id: AfbwsCommonV1RequestId
+    emitter_id: NotRequired[int]
+    emitter: NotRequired[AfbwsBondsChannelV1EmitterCard]
+    columns: NotRequired[AfbwsBondsChannelV1ScreenerColumns]
+    rows: NotRequired[list[AfbwsBondsChannelV1ScreenerRow]]
+
+
+class AfbwsBondsChannelV1EmitterCard(TypedDict):
+    """
+    An issuer with the size of its debt.
+    """
+
+    emitter_id: int
+    title: str
+    inn: str | None
+    rating_group: AfbwsBondsChannelV1RatingGroup | None
+    bonds_count: int
+    outstanding_rub: float | None
 
 
 class AfbwsBondsChannelV1Error(TypedDict):
@@ -747,6 +843,7 @@ AfbwsBondsChannelV1FavoriteColor: TypeAlias = Literal[
 
 AfbwsBondsChannelV1Flag: TypeAlias = Literal[
     "float_assumed",
+    "float_projected",
     "indexed_nominal",
     "no_fx",
     "no_market",
@@ -830,6 +927,7 @@ class AfbwsBondsChannelV1Payment(TypedDict):
     faceunit: AfbwsBondsChannelV1Faceunit
     status: Literal["received", "expected"]
     assumed: bool
+    projected: bool
 
 
 class AfbwsBondsChannelV1Portfolio(TypedDict):
@@ -848,6 +946,8 @@ class AfbwsBondsChannelV1Portfolio(TypedDict):
     series: NotRequired[AfbwsBondsChannelV1Series]
     totals: NotRequired[AfbwsBondsChannelV1Totals]
     flags: NotRequired[list[AfbwsBondsChannelV1Flag]]
+    breakdown: NotRequired[AfbwsBondsChannelV1Breakdown]
+    calendar: NotRequired[list[AfbwsBondsChannelV1CalendarMonth]]
 
 
 class AfbwsBondsChannelV1PortfolioEdit(TypedDict):
@@ -942,6 +1042,93 @@ class AfbwsBondsChannelV1Position(TypedDict):
     flags: list[AfbwsBondsChannelV1Flag]
 
 
+class AfbwsBondsChannelV1Range(TypedDict):
+    """
+    Numeric range filter; both bounds inclusive, each optional. A value of a bond that is null does not pass a range with any bound set.
+    """
+
+    min: NotRequired[float]
+    max: NotRequired[float]
+
+
+class AfbwsBondsChannelV1RateEdit(TypedDict):
+    code: str
+    value_pct: float | None
+
+
+class AfbwsBondsChannelV1RateItem(TypedDict):
+    """
+    A base rate for the forecast of floating coupons.
+    """
+
+    code: str
+    title: str
+    value_pct: float | None
+    updated_at: str | None
+
+
+class AfbwsBondsChannelV1RateRejection(TypedDict):
+    """
+    A refused item of `rates.set`.
+    """
+
+    code: str
+    reason: Literal["unknown_code", "invalid_value"]
+    message: NotRequired[str]
+
+
+class AfbwsBondsChannelV1Rates(TypedDict):
+    """
+    Request is an empty command. Response and push: `items` — every base with its current rate. Read by everyone with the `bonds` capability (the bond card shows which rate a forecast is built with). Server push: the same body WITHOUT `request_id` to every connection with `bonds` after `rates.set` changed a rate.
+    """
+
+    channel: Literal["bonds"]
+    schema: Literal["afbws.bonds.rates.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    items: NotRequired[list[AfbwsBondsChannelV1RateItem]]
+
+
+class AfbwsBondsChannelV1RatesSet(TypedDict):
+    """
+    Staff only (manager or admin); anybody else gets `forbidden`. Request: `items[{code, value_pct}]`; `value_pct` null clears a rate. An unknown `code` or an invalid value goes to `rejected[]`, the others are applied. Response: the current state of ALL bases in `items` (as in `rates`) and `rejected` (empty when all applied). After a write the server pushes `rates` to every connection with `bonds` and recomputes the `portfolio` pushes of the open portfolios (a forecast coupon changes).
+    """
+
+    channel: Literal["bonds"]
+    schema: Literal["afbws.bonds.rates.set.v1"]
+    request_id: AfbwsCommonV1RequestId
+    items: NotRequired[list[Any]]
+    rejected: NotRequired[list[AfbwsBondsChannelV1RateRejection]]
+
+
+AfbwsBondsChannelV1RatingGroup: TypeAlias = Literal[
+    "AAA",
+    "AA+",
+    "AA",
+    "AA-",
+    "A+",
+    "A",
+    "A-",
+    "BBB+",
+    "BBB",
+    "BBB-",
+    "BB+",
+    "BB",
+    "BB-",
+    "B+",
+    "B",
+    "B-",
+    "CCC",
+    "CC",
+    "C",
+    "D",
+]
+
+
+AfbwsBondsChannelV1RedemptionKind: TypeAlias = Literal[
+    "maturity", "put", "call", "perpetual"
+]
+
+
 class AfbwsBondsChannelV1Schedule(TypedDict):
     """
     Payment schedule of the bond (ISS bondization).
@@ -950,6 +1137,105 @@ class AfbwsBondsChannelV1Schedule(TypedDict):
     coupons: list[AfbwsBondsChannelV1Coupon]
     amortizations: list[AfbwsBondsChannelV1Amortization]
     offers: list[AfbwsBondsChannelV1Offer]
+
+
+class AfbwsBondsChannelV1Screener(TypedDict):
+    """
+    Request: optional `filters` (`screenerFilters`); the server stores them as THE filters of this connection (replacing the previous ones, an absent `filters` means no filters) and answers at once. Response: the whole filtered set without pages, columnar: `asof` (time of the market snapshot the rows are built from, null before the first snapshot), `liquidity_days` (window of `value_avg`/`numtrades_avg`), `total` (= number of rows), `emitters` (dictionary issuer id -> {title, rating_group}, only the issuers present in the rows; JSON keys are strings), `columns` and `rows`. Sorting is the client's job. Server push: the same body WITHOUT `request_id` after every market snapshot (about every 5 minutes) to the connections whose last state is an open screener, built by their stored filters. A filter the schema allows but the backend refuses (e.g. `min` > `max`) — error `validation_error`. Needs the `bonds` capability.
+    """
+
+    channel: Literal["bonds"]
+    schema: Literal["afbws.bonds.screener.v1"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    filters: NotRequired[AfbwsBondsChannelV1ScreenerFilters]
+    asof: NotRequired[str | None]
+    liquidity_days: NotRequired[int]
+    total: NotRequired[int]
+    emitters: NotRequired[dict[str, AfbwsBondsChannelV1ScreenerEmitter]]
+    columns: NotRequired[AfbwsBondsChannelV1ScreenerColumns]
+    rows: NotRequired[list[AfbwsBondsChannelV1ScreenerRow]]
+
+
+AfbwsBondsChannelV1ScreenerColumns: TypeAlias = tuple[
+    Literal["instrument_key"],
+    Literal["secid"],
+    Literal["shortname"],
+    Literal["category"],
+    Literal["faceunit"],
+    Literal["coupon_kind"],
+    Literal["coupon_percent"],
+    Literal["coupon_benchmark"],
+    Literal["coupon_spread_pct"],
+    Literal["coupon_frequency"],
+    Literal["matdate"],
+    Literal["offerdate"],
+    Literal["call_date"],
+    Literal["redemption_kind"],
+    Literal["has_amortization"],
+    Literal["next_amort_date"],
+    Literal["is_qualified"],
+    Literal["high_risk"],
+    Literal["liquidity_class"],
+    Literal["list_level"],
+    Literal["emitter_id"],
+    Literal["price_pct"],
+    Literal["ytm"],
+    Literal["ytm_kind"],
+    Literal["current_yield"],
+    Literal["duration_days"],
+    Literal["accint"],
+    Literal["value_avg"],
+    Literal["numtrades_avg"],
+    Literal["value_today"],
+    Literal["years_to_event"],
+]
+
+
+"""
+Column names of `rows`, ALWAYS exactly this list in exactly this order (the order is part of the contract; a column is added only by a new schema version): instrument_key, secid, shortname, category, faceunit, coupon_kind, coupon_percent, coupon_benchmark, coupon_spread_pct, coupon_frequency, matdate, offerdate, call_date, redemption_kind, has_amortization, next_amort_date, is_qualified, high_risk, liquidity_class, list_level, emitter_id, price_pct, ytm, ytm_kind, current_yield, duration_days, accint, value_avg, numtrades_avg, value_today, years_to_event. Shared by `screener` and `emitter`.
+"""
+
+
+class AfbwsBondsChannelV1ScreenerEmitter(TypedDict):
+    """
+    Issuer entry of the `emitters` dictionary of a screener response.
+    """
+
+    title: str
+    rating_group: AfbwsBondsChannelV1RatingGroup | None
+
+
+class AfbwsBondsChannelV1ScreenerFilters(TypedDict):
+    """
+    Screener filters; every field is optional, an absent field does not filter. By default the screener is for a non-qualified investor: qualified-only, defaulted and high-risk bonds are excluded unless the matching `include_*` is true. A redeemed bond never gets into the screener. The server keeps ONE set of filters per connection (the last `screener` request) and applies it to the pushes.
+    """
+
+    query: NotRequired[str]
+    categories: NotRequired[list[AfbwsBondsChannelV1Category]]
+    faceunits: NotRequired[list[AfbwsBondsChannelV1Faceunit]]
+    coupon_kinds: NotRequired[list[AfbwsBondsChannelV1CouponKind]]
+    rating_min: NotRequired[AfbwsBondsChannelV1RatingGroup]
+    include_unrated: NotRequired[bool]
+    ytm: NotRequired[AfbwsBondsChannelV1Range]
+    current_yield: NotRequired[AfbwsBondsChannelV1Range]
+    coupon_percent: NotRequired[AfbwsBondsChannelV1Range]
+    years_to_event: NotRequired[AfbwsBondsChannelV1Range]
+    duration_days: NotRequired[AfbwsBondsChannelV1Range]
+    amortization: NotRequired[Literal["any", "with", "without"]]
+    offer: NotRequired[Literal["any", "with", "without"]]
+    liquidity_classes: NotRequired[list[Literal[0, 1, 2]]]
+    min_value_avg: NotRequired[float]
+    min_numtrades_avg: NotRequired[float]
+    emitter_id: NotRequired[int]
+    include_qualified: NotRequired[bool]
+    include_default: NotRequired[bool]
+    include_high_risk: NotRequired[bool]
+
+
+AfbwsBondsChannelV1ScreenerRowItem: TypeAlias = int | None
+
+
+AfbwsBondsChannelV1ScreenerRowItem1: TypeAlias = str | None
 
 
 class AfbwsBondsChannelV1Search(TypedDict):
@@ -1096,6 +1382,10 @@ AfbwsBondsChannelV1Root: TypeAlias = (
     | AfbwsBondsChannelV1TradesSet
     | AfbwsBondsChannelV1Signals
     | AfbwsBondsChannelV1Events
+    | AfbwsBondsChannelV1Screener
+    | AfbwsBondsChannelV1Emitter
+    | AfbwsBondsChannelV1Rates
+    | AfbwsBondsChannelV1RatesSet
     | AfbwsBondsChannelV1Error
 )
 
@@ -1568,6 +1858,46 @@ AfbwsCommonV1ErrorCode: TypeAlias = Literal[
 
 
 AfbwsCommonV1InstrumentKey: TypeAlias = str
+
+
+AfbwsBondsChannelV1ScreenerRow: TypeAlias = tuple[
+    AfbwsCommonV1InstrumentKey,
+    AfbwsBondsChannelV1Secid,
+    str,
+    AfbwsBondsChannelV1Category,
+    AfbwsBondsChannelV1Faceunit,
+    AfbwsBondsChannelV1CouponKind,
+    float | None,
+    str | None,
+    float | None,
+    AfbwsBondsChannelV1ScreenerRowItem,
+    AfbwsBondsChannelV1ScreenerRowItem1,
+    AfbwsBondsChannelV1ScreenerRowItem1,
+    AfbwsBondsChannelV1ScreenerRowItem1,
+    AfbwsBondsChannelV1RedemptionKind,
+    bool,
+    AfbwsBondsChannelV1ScreenerRowItem1,
+    bool,
+    bool,
+    Literal[0, 1, 2] | None,
+    int | None,
+    int | None,
+    float | None,
+    float | None,
+    Literal["ytm", "yto"] | None,
+    float | None,
+    int | None,
+    float | None,
+    float | None,
+    float | None,
+    float | None,
+    float | None,
+]
+
+
+"""
+One bond: values in the order of `columns`. Market columns (`price_pct`, `ytm`, `ytm_kind`, `current_yield`, `duration_days`, `accint`, `value_today`) are null without a quote; `value_avg`/`numtrades_avg` are null while the liquidity store is empty; the issuer rating of the row is taken from the `emitters` dictionary by `emitter_id`. `years_to_event` — years to the nearest maturity/put/call, null for a perpetual bond with no event.
+"""
 
 
 AfbwsCommonV1RequestId: TypeAlias = str
@@ -4409,6 +4739,18 @@ class Document(TypedDict):
     contract_version: NotRequired[int]
 
 
+class Emitter(TypedDict):
+    """
+    The issuer; null when the bond has none in the reference.
+    """
+
+    emitter_id: int
+    title: str
+    inn: str | None
+    rating_group: AfbwsBondsChannelV1RatingGroup | None
+    rating_changed_at: str | None
+
+
 class Entry(TypedDict):
     entry_id: str
     account_id: NotRequired[str]
@@ -5073,6 +5415,16 @@ class LinkV2StatusItem(TypedDict):
     session: LinkV2Session | None
 
 
+class Liquidity(TypedDict):
+    """
+    Liquidity over the last trading days; null while the liquidity data is not calculated.
+    """
+
+    value_avg: float
+    numtrades_avg: float
+    days: int
+
+
 class MarketData(TypedDict):
     """
     What market data this BF instance can serve, and on which wire timeframes (see condition.v1.json#/$defs/timeframe) — used by AFB to validate indicator/price-candle condition timeframes before publish.
@@ -5248,8 +5600,8 @@ class NotificationAlarmV1(TypedDict):
 
     schema: Literal["afb.notification.alarm.v1"]
     alarm_id: str
+    instrument_key: AfbwsCommonV1InstrumentKey
     ticker: str
-    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
     instrument: NotRequired[Instrument]
     condition: AlarmV1AlarmConditionNode
     period: NotRequired[ConditionV1Timeframe]
@@ -5751,37 +6103,7 @@ class Subscription(TypedDict):
 SupportItem: TypeAlias = str
 
 
-class TradePlanV21(TypedDict):
-    """
-    AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
-    """
-
-    id: TradeplanId
-    ticker: str
-    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
-    status: NotRequired[Literal["draft", "published", "completed", "archived"]]
-    editor: NotRequired[Literal["simple", "advanced"]]
-    direction: Literal["long", "short"]
-    schema: Literal["afb.tradeplan.v2"]
-    activated_at: NotRequired[str]
-    closed_at: NotRequired[str]
-    archived_at: NotRequired[str]
-    instrument_missing: NotRequired[bool]
-    entries: list[TradeplanV2TpLeg]
-    stop_loss: NotRequired[TradeplanV2TpExitList]
-    take_profit: NotRequired[TradeplanV2TpExitList]
-    sizing: DealSizing
-    publish: NotRequired[TradeplanV2Publish]
-    connector: NotRequired[str]
-    account_id: NotRequired[str]
-    delivery_at: NotRequired[str]
-    archived_components: NotRequired[TradeplanV2ArchivedComponents]
-    deal_id: NotRequired[str]
-    created_at: NotRequired[str]
-    updated_at: NotRequired[str]
-
-
-class TradePlanV22(TypedDict):
+class TradePlanV2(TypedDict):
     """
     AFB-side multi-entry / multi-exit trade plan template, persisted per-user and compiled by AFB into an afb.deal.v2. This is NOT an AsyncAPI wire message — it never crosses the AFB<->BF channel. `direction` (long/short) is the single source of truth for position bias, at plan level — entry legs do not carry a per-leg side (a list of entries with independent buy/sell sides has no defined execution semantics for one deal). Conditions are deal.v2-compatible nodes — price legs carry an explicit `op` (touch/above/below/breakout/breakdown/crossing), `op` omitted on a price leg means touch (accepted for back-compat with old plans); indicator legs may omit `op`, derived from direction/scope at compile time — with two extensions beyond condition.v1.json's plain vocabulary: (1) the `right` side of a condition may be a `primitiveRef` (`{"primitive_id": "..."}`), a reference to a chart line primitive that AFB resolves to a decimal `const` at compile time; (2) an entry leg's `left` may be `condition.v1.json#/$defs/immediateExpr` (`{"source": "immediate"}`) for a market entry — `right`/`op` are structural placeholders in that case, same convention as the compiled deal (see deal.v2.json's conditionNode, immediate branch of condition.v1.json#/$defs/conditionNode): dispatch on `left.source == "immediate"` alone, never read `right`/`op`. Meaningful only on entries — AFB/BF reject it on stop_loss/take_profit. The full left/right pairing matrix (price/quote const-only, indicator/dataset const-or-same-kind) is enforced after compilation by deal.v2.json and by BF, not here — this schema deliberately stays loose to accommodate primitiveRef and immediateExpr. Each leg additionally carries an optional `logic` (`split`/`and`/`or`, see deal.v2.json#/$defs/legJoin for the full grammar) joining it to the preceding leg; AFB carries the field through compilation unchanged onto the corresponding deal.v2 leg.
     """
@@ -5809,9 +6131,6 @@ class TradePlanV22(TypedDict):
     deal_id: NotRequired[str]
     created_at: NotRequired[str]
     updated_at: NotRequired[str]
-
-
-TradePlanV2: TypeAlias = TradePlanV21 | TradePlanV22
 
 
 TradeplanId: TypeAlias = str
@@ -5977,13 +6296,13 @@ class TradeplanV2PlanInput(TypedDict):
 
 class TradeplanV2PlanItem(TypedDict):
     """
-    An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is present whenever the server could resolve one; a plan whose instrument is not in the catalog comes with `instrument_missing: true` (and possibly without `ticker`) — at least one of the two is always there. `ticker` is the derived wire ticker. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.
+    An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is always present and is the only identifier. `instrument_missing: true` means the key is not found in the instrument catalog (an archived instrument is found, so not missing; a plan stored before the key became mandatory whose old reference the server could not resolve comes with that old reference echoed in `instrument_key` and `instrument_missing: true`). `ticker` is deprecated: a derived display form (the wire ticker) the server takes from the catalog while the key resolves, kept for older frontends that still read it; may be absent when the key is not found. Never an identifier. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.
     """
 
     schema: Literal["afb.tradeplan.v2"]
     id: TradeplanId
     ticker: NotRequired[str]
-    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    instrument_key: AfbwsCommonV1InstrumentKey
     instrument_missing: NotRequired[Literal[True]]
     direction: Literal["long", "short"]
     status: Literal["draft", "published", "completed", "archived"]

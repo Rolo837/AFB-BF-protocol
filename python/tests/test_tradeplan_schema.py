@@ -38,7 +38,7 @@ def test_example_validates_against_declared_or_default_schema(path: Path, regist
 def test_v2_condition_accepts_duration_on_price_level(registry):
     plan = {
         "id": "tp2",
-        "ticker": "SBER",
+        "instrument_key": "MISX:TQBR:SBER",
         "direction": "long",
         "schema": "afb.tradeplan.v2",
         "entries": [
@@ -68,18 +68,23 @@ def _v2_plan(**over):
     return plan
 
 
-def test_v2_accepts_instrument_key_with_or_without_ticker(registry):
-    v = _validator(TRADEPLAN_V2_ID, registry)
-    v.validate(_v2_plan(ticker="SBER"))  # stored before the key existed
-    v.validate(_v2_plan(instrument_key="MISX:TQBR:SBER"))
-    v.validate(_v2_plan(ticker="CL", instrument_key="XNYM:futures:CL"))
-
-
-def test_v2_needs_a_ticker_or_an_instrument_key(registry):
+def test_v2_requires_instrument_key_and_still_declares_deprecated_ticker(registry):
     from jsonschema import ValidationError
 
-    with pytest.raises(ValidationError):
-        _validator(TRADEPLAN_V2_ID, registry).validate(_v2_plan())
+    v = _validator(TRADEPLAN_V2_ID, registry)
+    v.validate(_v2_plan(instrument_key="MISX:TQBR:SBER"))
+    # `ticker` is deprecated but still declared: the closed storage schema accepts files that carry it
+    v.validate(_v2_plan(ticker="CL", instrument_key="XNYM:futures:CL"))
+    assert registry[TRADEPLAN_V2_ID].contents["properties"]["ticker"]["deprecated"] is True
+
+
+def test_v2_ticker_alone_is_no_longer_enough(registry):
+    from jsonschema import ValidationError
+
+    v = _validator(TRADEPLAN_V2_ID, registry)
+    for plan in (_v2_plan(), _v2_plan(ticker="SBER")):
+        with pytest.raises(ValidationError):
+            v.validate(plan)
 
 
 def test_v2_instrument_key_must_not_be_empty(registry):
@@ -95,7 +100,7 @@ def test_v2_requires_non_empty_entries(registry):
     plan = {
         "schema": "afb.tradeplan.v2",
         "id": "tp1",
-        "ticker": "SBER",
+        "instrument_key": "MISX:TQBR:SBER",
         "direction": "long",
         "entries": [],
         "sizing": {"mode": "lots", "value": "1"},
@@ -110,7 +115,7 @@ def test_v2_requires_direction(registry):
     plan = {
         "schema": "afb.tradeplan.v2",
         "id": "tp1",
-        "ticker": "SBER",
+        "instrument_key": "MISX:TQBR:SBER",
         "entries": [
             {"condition": {"left": {"source": "price", "field": "last"}, "right": {"const": "100"}}}
         ],
@@ -130,7 +135,7 @@ def test_v2_condition_op_accepts_all_six_price_ops_and_omitted(op, registry):
     plan = {
         "schema": "afb.tradeplan.v2",
         "id": "tp1",
-        "ticker": "SBER",
+        "instrument_key": "MISX:TQBR:SBER",
         "direction": "long",
         "entries": [{"condition": condition}],
         "sizing": {"mode": "lots", "value": "1"},
@@ -146,7 +151,7 @@ def test_v2_condition_left_right_pairing_is_not_enforced_here(registry):
     plan = {
         "schema": "afb.tradeplan.v2",
         "id": "tp1",
-        "ticker": "SBER",
+        "instrument_key": "MISX:TQBR:SBER",
         "direction": "long",
         "entries": [
             {
@@ -167,7 +172,7 @@ def test_v2_primitive_ref_rejects_extra_keys(registry):
     plan = {
         "schema": "afb.tradeplan.v2",
         "id": "tp1",
-        "ticker": "SBER",
+        "instrument_key": "MISX:TQBR:SBER",
         "direction": "long",
         "entries": [
             {
@@ -187,7 +192,7 @@ def test_v2_accepts_optional_publish(registry):
     v2 = {
         "schema": "afb.tradeplan.v2",
         "id": "tp1",
-        "ticker": "SBER",
+        "instrument_key": "MISX:TQBR:SBER",
         "direction": "long",
         "entries": [
             {"condition": {"left": {"source": "price"}, "op": "touch", "right": {"const": "100"}}}
@@ -204,7 +209,7 @@ def test_publish_bf_id_rejects_empty_string(registry):
     v2 = {
         "schema": "afb.tradeplan.v2",
         "id": "tp1",
-        "ticker": "SBER",
+        "instrument_key": "MISX:TQBR:SBER",
         "direction": "long",
         "entries": [
             {"condition": {"left": {"source": "price"}, "op": "touch", "right": {"const": "100"}}}
@@ -234,7 +239,7 @@ def test_publish_rejects_unknown_keys(registry):
     v2 = {
         "schema": "afb.tradeplan.v2",
         "id": "tp1",
-        "ticker": "SBER",
+        "instrument_key": "MISX:TQBR:SBER",
         "direction": "long",
         "entries": [
             {"condition": {"left": {"source": "price"}, "op": "touch", "right": {"const": "100"}}}
@@ -252,7 +257,7 @@ def test_v2_leg_id_accepted_on_entries_and_exits(registry):
     v2 = {
         "schema": "afb.tradeplan.v2",
         "id": "tp1",
-        "ticker": "SBER",
+        "instrument_key": "MISX:TQBR:SBER",
         "direction": "long",
         "entries": [
             {"leg_id": "leg-a1b2c3d4", "condition": {"left": {"source": "price"}, "op": "touch", "right": {"const": "100"}}}
@@ -271,7 +276,7 @@ def test_v2_leg_id_rejects_empty_string(registry):
     v2 = {
         "schema": "afb.tradeplan.v2",
         "id": "tp1",
-        "ticker": "SBER",
+        "instrument_key": "MISX:TQBR:SBER",
         "direction": "long",
         "entries": [
             {"leg_id": "", "condition": {"left": {"source": "price"}, "op": "touch", "right": {"const": "100"}}}

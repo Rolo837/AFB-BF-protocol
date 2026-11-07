@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/tradeplan.channel.v2.json",
   "x-afbws-support-id": "afbws.tradeplan.channel.v2",
   "title": "tradeplan channel v2 — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v2). Same convention as afbws.alarm/account/market v2: ONE schema id per message (`afbws.tradeplan.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`), and the server push `sync` is the same kind of message without `request_id`. Collections are arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; per-plan failures of a batch come back in `rejected[]`, `error` is only for a whole request. There is no separate `get`: use `list` with `ids`. Two plan shapes: `planInput` (what the client sends in `set` — the plan the user edits, NOT server-owned fields) and `planItem` (what the server returns — the stored plan minus `delivery_at`/`archived_components`/`archived_at`/`editor`, plus `instrument_missing`). Both are projections of the AFB-internal storage schema `../tradeplan.v2.json` (afb.tradeplan.v2), which stays the single source for the condition vocabulary; this channel schema is strict (additionalProperties:false) and carries no legacy forms: `leg_id` is never the synthetic `legacy:{role}:{index}`, `op` is mandatory on every condition, `schema` is mandatory, `instrument_key` is mandatory on input and on output either present or replaced by `instrument_missing:true`. See AFB/docs/ENTITY_WS_PROTOCOL.md.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.tradeplan.channel.v2). Same convention as afbws.alarm/account/market v2: ONE schema id per message (`afbws.tradeplan.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request and its response (a response echoes `request_id`), and the server push `sync` is the same kind of message without `request_id`. Collections are arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; per-plan failures of a batch come back in `rejected[]`, `error` is only for a whole request. There is no separate `get`: use `list` with `ids`. Two plan shapes: `planInput` (what the client sends in `set` — the plan the user edits, NOT server-owned fields) and `planItem` (what the server returns — the stored plan minus `delivery_at`/`archived_components`/`archived_at`/`editor`, plus `instrument_missing`). Both are projections of the AFB-internal storage schema `../tradeplan.v2.json` (afb.tradeplan.v2), which stays the single source for the condition vocabulary; this channel schema is strict (additionalProperties:false) and carries no legacy forms: `leg_id` is never the synthetic `legacy:{role}:{index}`, `op` is mandatory on every condition, `schema` is mandatory, `instrument_key` is mandatory on input and on output. See AFB/docs/ENTITY_WS_PROTOCOL.md.",
   "type": "object",
   "oneOf": [
     { "$ref": "#/$defs/list" },
@@ -75,17 +75,17 @@
     "planItem": {
       "type": "object",
       "title": "afb.tradeplan.v2 as returned by the server (list/set/archive/sync, and `rejected[].item` on a conflict).",
-      "description": "An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is present whenever the server could resolve one; a plan whose instrument is not in the catalog comes with `instrument_missing: true` (and possibly without `ticker`) — at least one of the two is always there. `ticker` is the derived wire ticker. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.",
-      "required": ["schema", "id", "direction", "status", "entries", "stop_loss", "take_profit", "sizing", "activated_at", "closed_at", "created_at", "updated_at"],
+      "description": "An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is always present and is the only identifier. `instrument_missing: true` means the key is not found in the instrument catalog (an archived instrument is found, so not missing; a plan stored before the key became mandatory whose old reference the server could not resolve comes with that old reference echoed in `instrument_key` and `instrument_missing: true`). `ticker` is deprecated: a derived display form (the wire ticker) the server takes from the catalog while the key resolves, kept for older frontends that still read it; may be absent when the key is not found. Never an identifier. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.",
+      "required": ["schema", "id", "instrument_key", "direction", "status", "entries", "stop_loss", "take_profit", "sizing", "activated_at", "closed_at", "created_at", "updated_at"],
       "additionalProperties": false,
       "properties": {
         "schema": { "const": "afb.tradeplan.v2" },
         "id": { "$ref": "../common.v1.json#/$defs/tradeplanId" },
-        "ticker": { "type": "string", "minLength": 1 },
+        "ticker": { "type": "string", "minLength": 1, "deprecated": true, "description": "Deprecated display form of the instrument (derived by the server from the catalog; NOT an identifier). Kept for older frontends; will be removed." },
         "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
         "instrument_missing": {
           "const": true,
-          "description": "Overlaid on output only (not persisted): the plan's instrument is not found in the catalog. A reference note, not a lifecycle state. Absent otherwise."
+          "description": "Overlaid on output only (not persisted): the plan's `instrument_key` is not found in the instrument catalog (an archived instrument is found). A reference note, not a lifecycle state. Absent otherwise."
         },
         "direction": { "enum": ["long", "short"] },
         "status": { "enum": ["draft", "published", "completed", "archived"] },
@@ -98,9 +98,7 @@
         "closed_at": { "type": "string" },
         "created_at": { "type": "string" },
         "updated_at": { "type": "string" }
-      },
-      "if": { "not": { "required": ["instrument_key"] } },
-      "then": { "required": ["instrument_missing"] }
+      }
     },
     "amendResultItem": {
       "type": "object",

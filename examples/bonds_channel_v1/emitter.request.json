@@ -1,0 +1,6 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.emitter.v1",
+  "request_id": "b-11",
+  "emitter_id": 1234
+}
