@@ -9,8 +9,12 @@
 ## Unreleased
 
 ### Added
+- `afbws/account.channel.v2.json`: виртуальный счёт портфеля облигаций (`bf_id: "bond"`, `account_id = "bond:" + portfolio_id`). Новые операции `afbws.account.cash.v2` (пополнение/вывод), `afbws.account.set.v2` (целевое количество, `rejected[]` с причинами `no_last_price | no_fx | insufficient_cash | not_in_set | not_supported | forbidden`), `afbws.account.ledger.v2` (страница лога операций), `afbws.account.settings.v2` (`fx_spread_pct`). Новый `$defs.accountOp` (`kind`/`reason`/`subkind` — строки без enum); `position` += `instrument_key`, `accrued_int`; `error.code` += `insufficient_cash`. Операции `open` нет. Деньги — строками.
+- `afbws/bonds.channel.v1.json`: `portfolioRef.account_id` (string|null, необязательное); `portfolioRejection.reason` (`no_last_price | no_fx`), `tradeRejection.reason` (`deprecated`).
+- Примеры `examples/account_channel_v2/` (`cash.*`, `set.*`, `ledger.*`, `settings.*`, `list.*.bond`, `error.insufficient_cash`) и `examples/bonds_channel_v1/` (`portfolio.response.account`, `trades_set.response.deprecated`, `portfolios_set.response.rejected_no_last_price`).
 
 ### Changed
+- `afbws.bonds.trades.set.v1` помечена deprecated (бэкенд отклоняет все строки с `reason: deprecated`); `portfolio` у портфеля со счётом строится из счёта: `trades = []`, `series.rows = []`, `totals.xirr = null` (поля сохранены для совместимости). Описание канала: модель «журнал покупок» заменена на «счёт портфеля». Схемы и старые примеры остаются валидными.
 
 ### Fixed
 

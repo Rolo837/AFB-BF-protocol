@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/account.channel.v2.json",
   "x-afbws-support-id": "afbws.account.channel.v2",
   "title": "account channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, error; `list` takes `bf_id` + `account_id`. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes , reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a broker account (one bf_id may have more than one), not the connector itself.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, cash, set, ledger, settings, error; `list` takes `bf_id` + `account_id`. `bf_id` is the account type for AFB-side accounts: `virtual` (trading simulation) and `bond` (virtual account of a bond portfolio; `account_id = \"bond:\" + portfolio_id`; created and deleted together with the portfolio, so there is no `open` operation). Operations `cash`, `set`, `ledger`, `settings` serve accounts of type `bond` (the backend answers `not_supported` for other types); each has no server push, so `request_id` is always required. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes , reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a broker account (one bf_id may have more than one), not the connector itself.",
   "type": "object",
   "oneOf": [
     {
@@ -16,13 +16,26 @@
       "$ref": "#/$defs/events"
     },
     {
+      "$ref": "#/$defs/cash"
+    },
+    {
+      "$ref": "#/$defs/set"
+    },
+    {
+      "$ref": "#/$defs/ledger"
+    },
+    {
+      "$ref": "#/$defs/settings"
+    },
+    {
       "$ref": "#/$defs/error"
     }
   ],
   "$defs": {
     "bfId": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "Connector id (broker `bf_id`) or the type of an AFB-side account: `virtual`, `bond`. Open string: new account types need no schema change."
     },
     "accountId": {
       "type": "string",
@@ -42,7 +55,141 @@
         "current_price": { "type": ["string", "null"] },
         "unrealized_pnl": { "type": ["string", "null"] },
         "instrument": { "type": "object", "description": "Instrument block restored by AFB; optional." },
+        "instrument_key": { "type": "string", "minLength": 1, "description": "Catalog instrument key (`MISX:<board>:<secid>`, case-sensitive). Filled by AFB-side accounts (`bond`); optional for broker positions." },
+        "accrued_int": { "type": ["string", "null"], "description": "Accrued coupon interest per unit in the instrument currency (a bond position); null/absent when not applicable." },
         "broker_ref": { "type": "object" }
+      }
+    },
+"accountOp": {
+      "type": "object",
+      "title": "One entry of the account operation log (source of truth of the account; written by the backend only).",
+      "description": "Money and prices are decimal strings. `kind` (open string, no enum so that new types need no MAJOR): deposit | withdraw (user cash movement), buy | sell (emulated at LAST MOEX, by a quantity edit or an auto-sale), income (coupon / amortization / redemption, see `subkind`), fx (conversion; a child of the op that required it, see `parent_op_id`), reconcile (confirmed reconciliation row). `subkind` (open string): for income coupon | amortization | redemption. `reason` (open string): why the operation exists, e.g. user_cash | user_set | composition_removed | portfolio_deleted | schedule | auto_fx | reconcile. `amount` is the signed cash movement in `currency` (negative for buy / withdraw). For fx, `counter_currency` / `counter_amount` is the other leg.",
+      "additionalProperties": false,
+      "required": [
+        "op_id",
+        "ts",
+        "kind",
+        "reason",
+        "currency",
+        "amount"
+      ],
+      "properties": {
+        "op_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_op_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Id of the op that caused this one (fx -> buy)."
+        },
+        "ts": {
+          "type": "string",
+          "description": "ISO 8601 time of the operation."
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subkind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instrument_key": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Instrument key for buy / sell / income; null for cash and fx ops."
+        },
+        "quantity": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "price": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Execution price in the instrument currency (a bond: price_pct of face value converted to money)."
+        },
+        "price_pct": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Bond price in percent of face value."
+        },
+        "accrued_int": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Accrued interest per unit at execution."
+        },
+        "amount_per_unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Income per unit (coupon / amortization / redemption)."
+        },
+        "currency": {
+          "type": "string",
+          "minLength": 1
+        },
+        "amount": {
+          "type": "string",
+          "description": "Signed cash movement in `currency`."
+        },
+        "counter_currency": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "counter_amount": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fx_rate": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fx_spread_pct": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "realized": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Realized result of a sell, in `currency`."
+        },
+        "event_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "YYYY-MM-DD: income payment date, or the record date quantity was taken on."
+        }
       }
     },
     "accountSnapshot": {
@@ -222,7 +369,7 @@
     "list": {
       "type": "object",
       "title": "afbws.account.list.v2 — read accounts (request / response / server push).",
-      "description": "Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`; replaces v1 `get`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `default_account_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual account is pushed the same way). A request carrying `items`/`default_account_id` or a response/push carrying request-only fields is invalid.",
+      "description": "Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`; replaces v1 `get`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `default_account_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual account is pushed the same way). For `bf_id: \"bond\"` (accounts of bond portfolios, `account_id = \"bond:\" + portfolio_id`): a request without `account_id` returns only the caller's own accounts; with `account_id` the caller's own or a readable public one (staff accounts are `visibility public`, read-only for others: `readonly: true`). The snapshot is filled from the account log: `cash[]` per currency, `equity` in the base currency (cash + market value), `tradable: true`, `status: ok`, positions carry `instrument_key` and `accrued_int`. The push for `bond` is event-driven (after `cash` / `set`, an income credit, a composition change), like the virtual account. A request carrying `items`/`default_account_id` or a response/push carrying request-only fields is invalid.",
       "required": [
         "channel",
         "schema"
@@ -461,6 +608,329 @@
         }
       ]
     },
+"cash": {
+      "type": "object",
+      "title": "afbws.account.cash.v2 — deposit or withdraw cash of a `bond` account (request / response).",
+      "description": "Request: `account_id`, `kind` (deposit | withdraw), `currency`, `amount` (positive decimal string). The backend writes a `deposit` / `withdraw` operation; the starting capital is the first deposit. Response (same `request_id`, with `item`): the updated account snapshot. Errors (`afbws.account.error.v2`): `insufficient_cash` (withdraw above the balance of that currency), `forbidden` (not the owner / not staff for a public account), `not_found`, `not_supported`. No server push (the owner receives `afbws.account.list.v2`).",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "account"
+        },
+        "schema": {
+          "const": "afbws.account.cash.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "account_id": {
+          "$ref": "#/$defs/accountId"
+        },
+        "kind": {
+          "enum": [
+            "deposit",
+            "withdraw"
+          ]
+        },
+        "currency": {
+          "type": "string",
+          "minLength": 1
+        },
+        "amount": {
+          "type": "string",
+          "description": "Positive decimal string."
+        },
+        "item": {
+          "$ref": "#/$defs/accountSnapshot",
+          "description": "Response only."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "item"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "account_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "kind"
+                  ]
+                },
+                {
+                  "required": [
+                    "currency"
+                  ]
+                },
+                {
+                  "required": [
+                    "amount"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "account_id",
+              "kind",
+              "currency",
+              "amount"
+            ]
+          }
+        }
+      ]
+    },
+    "set": {
+      "type": "object",
+      "title": "afbws.account.set.v2 — set target quantities of a `bond` account (request / response).",
+      "description": "Request: `account_id`, `targets[]` (1..200, target quantity per instrument key). Each row is executed separately: delta > 0 is an emulated `buy`, delta < 0 a `sell`, both at LAST MOEX; partial success is allowed. Response (same `request_id`): `item` — the account snapshot after the edit — and `rejected[]` (refused rows with `reason`; empty when all went through). A whole-request failure is `afbws.account.error.v2`. No server push.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "account"
+        },
+        "schema": {
+          "const": "afbws.account.set.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "account_id": {
+          "$ref": "#/$defs/accountId"
+        },
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "instrument_key",
+              "quantity"
+            ],
+            "description": "Target quantity of one instrument.",
+            "properties": {
+              "instrument_key": {
+                "$ref": "common.v1.json#/$defs/instrumentKey"
+              },
+              "quantity": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Target quantity (not a delta); 0 closes the position."
+              }
+            }
+          },
+          "description": "Request only."
+        },
+        "item": {
+          "$ref": "#/$defs/accountSnapshot",
+          "description": "Response only."
+        },
+        "rejected": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "instrument_key",
+              "reason"
+            ],
+            "description": "A refused row of `set`.",
+            "properties": {
+              "instrument_key": {
+                "$ref": "common.v1.json#/$defs/instrumentKey"
+              },
+              "reason": {
+                "enum": [
+                  "no_last_price",
+                  "no_fx",
+                  "insufficient_cash",
+                  "not_in_set",
+                  "not_supported",
+                  "forbidden"
+                ],
+                "description": "no_last_price: no LAST MOEX today; no_fx: no exchange rate for an auto-conversion; insufficient_cash: not enough money for a buy; not_in_set: the instrument is not in the portfolio composition; not_supported: instrument class has no provider; forbidden: not allowed for the caller."
+              }
+            }
+          },
+          "description": "Response only."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "item"
+            ]
+          },
+          "then": {
+            "required": [
+              "rejected"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "account_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "targets"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "account_id",
+              "targets"
+            ],
+            "not": {
+              "required": [
+                "rejected"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "ledger": {
+      "type": "object",
+      "title": "afbws.account.ledger.v2 — page of the account operation log (request / response).",
+      "description": "Request: `account_id`, optional `before` (`op_id`: return entries older than it), optional `limit` (1..200). Entries are returned newest first. Response (same `request_id`, with `items`): `account_id`, `items[]` (accountOp), `next` — the `op_id` to pass as `before` for the next page, or null at the end. No server push.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "account"
+        },
+        "schema": {
+          "const": "afbws.account.ledger.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "account_id": {
+          "$ref": "#/$defs/accountId"
+        },
+        "before": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Request only."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "description": "Request only."
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/accountOp"
+          },
+          "description": "Response only."
+        },
+        "next": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Response only."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "items"
+            ]
+          },
+          "then": {
+            "required": [
+              "account_id",
+              "next"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "before"
+                  ]
+                },
+                {
+                  "required": [
+                    "limit"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "account_id"
+            ],
+            "not": {
+              "required": [
+                "next"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "settings": {
+      "type": "object",
+      "title": "afbws.account.settings.v2 — account domain settings (request / response).",
+      "description": "Request `{}` (only `request_id`) reads; `{fx_spread_pct}` writes (staff only, otherwise `forbidden`). Response: `{fx_spread_pct}` — the current spread (percent, decimal string, 0 by default) added to the exchange rate (CETS) on auto-conversion. No server push.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "account"
+        },
+        "schema": {
+          "const": "afbws.account.settings.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "fx_spread_pct": {
+          "type": "string",
+          "description": "Auto-conversion spread, percent; decimal string."
+        }
+      }
+    },
     "error": {
       "type": "object",
       "title": "afbws.account.error.v2 — typed error for a whole request (server -> client).",
@@ -483,7 +953,15 @@
           "$ref": "common.v1.json#/$defs/requestId"
         },
         "code": {
-          "$ref": "common.v1.json#/$defs/errorCode"
+          "description": "The common error codes plus `insufficient_cash` (account.cash withdraw above the balance). `forbidden` and `not_supported` are common codes too.",
+          "anyOf": [
+            {
+              "$ref": "common.v1.json#/$defs/errorCode"
+            },
+            {
+              "const": "insufficient_cash"
+            }
+          ]
         },
         "message": {
           "type": "string",

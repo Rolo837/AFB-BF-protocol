@@ -48,7 +48,7 @@ def _invalid(validator, message):
 
 def test_account_v2_one_id_per_message():
     schema = json.loads((_ROOT / "spec" / "schemas" / "afbws" / "account.channel.v2.json").read_text())
-    ops = {"list", "orders", "events", "error"}
+    ops = {"list", "orders", "events", "cash", "set", "ledger", "settings", "error"}
     assert ops <= set(schema["$defs"])
     stale = {"getRequest", "getResponse", "listRequest", "listResponse", "ordersRequest", "ordersResponse",
              "eventsRequest", "eventsResponse", "errorResponse", "snapshotPush", "ordersPush"}
@@ -153,3 +153,86 @@ def test_account_v2_examples_validate(registry):
     virtual = json.loads((_EXAMPLES / "list.response.json").read_text())["items"][0]
     assert virtual["bf_id"] == "virtual" and {c["currency"] for c in virtual["cash"]} == {"RUB", "USD"}
     assert virtual["as_of"]
+
+
+_KEY = "MISX:TQOB:SU26238RMFS4"
+_BOND_SNAP = {**_SNAP, "bf_id": "bond", "account_id": "bond:p-1", "cash": [{"currency": "RUB", "value": "100"}],
+              "positions": [{"quantity": 10, "average_price": "968", "instrument_key": _KEY, "accrued_int": "12.4"}]}
+_OP = {"op_id": "o1", "ts": "2026-11-07T09:30:00+00:00", "kind": "deposit", "reason": "user_cash", "currency": "RUB", "amount": "5"}
+
+
+def test_account_v2_bond_account_snapshot(registry):
+    v = _v("list", registry)
+    v.validate(_m("list", request_id="r", bf_id="bond", account_id="bond:p-1"))
+    v.validate(_m("list", request_id="r", items=[_BOND_SNAP]))
+    v.validate(_m("list", bf_id="bond", default_account_id="bond:p-1", items=[_BOND_SNAP]))
+    v.validate(_m("list", request_id="r", items=[{**_BOND_SNAP, "positions": [{"quantity": 1, "average_price": "1", "accrued_int": None}]}]))
+    _invalid(v, _m("list", request_id="r", items=[{**_BOND_SNAP, "positions": [{"quantity": 1, "average_price": "1", "accrued_int": 1.5}]}]))
+
+
+def test_account_v2_cash(registry):
+    v = _v("cash", registry)
+    req = _m("cash", request_id="r", account_id="bond:p-1", kind="deposit", currency="RUB", amount="10.5")
+    v.validate(req)
+    v.validate({**req, "kind": "withdraw"})
+    v.validate(_m("cash", request_id="r", item=_BOND_SNAP))
+    _invalid(v, {**req, "kind": "open"})
+    _invalid(v, {k: x for k, x in req.items() if k != "amount"})
+    _invalid(v, {k: x for k, x in req.items() if k != "request_id"})
+    _invalid(v, {**req, "item": _BOND_SNAP})  # request fields in a response
+    _invalid(v, {**req, "amount": 10})  # money is a string
+
+
+def test_account_v2_set(registry):
+    v = _v("set", registry)
+    req = _m("set", request_id="r", account_id="bond:p-1", targets=[{"instrument_key": _KEY, "quantity": 0}])
+    v.validate(req)
+    v.validate(_m("set", request_id="r", item=_BOND_SNAP, rejected=[]))
+    for reason in ("no_last_price", "no_fx", "insufficient_cash", "not_in_set", "not_supported", "forbidden"):
+        v.validate(_m("set", request_id="r", item=_BOND_SNAP, rejected=[{"instrument_key": _KEY, "reason": reason}]))
+    _invalid(v, _m("set", request_id="r", item=_BOND_SNAP, rejected=[{"instrument_key": _KEY, "reason": "x"}]))
+    _invalid(v, _m("set", request_id="r", item=_BOND_SNAP))  # response needs rejected
+    _invalid(v, _m("set", request_id="r", account_id="a", targets=[]))
+    _invalid(v, _m("set", request_id="r", account_id="a", targets=[{"instrument_key": _KEY, "quantity": -1}]))
+    _invalid(v, _m("set", request_id="r", account_id="a", targets=[{"instrument_key": _KEY, "quantity": 1.5}]))
+    _invalid(v, _m("set", request_id="r", account_id="a", targets=[{"instrument_key": _KEY, "quantity": 1}] * 201))
+    _invalid(v, _m("set", request_id="r", targets=req["targets"]))
+
+
+def test_account_v2_ledger(registry):
+    v = _v("ledger", registry)
+    v.validate(_m("ledger", request_id="r", account_id="a"))
+    v.validate(_m("ledger", request_id="r", account_id="a", before="o9", limit=200))
+    v.validate(_m("ledger", request_id="r", account_id="a", items=[_OP], next=None))
+    v.validate(_m("ledger", request_id="r", account_id="a", items=[_OP, {**_OP, "kind": "future_kind", "reason": "x", "subkind": None}], next="o1"))
+    _invalid(v, _m("ledger", request_id="r", account_id="a", limit=201))
+    _invalid(v, _m("ledger", request_id="r", account_id="a", limit=0))
+    _invalid(v, _m("ledger", request_id="r", account_id="a", items=[_OP]))  # response needs next
+    _invalid(v, _m("ledger", request_id="r", account_id="a", items=[_OP], next=None, limit=5))
+    _invalid(v, _m("ledger", request_id="r", account_id="a", items=[{k: x for k, x in _OP.items() if k != "reason"}], next=None))
+    _invalid(v, _m("ledger", request_id="r", account_id="a", items=[{**_OP, "amount": 5}], next=None))
+    _invalid(v, _m("ledger", account_id="a"))
+
+
+def test_account_v2_settings(registry):
+    v = _v("settings", registry)
+    v.validate(_m("settings", request_id="r"))
+    v.validate(_m("settings", request_id="r", fx_spread_pct="0.5"))
+    _invalid(v, _m("settings", request_id="r", fx_spread_pct=0.5))
+    _invalid(v, _m("settings", fx_spread_pct="0.5"))
+    _invalid(v, _m("settings", request_id="r", account_id="a"))
+
+
+def test_account_v2_error_codes(registry):
+    v = _v("error", registry)
+    for code in ("insufficient_cash", "forbidden", "not_supported"):
+        v.validate(_m("error", request_id="r", code=code, message="x"))
+    _invalid(v, _m("error", request_id="r", code="insufficient", message="x"))
+
+
+def test_account_v2_root_dispatch_new_ops(registry):
+    root = _root(registry)
+    root.validate(_m("cash", request_id="r", account_id="a", kind="deposit", currency="RUB", amount="1"))
+    root.validate(_m("ledger", request_id="r", account_id="a"))
+    root.validate(_m("settings", request_id="r"))
+    root.validate(_m("set", request_id="r", item=_BOND_SNAP, rejected=[]))

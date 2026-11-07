@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: f13163800db33ca3214e3b50730b8d07922e175f70451a1a99971f63f521051c
+# source-hash: ab41234ed832618014177e569c0acd47a79e2b90aac93936b5ee20d8fddd2fdb
 
 from __future__ import annotations
 
@@ -508,7 +508,7 @@ class AccountV2Error(TypedDict):
     channel: Literal["account"]
     schema: Literal["afbws.account.error.v2"]
     request_id: AfbwsCommonV1RequestId
-    code: AfbwsCommonV1ErrorCode
+    code: AfbwsCommonV1ErrorCode | Literal["insufficient_cash"]
     message: str
     details: NotRequired[dict[str, Any]]
 
@@ -537,7 +537,7 @@ class AccountV2Events(TypedDict):
 
 class AccountV2List(TypedDict):
     """
-    Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`; replaces v1 `get`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `default_account_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual account is pushed the same way). A request carrying `items`/`default_account_id` or a response/push carrying request-only fields is invalid.
+    Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`; replaces v1 `get`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `default_account_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual account is pushed the same way). For `bf_id: "bond"` (accounts of bond portfolios, `account_id = "bond:" + portfolio_id`): a request without `account_id` returns only the caller's own accounts; with `account_id` the caller's own or a readable public one (staff accounts are `visibility public`, read-only for others: `readonly: true`). The snapshot is filled from the account log: `cash[]` per currency, `equity` in the base currency (cash + market value), `tradable: true`, `status: ok`, positions carry `instrument_key` and `accrued_int`. The push for `bond` is event-driven (after `cash` / `set`, an income credit, a composition change), like the virtual account. A request carrying `items`/`default_account_id` or a response/push carrying request-only fields is invalid.
     """
 
     channel: Literal["account"]
@@ -582,11 +582,6 @@ class AccountV2Orders(TypedDict):
     items: NotRequired[list[AccountV2Order]]
 
 
-AccountChannelV2Message: TypeAlias = (
-    AccountV2List | AccountV2Orders | AccountV2Events | AccountV2Error
-)
-
-
 class AccountV2Snapshot(TypedDict):
     bf_id: AccountV2BfId
     account_id: AccountV2AccountId
@@ -599,13 +594,109 @@ class AccountV2Snapshot(TypedDict):
     as_of: NotRequired[str]
 
 
+class AfbwsAccountChannelV2AccountOp(TypedDict):
+    """
+    Money and prices are decimal strings. `kind` (open string, no enum so that new types need no MAJOR): deposit | withdraw (user cash movement), buy | sell (emulated at LAST MOEX, by a quantity edit or an auto-sale), income (coupon / amortization / redemption, see `subkind`), fx (conversion; a child of the op that required it, see `parent_op_id`), reconcile (confirmed reconciliation row). `subkind` (open string): for income coupon | amortization | redemption. `reason` (open string): why the operation exists, e.g. user_cash | user_set | composition_removed | portfolio_deleted | schedule | auto_fx | reconcile. `amount` is the signed cash movement in `currency` (negative for buy / withdraw). For fx, `counter_currency` / `counter_amount` is the other leg.
+    """
+
+    op_id: str
+    parent_op_id: NotRequired[str | None]
+    ts: str
+    kind: str
+    subkind: NotRequired[str | None]
+    reason: str
+    instrument_key: NotRequired[str | None]
+    quantity: NotRequired[int | None]
+    price: NotRequired[str | None]
+    price_pct: NotRequired[str | None]
+    accrued_int: NotRequired[str | None]
+    amount_per_unit: NotRequired[str | None]
+    currency: str
+    amount: str
+    counter_currency: NotRequired[str | None]
+    counter_amount: NotRequired[str | None]
+    fx_rate: NotRequired[str | None]
+    fx_spread_pct: NotRequired[str | None]
+    realized: NotRequired[str | None]
+    event_date: NotRequired[str | None]
+
+
+class AfbwsAccountChannelV2Cash(TypedDict):
+    """
+    Request: `account_id`, `kind` (deposit | withdraw), `currency`, `amount` (positive decimal string). The backend writes a `deposit` / `withdraw` operation; the starting capital is the first deposit. Response (same `request_id`, with `item`): the updated account snapshot. Errors (`afbws.account.error.v2`): `insufficient_cash` (withdraw above the balance of that currency), `forbidden` (not the owner / not staff for a public account), `not_found`, `not_supported`. No server push (the owner receives `afbws.account.list.v2`).
+    """
+
+    channel: Literal["account"]
+    schema: Literal["afbws.account.cash.v2"]
+    request_id: AfbwsCommonV1RequestId
+    account_id: NotRequired[AccountV2AccountId]
+    kind: NotRequired[Literal["deposit", "withdraw"]]
+    currency: NotRequired[str]
+    amount: NotRequired[str]
+    item: NotRequired[AccountV2Snapshot]
+
+
+class AfbwsAccountChannelV2Ledger(TypedDict):
+    """
+    Request: `account_id`, optional `before` (`op_id`: return entries older than it), optional `limit` (1..200). Entries are returned newest first. Response (same `request_id`, with `items`): `account_id`, `items[]` (accountOp), `next` — the `op_id` to pass as `before` for the next page, or null at the end. No server push.
+    """
+
+    channel: Literal["account"]
+    schema: Literal["afbws.account.ledger.v2"]
+    request_id: AfbwsCommonV1RequestId
+    account_id: NotRequired[AccountV2AccountId]
+    before: NotRequired[str]
+    limit: NotRequired[int]
+    items: NotRequired[list[AfbwsAccountChannelV2AccountOp]]
+    next: NotRequired[str | None]
+
+
 class AfbwsAccountChannelV2Position(TypedDict):
     quantity: int
     average_price: str
     current_price: NotRequired[str | None]
     unrealized_pnl: NotRequired[str | None]
     instrument: NotRequired[dict[str, Any]]
+    instrument_key: NotRequired[str]
+    accrued_int: NotRequired[str | None]
     broker_ref: NotRequired[dict[str, Any]]
+
+
+class AfbwsAccountChannelV2Set(TypedDict):
+    """
+    Request: `account_id`, `targets[]` (1..200, target quantity per instrument key). Each row is executed separately: delta > 0 is an emulated `buy`, delta < 0 a `sell`, both at LAST MOEX; partial success is allowed. Response (same `request_id`): `item` — the account snapshot after the edit — and `rejected[]` (refused rows with `reason`; empty when all went through). A whole-request failure is `afbws.account.error.v2`. No server push.
+    """
+
+    channel: Literal["account"]
+    schema: Literal["afbws.account.set.v2"]
+    request_id: AfbwsCommonV1RequestId
+    account_id: NotRequired[AccountV2AccountId]
+    targets: NotRequired[list[Target]]
+    item: NotRequired[AccountV2Snapshot]
+    rejected: NotRequired[list[RejectedItem]]
+
+
+class AfbwsAccountChannelV2Settings(TypedDict):
+    """
+    Request `{}` (only `request_id`) reads; `{fx_spread_pct}` writes (staff only, otherwise `forbidden`). Response: `{fx_spread_pct}` — the current spread (percent, decimal string, 0 by default) added to the exchange rate (CETS) on auto-conversion. No server push.
+    """
+
+    channel: Literal["account"]
+    schema: Literal["afbws.account.settings.v2"]
+    request_id: AfbwsCommonV1RequestId
+    fx_spread_pct: NotRequired[str]
+
+
+AccountChannelV2Message: TypeAlias = (
+    AccountV2List
+    | AccountV2Orders
+    | AccountV2Events
+    | AfbwsAccountChannelV2Cash
+    | AfbwsAccountChannelV2Set
+    | AfbwsAccountChannelV2Ledger
+    | AfbwsAccountChannelV2Settings
+    | AccountV2Error
+)
 
 
 class AfbwsBondsChannelV1Amortization(TypedDict):
@@ -932,7 +1023,7 @@ class AfbwsBondsChannelV1Payment(TypedDict):
 
 class AfbwsBondsChannelV1Portfolio(TypedDict):
     """
-    Request: `id`. Response: the portfolio (`portfolioRef` with its composition) with its journal and analytics; a public portfolio is read-only: its `trades` are empty. Server push: the same body WITHOUT `request_id` once per market snapshot and after each journal edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
+    Request: `id`. Response: the portfolio (`portfolioRef` with its composition) with analytics. A portfolio with a virtual account (`portfolio.account_id`, type `bond`, afbws.account.channel.v2) is filled from the account: `positions[]` (`quantity`, `avg_price_pct`, `invested`, `received`), `payments[]` (`received` from the account log plus `expected` for the current quantity), `totals`, `calendar`, `breakdown`. Compatibility fields, kept so older frontends do not break: `trades` is always `[]` (the journal is replaced by the account log, afbws.account.ledger.v2), `series.rows` is `[]`, `totals.xirr` is null. A public portfolio is read-only. Server push: the same body WITHOUT `request_id` once per market snapshot and after each account change (cash, set, income credit) or composition edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
     """
 
     channel: Literal["bonds"]
@@ -975,16 +1066,18 @@ class AfbwsBondsChannelV1PortfolioRef(TypedDict):
     icon_color: AfbwsBondsChannelV1FavoriteColor | None
     own: bool
     instrument_keys: list[AfbwsCommonV1InstrumentKey]
+    account_id: NotRequired[str | None]
 
 
 class AfbwsBondsChannelV1PortfolioRejection(TypedDict):
     """
-    A refused portfolio of `portfolios.set` (`forbidden`, `validation_error`, `not_found`).
+    A refused portfolio of `portfolios.set` (`forbidden`, `validation_error`, `not_found`). `reason` (optional, refines `code`): `no_last_price` / `no_fx` — the removal of a bond from the composition or the deletion of the portfolio is refused because the auto-sale of the position at LAST MOEX is impossible (no LAST today / no exchange rate for the conversion).
     """
 
     id: str
     code: AfbwsCommonV1ErrorCode
     message: str
+    reason: NotRequired[Literal["no_last_price", "no_fx"]]
 
 
 class AfbwsBondsChannelV1Portfolios(TypedDict):
@@ -1349,17 +1442,18 @@ class AfbwsBondsChannelV1Trade(TypedDict):
 
 class AfbwsBondsChannelV1TradeRejection(TypedDict):
     """
-    A refused journal entry of `trades.set` (`validation_error`, `forbidden`, `not_found`).
+    A refused journal entry of `trades.set` (`validation_error`, `forbidden`, `not_found`). DEPRECATED operation: the backend refuses every row with `reason: deprecated`.
     """
 
     trade_id: str
     code: AfbwsCommonV1ErrorCode
     message: str
+    reason: NotRequired[Literal["deprecated"]]
 
 
 class AfbwsBondsChannelV1TradesSet(TypedDict):
     """
-    Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Only for a PERSONAL portfolio of the caller: a visible public portfolio is `forbidden` (public portfolios hold no purchases), an unknown or foreign personal one is `not_found`. A purchase of a bond that is not in the portfolio composition adds the bond to the composition (at the end) in the same operation. Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the instrument key exists (a `category=default` bond is allowed in a personal portfolio). Response: the whole journal in `trades`, the actual composition in `instrument_keys` and the refused entries in `rejected`. When the composition grew, the other connections of the owner receive a `portfolios` push.
+    DEPRECATED: the journal is replaced by the portfolio virtual account (afbws.account.set.v2 / afbws.account.cash.v2); the backend refuses ALL rows (`rejected[]` with `reason: deprecated`) and changes nothing. The operation stays in the schema for compatibility; removing it is a MAJOR change, only by the owner's decision. Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Only for a PERSONAL portfolio of the caller: a visible public portfolio is `forbidden` (public portfolios hold no purchases), an unknown or foreign personal one is `not_found`. A purchase of a bond that is not in the portfolio composition adds the bond to the composition (at the end) in the same operation. Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the instrument key exists (a `category=default` bond is allowed in a personal portfolio). Response: the whole journal in `trades`, the actual composition in `instrument_keys` and the refused entries in `rejected`. When the composition grew, the other connections of the owner receive a `portfolios` push.
     """
 
     channel: Literal["bonds"]
@@ -5895,6 +5989,22 @@ class Received(TypedDict):
     amortizations: float
 
 
+class RejectedItem(TypedDict):
+    """
+    A refused row of `set`.
+    """
+
+    instrument_key: AfbwsCommonV1InstrumentKey
+    reason: Literal[
+        "no_last_price",
+        "no_fx",
+        "insufficient_cash",
+        "not_in_set",
+        "not_supported",
+        "forbidden",
+    ]
+
+
 RemoveItem: TypeAlias = str
 
 
@@ -6101,6 +6211,15 @@ class Subscription(TypedDict):
 
 
 SupportItem: TypeAlias = str
+
+
+class Target(TypedDict):
+    """
+    Target quantity of one instrument.
+    """
+
+    instrument_key: AfbwsCommonV1InstrumentKey
+    quantity: int
 
 
 class TradePlanV2(TypedDict):
