@@ -8,7 +8,7 @@
     "visibility": "personal",
     "icon_id": null,
     "icon_color": "green",
-    "own": true,
+    "owner": {},
     "instrument_keys": [
       "MISX:TQOB:SU26238RMFS4"
     ],
@@ -79,6 +79,7 @@
     "received_rub": 0,
     "xirr": null,
     "ytm": 15.2,
+    "current_yield": 11.6,
     "duration_days": 1140,
     "annual_coupons_rub": 7080
   },

@@ -156,7 +156,7 @@ def test_account_v2_examples_validate(registry):
 
 
 _KEY = "MISX:TQOB:SU26238RMFS4"
-_BOND_SNAP = {**_SNAP, "bf_id": "bond", "account_id": "bond:p-1", "cash": [{"currency": "RUB", "value": "100"}],
+_BOND_SNAP = {**{k: x for k, x in _SNAP.items() if k != "readonly"}, "owner": {}, "bf_id": "bond", "account_id": "bond:p-1", "cash": [{"currency": "RUB", "value": "100"}],
               "positions": [{"quantity": 10, "average_price": "968", "instrument_key": _KEY, "accrued_int": "12.4"}]}
 _OP = {"op_id": "o1", "ts": "2026-11-07T09:30:00+00:00", "kind": "deposit", "reason": "user_cash", "currency": "RUB", "amount": "5"}
 
@@ -168,6 +168,26 @@ def test_account_v2_bond_account_snapshot(registry):
     v.validate(_m("list", bf_id="bond", default_account_id="bond:p-1", items=[_BOND_SNAP]))
     v.validate(_m("list", request_id="r", items=[{**_BOND_SNAP, "positions": [{"quantity": 1, "average_price": "1", "accrued_int": None}]}]))
     _invalid(v, _m("list", request_id="r", items=[{**_BOND_SNAP, "positions": [{"quantity": 1, "average_price": "1", "accrued_int": 1.5}]}]))
+
+
+def test_account_v2_snapshot_branches_by_bf_id(registry):
+    v = _v("accountSnapshot", registry)
+    v.validate(_BOND_SNAP)
+    v.validate({**_BOND_SNAP, "owner": {"name": "Иван Петров", "tier": "manager"}})
+    v.validate({**_BOND_SNAP, "owner": {"name": None, "tier": None}})
+    _invalid(v, {**_BOND_SNAP, "readonly": False})  # bond: owner, not readonly
+    _invalid(v, {**_BOND_SNAP, "readonly": True})
+    _invalid(v, {k: x for k, x in _BOND_SNAP.items() if k != "owner"})
+    _invalid(v, {**_BOND_SNAP, "owner": {"name": "A", "extra": 1}})
+    _invalid(v, {**_BOND_SNAP, "owner": {"name": 1}})
+    v.validate(_SNAP)  # broker / virtual: readonly
+    v.validate({**_SNAP, "bf_id": "finam", "readonly": True})
+    _invalid(v, {**_SNAP, "owner": {}})
+    _invalid(v, {k: x for k, x in _SNAP.items() if k != "readonly"})
+    pub = json.loads((_EXAMPLES / "list.response.bond_public.json").read_text())["items"][0]
+    assert pub["owner"] == {"name": "Иван Петров", "tier": "manager"} and "readonly" not in pub
+    own = json.loads((_EXAMPLES / "list.response.bond.json").read_text())["items"][0]
+    assert own["owner"] == {} and "readonly" not in own
 
 
 def test_account_v2_cash(registry):

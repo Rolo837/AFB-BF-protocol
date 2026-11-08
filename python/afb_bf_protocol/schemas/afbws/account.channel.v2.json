@@ -199,7 +199,6 @@
         "bf_id",
         "account_id",
         "tradable",
-        "readonly",
         "status",
         "equity",
         "cash",
@@ -218,7 +217,23 @@
           "description": "True only for this bf_id's default (trading) account."
         },
         "readonly": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Broker / virtual accounts only (every `bf_id` except `bond`; required there, forbidden for `bond`)."
+        },
+        "owner": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "`bf_id: bond` only (required there, forbidden for other accounts). Owner of the portfolio account. An EMPTY object `{}` means the account is the caller's own. For a public account of somebody else (read-only for the caller) `name` and `tier` describe the owner; `null` means the owner is unknown.",
+          "properties": {
+            "name": {
+              "type": ["string", "null"],
+              "description": "Display name of the owner; null — unknown. Absent for the caller's own account."
+            },
+            "tier": {
+              "type": ["string", "null"],
+              "description": "Tier of the owner (e.g. `admin`, `manager`); null — unknown. Absent for the caller's own account."
+            }
+          }
         },
         "status": {
           "enum": [
@@ -247,6 +262,36 @@
         },
         "as_of": {
           "type": "string"
+        }
+      },
+      "if": {
+        "properties": {
+          "bf_id": {
+            "const": "bond"
+          }
+        },
+        "required": [
+          "bf_id"
+        ]
+      },
+      "then": {
+        "required": [
+          "owner"
+        ],
+        "not": {
+          "required": [
+            "readonly"
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "readonly"
+        ],
+        "not": {
+          "required": [
+            "owner"
+          ]
         }
       }
     },
@@ -369,7 +414,7 @@
     "list": {
       "type": "object",
       "title": "afbws.account.list.v2 — read accounts (request / response / server push).",
-      "description": "Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`; replaces v1 `get`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `default_account_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual account is pushed the same way). For `bf_id: \"bond\"` (accounts of bond portfolios, `account_id = \"bond:\" + portfolio_id`): a request without `account_id` returns only the caller's own accounts; with `account_id` the caller's own or a readable public one (staff accounts are `visibility public`, read-only for others: `readonly: true`). The snapshot is filled from the account log: `cash[]` per currency, `equity` in the base currency (cash + market value), `tradable: true`, `status: ok`, positions carry `instrument_key` and `accrued_int`. The push for `bond` is event-driven (after `cash` / `set`, an income credit, a composition change), like the virtual account. A request carrying `items`/`default_account_id` or a response/push carrying request-only fields is invalid.",
+      "description": "Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`; replaces v1 `get`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `default_account_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual account is pushed the same way). For `bf_id: \"bond\"` (accounts of bond portfolios, `account_id = \"bond:\" + portfolio_id`): a request without `account_id` returns only the caller's own accounts; with `account_id` the caller's own or a readable public one (staff accounts are `visibility public`, read-only for others). A `bond` snapshot carries `owner` instead of `readonly`: `{}` for the caller's own account, `{name, tier}` of the owner (null when unknown) for somebody else's public one; broker and virtual snapshots carry `readonly` and no `owner`. The snapshot is filled from the account log: `cash[]` per currency, `equity` in the base currency (cash + market value), `tradable: true`, `status: ok`, positions carry `instrument_key` and `accrued_int`. The push for `bond` is event-driven (after `cash` / `set`, an income credit, a composition change), like the virtual account. A request carrying `items`/`default_account_id` or a response/push carrying request-only fields is invalid.",
       "required": [
         "channel",
         "schema"
