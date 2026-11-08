@@ -72,3 +72,14 @@ def test_options_markets_are_architecture_only_in_the_canon():
     for name, key in (("options.json", "ASSETCODE"), ("options_series.json", "asset_code")):
         doc = _load(MARKETS_DIR / name)
         assert doc["x-iss-columns"][key]["required"] is True
+
+
+def test_bonds_market_is_in_the_canon_without_marketdata():
+    """The bonds market is addressable (candles by explicit market/board) but is
+    not part of the generic marketdata cycle: no x-iss-marketdata."""
+    doc = _load(MARKETS_DIR / "bonds.json")
+    assert doc["x-iss-resource"]["engine"] == "stock"
+    assert doc["x-iss-resource"]["market"] == "bonds"
+    assert doc["x-iss-instrument-type"] == "bond"
+    assert "x-iss-marketdata" not in doc
+    assert doc["x-iss-columns"]["SECID"]["required"] is True

@@ -1,0 +1,15 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.portfolios.set.v1",
+  "request_id": "b-42",
+  "portfolios": [],
+  "rejected": [
+    {
+      "id": "p-1",
+      "code": "validation_error",
+      "message": "no LAST price for auto-sale",
+      "reason": "no_last_price"
+    }
+  ],
+  "bonds": []
+}

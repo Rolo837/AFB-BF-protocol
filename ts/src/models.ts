@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: f13163800db33ca3214e3b50730b8d07922e175f70451a1a99971f63f521051c
+ * source-hash: 5a3cf864d6e89f20563dcdedf65f98ce781bba3b5f3d159896a88c09e4924f1b
  */
 
 /**
@@ -89,14 +89,22 @@ export type AccessV1UsersSetItem1 = {
   [k: string]: unknown;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, error; `list` takes `bf_id` + `account_id`. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes , reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a broker account (one bf_id may have more than one), not the connector itself.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, cash, set, ledger, settings, error; `list` takes `bf_id` + `account_id`. `bf_id` is the account type for AFB-side accounts: `virtual` (trading simulation) and `bond` (virtual account of a bond portfolio; `account_id = "bond:" + portfolio_id`; created and deleted together with the portfolio, so there is no `open` operation). Operations `cash`, `set`, `ledger`, `settings` serve accounts of type `bond` (the backend answers `not_supported` for other types); each has no server push, so `request_id` is always required. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes , reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a broker account (one bf_id may have more than one), not the connector itself.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountChannelV2Message".
  */
-export type AccountChannelV2Message = AccountV2List | AccountV2Orders | AccountV2Events | AccountV2Error;
+export type AccountChannelV2Message =
+  | AccountV2List
+  | AccountV2Orders
+  | AccountV2Events
+  | AfbwsAccountChannelV2_Cash
+  | AfbwsAccountChannelV2_Set
+  | AfbwsAccountChannelV2_Ledger
+  | AfbwsAccountChannelV2_Settings
+  | AccountV2Error;
 /**
- * Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`; replaces v1 `get`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `default_account_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual account is pushed the same way). A request carrying `items`/`default_account_id` or a response/push carrying request-only fields is invalid.
+ * Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`; replaces v1 `get`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `default_account_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual account is pushed the same way). For `bf_id: "bond"` (accounts of bond portfolios, `account_id = "bond:" + portfolio_id`): a request without `account_id` returns only the caller's own accounts; with `account_id` the caller's own or a readable public one (staff accounts are `visibility public`, read-only for others: `readonly: true`). The snapshot is filled from the account log: `cash[]` per currency, `equity` in the base currency (cash + market value), `tradable: true`, `status: ok`, positions carry `instrument_key` and `accrued_int`. The push for `bond` is event-driven (after `cash` / `set`, an income credit, a composition change), like the virtual account. A request carrying `items`/`default_account_id` or a response/push carrying request-only fields is invalid.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountV2List".
@@ -117,6 +125,8 @@ export type AccountV2List = {
   items?: AccountV2Snapshot[];
 };
 /**
+ * Connector id (broker `bf_id`) or the type of an AFB-side account: `virtual`, `bond`. Open string: new account types need no schema change.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountV2BfId".
  */
@@ -162,6 +172,111 @@ export type AccountV2Events = {
   items?: AccountV2EventRecord[];
 };
 /**
+ * Request: `account_id`, `kind` (deposit | withdraw), `currency`, `amount` (positive decimal string). The backend writes a `deposit` / `withdraw` operation; the starting capital is the first deposit. Response (same `request_id`, with `item`): the updated account snapshot. Errors (`afbws.account.error.v2`): `insufficient_cash` (withdraw above the balance of that currency), `forbidden` (not the owner / not staff for a public account), `not_found`, `not_supported`. No server push (the owner receives `afbws.account.list.v2`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsAccountChannelV2_Cash".
+ */
+export type AfbwsAccountChannelV2_Cash = {
+  [k: string]: unknown;
+} & {
+  channel: 'account';
+  schema: 'afbws.account.cash.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  account_id?: AccountV2AccountId;
+  kind?: 'deposit' | 'withdraw';
+  currency?: string;
+  /**
+   * Positive decimal string.
+   */
+  amount?: string;
+  item?: AccountV2Snapshot1;
+};
+/**
+ * Request: `account_id`, `targets[]` (1..200, target quantity per instrument key). Each row is executed separately: delta > 0 is an emulated `buy`, delta < 0 a `sell`, both at LAST MOEX; partial success is allowed. Response (same `request_id`): `item` — the account snapshot after the edit — and `rejected[]` (refused rows with `reason`; empty when all went through). A whole-request failure is `afbws.account.error.v2`. No server push.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsAccountChannelV2_Set".
+ */
+export type AfbwsAccountChannelV2_Set = {
+  [k: string]: unknown;
+} & {
+  channel: 'account';
+  schema: 'afbws.account.set.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  account_id?: AccountV2AccountId;
+  /**
+   * Request only.
+   *
+   * @minItems 1
+   * @maxItems 200
+   */
+  targets?: [
+    {
+      instrument_key: AfbwsCommonV1_InstrumentKey;
+      /**
+       * Target quantity (not a delta); 0 closes the position.
+       */
+      quantity: number;
+    },
+    ...{
+      instrument_key: AfbwsCommonV1_InstrumentKey;
+      /**
+       * Target quantity (not a delta); 0 closes the position.
+       */
+      quantity: number;
+    }[]
+  ];
+  item?: AccountV2Snapshot2;
+  /**
+   * Response only.
+   */
+  rejected?: {
+    instrument_key: AfbwsCommonV1_InstrumentKey;
+    /**
+     * no_last_price: no LAST MOEX today; no_fx: no exchange rate for an auto-conversion; insufficient_cash: not enough money for a buy; not_in_set: the instrument is not in the portfolio composition; not_supported: instrument class has no provider; forbidden: not allowed for the caller.
+     */
+    reason: 'no_last_price' | 'no_fx' | 'insufficient_cash' | 'not_in_set' | 'not_supported' | 'forbidden';
+  }[];
+};
+/**
+ * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCommonV1_InstrumentKey".
+ */
+export type AfbwsCommonV1_InstrumentKey = string;
+/**
+ * Request: `account_id`, optional `before` (`op_id`: return entries older than it), optional `limit` (1..200). Entries are returned newest first. Response (same `request_id`, with `items`): `account_id`, `items[]` (accountOp), `next` — the `op_id` to pass as `before` for the next page, or null at the end. No server push.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsAccountChannelV2_Ledger".
+ */
+export type AfbwsAccountChannelV2_Ledger = {
+  [k: string]: unknown;
+} & {
+  channel: 'account';
+  schema: 'afbws.account.ledger.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  account_id?: AccountV2AccountId;
+  /**
+   * Request only.
+   */
+  before?: string;
+  /**
+   * Request only.
+   */
+  limit?: number;
+  /**
+   * Response only.
+   */
+  items?: AfbwsAccountChannelV2_AccountOp[];
+  /**
+   * Response only.
+   */
+  next?: string | null;
+};
+/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsCommonV1_ErrorCode".
  */
@@ -187,13 +302,6 @@ export type AfbwsCommonV1_ErrorCode =
  */
 export type AlarmChannelV2Message =
   AlarmV2List | AlarmV2Set | AlarmV2Delete | AlarmV2Ack | AlarmV2Triggered | AlarmV2Error;
-/**
- * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsCommonV1_InstrumentKey".
- */
-export type AfbwsCommonV1_InstrumentKey = string;
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AlarmV2_AlarmConditionNode".
@@ -358,7 +466,7 @@ export type BfsRegistryEntry = BfRegistryEntry & {
   };
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bonds: a bond search and cards, bond portfolios, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `screener`, `emitter`, `rates`, `rates.set`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `signals`, `events`. `screener` is the bond screener (columnar, filters are kept per connection and applied to its pushes), `emitter` lists all bonds of an issuer, `rates`/`rates.set` are the base rates (key rate, RUONIA) from which floating coupons are forecast (set by staff only). There is no copy operation: adding a bond, or the composition of somebody else's portfolio, to one's own portfolio is an edit of the own composition via `portfolios.set`. IDENTITY. A bond is identified ONLY by `instrument_key` (the same composite catalog key as any instrument: `MISX:<primary board>:<secid>`, e.g. `MISX:TQCB:RU000A10A3Z4`; case-sensitive, never normalized). `secid`, `isin` and `shortname` are plain display/search attributes (`bondRow.secid`, `position.secid`) and never an identifier in any request, response or push. A board change (e.g. TQCB -> TQRD after a default) is another key, i.e. another bond: nothing is renamed or migrated. PORTFOLIO MODEL. A portfolio is a set (type `bond`) with a COMPOSITION: `instrument_keys[]` — bonds only, in display order, at most 200. A PUBLIC (reference) portfolio is created and edited by staff only (`visibility` guest|user|manager) and is pure structure: it has no purchases. PURCHASES (the trade journal: date, price, quantity) exist only in PERSONAL portfolios and are an attribute of a bond that is in the composition; a bond may be in the composition with no purchases (observation). Removing a bond from a personal portfolio deletes its purchases there. A personal portfolio can be created by anybody with the `bonds` capability; a public visibility needs staff (`forbidden`); the scope personal <-> public never changes (`validation_error`); a `category=default` bond cannot be in a public portfolio. The bond search is paged by `offset` / `limit` (at most 100 per page); there is no cursor. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Reconciliation with the broker account (`reconcile`) is added later, additively, and is gated by the same capability `bonds`. See AFB/docs/ws/bonds.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bonds: a bond search and cards, bond portfolios, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `screener`, `emitter`, `rates`, `rates.set`, `portfolios`, `portfolio`, `portfolios.set`, `trades.set`, `signals`, `events`. `screener` is the bond screener (columnar, filters are kept per connection and applied to its pushes), `emitter` lists all bonds of an issuer, `rates`/`rates.set` are the base rates (key rate, RUONIA) from which floating coupons are forecast (set by staff only). There is no copy operation: adding a bond, or the composition of somebody else's portfolio, to one's own portfolio is an edit of the own composition via `portfolios.set`. IDENTITY. A bond is identified ONLY by `instrument_key` (the same composite catalog key as any instrument: `MISX:<primary board>:<secid>`, e.g. `MISX:TQCB:RU000A10A3Z4`; case-sensitive, never normalized). `secid`, `isin` and `shortname` are plain display/search attributes (`bondRow.secid`, `position.secid`) and never an identifier in any request, response or push. A board change (e.g. TQCB -> TQRD after a default) is another key, i.e. another bond: nothing is renamed or migrated. PORTFOLIO MODEL (the model changed: the former purchase journal is replaced by the PORTFOLIO ACCOUNT). Every portfolio has a virtual account of type `bond` (`account_id = "bond:" + portfolio_id`, `portfolioRef.account_id`; see afbws.account.channel.v2): the user sets the quantities, the backend emulates buys/sells at LAST MOEX, keeps money per currency and credits payments by schedule; the analytics of `portfolio` is built from the account. `trades.set` is deprecated (all rows refused); `trades=[]`, `series.rows=[]`, `totals.xirr=null` in `portfolio` are kept for compatibility. The text below about purchases (journal) describes the legacy model. A portfolio is a set (type `bond`) with a COMPOSITION: `instrument_keys[]` — bonds only, in display order, at most 200. A PUBLIC (reference) portfolio is created and edited by staff only (`visibility` guest|user|manager) and is pure structure: it has no purchases. PURCHASES (the trade journal: date, price, quantity) exist only in PERSONAL portfolios and are an attribute of a bond that is in the composition; a bond may be in the composition with no purchases (observation). Removing a bond from a personal portfolio deletes its purchases there. A personal portfolio can be created by anybody with the `bonds` capability; a public visibility needs staff (`forbidden`); the scope personal <-> public never changes (`validation_error`); a `category=default` bond cannot be in a public portfolio. The bond search is paged by `offset` / `limit` (at most 100 per page); there is no cursor. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Reconciliation with the broker account (`reconcile`) is added later, additively, and is gated by the same capability `bonds`. See AFB/docs/ws/bonds.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Root".
@@ -556,7 +664,7 @@ export type AfbwsBondsChannelV1_Visibility = 'personal' | 'guest' | 'user' | 'ma
 export type AfbwsBondsChannelV1_FavoriteColor =
   'yellow' | 'red' | 'blue' | 'green' | 'gray' | 'orange' | 'cyan' | 'purple' | 'pink' | 'teal';
 /**
- * Request: `id`. Response: the portfolio (`portfolioRef` with its composition) with its journal and analytics; a public portfolio is read-only: its `trades` are empty. Server push: the same body WITHOUT `request_id` once per market snapshot and after each journal edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
+ * Request: `id`. Response: the portfolio (`portfolioRef` with its composition) with analytics. A portfolio with a virtual account (`portfolio.account_id`, type `bond`, afbws.account.channel.v2) is filled from the account: `positions[]` (`quantity`, `avg_price_pct`, `invested`, `received`), `payments[]` (`received` from the account log plus `expected` for the current quantity), `totals`, `calendar`, `breakdown`. Compatibility fields, kept so older frontends do not break: `trades` is always `[]` (the journal is replaced by the account log, afbws.account.ledger.v2), `series.rows` is `[]`, `totals.xirr` is null. A public portfolio is read-only. Server push: the same body WITHOUT `request_id` once per market snapshot and after each account change (cash, set, income credit) or composition edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Portfolio".
@@ -641,7 +749,7 @@ export type AfbwsBondsChannelV1_PortfoliosSet = {
   bonds?: AfbwsBondsChannelV1_BondRow[];
 };
 /**
- * Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Only for a PERSONAL portfolio of the caller: a visible public portfolio is `forbidden` (public portfolios hold no purchases), an unknown or foreign personal one is `not_found`. A purchase of a bond that is not in the portfolio composition adds the bond to the composition (at the end) in the same operation. Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the instrument key exists (a `category=default` bond is allowed in a personal portfolio). Response: the whole journal in `trades`, the actual composition in `instrument_keys` and the refused entries in `rejected`. When the composition grew, the other connections of the owner receive a `portfolios` push.
+ * DEPRECATED: the journal is replaced by the portfolio virtual account (afbws.account.set.v2 / afbws.account.cash.v2); the backend refuses ALL rows (`rejected[]` with `reason: deprecated`) and changes nothing. The operation stays in the schema for compatibility; removing it is a MAJOR change, only by the owner's decision. Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Only for a PERSONAL portfolio of the caller: a visible public portfolio is `forbidden` (public portfolios hold no purchases), an unknown or foreign personal one is `not_found`. A purchase of a bond that is not in the portfolio composition adds the bond to the composition (at the end) in the same operation. Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the instrument key exists (a `category=default` bond is allowed in a personal portfolio). Response: the whole journal in `trades`, the actual composition in `instrument_keys` and the refused entries in `rejected`. When the composition grew, the other connections of the owner receive a `portfolios` push.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_TradesSet".
@@ -2478,21 +2586,21 @@ export interface AccessV1Policy {
    */
   grace_days?: number;
   /**
-   * Только не-гость и не-персонал: окно доступа этого tier в торговый день (календарь MOEX), HH:MM МСК; null или нет ключа — нет окна.
+   * Только не-гость и не-персонал: окно доступа этого tier в торговый день (календарь MOEX), HH:MM в поясе `timezone` из auth; null или нет ключа — нет окна.
    */
   workday?: null | AccessV1Window;
   /**
-   * Только не-гость и не-персонал: окно доступа этого tier в неторговый день (календарь MOEX), HH:MM МСК; null или нет ключа — нет окна.
+   * Только не-гость и не-персонал: окно доступа этого tier в неторговый день (календарь MOEX), HH:MM в поясе `timezone` из auth; null или нет ключа — нет окна.
    */
   weekend?: null | AccessV1Window;
   /**
-   * Только не-гость и не-персонал: разовое окно доступа этого tier (дата и время, ISO UTC; в UI — МСК); null или нет ключа — нет. Прошедшее окно просто не действует.
+   * Только не-гость и не-персонал: разовое окно доступа этого tier (дата и время, ISO UTC, `Z`; в UI — в поясе `timezone` из auth); null или нет ключа — нет. Прошедшее окно просто не действует.
    */
   once?: null | AccessV1OnceWindow;
   showcase?: AccessV1Showcase;
 }
 /**
- * Daily time window, Moscow time: `from` — start, `to` — end. `to` < `from` = across midnight (e.g. 22:00-02:00).
+ * Daily time window, wall time in the `timezone` from auth: `from` — start, `to` — end. `to` < `from` = across midnight (e.g. 22:00-02:00).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Window".
@@ -2686,7 +2794,7 @@ export interface AccessV1GroupsSet {
   provider_groups_error?: string | null;
 }
 /**
- * Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `days[]` (oldest first, every day of the range, staff excluded) with `capabilities[]` — labels of the capabilities counted in `days[].usage` (table columns, in this order). `weeks[]` — deprecated (stage 2e frontends): one per calendar week intersecting the range, counted whole, staff included. `new_users` — users whose `first_seen_at` falls in the period; `trials_started` — users whose `trial_started_on` falls in the period; `converted` — subscription periods started in the period; `active` — `weeks[]`: users whose `last_seen_at` falls in the period; `days[]`: users whose `last_seen_at` falls in the day or who have any `action_usage` row (used or denied) for the day.
+ * Request: `from`, `to` (dates, inclusive, in the `timezone` from auth). Response echoes `from`/`to` and carries `days[]` (oldest first, every day of the range, staff excluded) with `capabilities[]` — labels of the capabilities counted in `days[].usage` (table columns, in this order). `weeks[]` — deprecated (stage 2e frontends): one per calendar week intersecting the range, counted whole, staff included. `new_users` — users whose `first_seen_at` falls in the period; `trials_started` — users whose `trial_started_on` falls in the period; `converted` — subscription periods started in the period; `active` — `weeks[]`: users whose `last_seen_at` falls in the period; `days[]`: users whose `last_seen_at` falls in the day or who have any `action_usage` row (used or denied) for the day.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Stats".
@@ -2736,7 +2844,7 @@ export interface AccessV1StatsWeek {
  */
 export interface AccessV1StatsDay {
   /**
-   * Day (Moscow).
+   * Day (in the `timezone` from auth).
    */
   day: string;
   /**
@@ -2853,6 +2961,14 @@ export interface AfbwsAccountChannelV2_Position {
    * Instrument block restored by AFB; optional.
    */
   instrument?: {};
+  /**
+   * Catalog instrument key (`MISX:<board>:<secid>`, case-sensitive). Filled by AFB-side accounts (`bond`); optional for broker positions.
+   */
+  instrument_key?: string;
+  /**
+   * Accrued coupon interest per unit in the instrument currency (a bond position); null/absent when not applicable.
+   */
+  accrued_int?: string | null;
   broker_ref?: {};
 }
 /**
@@ -2890,6 +3006,113 @@ export interface AccountV2EventRecord {
   data?: {} | null;
 }
 /**
+ * Response only.
+ */
+export interface AccountV2Snapshot1 {
+  bf_id: AccountV2BfId;
+  account_id: AccountV2AccountId;
+  /**
+   * True only for this bf_id's default (trading) account.
+   */
+  tradable: boolean;
+  readonly: boolean;
+  status: 'ok' | 'stale' | 'error';
+  equity: string | null;
+  cash: PayloadsBrokerAccounts_CashBalance[];
+  positions: AfbwsAccountChannelV2_Position[];
+  as_of?: string;
+}
+/**
+ * Response only.
+ */
+export interface AccountV2Snapshot2 {
+  bf_id: AccountV2BfId;
+  account_id: AccountV2AccountId;
+  /**
+   * True only for this bf_id's default (trading) account.
+   */
+  tradable: boolean;
+  readonly: boolean;
+  status: 'ok' | 'stale' | 'error';
+  equity: string | null;
+  cash: PayloadsBrokerAccounts_CashBalance[];
+  positions: AfbwsAccountChannelV2_Position[];
+  as_of?: string;
+}
+/**
+ * Money and prices are decimal strings. `kind` (open string, no enum so that new types need no MAJOR): deposit | withdraw (user cash movement), buy | sell (emulated at LAST MOEX, by a quantity edit or an auto-sale), income (coupon / amortization / redemption, see `subkind`), fx (conversion; a child of the op that required it, see `parent_op_id`), reconcile (confirmed reconciliation row). `subkind` (open string): for income coupon | amortization | redemption. `reason` (open string): why the operation exists, e.g. user_cash | user_set | composition_removed | portfolio_deleted | schedule | auto_fx | reconcile. `amount` is the signed cash movement in `currency` (negative for buy / withdraw). For fx, `counter_currency` / `counter_amount` is the other leg.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsAccountChannelV2_AccountOp".
+ */
+export interface AfbwsAccountChannelV2_AccountOp {
+  op_id: string;
+  /**
+   * Id of the op that caused this one (fx -> buy).
+   */
+  parent_op_id?: string | null;
+  /**
+   * ISO 8601 time of the operation.
+   */
+  ts: string;
+  kind: string;
+  subkind?: string | null;
+  reason: string;
+  /**
+   * Instrument key for buy / sell / income; null for cash and fx ops.
+   */
+  instrument_key?: string | null;
+  quantity?: number | null;
+  /**
+   * Execution price in the instrument currency (a bond: price_pct of face value converted to money).
+   */
+  price?: string | null;
+  /**
+   * Bond price in percent of face value.
+   */
+  price_pct?: string | null;
+  /**
+   * Accrued interest per unit at execution.
+   */
+  accrued_int?: string | null;
+  /**
+   * Income per unit (coupon / amortization / redemption).
+   */
+  amount_per_unit?: string | null;
+  currency: string;
+  /**
+   * Signed cash movement in `currency`.
+   */
+  amount: string;
+  counter_currency?: string | null;
+  counter_amount?: string | null;
+  fx_rate?: string | null;
+  fx_spread_pct?: string | null;
+  /**
+   * Realized result of a sell, in `currency`.
+   */
+  realized?: string | null;
+  /**
+   * YYYY-MM-DD: income payment date, or the record date quantity was taken on.
+   */
+  event_date?: string | null;
+}
+/**
+ * Request `{}` (only `request_id`) reads; `{fx_spread_pct}` writes (staff only, otherwise `forbidden`). Response: `{fx_spread_pct}` — the current spread (percent, decimal string, 0 by default) added to the exchange rate (CETS) on auto-conversion. No server push.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsAccountChannelV2_Settings".
+ */
+export interface AfbwsAccountChannelV2_Settings {
+  channel: 'account';
+  schema: 'afbws.account.settings.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Auto-conversion spread, percent; decimal string.
+   */
+  fx_spread_pct?: string;
+}
+/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountV2Error".
  */
@@ -2897,7 +3120,10 @@ export interface AccountV2Error {
   channel: 'account';
   schema: 'afbws.account.error.v2';
   request_id: AfbwsCommonV1_RequestId;
-  code: AfbwsCommonV1_ErrorCode;
+  /**
+   * The common error codes plus `insufficient_cash` (account.cash withdraw above the balance). `forbidden` and `not_supported` are common codes too.
+   */
+  code: AfbwsCommonV1_ErrorCode | 'insufficient_cash';
   message: string;
   details?: {};
 }
@@ -3176,7 +3402,7 @@ export interface BfsRegistryPush {
   };
 }
 /**
- * One bond in a search result list.
+ * One bond in a search result list, a portfolio tile or a favorites plaque. `coupon_kind`/`coupon_spread_pct` let the plaque draw the coupon label (`7.10%`, `key rate`, `key rate + 3.5%`, `RUONIA`) without requesting the card; the base code `coupon_benchmark` is deliberately not in the row (the label follows from `coupon_kind`). The `bond` card repeats every field of this row.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_BondRow".
@@ -3217,6 +3443,14 @@ export interface AfbwsBondsChannelV1_BondRow {
    * Coupon payments per year; null when unknown.
    */
   coupon_frequency: number | null;
+  /**
+   * Coupon type from the bond passport; `unknown` when the bond has no passport yet.
+   */
+  coupon_kind: 'fixed' | 'fixed_unknown' | 'key_rate' | 'ruonia' | 'cpi' | 'other_float' | 'zero' | 'unknown';
+  /**
+   * Spread over the floating base, percentage points; null for fixed coupons, without a passport or without a spread.
+   */
+  coupon_spread_pct: number | null;
   /**
    * True when only qualified investors may buy the bond.
    */
@@ -3577,6 +3811,10 @@ export interface AfbwsBondsChannelV1_PortfolioRef {
    * @maxItems 200
    */
   instrument_keys: AfbwsCommonV1_InstrumentKey[];
+  /**
+   * Id of the portfolio's virtual account (type `bond`, `bond:<portfolio id>`, see afbws.account.channel.v2); null for a public portfolio created before the account was introduced, until staff makes the first record. Not in `required`: older payloads without the field stay valid.
+   */
+  account_id?: string | null;
 }
 /**
  * A portfolio in a list: attributes and composition. No analytics.
@@ -3609,6 +3847,10 @@ export interface AfbwsBondsChannelV1_PortfolioRef1 {
    * @maxItems 200
    */
   instrument_keys: AfbwsCommonV1_InstrumentKey[];
+  /**
+   * Id of the portfolio's virtual account (type `bond`, `bond:<portfolio id>`, see afbws.account.channel.v2); null for a public portfolio created before the account was introduced, until staff makes the first record. Not in `required`: older payloads without the field stay valid.
+   */
+  account_id?: string | null;
 }
 /**
  * One row per bond of the portfolio. Fields that depend on purchases (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`) are null for a bond without purchases (flag `no_trades`).
@@ -3951,7 +4193,7 @@ export interface AfbwsBondsChannelV1_CalendarMonth {
   items_count: number;
 }
 /**
- * A refused portfolio of `portfolios.set` (`forbidden`, `validation_error`, `not_found`).
+ * A refused portfolio of `portfolios.set` (`forbidden`, `validation_error`, `not_found`). `reason` (optional, refines `code`): `no_last_price` / `no_fx` — the removal of a bond from the composition or the deletion of the portfolio is refused because the auto-sale of the position at LAST MOEX is impossible (no LAST today / no exchange rate for the conversion).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_PortfolioRejection".
@@ -3966,9 +4208,13 @@ export interface AfbwsBondsChannelV1_PortfolioRejection {
    * Human-readable reason.
    */
   message: string;
+  /**
+   * Machine-readable reason, optional. no_last_price: no LAST MOEX today for a position being auto-sold; no_fx: no exchange rate for the conversion. Open for additive extension.
+   */
+  reason?: 'no_last_price' | 'no_fx';
 }
 /**
- * A refused journal entry of `trades.set` (`validation_error`, `forbidden`, `not_found`).
+ * A refused journal entry of `trades.set` (`validation_error`, `forbidden`, `not_found`). DEPRECATED operation: the backend refuses every row with `reason: deprecated`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_TradeRejection".
@@ -3983,6 +4229,10 @@ export interface AfbwsBondsChannelV1_TradeRejection {
    * Human-readable reason.
    */
   message: string;
+  /**
+   * Machine-readable reason, optional. deprecated: `trades.set` is deprecated, the backend refuses all rows (use afbws.account.set.v2).
+   */
+  reason?: 'deprecated';
 }
 /**
  * A market-wide price/volume anomaly of one bond.
@@ -8083,6 +8333,18 @@ export interface GpV1_Point {
  */
 export interface IssIssColumnsV1_Root {
   [k: string]: unknown;
+}
+/**
+ * Bonds on the MOEX stock engine. Main-mode boards: TQOB, TQCB, TQRD, TQUD, TQOY, TQOD, TQOE (the primary board of a bond is picked by AFB's bonds/classify.pick_primary_board_row). Deliberately has no x-iss-marketdata: the market stays out of the generic marketdata cycle; bond quotes come from the bonds channel's own refresh and candles are addressed by the explicit market/board of the instrument.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "IssMarketsBonds_Root".
+ */
+export interface IssMarketsBonds_Root {
+  securities: {
+    columns: string[];
+    data: unknown[];
+  };
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

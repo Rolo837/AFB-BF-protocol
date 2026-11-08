@@ -163,6 +163,26 @@ def test_bond_row_name_replaces_isin_and_emitter(registry):
     _bad(v, {**row, "emitter_title": "Минфин России"})
 
 
+def test_bond_row_coupon_kind_and_spread(registry):
+    v = _validator(registry, "bondRow")
+    row = _ex("search.response")["items"][0]
+    assert row["coupon_kind"] == "fixed" and row["coupon_spread_pct"] is None
+    v.validate({**row, "coupon_kind": "key_rate", "coupon_percent": None, "coupon_spread_pct": 3.5})
+    v.validate({**row, "coupon_kind": "unknown"})
+    for key in ("coupon_kind", "coupon_spread_pct"):
+        _bad(v, {k: x for k, x in row.items() if k != key})
+    _bad(v, {**row, "coupon_kind": "floating"})
+    _bad(v, {**row, "coupon_spread_pct": "3.5"})
+    _bad(v, {**row, "coupon_benchmark": "RREFKEYR"})  # base code is not in the row
+    for name in ("portfolios.response", "portfolios.push", "portfolios_set.response"):
+        for item in _ex(name)["bonds"]:
+            v.validate(item)
+            assert "coupon_kind" in item and "coupon_spread_pct" in item
+    card = _ex("bond.response")["bond"]
+    assert {"coupon_kind", "coupon_spread_pct"} <= card.keys()
+    _validator(registry, "bond").validate(card)
+
+
 def test_portfolios_list_request_response_push(registry):
     v = _validator(registry, "portfolios")
     v.validate(_ex("portfolios.request"))
@@ -475,3 +495,34 @@ def test_rates_and_rates_set(registry):
     _bad(s, resp)
     resp["rejected"] = [{"code": "X", "reason": "invalid_value", "message": "ставка вне диапазона"}]
     s.validate(resp)
+
+
+def test_portfolio_account_id_optional(registry):
+    ref = _validator(registry, "portfolioRef")
+    ref.validate(_REF)  # old payload without account_id
+    ref.validate({**_REF, "account_id": "bond:p-1"})
+    ref.validate({**_REF, "account_id": None})
+    _bad(ref, {**_REF, "account_id": 5})
+    assert "account_id" not in json.loads(SCHEMA_PATH.read_text())["$defs"]["portfolioRef"]["required"]
+
+
+def test_rejection_reasons(registry):
+    pr = _validator(registry, "portfolioRejection")
+    base = {"id": "p", "code": "validation_error", "message": "m"}
+    pr.validate(base)
+    for r in ("no_last_price", "no_fx"):
+        pr.validate({**base, "reason": r})
+    _bad(pr, {**base, "reason": "x"})
+    tr = _validator(registry, "tradeRejection")
+    base = {"trade_id": "t", "code": "validation_error", "message": "m"}
+    tr.validate(base)
+    tr.validate({**base, "reason": "deprecated"})
+    _bad(tr, {**base, "reason": "x"})
+
+
+def test_account_portfolio_example_compat_fields():
+    d = _ex("portfolio.response.account")
+    assert d["portfolio"]["account_id"] == "bond:p-1"
+    assert d["trades"] == [] and d["series"]["rows"] == [] and d["totals"]["xirr"] is None
+    # old examples without account_id stay in the set unchanged
+    assert "account_id" not in _ex("portfolio.response")["portfolio"]

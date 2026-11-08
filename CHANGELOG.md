@@ -16,6 +16,18 @@
 
 ### Removed
 
+## v2.10.5 — 2026-11-09
+
+### Added
+- `afbws/bonds.channel.v1.json#/$defs/bondRow`: `coupon_kind` (`$ref couponKind`; без паспорта `unknown`) и `coupon_spread_pct` (number|null) — плашка в списках («Портфели», «Инструменты → Облигации», «Избранное») рисует метку купона без запроса карточки. `coupon_benchmark` в строку не входит. `bond` (плоская карточка) уже содержит оба поля. Примеры `search.response`, `portfolios.response/push`, `portfolios_set.response` дополнены.
+- `spec/schemas/iss/markets/bonds.json`: канон ISS-рынка облигаций (`engine: stock`, `market: bonds`, `x-iss-instrument-type: bond`, без `x-iss-marketdata`: рынок не входит в общий цикл marketdata); в мета-схеме `iss.market.v1.json` `x-iss-instrument-type` += `bond`.
+- `afbws/account.channel.v2.json`: виртуальный счёт портфеля облигаций (`bf_id: "bond"`, `account_id = "bond:" + portfolio_id`). Новые операции `afbws.account.cash.v2` (пополнение/вывод), `afbws.account.set.v2` (целевое количество, `rejected[]` с причинами `no_last_price | no_fx | insufficient_cash | not_in_set | not_supported | forbidden`), `afbws.account.ledger.v2` (страница лога операций), `afbws.account.settings.v2` (`fx_spread_pct`). Новый `$defs.accountOp` (`kind`/`reason`/`subkind` — строки без enum); `position` += `instrument_key`, `accrued_int`; `error.code` += `insufficient_cash`. Операции `open` нет. Деньги — строками.
+- `afbws/bonds.channel.v1.json`: `portfolioRef.account_id` (string|null, необязательное); `portfolioRejection.reason` (`no_last_price | no_fx`), `tradeRejection.reason` (`deprecated`).
+- Примеры `examples/account_channel_v2/` (`cash.*`, `set.*`, `ledger.*`, `settings.*`, `list.*.bond`, `error.insufficient_cash`) и `examples/bonds_channel_v1/` (`portfolio.response.account`, `trades_set.response.deprecated`, `portfolios_set.response.rejected_no_last_price`).
+
+### Changed
+- `afbws.bonds.trades.set.v1` помечена deprecated (бэкенд отклоняет все строки с `reason: deprecated`); `portfolio` у портфеля со счётом строится из счёта: `trades = []`, `series.rows = []`, `totals.xirr = null` (поля сохранены для совместимости). Описание канала: модель «журнал покупок» заменена на «счёт портфеля». Схемы и старые примеры остаются валидными.
+
 ## v2.10.4 — 2026-11-07
 
 ### Added

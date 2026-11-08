@@ -71,7 +71,7 @@
     },
     "window": {
       "type": "object",
-      "description": "Daily time window, Moscow time: `from` — start, `to` — end. `to` < `from` = across midnight (e.g. 22:00-02:00).",
+      "description": "Daily time window, wall time in the `timezone` from auth: `from` — start, `to` — end. `to` < `from` = across midnight (e.g. 22:00-02:00).",
       "required": [
         "from",
         "to"
@@ -140,7 +140,7 @@
               "$ref": "#/$defs/window"
             }
           ],
-          "description": "Только не-гость и не-персонал: окно доступа этого tier в торговый день (календарь MOEX), HH:MM МСК; null или нет ключа — нет окна."
+          "description": "Только не-гость и не-персонал: окно доступа этого tier в торговый день (календарь MOEX), HH:MM в поясе `timezone` из auth; null или нет ключа — нет окна."
         },
         "weekend": {
           "oneOf": [
@@ -151,7 +151,7 @@
               "$ref": "#/$defs/window"
             }
           ],
-          "description": "Только не-гость и не-персонал: окно доступа этого tier в неторговый день (календарь MOEX), HH:MM МСК; null или нет ключа — нет окна."
+          "description": "Только не-гость и не-персонал: окно доступа этого tier в неторговый день (календарь MOEX), HH:MM в поясе `timezone` из auth; null или нет ключа — нет окна."
         },
         "once": {
           "oneOf": [
@@ -162,7 +162,7 @@
               "$ref": "#/$defs/onceWindow"
             }
           ],
-          "description": "Только не-гость и не-персонал: разовое окно доступа этого tier (дата и время, ISO UTC; в UI — МСК); null или нет ключа — нет. Прошедшее окно просто не действует."
+          "description": "Только не-гость и не-персонал: разовое окно доступа этого tier (дата и время, ISO UTC, `Z`; в UI — в поясе `timezone` из auth); null или нет ключа — нет. Прошедшее окно просто не действует."
         },
         "showcase": {
           "$ref": "#/$defs/showcase"
@@ -527,7 +527,7 @@
         "day": {
           "type": "string",
           "format": "date",
-          "description": "Day (Moscow)."
+          "description": "Day (in the `timezone` from auth)."
         },
         "new_users": {
           "type": "integer",
@@ -1215,7 +1215,7 @@
     "stats": {
       "type": "object",
       "title": "afbws.access.stats.v1 — conversion and usage statistics (request / response), staff.",
-      "description": "Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `days[]` (oldest first, every day of the range, staff excluded) with `capabilities[]` — labels of the capabilities counted in `days[].usage` (table columns, in this order). `weeks[]` — deprecated (stage 2e frontends): one per calendar week intersecting the range, counted whole, staff included. `new_users` — users whose `first_seen_at` falls in the period; `trials_started` — users whose `trial_started_on` falls in the period; `converted` — subscription periods started in the period; `active` — `weeks[]`: users whose `last_seen_at` falls in the period; `days[]`: users whose `last_seen_at` falls in the day or who have any `action_usage` row (used or denied) for the day.",
+      "description": "Request: `from`, `to` (dates, inclusive, in the `timezone` from auth). Response echoes `from`/`to` and carries `days[]` (oldest first, every day of the range, staff excluded) with `capabilities[]` — labels of the capabilities counted in `days[].usage` (table columns, in this order). `weeks[]` — deprecated (stage 2e frontends): one per calendar week intersecting the range, counted whole, staff included. `new_users` — users whose `first_seen_at` falls in the period; `trials_started` — users whose `trial_started_on` falls in the period; `converted` — subscription periods started in the period; `active` — `weeks[]`: users whose `last_seen_at` falls in the period; `days[]`: users whose `last_seen_at` falls in the day or who have any `action_usage` row (used or denied) for the day.",
       "required": [
         "channel",
         "schema",

@@ -63,7 +63,8 @@
         "currency",
         "index",
         "futures",
-        "option"
+        "option",
+        "bond"
       ],
       "description": "listing.instrument_type this market's rows become. Absent for a series descriptor (a series is not a listing)."
     },
