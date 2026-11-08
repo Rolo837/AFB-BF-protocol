@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: ab41234ed832618014177e569c0acd47a79e2b90aac93936b5ee20d8fddd2fdb
+ * source-hash: 5a3cf864d6e89f20563dcdedf65f98ce781bba3b5f3d159896a88c09e4924f1b
  */
 
 /**
@@ -2586,21 +2586,21 @@ export interface AccessV1Policy {
    */
   grace_days?: number;
   /**
-   * Только не-гость и не-персонал: окно доступа этого tier в торговый день (календарь MOEX), HH:MM МСК; null или нет ключа — нет окна.
+   * Только не-гость и не-персонал: окно доступа этого tier в торговый день (календарь MOEX), HH:MM в поясе `timezone` из auth; null или нет ключа — нет окна.
    */
   workday?: null | AccessV1Window;
   /**
-   * Только не-гость и не-персонал: окно доступа этого tier в неторговый день (календарь MOEX), HH:MM МСК; null или нет ключа — нет окна.
+   * Только не-гость и не-персонал: окно доступа этого tier в неторговый день (календарь MOEX), HH:MM в поясе `timezone` из auth; null или нет ключа — нет окна.
    */
   weekend?: null | AccessV1Window;
   /**
-   * Только не-гость и не-персонал: разовое окно доступа этого tier (дата и время, ISO UTC; в UI — МСК); null или нет ключа — нет. Прошедшее окно просто не действует.
+   * Только не-гость и не-персонал: разовое окно доступа этого tier (дата и время, ISO UTC, `Z`; в UI — в поясе `timezone` из auth); null или нет ключа — нет. Прошедшее окно просто не действует.
    */
   once?: null | AccessV1OnceWindow;
   showcase?: AccessV1Showcase;
 }
 /**
- * Daily time window, Moscow time: `from` — start, `to` — end. `to` < `from` = across midnight (e.g. 22:00-02:00).
+ * Daily time window, wall time in the `timezone` from auth: `from` — start, `to` — end. `to` < `from` = across midnight (e.g. 22:00-02:00).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Window".
@@ -2794,7 +2794,7 @@ export interface AccessV1GroupsSet {
   provider_groups_error?: string | null;
 }
 /**
- * Request: `from`, `to` (dates, inclusive, Moscow). Response echoes `from`/`to` and carries `days[]` (oldest first, every day of the range, staff excluded) with `capabilities[]` — labels of the capabilities counted in `days[].usage` (table columns, in this order). `weeks[]` — deprecated (stage 2e frontends): one per calendar week intersecting the range, counted whole, staff included. `new_users` — users whose `first_seen_at` falls in the period; `trials_started` — users whose `trial_started_on` falls in the period; `converted` — subscription periods started in the period; `active` — `weeks[]`: users whose `last_seen_at` falls in the period; `days[]`: users whose `last_seen_at` falls in the day or who have any `action_usage` row (used or denied) for the day.
+ * Request: `from`, `to` (dates, inclusive, in the `timezone` from auth). Response echoes `from`/`to` and carries `days[]` (oldest first, every day of the range, staff excluded) with `capabilities[]` — labels of the capabilities counted in `days[].usage` (table columns, in this order). `weeks[]` — deprecated (stage 2e frontends): one per calendar week intersecting the range, counted whole, staff included. `new_users` — users whose `first_seen_at` falls in the period; `trials_started` — users whose `trial_started_on` falls in the period; `converted` — subscription periods started in the period; `active` — `weeks[]`: users whose `last_seen_at` falls in the period; `days[]`: users whose `last_seen_at` falls in the day or who have any `action_usage` row (used or denied) for the day.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Stats".
@@ -2844,7 +2844,7 @@ export interface AccessV1StatsWeek {
  */
 export interface AccessV1StatsDay {
   /**
-   * Day (Moscow).
+   * Day (in the `timezone` from auth).
    */
   day: string;
   /**
@@ -3402,7 +3402,7 @@ export interface BfsRegistryPush {
   };
 }
 /**
- * One bond in a search result list.
+ * One bond in a search result list, a portfolio tile or a favorites plaque. `coupon_kind`/`coupon_spread_pct` let the plaque draw the coupon label (`7.10%`, `key rate`, `key rate + 3.5%`, `RUONIA`) without requesting the card; the base code `coupon_benchmark` is deliberately not in the row (the label follows from `coupon_kind`). The `bond` card repeats every field of this row.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_BondRow".
@@ -3443,6 +3443,14 @@ export interface AfbwsBondsChannelV1_BondRow {
    * Coupon payments per year; null when unknown.
    */
   coupon_frequency: number | null;
+  /**
+   * Coupon type from the bond passport; `unknown` when the bond has no passport yet.
+   */
+  coupon_kind: 'fixed' | 'fixed_unknown' | 'key_rate' | 'ruonia' | 'cpi' | 'other_float' | 'zero' | 'unknown';
+  /**
+   * Spread over the floating base, percentage points; null for fixed coupons, without a passport or without a spread.
+   */
+  coupon_spread_pct: number | null;
   /**
    * True when only qualified investors may buy the bond.
    */
@@ -8325,6 +8333,18 @@ export interface GpV1_Point {
  */
 export interface IssIssColumnsV1_Root {
   [k: string]: unknown;
+}
+/**
+ * Bonds on the MOEX stock engine. Main-mode boards: TQOB, TQCB, TQRD, TQUD, TQOY, TQOD, TQOE (the primary board of a bond is picked by AFB's bonds/classify.pick_primary_board_row). Deliberately has no x-iss-marketdata: the market stays out of the generic marketdata cycle; bond quotes come from the bonds channel's own refresh and candles are addressed by the explicit market/board of the instrument.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "IssMarketsBonds_Root".
+ */
+export interface IssMarketsBonds_Root {
+  securities: {
+    columns: string[];
+    data: unknown[];
+  };
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema

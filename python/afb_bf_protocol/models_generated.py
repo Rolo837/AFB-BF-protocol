@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: ab41234ed832618014177e569c0acd47a79e2b90aac93936b5ee20d8fddd2fdb
+# source-hash: 5a3cf864d6e89f20563dcdedf65f98ce781bba3b5f3d159896a88c09e4924f1b
 
 from __future__ import annotations
 
@@ -767,7 +767,7 @@ class AfbwsBondsChannelV1BondMsg(TypedDict):
 
 class AfbwsBondsChannelV1BondRow(TypedDict):
     """
-    One bond in a search result list.
+    One bond in a search result list, a portfolio tile or a favorites plaque. `coupon_kind`/`coupon_spread_pct` let the plaque draw the coupon label (`7.10%`, `key rate`, `key rate + 3.5%`, `RUONIA`) without requesting the card; the base code `coupon_benchmark` is deliberately not in the row (the label follows from `coupon_kind`). The `bond` card repeats every field of this row.
     """
 
     instrument_key: AfbwsCommonV1InstrumentKey
@@ -781,6 +781,8 @@ class AfbwsBondsChannelV1BondRow(TypedDict):
     offerdate: str | None
     coupon_percent: float | None
     coupon_frequency: int | None
+    coupon_kind: AfbwsBondsChannelV1CouponKind
+    coupon_spread_pct: float | None
     is_qualified: bool
     lifecycle: Literal["active", "matured"]
     market: AfbwsBondsChannelV1MarketOrNull
@@ -5219,6 +5221,14 @@ class Instruments(TypedDict):
 
 
 IssIssColumnsV1Root: TypeAlias = Any
+
+
+class IssMarketsBondsRoot(TypedDict):
+    """
+    Bonds on the MOEX stock engine. Main-mode boards: TQOB, TQCB, TQRD, TQUD, TQOY, TQOD, TQOE (the primary board of a bond is picked by AFB's bonds/classify.pick_primary_board_row). Deliberately has no x-iss-marketdata: the market stays out of the generic marketdata cycle; bond quotes come from the bonds channel's own refresh and candles are addressed by the explicit market/board of the instrument.
+    """
+
+    securities: Securities
 
 
 class IssMarketsCurrencyRoot(TypedDict):

@@ -177,7 +177,7 @@
     "bondRow": {
       "type": "object",
       "additionalProperties": false,
-      "description": "One bond in a search result list.",
+      "description": "One bond in a search result list, a portfolio tile or a favorites plaque. `coupon_kind`/`coupon_spread_pct` let the plaque draw the coupon label (`7.10%`, `key rate`, `key rate + 3.5%`, `RUONIA`) without requesting the card; the base code `coupon_benchmark` is deliberately not in the row (the label follows from `coupon_kind`). The `bond` card repeats every field of this row.",
       "required": [
         "instrument_key",
         "secid",
@@ -190,6 +190,8 @@
         "offerdate",
         "coupon_percent",
         "coupon_frequency",
+        "coupon_kind",
+        "coupon_spread_pct",
         "is_qualified",
         "lifecycle",
         "market"
@@ -255,6 +257,17 @@
           ],
           "minimum": 0,
           "description": "Coupon payments per year; null when unknown."
+        },
+        "coupon_kind": {
+          "$ref": "#/$defs/couponKind",
+          "description": "Coupon type from the bond passport; `unknown` when the bond has no passport yet."
+        },
+        "coupon_spread_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Spread over the floating base, percentage points; null for fixed coupons, without a passport or without a spread."
         },
         "is_qualified": {
           "type": "boolean",

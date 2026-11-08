@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/iss/markets/bonds.json",
+  "title": "ISS securities: engines/stock/markets/bonds",
+  "description": "Bonds on the MOEX stock engine. Main-mode boards: TQOB, TQCB, TQRD, TQUD, TQOY, TQOD, TQOE (the primary board of a bond is picked by AFB's bonds/classify.pick_primary_board_row). Deliberately has no x-iss-marketdata: the market stays out of the generic marketdata cycle; bond quotes come from the bonds channel's own refresh and candles are addressed by the explicit market/board of the instrument.",
+  "x-iss-resource": {
+    "kind": "securities",
+    "engine": "stock",
+    "market": "bonds",
+    "path": "engines/stock/markets/bonds/securities",
+    "table": "securities"
+  },
+  "x-iss-instrument-type": "bond",
+  "x-iss-columns": {
+    "SECID": { "required": true },
+    "BOARDID": { "required": true },
+    "SHORTNAME": {},
+    "SECNAME": {},
+    "DECIMALS": {},
+    "LOTSIZE": {},
+    "ISIN": {},
+    "MINSTEP": {},
+    "PREVPRICE": {},
+    "CURRENCYID": {}
+  },
+  "type": "object",
+  "required": ["securities"],
+  "properties": {
+    "securities": {
+      "type": "object",
+      "required": ["columns", "data"],
+      "properties": {
+        "columns": { "type": "array", "items": { "type": "string" } },
+        "data": { "type": "array" }
+      }
+    }
+  }
+}
