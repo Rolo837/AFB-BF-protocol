@@ -158,7 +158,8 @@ def test_account_v2_examples_validate(registry):
 _KEY = "MISX:TQOB:SU26238RMFS4"
 _BOND_SNAP = {**{k: x for k, x in _SNAP.items() if k != "readonly"}, "owner": {}, "bf_id": "bond", "account_id": "bond:p-1", "cash": [{"currency": "RUB", "value": "100"}],
               "positions": [{"quantity": 10, "average_price": "968", "instrument_key": _KEY, "accrued_int": "12.4"}]}
-_OP = {"op_id": "o1", "ts": "2026-11-07T09:30:00+00:00", "kind": "deposit", "reason": "user_cash", "currency": "RUB", "amount": "5"}
+_OP = {"ts": "2026-11-07T09:30:00Z", "kind": "deposit", "amount": "5"}
+_BUY_FX = {"ts": "2026-11-07T09:31:00Z", "kind": "buy", "amount": "-9000.00", "instrument_key": "MISX:TQOB:X", "quantity": 10, "price": "95.5", "accrued_int": "1.2", "fx_currency": "USD", "fx_rate": "90.5"}
 
 
 def test_account_v2_bond_account_snapshot(registry):
@@ -224,17 +225,25 @@ def test_account_v2_ledger(registry):
     v.validate(_m("ledger", request_id="r", account_id="a"))
     v.validate(_m("ledger", request_id="r", account_id="a", before="o9", limit=200))
     v.validate(_m("ledger", request_id="r", account_id="a", items=[_OP], next=None))
-    v.validate(_m("ledger", request_id="r", account_id="a", items=[_OP, {**_OP, "kind": "future_kind", "reason": "x", "subkind": None}], next="o1"))
+    v.validate(_m("ledger", request_id="r", account_id="a", items=[_OP, _BUY_FX], next="42"))
     _invalid(v, _m("ledger", request_id="r", account_id="a", limit=201))
     _invalid(v, _m("ledger", request_id="r", account_id="a", limit=0))
     _invalid(v, _m("ledger", request_id="r", account_id="a", items=[_OP]))  # response needs next
     _invalid(v, _m("ledger", request_id="r", account_id="a", items=[_OP], next=None, limit=5))
-    _invalid(v, _m("ledger", request_id="r", account_id="a", items=[{k: x for k, x in _OP.items() if k != "reason"}], next=None))
+    _invalid(v, _m("ledger", request_id="r", account_id="a", items=[{k: x for k, x in _OP.items() if k != "kind"}], next=None))
+    _invalid(v, _m("ledger", request_id="r", account_id="a", items=[{**_OP, "kind": "income"}], next=None))  # kind is a closed enum
+    for kind in ("deposit", "withdraw", "buy", "sell", "coupon", "amortization", "redemption", "reconcile"):
+        v.validate(_m("ledger", request_id="r", account_id="a", items=[{**_OP, "kind": kind}], next=None))
+    for legacy in ("op_id", "parent_op_id", "subkind", "reason", "currency", "price_pct", "amount_per_unit", "counter_currency", "counter_amount", "fx_spread_pct", "realized"):
+        _invalid(v, _m("ledger", request_id="r", account_id="a", items=[{**_OP, legacy: "x"}], next=None))
     _invalid(v, _m("ledger", request_id="r", account_id="a", items=[{**_OP, "amount": 5}], next=None))
     _invalid(v, _m("ledger", account_id="a"))
 
 
 def test_account_v2_settings(registry):
+    # deprecated: server answers unsupported_action; schema kept for compatibility
+    schema = json.loads((_ROOT / "spec" / "schemas" / "afbws" / "account.channel.v2.json").read_text())
+    assert schema["$defs"]["settings"]["deprecated"] is True
     v = _v("settings", registry)
     v.validate(_m("settings", request_id="r"))
     v.validate(_m("settings", request_id="r", fx_spread_pct="0.5"))

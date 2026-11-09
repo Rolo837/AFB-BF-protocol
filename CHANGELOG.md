@@ -16,6 +16,17 @@
 
 ### Removed
 
+## v2.10.7 — 2026-11-09
+
+### Changed
+- `afbws/account.channel.v2.json`: `$defs.accountOp` переписан как лёгкий журнал фактов. Обязательные `ts`, `kind` (закрытый enum: `deposit | withdraw | buy | sell | coupon | amortization | redemption | reconcile`), `amount` (строка, знаковая сумма в БАЗОВОЙ валюте счёта); необязательные `instrument_key`, `quantity` (у выплат — количество на момент зачисления), `price`, `accrued_int` (в валюте бумаги), `event_date` (дата выплаты по расписанию), `fx_currency` + `fx_rate` (только если валюта бумаги ≠ базовой; `fx_rate` — базовая за 1 единицу `fx_currency`). Убраны `op_id`, `parent_op_id`, `subkind`, `reason`, `currency`, `price_pct`, `amount_per_unit`, `counter_currency`, `counter_amount`, `fx_spread_pct`, `realized`; строк `fx` нет.
+- `afbws.account.ledger.v2`: `before`/`next` — непрозрачная строка-курсор (клиент её не разбирает), порядок «новые → старые».
+- `afbws.account.cash.v2` / `accountSnapshot.cash[]`: деньги счёта только в базовой валюте (`cash[]` у `bond`-счёта — не более одного элемента); `currency` запроса обязан совпадать с базовой, иначе `validation_error`.
+- Примеры `examples/account_channel_v2/ledger.response.json` приведены к новой форме.
+
+### Removed
+- `afbws.account.settings.v2` помечен `deprecated: true` (схема не удалена): спред автоконвертации убран, сервер не обрабатывает операцию и отвечает `unsupported_action`. Удалены примеры `settings.response.json` и `settings.set.request.json` (с `fx_spread_pct`).
+
 ## v2.10.6 — 2026-11-09
 
 ### Added
