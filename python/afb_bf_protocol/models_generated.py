@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: da7932eaa42a78a5582745ff8a2b61e98ff3ed8f836ef53eabe7d5e3889ecde6
+# source-hash: c84fec5b71f347168cb9a7d5fb3bd3aa654e92b8ac94d539fc98746fc2f03c36
 
 from __future__ import annotations
 
@@ -597,7 +597,7 @@ class AccountV2Snapshot(TypedDict):
 
 class AfbwsAccountChannelV2AccountOp(TypedDict):
     """
-    A light journal of facts: rows are independent (no ids, no links between rows). Decimal strings for money and prices. ALL account money is in the account base currency, so `amount` is always in the base currency; the instrument currency appears only in `price` / `accrued_int` and, when it differs from the base one, in `fx_currency` / `fx_rate`. No spread and no fees. `kind`: deposit | withdraw (user cash movement), buy | sell (emulated at LAST MOEX, by a quantity edit or an auto-sale), coupon | amortization | redemption (income credited by the schedule), reconcile (reserved for a manual or broker-sync correction of a position / cash; amount 0 means position only).
+    A light journal of facts: rows are independent (no ids, no links between rows). Decimal strings for money and prices. ALL account money is in the account base currency, so `amount` is always in the base currency; the instrument currency appears only in `price` / `accrued_int` and, when it differs from the base one, in `fx_currency` / `fx_rate`. No spread and no fees. `kind`: deposit | withdraw (user cash movement), buy | sell (emulated at LAST MOEX, by a quantity edit or an auto-sale), coupon | amortization | redemption (income credited by the schedule), reconcile (manual or broker-sync correction, written by `afbws.account.reconcile.v2`: a position row has the NEW quantity / average price and amount 0; a cash row has no instrument_key and `amount` = new balance minus the previous one).
     """
 
     ts: str
@@ -662,6 +662,21 @@ class AfbwsAccountChannelV2Position(TypedDict):
     broker_ref: NotRequired[dict[str, Any]]
 
 
+class AfbwsAccountChannelV2Reconcile(TypedDict):
+    """
+    Manual (later also broker / report) correction of positions and free cash. Request: `account_id`, `positions[]` (0..200, TARGET state of each instrument) and/or `cash` (TARGET free-cash balance in the account base currency); at least one of a non-empty `positions` or `cash`. The values are absolute: the backend computes the difference from the current state and skips unchanged rows (idempotent). A position row writes one `reconcile` log row with the NEW quantity / average price (amount 0; quantity 0 closes the position); a `cash` row writes one `reconcile` row with amount = new balance minus the previous one. Each position row is executed separately, partial success is allowed. Response (same `request_id`): `item` — the account snapshot after the edit — and `rejected[]` (refused position rows with `reason`; empty when all went through). A whole-request failure (including a negative `cash`) is `afbws.account.error.v2`. No server push.
+    """
+
+    channel: Literal["account"]
+    schema: Literal["afbws.account.reconcile.v2"]
+    request_id: AfbwsCommonV1RequestId
+    account_id: NotRequired[AccountV2AccountId]
+    positions: NotRequired[list[Position]]
+    cash: NotRequired[str]
+    item: NotRequired[AccountV2Snapshot]
+    rejected: NotRequired[list[RejectedItem1]]
+
+
 class AfbwsAccountChannelV2Set(TypedDict):
     """
     Request: `account_id`, `targets[]` (1..200, target quantity per instrument key). Each row is executed separately: delta > 0 is an emulated `buy`, delta < 0 a `sell`, both at LAST MOEX; partial success is allowed. Response (same `request_id`): `item` — the account snapshot after the edit — and `rejected[]` (refused rows with `reason`; empty when all went through). A whole-request failure is `afbws.account.error.v2`. No server push.
@@ -693,6 +708,7 @@ AccountChannelV2Message: TypeAlias = (
     | AccountV2Events
     | AfbwsAccountChannelV2Cash
     | AfbwsAccountChannelV2Set
+    | AfbwsAccountChannelV2Reconcile
     | AfbwsAccountChannelV2Ledger
     | AfbwsAccountChannelV2Settings
     | AccountV2Error
@@ -3701,7 +3717,7 @@ class DealSnapshotPayload(TypedDict):
     deal_id: str
     execution_phase: NotRequired[str]
     observed: NotRequired[dict[str, Any]]
-    positions: NotRequired[list[Position]]
+    positions: NotRequired[list[Position1]]
     quantity: NotRequired[int]
     status: NotRequired[str]
 
@@ -5952,6 +5968,17 @@ class Portfolio(TypedDict):
 
 
 class Position(TypedDict):
+    """
+    Target state of one instrument.
+    """
+
+    instrument_key: AfbwsCommonV1InstrumentKey
+    quantity: int
+    avg_price: NotRequired[str]
+    accrued_int: NotRequired[str | None]
+
+
+class Position1(TypedDict):
     symbol: NotRequired[str]
     quantity: NotRequired[int]
     average_price: NotRequired[str]
@@ -6003,6 +6030,17 @@ class RejectedItem(TypedDict):
         "not_in_set",
         "not_supported",
         "forbidden",
+    ]
+
+
+class RejectedItem1(TypedDict):
+    """
+    A refused position row of `reconcile`.
+    """
+
+    instrument_key: AfbwsCommonV1InstrumentKey
+    reason: Literal[
+        "no_fx", "not_in_set", "not_supported", "invalid_value", "forbidden"
     ]
 
 

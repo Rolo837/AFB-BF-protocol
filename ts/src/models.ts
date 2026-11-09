@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: da7932eaa42a78a5582745ff8a2b61e98ff3ed8f836ef53eabe7d5e3889ecde6
+ * source-hash: c84fec5b71f347168cb9a7d5fb3bd3aa654e92b8ac94d539fc98746fc2f03c36
  */
 
 /**
@@ -89,7 +89,7 @@ export type AccessV1UsersSetItem1 = {
   [k: string]: unknown;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, cash, set, ledger, settings, error; `list` takes `bf_id` + `account_id`. `bf_id` is the account type for AFB-side accounts: `virtual` (trading simulation) and `bond` (virtual account of a bond portfolio; `account_id = "bond:" + portfolio_id`; created and deleted together with the portfolio, so there is no `open` operation). Operations `cash`, `set`, `ledger`, `settings` serve accounts of type `bond` (the backend answers `not_supported` for other types); each has no server push, so `request_id` is always required. `settings` is deprecated (auto-conversion spread removed; the server answers `unsupported_action`). The money of a `bond` account is held ONLY in its base currency: cash[] has at most one element. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes , reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account (broker / virtual) is expressed through cash[] (one entry per currency); a `bond` account holds money only in its base currency (cash[] has at most one element); the virtual account fills `as_of`. `account` means a broker account (one bf_id may have more than one), not the connector itself.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, cash, set, reconcile, ledger, settings, error; `list` takes `bf_id` + `account_id`. `bf_id` is the account type for AFB-side accounts: `virtual` (trading simulation) and `bond` (virtual account of a bond portfolio; `account_id = "bond:" + portfolio_id`; created and deleted together with the portfolio, so there is no `open` operation). Operations `cash`, `set`, `reconcile`, `ledger`, `settings` serve accounts of type `bond` (the backend answers `not_supported` for other types); each has no server push, so `request_id` is always required. `settings` is deprecated (auto-conversion spread removed; the server answers `unsupported_action`). The money of a `bond` account is held ONLY in its base currency: cash[] has at most one element. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes , reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account (broker / virtual) is expressed through cash[] (one entry per currency); a `bond` account holds money only in its base currency (cash[] has at most one element); the virtual account fills `as_of`. `account` means a broker account (one bf_id may have more than one), not the connector itself.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountChannelV2Message".
@@ -100,6 +100,7 @@ export type AccountChannelV2Message =
   | AccountV2Events
   | AfbwsAccountChannelV2_Cash
   | AfbwsAccountChannelV2_Set
+  | AfbwsAccountChannelV2_Reconcile
   | AfbwsAccountChannelV2_Ledger
   | AfbwsAccountChannelV2_Settings
   | AccountV2Error;
@@ -249,6 +250,55 @@ export type AfbwsAccountChannelV2_Set = {
  * via the `definition` "AfbwsCommonV1_InstrumentKey".
  */
 export type AfbwsCommonV1_InstrumentKey = string;
+/**
+ * Manual (later also broker / report) correction of positions and free cash. Request: `account_id`, `positions[]` (0..200, TARGET state of each instrument) and/or `cash` (TARGET free-cash balance in the account base currency); at least one of a non-empty `positions` or `cash`. The values are absolute: the backend computes the difference from the current state and skips unchanged rows (idempotent). A position row writes one `reconcile` log row with the NEW quantity / average price (amount 0; quantity 0 closes the position); a `cash` row writes one `reconcile` row with amount = new balance minus the previous one. Each position row is executed separately, partial success is allowed. Response (same `request_id`): `item` — the account snapshot after the edit — and `rejected[]` (refused position rows with `reason`; empty when all went through). A whole-request failure (including a negative `cash`) is `afbws.account.error.v2`. No server push.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsAccountChannelV2_Reconcile".
+ */
+export type AfbwsAccountChannelV2_Reconcile = {
+  [k: string]: unknown;
+} & {
+  channel: 'account';
+  schema: 'afbws.account.reconcile.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  account_id?: AccountV2AccountId;
+  /**
+   * Request only.
+   *
+   * @maxItems 200
+   */
+  positions?: {
+    instrument_key: AfbwsCommonV1_InstrumentKey;
+    /**
+     * New quantity (not a delta); 0 closes the position.
+     */
+    quantity: number;
+    /**
+     * New average clean price per unit in the INSTRUMENT currency (decimal string, like `average_price` of the snapshot). Required when the position does not exist yet and quantity > 0; absent for an existing position — the price is kept.
+     */
+    avg_price?: string;
+    /**
+     * New average accrued interest per unit in the INSTRUMENT currency (decimal string); null — unknown; absent — keep the current value.
+     */
+    accrued_int?: string | null;
+  }[];
+  /**
+   * Request only: new free-cash balance in the account BASE currency (decimal string, >= 0). Absent — cash is not changed.
+   */
+  cash?: string;
+  item?: AccountV2Snapshot3;
+  /**
+   * Response only.
+   */
+  rejected?: {
+    instrument_key: AfbwsCommonV1_InstrumentKey;
+    /**
+     * no_fx: no exchange rate for a new position in a foreign currency; not_in_set: the instrument is not in the portfolio composition; not_supported: instrument class has no provider; invalid_value: a new position without `avg_price` or a malformed number; forbidden: not allowed for the caller.
+     */
+    reason: 'no_fx' | 'not_in_set' | 'not_supported' | 'invalid_value' | 'forbidden';
+  }[];
+};
 /**
  * Request: `account_id`, optional `before` (opaque cursor string taken from a previous response `next`: return entries older than it), optional `limit` (1..200). Entries are returned newest first (new -> old). Response (same `request_id`, with `items`): `account_id`, `items[]` (accountOp), `next` — the opaque cursor to pass as `before` for the next page, or null at the end. The client must not parse or construct cursors. No server push.
  *
@@ -3062,7 +3112,43 @@ export interface AccountV2Snapshot2 {
   as_of?: string;
 }
 /**
- * A light journal of facts: rows are independent (no ids, no links between rows). Decimal strings for money and prices. ALL account money is in the account base currency, so `amount` is always in the base currency; the instrument currency appears only in `price` / `accrued_int` and, when it differs from the base one, in `fx_currency` / `fx_rate`. No spread and no fees. `kind`: deposit | withdraw (user cash movement), buy | sell (emulated at LAST MOEX, by a quantity edit or an auto-sale), coupon | amortization | redemption (income credited by the schedule), reconcile (reserved for a manual or broker-sync correction of a position / cash; amount 0 means position only).
+ * Response only.
+ */
+export interface AccountV2Snapshot3 {
+  bf_id: AccountV2BfId;
+  account_id: AccountV2AccountId;
+  /**
+   * True only for this bf_id's default (trading) account.
+   */
+  tradable: boolean;
+  /**
+   * Broker / virtual accounts only (every `bf_id` except `bond`; required there, forbidden for `bond`).
+   */
+  readonly?: boolean;
+  /**
+   * `bf_id: bond` only (required there, forbidden for other accounts). Owner of the portfolio account. An EMPTY object `{}` means the account is the caller's own. For a public account of somebody else (read-only for the caller) `name` and `tier` describe the owner; `null` means the owner is unknown.
+   */
+  owner?: {
+    /**
+     * Display name of the owner; null — unknown. Absent for the caller's own account.
+     */
+    name?: string | null;
+    /**
+     * Tier of the owner (e.g. `admin`, `manager`); null — unknown. Absent for the caller's own account.
+     */
+    tier?: string | null;
+  };
+  status: 'ok' | 'stale' | 'error';
+  equity: string | null;
+  /**
+   * Cash balances, one entry per currency. For `bf_id: bond` account money is held ONLY in the account base currency: at most one element.
+   */
+  cash: PayloadsBrokerAccounts_CashBalance[];
+  positions: AfbwsAccountChannelV2_Position[];
+  as_of?: string;
+}
+/**
+ * A light journal of facts: rows are independent (no ids, no links between rows). Decimal strings for money and prices. ALL account money is in the account base currency, so `amount` is always in the base currency; the instrument currency appears only in `price` / `accrued_int` and, when it differs from the base one, in `fx_currency` / `fx_rate`. No spread and no fees. `kind`: deposit | withdraw (user cash movement), buy | sell (emulated at LAST MOEX, by a quantity edit or an auto-sale), coupon | amortization | redemption (income credited by the schedule), reconcile (manual or broker-sync correction, written by `afbws.account.reconcile.v2`: a position row has the NEW quantity / average price and amount 0; a cash row has no instrument_key and `amount` = new balance minus the previous one).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsAccountChannelV2_AccountOp".
@@ -3077,7 +3163,7 @@ export interface AfbwsAccountChannelV2_AccountOp {
    */
   kind: 'deposit' | 'withdraw' | 'buy' | 'sell' | 'coupon' | 'amortization' | 'redemption' | 'reconcile';
   /**
-   * Signed cash movement in the account BASE currency, decimal string: negative for buy / withdraw, positive for the rest. For reconcile it is the cash correction (0 = position only).
+   * Signed cash movement in the account BASE currency, decimal string: negative for buy / withdraw, positive for the rest. For a reconcile cash row it is the correction (new balance minus the previous one); for a reconcile position row it is 0.
    */
   amount: string;
   /**
@@ -3085,15 +3171,15 @@ export interface AfbwsAccountChannelV2_AccountOp {
    */
   instrument_key?: string;
   /**
-   * Number of units. Present together with instrument_key; for income rows it is the quantity held at the moment of crediting.
+   * Number of units. Present together with instrument_key; for income rows it is the quantity held at the moment of crediting; for a reconcile row it is the NEW quantity of the position (a reference point, not a delta).
    */
   quantity?: number;
   /**
-   * buy / sell only: clean price per unit in the INSTRUMENT currency (decimal string).
+   * buy / sell / reconcile (position row) only: clean price per unit in the INSTRUMENT currency (decimal string); for reconcile it is the new average price.
    */
   price?: string;
   /**
-   * buy / sell only: accrued interest per unit in the INSTRUMENT currency (decimal string).
+   * buy / sell / reconcile (position row) only: accrued interest per unit in the INSTRUMENT currency (decimal string); for reconcile it is the new average accrued interest.
    */
   accrued_int?: string;
   /**
@@ -3101,11 +3187,11 @@ export interface AfbwsAccountChannelV2_AccountOp {
    */
   event_date?: string;
   /**
-   * Present only if the instrument currency differs from the account base currency: the currency the amount was converted from / to.
+   * Present only if the instrument currency differs from the account base currency: the currency the amount was converted from / to (for a reconcile row that opens a new position — the instrument currency).
    */
   fx_currency?: string;
   /**
-   * Present together with fx_currency: base-currency units per 1 unit of fx_currency (CETS LAST, decimal string). The amount in the instrument currency is amount / fx_rate.
+   * Present together with fx_currency: base-currency units per 1 unit of fx_currency (CETS LAST, decimal string). The amount in the instrument currency is amount / fx_rate (informational for a reconcile row: its amount is 0).
    */
   fx_rate?: string;
 }
