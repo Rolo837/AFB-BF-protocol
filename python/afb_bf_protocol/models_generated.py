@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: aaaa05804987bdcbbb9e51bc797bc102bfacc6ac063d4950890b3c732b5aeff8
+# source-hash: da7932eaa42a78a5582745ff8a2b61e98ff3ed8f836ef53eabe7d5e3889ecde6
 
 from __future__ import annotations
 
@@ -597,34 +597,33 @@ class AccountV2Snapshot(TypedDict):
 
 class AfbwsAccountChannelV2AccountOp(TypedDict):
     """
-    Money and prices are decimal strings. `kind` (open string, no enum so that new types need no MAJOR): deposit | withdraw (user cash movement), buy | sell (emulated at LAST MOEX, by a quantity edit or an auto-sale), income (coupon / amortization / redemption, see `subkind`), fx (conversion; a child of the op that required it, see `parent_op_id`), reconcile (confirmed reconciliation row). `subkind` (open string): for income coupon | amortization | redemption. `reason` (open string): why the operation exists, e.g. user_cash | user_set | composition_removed | portfolio_deleted | schedule | auto_fx | reconcile. `amount` is the signed cash movement in `currency` (negative for buy / withdraw). For fx, `counter_currency` / `counter_amount` is the other leg.
+    A light journal of facts: rows are independent (no ids, no links between rows). Decimal strings for money and prices. ALL account money is in the account base currency, so `amount` is always in the base currency; the instrument currency appears only in `price` / `accrued_int` and, when it differs from the base one, in `fx_currency` / `fx_rate`. No spread and no fees. `kind`: deposit | withdraw (user cash movement), buy | sell (emulated at LAST MOEX, by a quantity edit or an auto-sale), coupon | amortization | redemption (income credited by the schedule), reconcile (reserved for a manual or broker-sync correction of a position / cash; amount 0 means position only).
     """
 
-    op_id: str
-    parent_op_id: NotRequired[str | None]
     ts: str
-    kind: str
-    subkind: NotRequired[str | None]
-    reason: str
-    instrument_key: NotRequired[str | None]
-    quantity: NotRequired[int | None]
-    price: NotRequired[str | None]
-    price_pct: NotRequired[str | None]
-    accrued_int: NotRequired[str | None]
-    amount_per_unit: NotRequired[str | None]
-    currency: str
+    kind: Literal[
+        "deposit",
+        "withdraw",
+        "buy",
+        "sell",
+        "coupon",
+        "amortization",
+        "redemption",
+        "reconcile",
+    ]
     amount: str
-    counter_currency: NotRequired[str | None]
-    counter_amount: NotRequired[str | None]
-    fx_rate: NotRequired[str | None]
-    fx_spread_pct: NotRequired[str | None]
-    realized: NotRequired[str | None]
-    event_date: NotRequired[str | None]
+    instrument_key: NotRequired[str]
+    quantity: NotRequired[int]
+    price: NotRequired[str]
+    accrued_int: NotRequired[str]
+    event_date: NotRequired[str]
+    fx_currency: NotRequired[str]
+    fx_rate: NotRequired[str]
 
 
 class AfbwsAccountChannelV2Cash(TypedDict):
     """
-    Request: `account_id`, `kind` (deposit | withdraw), `currency`, `amount` (positive decimal string). The backend writes a `deposit` / `withdraw` operation; the starting capital is the first deposit. Response (same `request_id`, with `item`): the updated account snapshot. Errors (`afbws.account.error.v2`): `insufficient_cash` (withdraw above the balance of that currency), `forbidden` (not the owner / not staff for a public account), `not_found`, `not_supported`. No server push (the owner receives `afbws.account.list.v2`).
+    Request: `account_id`, `kind` (deposit | withdraw), `currency`, `amount` (positive decimal string). Account money is held only in the account base currency: `currency` must equal it, otherwise the error is `validation_error`. The backend writes a `deposit` / `withdraw` operation (amount in the base currency); the starting capital is the first deposit. Response (same `request_id`, with `item`): the updated account snapshot. Errors (`afbws.account.error.v2`): `insufficient_cash` (withdraw above the balance), `validation_error` (`currency` differs from the account base currency), `forbidden` (not the owner / not staff for a public account), `not_found`, `not_supported`. No server push (the owner receives `afbws.account.list.v2`).
     """
 
     channel: Literal["account"]
@@ -639,7 +638,7 @@ class AfbwsAccountChannelV2Cash(TypedDict):
 
 class AfbwsAccountChannelV2Ledger(TypedDict):
     """
-    Request: `account_id`, optional `before` (`op_id`: return entries older than it), optional `limit` (1..200). Entries are returned newest first. Response (same `request_id`, with `items`): `account_id`, `items[]` (accountOp), `next` — the `op_id` to pass as `before` for the next page, or null at the end. No server push.
+    Request: `account_id`, optional `before` (opaque cursor string taken from a previous response `next`: return entries older than it), optional `limit` (1..200). Entries are returned newest first (new -> old). Response (same `request_id`, with `items`): `account_id`, `items[]` (accountOp), `next` — the opaque cursor to pass as `before` for the next page, or null at the end. The client must not parse or construct cursors. No server push.
     """
 
     channel: Literal["account"]
@@ -679,7 +678,7 @@ class AfbwsAccountChannelV2Set(TypedDict):
 
 class AfbwsAccountChannelV2Settings(TypedDict):
     """
-    Request `{}` (only `request_id`) reads; `{fx_spread_pct}` writes (staff only, otherwise `forbidden`). Response: `{fx_spread_pct}` — the current spread (percent, decimal string, 0 by default) added to the exchange rate (CETS) on auto-conversion. No server push.
+    Deprecated: auto-conversion spread removed; the server does not handle the operation and answers `unsupported_action`. The schema is kept for compatibility. Former behaviour: request `{}` (only `request_id`) reads; `{fx_spread_pct}` writes (staff only, otherwise `forbidden`). Response: `{fx_spread_pct}` — the current spread (percent, decimal string, 0 by default) added to the exchange rate (CETS) on auto-conversion. No server push.
     """
 
     channel: Literal["account"]
