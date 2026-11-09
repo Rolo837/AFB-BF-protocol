@@ -16,6 +16,18 @@
 
 ### Removed
 
+## v2.10.6 — 2026-11-09
+
+### Added
+- `afbws.bonds.v1`: `totals.current_yield` (средневзвешенная по рыночной стоимости текущая доходность позиций, % годовых; обязательное, `number|null`).
+
+### Changed
+- `afbws.bonds.v1`: `portfolioRef.own` заменён обязательным `owner` (`{name?, tier?}`; `{}` — собственный портфель вызывающего, у чужого публичного — имя и tier владельца, `null` — владелец неизвестен).
+- `afbws.account.list.v2`: `accountSnapshot` ветвится по `bf_id`: для `bond` — обязательное `owner` и без `readonly`; для остальных — `readonly` как раньше и без `owner`.
+
+### Removed
+- `afbws.bonds.v1`: операция `trades.set` (схема `afbws.bonds.trades.set.v1`, `tradesSet`, `tradeRejection`, примеры `trades_set.*`); запрос такой схемы теперь невалиден.
+
 ## v2.10.5 — 2026-11-09
 
 ### Added

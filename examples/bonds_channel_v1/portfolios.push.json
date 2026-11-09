@@ -8,7 +8,7 @@
       "visibility": "personal",
       "icon_id": null,
       "icon_color": "green",
-      "own": true,
+      "owner": {},
       "instrument_keys": [
         "MISX:TQOB:SU26238RMFS4",
         "MISX:TQOB:SU52005RMFS4"
@@ -20,7 +20,7 @@
       "visibility": "user",
       "icon_id": null,
       "icon_color": null,
-      "own": false,
+      "owner": {"name": "Иван Петров", "tier": "manager"},
       "instrument_keys": [
         "MISX:TQOB:SU26238RMFS4"
       ]

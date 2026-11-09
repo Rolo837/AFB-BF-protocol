@@ -9,7 +9,7 @@
       "visibility": "personal",
       "icon_id": null,
       "icon_color": "green",
-      "own": true,
+      "owner": {},
       "instrument_keys": [
         "MISX:TQOB:SU26238RMFS4",
         "MISX:TQOB:SU52005RMFS4"
@@ -21,7 +21,7 @@
       "visibility": "personal",
       "icon_id": null,
       "icon_color": "blue",
-      "own": true,
+      "owner": {},
       "instrument_keys": [
         "MISX:TQOB:SU52005RMFS4",
         "MISX:TQOB:SU26238RMFS4"

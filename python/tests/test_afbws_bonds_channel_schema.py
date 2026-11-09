@@ -65,7 +65,7 @@ def test_every_message_has_a_distinct_schema_const():
     for ref in doc["oneOf"]:
         d = doc["$defs"][ref["$ref"].split("/")[-1]]
         consts.append(d["properties"]["schema"]["const"])
-    assert len(consts) == len(set(consts)) == 13
+    assert len(consts) == len(set(consts)) == 12
     assert "afbws.bonds.error.v1" in consts
 
 
@@ -254,27 +254,47 @@ def test_portfolios_set(registry):
         _bad(v, broken)
     _bad(v, _msg("portfolios.set", request_id="r", portfolios=[{"id": "a"}]))  # no name
     _bad(v, _msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "own": True}]))
+    _bad(v, _msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "owner": {}}]))
     _bad(v, _msg("portfolios.set", request_id="r", portfolios=[_REF], rejected=[]) | {"portfolios": [{"id": "a", "name": "A"}]})
     _bad(v, _msg("portfolios.set", request_id="r", portfolios=[_REF]) | {"remove": []} | {"portfolios": [_REF]})  # edit item with response fields
 
 
-def test_trades_set(registry):
-    v = _validator(registry, "tradesSet")
-    v.validate(_ex("trades_set.request"))
-    v.validate(_ex("trades_set.response"))
-    assert _ex("trades_set.response")["instrument_keys"]
-    resp = _ex("trades_set.response")
-    del resp["instrument_keys"]
-    _bad(v, resp)
-    v.validate(_msg("trades.set", request_id="r", portfolio_id="p", upsert=[_TRADE]))
-    _bad(v, _msg("trades.set", request_id="r", portfolio_id="p"))
-    _bad(v, _msg("trades.set", request_id="r", upsert=[_TRADE]))
-    _bad(v, _msg("trades.set", request_id="r", portfolio_id="p", upsert=[{**_TRADE, "quantity": 0}]))
-    _bad(v, _msg("trades.set", request_id="r", portfolio_id="p", upsert=[{**_TRADE, "price_pct": 0}]))
-    _bad(v, _msg("trades.set", request_id="r", portfolio_id="p", upsert=[{**_TRADE, "trade_date": "02.11.2026"}]))
-    _bad(v, _msg("trades.set", request_id="r", portfolio_id="p", upsert=[{**_TRADE, "extra": 1}]))
-    v2 = _validator(registry, "trade")
-    v2.validate({**_TRADE, "quantity": -5, "accrued_int": 1.2, "commission": 0})
+def test_trades_set_is_gone(registry):
+    doc = json.loads(SCHEMA_PATH.read_text())
+    assert "tradesSet" not in doc["$defs"] and "tradeRejection" not in doc["$defs"]
+    assert "afbws.bonds.trades.set.v1" not in SCHEMA_PATH.read_text()
+    assert not list(EXAMPLES.glob("trades_set*"))
+    _bad(_validator(registry), _msg("trades.set", request_id="r", portfolio_id="p", upsert=[_TRADE]))
+    _validator(registry, "trade").validate({**_TRADE, "quantity": -5, "accrued_int": 1.2, "commission": 0})
+
+
+def test_portfolio_owner(registry):
+    ref = _validator(registry, "portfolioRef")
+    ref.validate(_REF)
+    assert _REF["owner"] == {}
+    foreign = _ex("portfolios.response")["portfolios"][1]
+    assert foreign["owner"] == {"name": "Иван Петров", "tier": "manager"}
+    ref.validate(foreign)
+    ref.validate({**_REF, "owner": {"name": None, "tier": None}})
+    ref.validate({**_REF, "owner": {"name": "A"}})
+    no_owner = {k: x for k, x in _REF.items() if k != "owner"}
+    _bad(ref, no_owner)
+    _bad(ref, {**no_owner, "own": True})
+    _bad(ref, {**_REF, "own": True})
+    _bad(ref, {**_REF, "owner": {"name": "A", "extra": 1}})
+    _bad(ref, {**_REF, "owner": {"name": 5}})
+    _bad(ref, {**_REF, "owner": None})
+    assert "owner" in json.loads(SCHEMA_PATH.read_text())["$defs"]["portfolioRef"]["required"]
+
+
+def test_totals_current_yield_required(registry):
+    v = _validator(registry, "totals")
+    totals = _ex("portfolio.response")["totals"]
+    assert totals["current_yield"] is not None
+    v.validate(totals)
+    v.validate({**totals, "current_yield": None})
+    _bad(v, {k: x for k, x in totals.items() if k != "current_yield"})
+    _bad(v, {**totals, "current_yield": "x"})
 
 
 def test_copy_is_gone(registry):
@@ -328,7 +348,7 @@ def test_bond_identity_is_instrument_key_only(registry):
     for name in ("trade", "payment", "signal", "event"):
         assert "instrument_key" in defs[name]["required"], name
         assert "secid" not in defs[name]["properties"], name
-    for name in ("portfolioRef", "portfolioEdit", "tradesSet"):
+    for name in ("portfolioRef", "portfolioEdit"):
         assert "secids" not in defs[name]["properties"], name
         assert "instrument_keys" in defs[name]["properties"], name
     assert "secids" not in json.dumps(doc)
@@ -340,8 +360,6 @@ def test_bond_identity_is_instrument_key_only(registry):
     resp = _ex("search.response")
     resp["items"] = [broken]
     _bad(v, resp)  # a row without the key is not valid even with secid
-    only_secid_trade = {k: x for k, x in _TRADE.items() if k != "instrument_key"} | {"secid": "SU26238RMFS4"}
-    _bad(_validator(registry, "tradesSet"), _msg("trades.set", request_id="r", portfolio_id="p", upsert=[only_secid_trade]))
     _bad(_validator(registry, "bondMsg"), _msg("bond", request_id="r", secid="SU26238RMFS4"))
     _validator(registry, "bondMsg").validate(_msg("bond", request_id="r", instrument_key="MISX:TQOB:SU26238RMFS4"))
 
@@ -513,11 +531,6 @@ def test_rejection_reasons(registry):
     for r in ("no_last_price", "no_fx"):
         pr.validate({**base, "reason": r})
     _bad(pr, {**base, "reason": "x"})
-    tr = _validator(registry, "tradeRejection")
-    base = {"trade_id": "t", "code": "validation_error", "message": "m"}
-    tr.validate(base)
-    tr.validate({**base, "reason": "deprecated"})
-    _bad(tr, {**base, "reason": "x"})
 
 
 def test_account_portfolio_example_compat_fields():

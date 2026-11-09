@@ -7,7 +7,7 @@
       "bf_id": "bond",
       "account_id": "bond:p-1",
       "tradable": true,
-      "readonly": false,
+      "owner": {},
       "status": "ok",
       "equity": "198590.00",
       "cash": [

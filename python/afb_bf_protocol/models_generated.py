@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 5a3cf864d6e89f20563dcdedf65f98ce781bba3b5f3d159896a88c09e4924f1b
+# source-hash: aaaa05804987bdcbbb9e51bc797bc102bfacc6ac063d4950890b3c732b5aeff8
 
 from __future__ import annotations
 
@@ -537,7 +537,7 @@ class AccountV2Events(TypedDict):
 
 class AccountV2List(TypedDict):
     """
-    Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`; replaces v1 `get`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `default_account_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual account is pushed the same way). For `bf_id: "bond"` (accounts of bond portfolios, `account_id = "bond:" + portfolio_id`): a request without `account_id` returns only the caller's own accounts; with `account_id` the caller's own or a readable public one (staff accounts are `visibility public`, read-only for others: `readonly: true`). The snapshot is filled from the account log: `cash[]` per currency, `equity` in the base currency (cash + market value), `tradable: true`, `status: ok`, positions carry `instrument_key` and `accrued_int`. The push for `bond` is event-driven (after `cash` / `set`, an income credit, a composition change), like the virtual account. A request carrying `items`/`default_account_id` or a response/push carrying request-only fields is invalid.
+    Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`; replaces v1 `get`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `default_account_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual account is pushed the same way). For `bf_id: "bond"` (accounts of bond portfolios, `account_id = "bond:" + portfolio_id`): a request without `account_id` returns only the caller's own accounts; with `account_id` the caller's own or a readable public one (staff accounts are `visibility public`, read-only for others). A `bond` snapshot carries `owner` instead of `readonly`: `{}` for the caller's own account, `{name, tier}` of the owner (null when unknown) for somebody else's public one; broker and virtual snapshots carry `readonly` and no `owner`. The snapshot is filled from the account log: `cash[]` per currency, `equity` in the base currency (cash + market value), `tradable: true`, `status: ok`, positions carry `instrument_key` and `accrued_int`. The push for `bond` is event-driven (after `cash` / `set`, an income credit, a composition change), like the virtual account. A request carrying `items`/`default_account_id` or a response/push carrying request-only fields is invalid.
     """
 
     channel: Literal["account"]
@@ -586,7 +586,8 @@ class AccountV2Snapshot(TypedDict):
     bf_id: AccountV2BfId
     account_id: AccountV2AccountId
     tradable: bool
-    readonly: bool
+    readonly: NotRequired[bool]
+    owner: NotRequired[Owner]
     status: Literal["ok", "stale", "error"]
     equity: str | None
     cash: list[PayloadsBrokerAccountsCashBalance]
@@ -1066,7 +1067,7 @@ class AfbwsBondsChannelV1PortfolioRef(TypedDict):
     visibility: AfbwsBondsChannelV1Visibility
     icon_id: str | None
     icon_color: AfbwsBondsChannelV1FavoriteColor | None
-    own: bool
+    owner: Owner1
     instrument_keys: list[AfbwsCommonV1InstrumentKey]
     account_id: NotRequired[str | None]
 
@@ -1414,6 +1415,22 @@ class AfbwsBondsChannelV1Signals(TypedDict):
     items: NotRequired[list[AfbwsBondsChannelV1Signal]]
 
 
+AfbwsBondsChannelV1Root: TypeAlias = (
+    AfbwsBondsChannelV1Search
+    | AfbwsBondsChannelV1BondMsg
+    | AfbwsBondsChannelV1Portfolios
+    | AfbwsBondsChannelV1Portfolio
+    | AfbwsBondsChannelV1PortfoliosSet
+    | AfbwsBondsChannelV1Signals
+    | AfbwsBondsChannelV1Events
+    | AfbwsBondsChannelV1Screener
+    | AfbwsBondsChannelV1Emitter
+    | AfbwsBondsChannelV1Rates
+    | AfbwsBondsChannelV1RatesSet
+    | AfbwsBondsChannelV1Error
+)
+
+
 class AfbwsBondsChannelV1Totals(TypedDict):
     """
     Portfolio totals; each figure is null when it cannot be computed.
@@ -1424,6 +1441,7 @@ class AfbwsBondsChannelV1Totals(TypedDict):
     received_rub: float | None
     xirr: float | None
     ytm: float | None
+    current_yield: float | None
     duration_days: int | None
     annual_coupons_rub: float | None
 
@@ -1440,50 +1458,6 @@ class AfbwsBondsChannelV1Trade(TypedDict):
     price_pct: float
     accrued_int: NotRequired[float]
     commission: NotRequired[float]
-
-
-class AfbwsBondsChannelV1TradeRejection(TypedDict):
-    """
-    A refused journal entry of `trades.set` (`validation_error`, `forbidden`, `not_found`). DEPRECATED operation: the backend refuses every row with `reason: deprecated`.
-    """
-
-    trade_id: str
-    code: AfbwsCommonV1ErrorCode
-    message: str
-    reason: NotRequired[Literal["deprecated"]]
-
-
-class AfbwsBondsChannelV1TradesSet(TypedDict):
-    """
-    DEPRECATED: the journal is replaced by the portfolio virtual account (afbws.account.set.v2 / afbws.account.cash.v2); the backend refuses ALL rows (`rejected[]` with `reason: deprecated`) and changes nothing. The operation stays in the schema for compatibility; removing it is a MAJOR change, only by the owner's decision. Request: `portfolio_id` and `upsert` (entries to add or change by `trade_id`) and/or `remove` (entry ids). Only for a PERSONAL portfolio of the caller: a visible public portfolio is `forbidden` (public portfolios hold no purchases), an unknown or foreign personal one is `not_found`. A purchase of a bond that is not in the portfolio composition adds the bond to the composition (at the end) in the same operation. Journal checks: a sale does not exceed the balance on the date; `trade_date` is not later than today and not earlier than the bond's issue date; the instrument key exists (a `category=default` bond is allowed in a personal portfolio). Response: the whole journal in `trades`, the actual composition in `instrument_keys` and the refused entries in `rejected`. When the composition grew, the other connections of the owner receive a `portfolios` push.
-    """
-
-    channel: Literal["bonds"]
-    schema: Literal["afbws.bonds.trades.set.v1"]
-    request_id: AfbwsCommonV1RequestId
-    portfolio_id: NotRequired[str]
-    upsert: NotRequired[list[AfbwsBondsChannelV1Trade]]
-    remove: NotRequired[list[RemoveItem]]
-    trades: NotRequired[list[AfbwsBondsChannelV1Trade]]
-    rejected: NotRequired[list[AfbwsBondsChannelV1TradeRejection]]
-    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
-
-
-AfbwsBondsChannelV1Root: TypeAlias = (
-    AfbwsBondsChannelV1Search
-    | AfbwsBondsChannelV1BondMsg
-    | AfbwsBondsChannelV1Portfolios
-    | AfbwsBondsChannelV1Portfolio
-    | AfbwsBondsChannelV1PortfoliosSet
-    | AfbwsBondsChannelV1TradesSet
-    | AfbwsBondsChannelV1Signals
-    | AfbwsBondsChannelV1Events
-    | AfbwsBondsChannelV1Screener
-    | AfbwsBondsChannelV1Emitter
-    | AfbwsBondsChannelV1Rates
-    | AfbwsBondsChannelV1RatesSet
-    | AfbwsBondsChannelV1Error
-)
 
 
 AfbwsBondsChannelV1Visibility: TypeAlias = Literal[
@@ -5878,6 +5852,24 @@ class OrderFilledPayload(TypedDict):
     role: str
     side: str
     status: str
+
+
+class Owner(TypedDict):
+    """
+    `bf_id: bond` only (required there, forbidden for other accounts). Owner of the portfolio account. An EMPTY object `{}` means the account is the caller's own. For a public account of somebody else (read-only for the caller) `name` and `tier` describe the owner; `null` means the owner is unknown.
+    """
+
+    name: NotRequired[str | None]
+    tier: NotRequired[str | None]
+
+
+class Owner1(TypedDict):
+    """
+    Owner of the portfolio. An EMPTY object `{}` means the portfolio is the caller's own (personal, or public of any visibility created by the caller). For a public portfolio of somebody else (read-only for the caller; its composition can be added to one's own portfolio via `portfolios.set`) `name` and `tier` describe the owner; `null` means the owner is unknown.
+    """
+
+    name: NotRequired[str | None]
+    tier: NotRequired[str | None]
 
 
 class Participants(TypedDict):
