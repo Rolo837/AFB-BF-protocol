@@ -48,7 +48,7 @@ def _invalid(validator, message):
 
 def test_account_v2_one_id_per_message():
     schema = json.loads((_ROOT / "spec" / "schemas" / "afbws" / "account.channel.v2.json").read_text())
-    ops = {"list", "orders", "events", "cash", "set", "ledger", "settings", "error"}
+    ops = {"list", "orders", "events", "cash", "set", "reconcile", "ledger", "settings", "error"}
     assert ops <= set(schema["$defs"])
     stale = {"getRequest", "getResponse", "listRequest", "listResponse", "ordersRequest", "ordersResponse",
              "eventsRequest", "eventsResponse", "errorResponse", "snapshotPush", "ordersPush"}
@@ -220,6 +220,31 @@ def test_account_v2_set(registry):
     _invalid(v, _m("set", request_id="r", targets=req["targets"]))
 
 
+def test_account_v2_reconcile(registry):
+    v = _v("reconcile", registry)
+    pos = {"instrument_key": _KEY, "quantity": 90, "avg_price": "965.50"}
+    v.validate(_m("reconcile", request_id="r", account_id="bond:p-1", positions=[pos]))
+    v.validate(_m("reconcile", request_id="r", account_id="bond:p-1", cash="100.00"))
+    v.validate(_m("reconcile", request_id="r", account_id="bond:p-1", positions=[{"instrument_key": _KEY, "quantity": 0}], cash="0"))
+    v.validate(_m("reconcile", request_id="r", account_id="a", positions=[{**pos, "accrued_int": None}]))
+    v.validate(_m("reconcile", request_id="r", item=_BOND_SNAP, rejected=[]))
+    for reason in ("no_fx", "not_in_set", "not_supported", "invalid_value", "forbidden"):
+        v.validate(_m("reconcile", request_id="r", item=_BOND_SNAP, rejected=[{"instrument_key": _KEY, "reason": reason}]))
+    _invalid(v, _m("reconcile", request_id="r", item=_BOND_SNAP, rejected=[{"instrument_key": _KEY, "reason": "no_last_price"}]))
+    _invalid(v, _m("reconcile", request_id="r", item=_BOND_SNAP))  # response needs rejected
+    _invalid(v, _m("reconcile", request_id="r", account_id="a"))  # neither positions nor cash
+    _invalid(v, _m("reconcile", request_id="r", account_id="a", positions=[]))
+    _invalid(v, _m("reconcile", request_id="r", account_id="a", positions=[{"instrument_key": _KEY, "quantity": -1}]))
+    _invalid(v, _m("reconcile", request_id="r", account_id="a", positions=[{**pos, "avg_price": 965.5}]))  # money is a string
+    _invalid(v, _m("reconcile", request_id="r", account_id="a", cash=100))
+    _invalid(v, _m("reconcile", request_id="r", account_id="a", positions=[{**pos, "x": 1}]))
+    _invalid(v, _m("reconcile", request_id="r", account_id="a", positions=[pos] * 201))
+    _invalid(v, _m("reconcile", request_id="r", positions=[pos]))
+    _invalid(v, _m("reconcile", request_id="r", item=_BOND_SNAP, rejected=[], cash="1"))  # request field in a response
+    for name in ("request", "response"):
+        v.validate(json.loads((_EXAMPLES / f"reconcile.{name}.json").read_text()))
+
+
 def test_account_v2_ledger(registry):
     v = _v("ledger", registry)
     v.validate(_m("ledger", request_id="r", account_id="a"))
@@ -265,3 +290,4 @@ def test_account_v2_root_dispatch_new_ops(registry):
     root.validate(_m("ledger", request_id="r", account_id="a"))
     root.validate(_m("settings", request_id="r"))
     root.validate(_m("set", request_id="r", item=_BOND_SNAP, rejected=[]))
+    root.validate(_m("reconcile", request_id="r", item=_BOND_SNAP, rejected=[]))

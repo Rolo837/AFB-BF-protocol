@@ -10,6 +10,7 @@
 
 ### Added
 
+- `afbws.account.reconcile.v2` (канал `account`, счёт `bond`): сверка с реальным состоянием — запрос с абсолютными `positions[] {instrument_key, quantity, avg_price?, accrued_int?}` и/или `cash` (остаток денег в базовой валюте), ответ `item` + `rejected[]` (причины `no_fx`, `not_in_set`, `not_supported`, `invalid_value`, `forbidden`); в журнале `accountOp` kind `reconcile` описан (позиция: новое количество и средняя цена при `amount=0`; деньги: `amount` = новый остаток − прежний). Примеры `reconcile.request.json`/`reconcile.response.json`.
 ### Changed
 
 ### Fixed

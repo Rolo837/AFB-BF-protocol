@@ -1,0 +1,18 @@
+{
+  "channel": "account",
+  "schema": "afbws.account.reconcile.v2",
+  "request_id": "req-13",
+  "account_id": "bond:p-1",
+  "positions": [
+    {
+      "instrument_key": "MISX:TQOB:SU26238RMFS4",
+      "quantity": 90,
+      "avg_price": "965.50"
+    },
+    {
+      "instrument_key": "MISX:TQCB:RU000A10A3Z4",
+      "quantity": 0
+    }
+  ],
+  "cash": "100000.00"
+}
