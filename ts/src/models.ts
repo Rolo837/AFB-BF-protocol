@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: c84fec5b71f347168cb9a7d5fb3bd3aa654e92b8ac94d539fc98746fc2f03c36
+ * source-hash: 7928ea0d082a43abb1642d96eea1f2d0105bf38eae2afcee1eb8d699c9e4f747
  */
 
 /**
@@ -5878,11 +5878,15 @@ export interface DealV2Item {
   execution_phase: DealExecutionPhase;
   bf_id: DealV2BfId;
   tradeplan_id: TradeplanId;
+  /**
+   * @deprecated
+   * Deprecated: a derived display value (the instrument's ticker), NOT an identifier; will be removed. Still always sent, for frontends that read it; the instrument is identified by `instrument_key` only.
+   */
   ticker: string;
   /**
    * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
    */
-  instrument_key?: string;
+  instrument_key: string;
   market?: 'stock' | 'futures' | 'currency';
   direction: 'long' | 'short';
   sizing?: DealSizing;
@@ -6029,19 +6033,30 @@ export interface DealTarget {
   account_id?: string;
 }
 /**
+ * Instrument of an object formed by AFB (deal `target.instrument`, a dataset.update record). IDENTITY is `instrument_key` alone (mandatory). The `exchange/board/ticker` triple is the VENUE ADDRESS, not an identity: BF cross-checks it against the instrument the broker returned for `broker_symbol` (`instrument_mismatch`) and it is part of `definition_hash`; `instrument_key` is NOT part of `definition_hash` and BF does not interpret it (BF code is unaware of the field and carries it through untouched).
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealInstrument".
  */
 export interface DealInstrument {
+  /**
+   * Venue address: MIC as in the AFB catalog (e.g. `MISX`).
+   */
   exchange: string;
+  /**
+   * Venue address: board; may be an empty string where the venue has none.
+   */
   board: string;
+  /**
+   * Venue address: ticker. Case-sensitive, never normalized. Not an identifier.
+   */
   ticker: string;
   /**
    * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
    */
-  instrument_key?: string;
+  instrument_key: string;
   /**
-   * Opaque broker locator of the instrument, e.g. `TICKER@MIC`. AFB takes it from its listing_link (finam.db); BF resolves the instrument ONLY by it (no BF-side catalog). Not part of the instrument identity: amend identity is decided by instrument_key (or exchange/board/ticker), see amend_rules. Absent => BF rejects with instrument_unresolvable unless the deal binding already carries a symbol.
+   * Opaque broker locator of the instrument, e.g. `TICKER@MIC`. AFB takes it from its catalog (the instrument's address at the account's broker); BF resolves the instrument ONLY by it (no BF-side catalog). Not part of the instrument identity (that is `instrument_key`), see amend_rules. Absent => BF rejects with instrument_unresolvable unless the deal binding already carries a symbol.
    */
   broker_symbol?: string;
   market?: 'stock' | 'futures' | 'currency';
@@ -6130,11 +6145,15 @@ export interface DealV2Detail {
   execution_phase: DealExecutionPhase;
   bf_id: DealV2BfId;
   tradeplan_id: TradeplanId;
+  /**
+   * @deprecated
+   * Deprecated: a derived display value (the instrument's ticker), NOT an identifier; will be removed. Still always sent, for frontends that read it; the instrument is identified by `instrument_key` only.
+   */
   ticker: string;
   /**
    * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
    */
-  instrument_key?: string;
+  instrument_key: string;
   market?: 'stock' | 'futures' | 'currency';
   direction: 'long' | 'short';
   sizing?: DealSizing;
@@ -6810,7 +6829,7 @@ export interface DealV2EventPositionOpened {
  */
 export interface DealV2PositionData {
   /**
-   * Instrument symbol of the position (the key of the client's per-deal position map): the broker symbol, else the bare ticker.
+   * Symbol of the position for display/matching (the key of the client's per-deal position map): the broker symbol (`TICKER@MIC`) for a broker account, the displayed instrument ticker for a virtual account. NOT an instrument identifier — the instrument is identified by the deal's `instrument_key`.
    */
   symbol: string;
   /**
@@ -6994,11 +7013,15 @@ export interface DealV2Summary {
   execution_phase: DealExecutionPhase;
   bf_id: DealV2BfId;
   tradeplan_id: TradeplanId;
+  /**
+   * @deprecated
+   * Deprecated: a derived display value (the instrument's ticker), NOT an identifier; will be removed. Still always sent, for frontends that read it; the instrument is identified by `instrument_key` only.
+   */
   ticker: string;
   /**
    * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
    */
-  instrument_key?: string;
+  instrument_key: string;
   market?: 'stock' | 'futures' | 'currency';
   direction: 'long' | 'short';
   sizing?: DealSizing;
@@ -8270,6 +8293,27 @@ export interface DealSource {
   draft_id?: string;
 }
 /**
+ * Venue address of an instrument WITHOUT the catalog key: the `exchange/board/ticker` triple as a party that has no instrument catalog can state it. Used only where the object is formed by BF (BF has no catalog and does not know `instrument_key`) — today payloads/dataset.subscribe.json (bf2afb, reserved). The triple is an address, not an identity; AFB translates it into an `instrument_key` once, at the boundary. Objects formed by AFB use `#/$defs/instrument`, where the key is mandatory.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "CommonV1_InstrumentAddress".
+ */
+export interface CommonV1_InstrumentAddress {
+  /**
+   * Venue MIC as in the AFB catalog (e.g. `MISX`).
+   */
+  exchange: string;
+  /**
+   * Venue board; may be an empty string where the venue has none.
+   */
+  board: string;
+  /**
+   * Venue ticker. Case-sensitive, never normalized.
+   */
+  ticker: string;
+  market?: 'stock' | 'futures' | 'currency';
+}
+/**
  * Multi-entry / multi-exit deal. entry, stop_loss, take_profit are root-level lists; each element may carry an optional `percent` (decimal string) and an optional `logic` (`#/$defs/legJoin`) joining it to the PRECEDING element in the same list — see `legJoin` for the full grammar (groups/buckets, `and`/`or` precedence, `percent` placement). Sum of percents per bucket resolves to 100. The deal-level `direction` (long/short) is the single source of truth for position bias — entry legs no longer carry a per-leg `side`, which would let 'buy' and 'sell' legs coexist in the same deal with no defined semantics (a deal is one position, not a basket of unrelated orders). The broker-facing buy/sell of each leg is derived from `direction` and its role: long entry / short exit -> buy; short entry / long exit -> sell. Reuses order/sizing/target defs from common.v1.json; conditionNode is condition.v1.json's shared vocabulary (see that schema for the full price/indicator/dataset operator semantics) plus the wire-only `node_type` marker. Unlike afb.deal.v1 (fixed above/below/crosses_* /crossing vocabulary), afb.deal.v2 price conditions use condition.v1.json's full operator vocabulary — touch, above/below (inclusive level, no timeframe) and breakout/breakdown/crossing (closed-candle, requires timeframe) — or compare indicator/dataset expressions against a constant or (for indicator/dataset) against another expression of the same kind.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -8605,6 +8649,13 @@ export interface NotificationDealV1 {
   category: 'trigger' | 'order_placed' | 'order_executed' | 'position' | 'close';
   deal_id: string;
   bf_id?: string;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key: string;
+  /**
+   * Display name of the instrument's ticker (e.g. SBER, GDU6). Not an identifier: the instrument is identified by `instrument_key` only.
+   */
   ticker?: string;
   instrument?: {
     shortname?: string;
@@ -9221,10 +9272,28 @@ export interface DatasetSubscribePayload {
      * Same vocabulary as dataset.update.json#/properties/datasets/items/properties/dataset_id.
      */
     dataset_id: 'positions' | 'orders' | 'hhi' | 'trades';
-    instrument: DealInstrument;
+    instrument: CommonV1_InstrumentAddress1;
     [k: string]: unknown;
   }[];
   [k: string]: unknown;
+}
+/**
+ * Venue address (exchange/board/ticker) without the catalog key: this message is formed by BF, which has no instrument catalog and does not know `instrument_key`.
+ */
+export interface CommonV1_InstrumentAddress1 {
+  /**
+   * Venue MIC as in the AFB catalog (e.g. `MISX`).
+   */
+  exchange: string;
+  /**
+   * Venue board; may be an empty string where the venue has none.
+   */
+  board: string;
+  /**
+   * Venue ticker. Case-sensitive, never normalized.
+   */
+  ticker: string;
+  market?: 'stock' | 'futures' | 'currency';
 }
 /**
  * AFB-pushed feed of MOEX/Algopack dataset snapshots (positions/orders/hhi/trades) so BF can evaluate `condition.v1.json`'s dataset operator itself — BF has no exchange/Algopack access of its own and never will (the Algopack token is IP-bound to AFB). SNAPSHOT SEMANTICS: `datasets` is the FULL current set of records this AFB wants this BF to hold, never a diff — on receipt BF REPLACES its entire dataset cache for the connection with this array (replace-all, not merge); a record absent from a later dataset.update is gone, not merely unchanged. An empty `datasets` array is valid and means 'nothing needed' (clears the cache). AFB derives which (dataset_id, instrument) pairs are needed from the dataset conditions on deals currently published to this BF (every leg — entry/stop_loss/take_profit, both left and right sides of the comparison) and resolves exchange-side keying itself (e.g. a futures position dataset is keyed by the underlying asset, not the contract code) — BF must not attempt to re-derive or re-key this.
@@ -9267,18 +9336,27 @@ export interface DatasetUpdatePayload {
   [k: string]: unknown;
 }
 /**
- * Deal-level instrument this record is keyed by. AFB has already resolved exchange-side nomenclature quirks (e.g. positions for a futures instrument are keyed by the underlying asset on MOEX, not the contract ticker) — BF matches condition legs to records by this field as-is.
+ * Instrument of an object formed by AFB (deal `target.instrument`, a dataset.update record). IDENTITY is `instrument_key` alone (mandatory). The `exchange/board/ticker` triple is the VENUE ADDRESS, not an identity: BF cross-checks it against the instrument the broker returned for `broker_symbol` (`instrument_mismatch`) and it is part of `definition_hash`; `instrument_key` is NOT part of `definition_hash` and BF does not interpret it (BF code is unaware of the field and carries it through untouched).
  */
 export interface DealInstrument1 {
+  /**
+   * Venue address: MIC as in the AFB catalog (e.g. `MISX`).
+   */
   exchange: string;
+  /**
+   * Venue address: board; may be an empty string where the venue has none.
+   */
   board: string;
+  /**
+   * Venue address: ticker. Case-sensitive, never normalized. Not an identifier.
+   */
   ticker: string;
   /**
    * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
    */
-  instrument_key?: string;
+  instrument_key: string;
   /**
-   * Opaque broker locator of the instrument, e.g. `TICKER@MIC`. AFB takes it from its listing_link (finam.db); BF resolves the instrument ONLY by it (no BF-side catalog). Not part of the instrument identity: amend identity is decided by instrument_key (or exchange/board/ticker), see amend_rules. Absent => BF rejects with instrument_unresolvable unless the deal binding already carries a symbol.
+   * Opaque broker locator of the instrument, e.g. `TICKER@MIC`. AFB takes it from its catalog (the instrument's address at the account's broker); BF resolves the instrument ONLY by it (no BF-side catalog). Not part of the instrument identity (that is `instrument_key`), see amend_rules. Absent => BF rejects with instrument_unresolvable unless the deal binding already carries a symbol.
    */
   broker_symbol?: string;
   market?: 'stock' | 'futures' | 'currency';

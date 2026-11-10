@@ -33,12 +33,13 @@ _COND = {"node_type": "event", "op": "above", "left": {"source": "price", "field
          "right": {"const": "100"}}
 _DETAIL = {
     "deal_id": "d1", "revision": 2, "status": "active", "execution_phase": "holding", "bf_id": "bf1",
-    "tradeplan_id": "tp1", "ticker": "SBER", "direction": "long",
+    "tradeplan_id": "tp1", "ticker": "SBER", "instrument_key": "MISX:TQBR:SBER", "direction": "long",
     "created_at": "2026-10-21T10:00:00+03:00", "updated_at": "2026-10-21T10:00:00+03:00",
     "deal": {
         "schema": "afb.deal.v2", "deal_id": "d1", "revision": 2,
         "target": {"bf_id": "bf1", "broker": "finam",
-                   "instrument": {"exchange": "MOEX", "board": "TQBR", "ticker": "SBER"}},
+                   "instrument": {"exchange": "MISX", "board": "TQBR", "ticker": "SBER",
+                                  "instrument_key": "MISX:TQBR:SBER"}},
         "direction": "long", "entry": [{"condition": _COND}], "sizing": {"mode": "lots", "value": "1"},
         "source": {"tradeplan_id": "tp1"},
     },
@@ -171,7 +172,7 @@ def test_deal_v2_shared_enums_match_deal_state():
 def test_deal_v2_summary_and_detail(registry):
     v = _v("dealSummary", registry)
     v.validate(_SUMMARY)
-    v.validate(_with(_SUMMARY, instrument_key="MISX:TQBR:SBER", market="stock",
+    v.validate(_with(_SUMMARY, market="stock",
                      broker_sizing={"lots": 1, "required_cash": "100", "resolved_lots": 1},
                      position={"qty": 1, "avg_price": "1", "as_of": "t"},
                      realized_pnl={"value": None, "degraded": "missing_price"}))
@@ -186,8 +187,9 @@ def test_deal_v2_summary_and_detail(registry):
                   "broker_instrument", "observed", "deal"):
         _invalid(v, _with(_SUMMARY, **{field: {}}))
     for field in ("deal_id", "revision", "status", "execution_phase", "bf_id", "tradeplan_id", "ticker",
-                  "direction", "created_at", "updated_at"):
+                  "instrument_key", "direction", "created_at", "updated_at"):
         _invalid(v, _with(_SUMMARY, **{field: None}))
+    _invalid(v, _with(_SUMMARY, instrument_key=""))
     _invalid(v, _with(_SUMMARY, realized_pnl={"value": "1", "degraded": "missing_price"}))
     d = _v("dealDetail", registry)
     d.validate(_DETAIL)
@@ -195,6 +197,27 @@ def test_deal_v2_summary_and_detail(registry):
     _invalid(d, _with(_DETAIL, editable_fields=None))
     _invalid(d, _with(_DETAIL, editable_fields=["instrument"]))
     _invalid(d, _with(_DETAIL, source_refs={}))
+    _invalid(d, _with(_DETAIL, instrument_key=None))
+    # the projected deal's target.instrument carries the key too (common.v1.json#/$defs/instrument)
+    no_key = copy.deepcopy(_DETAIL)
+    del no_key["deal"]["target"]["instrument"]["instrument_key"]
+    _invalid(d, no_key)
+
+
+def test_deal_v2_instrument_key_mandatory_ticker_deprecated():
+    """Three deal shapes (summary / detail / amend deal): `instrument_key` is the
+    identifier and mandatory; `ticker` is a deprecated display value that is
+    still required on output (older frontends read it; removal is a later stage)."""
+    defs = _schema()["$defs"]
+    shapes = [name for name, d in defs.items()
+              if isinstance(d, dict) and {"ticker", "instrument_key"} <= set(d.get("properties", {}))]
+    assert len(shapes) == 3, shapes
+    for name in shapes:
+        d = defs[name]
+        assert "instrument_key" in d["required"], name
+        assert "ticker" in d["required"], name
+        assert d["properties"]["ticker"].get("deprecated") is True, name
+        assert "deprecated" not in d["properties"]["instrument_key"], name
 
 
 def test_deal_v2_item(registry):

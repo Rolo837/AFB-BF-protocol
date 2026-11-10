@@ -18,7 +18,7 @@ def _v(name, registry):
 def _deal():
     return {
         "schema": "afb.deal.v2", "deal_id": "deal-1", "revision": 1,
-        "target": {"bf_id": "bf-1", "broker": "finam", "instrument": {"exchange": "MISX", "board": "TQBR", "ticker": "SBER", "market": "stock"}},
+        "target": {"bf_id": "bf-1", "broker": "finam", "instrument": {"exchange": "MISX", "board": "TQBR", "ticker": "SBER", "instrument_key": "MISX:TQBR:SBER", "market": "stock"}},
         "direction": "long",
         "entry": [{"condition": {"node_type": "event", "id": "e1", "left": {"source": "price"}, "right": {"const": "300"}, "op": "touch"}}],
         "sizing": {"mode": "lots", "value": "1"},

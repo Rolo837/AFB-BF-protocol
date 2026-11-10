@@ -4,6 +4,7 @@
   "category": "order_executed",
   "deal_id": "deal-0001",
   "bf_id": "bf-main",
+  "instrument_key": "MISX:TQBR:SBER",
   "ticker": "SBER",
   "instrument": {
     "shortname": "Сбербанк",

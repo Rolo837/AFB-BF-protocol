@@ -165,6 +165,8 @@ stateDiagram-v2
 
 **Инструмент и `broker_symbol`.** BF не держит собственного каталога инструментов: он находит инструмент у брокера **только** по непрозрачному локатору — `binding.symbol` либо `target.instrument.broker_symbol` (например `SBER@MISX`; AFB берёт его из своей связи листинга `listing_link`). `exchange`/`board`/`ticker` сделки используются лишь для сверки с найденным активом (пустой `board` у брокера — штатно, сравниваются только непустые части). `broker_symbol` — необязательное поле, но без него и без `binding.symbol` публикация отклоняется (`instrument_unresolvable`). В идентичность инструмента для `deal.amend` `broker_symbol` **не входит** (её определяет `instrument_key`, а без него — `exchange`/`board`/`ticker`/`market`).
 
+**`target.instrument`: идентичность и адрес площадки.** Идентичность инструмента — `instrument_key` (`common.v1.json#/$defs/instrument`, обязателен в объекте, который формирует AFB: `deal.publish`/`deal.amend`/`broker.resolve_instrument` через `deal.v2 target` и записи `dataset.update`). Тройка `exchange`/`board`/`ticker` — **адрес площадки**: по ней BF сверяет найденный по `broker_symbol` актив (`instrument_mismatch`), она входит в `definition_hash`; тикер — не идентификатор, регистр не нормализуется. Идентификаторы площадки — как в каталоге AFB (`exchange: MISX`, не `MOEX`). BF `instrument_key` не интерпретирует и не требует: код BF его не знает и принимает сделку с этим полем как есть. Сообщения, которые формирует сам BF (`dataset.subscribe`), ссылаются на отдельный `common.v1.json#/$defs/instrumentAddress` — тройка без ключа.
+
 **BF → AFB (успех):** `deal.accepted`
 ```json
 {
@@ -922,6 +924,7 @@ MQTT топик `<topic_base>/deals/<user_id>` при событиях жизн�
 
 | Поле | Смысл |
 |---|---|
+| `instrument_key` | **обязательное**; идентичность инструмента сделки. `ticker` — только отображаемое имя, не идентификатор |
 | `at` | время события BF (`market_now_iso()`), прокинутое из payload исходного события `order.*`/`position.*`/`deal.*` — опционально, может отсутствовать у старых BF |
 | `realized_pnl` | финансовый результат, заполняется для `category: close` |
 | `timestamp` | добавляется `MQTTPublisher` при публикации (ISO-8601) |
@@ -1204,7 +1207,7 @@ Resync по ревизии и статусу не показывает, что �
 ### `definition_hash` — определение сделки (владелец AFB)
 
 - Считает **только AFB**: SHA-256 (hex, 64 символа) от канонического JSON (`afb_bf_protocol.envelope.canonical_json`, десятичные строки в нормальной форме) allowlist-подмножества определения сделки. Передаётся в payload `deal.publish`, `deal.amend` и в элемент `deal.resync` (рядом с `deal`).
-- **В хэш входит:** `revision`, `direction`, `target.bf_id`, `target.broker`, `target.instrument.{exchange, board, ticker, market}`, для `entry`/`stop_loss`/`take_profit` у каждой ноги `condition`, `percent`, `logic`; `sizing`; `execution_policy` в том виде, как его задал AFB (без дефолтов BF).
+- **В хэш входит:** `revision`, `direction`, `target.bf_id`, `target.broker`, `target.instrument.{exchange, board, ticker, market}` (адрес площадки; `instrument_key` **не входит**), для `entry`/`stop_loss`/`take_profit` у каждой ноги `condition`, `percent`, `logic`; `sizing`; `execution_policy` в том виде, как его задал AFB (без дефолтов BF).
 - **Не входит (AFB-only или BF-обогащение):** `owner`, `source` сделки и `source` ноги, `archive_reason`, `schema`; вся «обвязка» состояния AFB (`source_refs` с почтовыми уведомлениями, `afb_pnl`, `status_history`, `event_journal`, `orders`, `positions`, `observed`); всё, что пишет BF (`broker_instrument`, `broker_sizing`, `binding`, `conditions`, `validation`, `execution_legs`, цена/шаг/`broker_symbol`/`instrument_key` в `target.instrument`).
 - BF **хранит присланное значение как есть и не пересчитывает**: он обогащает тело сделки, и свой хэш расходился бы с AFB без потери сообщений. В `session.resync_request` BF возвращает последнее принятое значение; расхождение при равных ревизиях — «потеряна/откатана правка», лечится существующими правилами (`resync_deal`, AFB авторитетен).
 - Состав списка нормативен для AFB; BF его не использует.

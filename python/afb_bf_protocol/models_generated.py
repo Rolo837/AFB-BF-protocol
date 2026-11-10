@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: c84fec5b71f347168cb9a7d5fb3bd3aa654e92b8ac94d539fc98746fc2f03c36
+# source-hash: 7928ea0d082a43abb1642d96eea1f2d0105bf38eae2afcee1eb8d699c9e4f747
 
 from __future__ import annotations
 
@@ -3070,6 +3070,17 @@ class ChangedItem(TypedDict):
 Column: TypeAlias = str
 
 
+class CommonV1InstrumentAddress(TypedDict):
+    """
+    Venue address of an instrument WITHOUT the catalog key: the `exchange/board/ticker` triple as a party that has no instrument catalog can state it. Used only where the object is formed by BF (BF has no catalog and does not know `instrument_key`) — today payloads/dataset.subscribe.json (bf2afb, reserved). The triple is an address, not an identity; AFB translates it into an `instrument_key` once, at the boundary. Objects formed by AFB use `#/$defs/instrument`, where the key is mandatory.
+    """
+
+    exchange: str
+    board: str
+    ticker: str
+    market: NotRequired[Literal["stock", "futures", "currency"]]
+
+
 CommonV1Root: TypeAlias = Any
 
 
@@ -3626,10 +3637,14 @@ class DealExecutionPolicy(TypedDict):
 
 
 class DealInstrument(TypedDict):
+    """
+    Instrument of an object formed by AFB (deal `target.instrument`, a dataset.update record). IDENTITY is `instrument_key` alone (mandatory). The `exchange/board/ticker` triple is the VENUE ADDRESS, not an identity: BF cross-checks it against the instrument the broker returned for `broker_symbol` (`instrument_mismatch`) and it is part of `definition_hash`; `instrument_key` is NOT part of `definition_hash` and BF does not interpret it (BF code is unaware of the field and carries it through untouched).
+    """
+
     exchange: str
     board: str
     ticker: str
-    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    instrument_key: AfbwsCommonV1InstrumentKey
     broker_symbol: NotRequired[str]
     market: NotRequired[Literal["stock", "futures", "currency"]]
     price_step: NotRequired[DecimalString]
@@ -4104,7 +4119,7 @@ class DealV2Detail(TypedDict):
     bf_id: DealV2BfId
     tradeplan_id: TradeplanId
     ticker: str
-    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    instrument_key: AfbwsCommonV1InstrumentKey
     market: NotRequired[Literal["stock", "futures", "currency"]]
     direction: Literal["long", "short"]
     sizing: NotRequired[DealSizing]
@@ -4357,7 +4372,7 @@ class DealV2Item(TypedDict):
     bf_id: DealV2BfId
     tradeplan_id: TradeplanId
     ticker: str
-    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    instrument_key: AfbwsCommonV1InstrumentKey
     market: NotRequired[Literal["stock", "futures", "currency"]]
     direction: Literal["long", "short"]
     sizing: NotRequired[DealSizing]
@@ -4689,7 +4704,7 @@ class DealV2Summary(TypedDict):
     bf_id: DealV2BfId
     tradeplan_id: TradeplanId
     ticker: str
-    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    instrument_key: AfbwsCommonV1InstrumentKey
     market: NotRequired[Literal["stock", "futures", "currency"]]
     direction: Literal["long", "short"]
     sizing: NotRequired[DealSizing]
@@ -5751,6 +5766,7 @@ class NotificationDealV1(TypedDict):
     category: Literal["trigger", "order_placed", "order_executed", "position", "close"]
     deal_id: str
     bf_id: NotRequired[str]
+    instrument_key: AfbwsCommonV1InstrumentKey
     ticker: NotRequired[str]
     instrument: NotRequired[Instrument]
     direction: NotRequired[Literal["long", "short"]]
@@ -6246,7 +6262,7 @@ class Sort(TypedDict):
 
 class Subscription(TypedDict):
     dataset_id: Literal["positions", "orders", "hhi", "trades"]
-    instrument: DealInstrument
+    instrument: CommonV1InstrumentAddress
 
 
 SupportItem: TypeAlias = str

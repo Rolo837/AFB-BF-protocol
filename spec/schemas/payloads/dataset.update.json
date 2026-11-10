@@ -19,7 +19,7 @@
           },
           "instrument": {
             "$ref": "../common.v1.json#/$defs/instrument",
-            "description": "Deal-level instrument this record is keyed by. AFB has already resolved exchange-side nomenclature quirks (e.g. positions for a futures instrument are keyed by the underlying asset on MOEX, not the contract ticker) — BF matches condition legs to records by this field as-is."
+            "description": "Deal-level instrument this record is keyed by — the same object as the deal's `target.instrument` (venue triple + mandatory `instrument_key`; the key is the identity, BF itself matches records by `ticker` and ignores the key). AFB has already resolved exchange-side nomenclature quirks (e.g. positions for a futures instrument are keyed by the underlying asset on MOEX, not the contract ticker) — BF matches condition legs to records by this field as-is."
           },
           "as_of": {
             "type": "string",
