@@ -238,7 +238,7 @@ export type AfbwsAccountChannelV2_Set = {
   rejected?: {
     instrument_key: AfbwsCommonV1_InstrumentKey;
     /**
-     * no_last_price: no LAST MOEX today; no_fx: no exchange rate to convert the instrument currency to the base one; insufficient_cash: not enough money for a buy; not_in_set: the instrument is not in the portfolio composition; not_supported: instrument class has no provider; forbidden: not allowed for the caller.
+     * no_last_price: no known LAST MOEX (the last known one, not necessarily of today); no_fx: no exchange rate to convert the instrument currency to the base one; insufficient_cash: not enough money for a buy; not_in_set: the instrument is not in the portfolio composition; not_supported: instrument class has no provider; forbidden: not allowed for the caller.
      */
     reason: 'no_last_price' | 'no_fx' | 'insufficient_cash' | 'not_in_set' | 'not_supported' | 'forbidden';
   }[];
@@ -4314,7 +4314,7 @@ export interface AfbwsBondsChannelV1_CalendarMonth {
   items_count: number;
 }
 /**
- * A refused portfolio of `portfolios.set` (`forbidden`, `validation_error`, `not_found`). `reason` (optional, refines `code`): `no_last_price` / `no_fx` — the removal of a bond from the composition or the deletion of the portfolio is refused because the auto-sale of the position at LAST MOEX is impossible (no LAST today / no exchange rate for the conversion).
+ * A refused portfolio of `portfolios.set` (`forbidden`, `validation_error`, `not_found`). `reason` (optional, refines `code`): `no_last_price` / `no_fx` — the removal of a bond from the composition is refused because the auto-sale of the position at LAST MOEX is impossible (no known LAST / no exchange rate for the conversion). The deletion of a portfolio is unconditional: positions are not sold and prices are not needed.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_PortfolioRejection".
@@ -4330,7 +4330,7 @@ export interface AfbwsBondsChannelV1_PortfolioRejection {
    */
   message: string;
   /**
-   * Machine-readable reason, optional. no_last_price: no LAST MOEX today for a position being auto-sold; no_fx: no exchange rate for the conversion. Open for additive extension.
+   * Machine-readable reason, optional. no_last_price: no known LAST MOEX (the last known one, not necessarily of today) for a position being auto-sold; no_fx: no exchange rate for the conversion. Open for additive extension.
    */
   reason?: 'no_last_price' | 'no_fx';
 }

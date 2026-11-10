@@ -740,7 +740,7 @@
                   "not_supported",
                   "forbidden"
                 ],
-                "description": "no_last_price: no LAST MOEX today; no_fx: no exchange rate to convert the instrument currency to the base one; insufficient_cash: not enough money for a buy; not_in_set: the instrument is not in the portfolio composition; not_supported: instrument class has no provider; forbidden: not allowed for the caller."
+                "description": "no_last_price: no known LAST MOEX (the last known one, not necessarily of today); no_fx: no exchange rate to convert the instrument currency to the base one; insufficient_cash: not enough money for a buy; not_in_set: the instrument is not in the portfolio composition; not_supported: instrument class has no provider; forbidden: not allowed for the caller."
               }
             }
           },

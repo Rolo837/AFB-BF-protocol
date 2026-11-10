@@ -1089,7 +1089,7 @@ class AfbwsBondsChannelV1PortfolioRef(TypedDict):
 
 class AfbwsBondsChannelV1PortfolioRejection(TypedDict):
     """
-    A refused portfolio of `portfolios.set` (`forbidden`, `validation_error`, `not_found`). `reason` (optional, refines `code`): `no_last_price` / `no_fx` — the removal of a bond from the composition or the deletion of the portfolio is refused because the auto-sale of the position at LAST MOEX is impossible (no LAST today / no exchange rate for the conversion).
+    A refused portfolio of `portfolios.set` (`forbidden`, `validation_error`, `not_found`). `reason` (optional, refines `code`): `no_last_price` / `no_fx` — the removal of a bond from the composition is refused because the auto-sale of the position at LAST MOEX is impossible (no known LAST / no exchange rate for the conversion). The deletion of a portfolio is unconditional: positions are not sold and prices are not needed.
     """
 
     id: str
