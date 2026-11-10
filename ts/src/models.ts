@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 7928ea0d082a43abb1642d96eea1f2d0105bf38eae2afcee1eb8d699c9e4f747
+ * source-hash: e6368d57adcfbc91844bff7c31fd1842886e6f43f687b162a5e11454b955a7bb
  */
 
 /**
@@ -680,7 +680,7 @@ export type AfbwsBondsChannelV1_RatingGroup =
   | 'C'
   | 'D';
 /**
- * Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests. No analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
+ * Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests — and `totals`: the portfolio totals (see the property) for the portfolios with an account. No payment list and no per-position analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) and whenever the totals change (a market snapshot, an account operation) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Portfolios".
@@ -699,6 +699,12 @@ export type AfbwsBondsChannelV1_Portfolios = {
    * Response and push. Bond rows of all compositions of `portfolios`, without duplicates.
    */
   bonds?: AfbwsBondsChannelV1_BondRow[];
+  /**
+   * Response and push. Totals of the portfolios with an account, keyed by portfolio id (the same ids as in `portfolios`): invested amount, market value, payments received, weighted yields, duration, annual coupons. A portfolio without an account, without read access or without held positions has no key (the client shows no figures). No payment list is computed.
+   */
+  totals?: {
+    [k: string]: AfbwsBondsChannelV1_Totals;
+  };
 };
 /**
  * Who sees a portfolio; same semantics as afbws.instrument.channel.v2 visibility. `personal` — only its owner (any user with the `bonds` capability may create these). `guest`/`user`/`manager` — a PUBLIC (reference) portfolio visible to callers whose tier is at least that one; creating, changing or deleting a public portfolio and editing its journal is manager-only (`forbidden` otherwise).
@@ -745,7 +751,7 @@ export type AfbwsBondsChannelV1_Portfolio = {
    */
   payments?: AfbwsBondsChannelV1_Payment[];
   series?: AfbwsBondsChannelV1_Series;
-  totals?: AfbwsBondsChannelV1_Totals;
+  totals?: AfbwsBondsChannelV1_Totals1;
   /**
    * Response only. Assumptions behind the portfolio totals.
    */
@@ -799,6 +805,12 @@ export type AfbwsBondsChannelV1_PortfoliosSet = {
    * Response only. Bond rows of all compositions of `portfolios`, without duplicates.
    */
   bonds?: AfbwsBondsChannelV1_BondRow[];
+  /**
+   * Response only. Totals of the portfolios of the resulting list, as in `portfolios`.
+   */
+  totals?: {
+    [k: string]: AfbwsBondsChannelV1_Totals;
+  };
 };
 /**
  * Request: `days` (1..30, default 5) — how far back, `held_only` (default false) — only the caller's bonds. Response: `items`. Server push: new and strengthened signals WITHOUT `request_id` to the connections that requested the feed.
@@ -3925,6 +3937,42 @@ export interface AfbwsBondsChannelV1_PortfolioRef {
   account_id?: string | null;
 }
 /**
+ * Portfolio totals; each figure is null when it cannot be computed.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_Totals".
+ */
+export interface AfbwsBondsChannelV1_Totals {
+  /**
+   * Invested amount, rubles.
+   */
+  invested_rub: number | null;
+  /**
+   * Market value, rubles.
+   */
+  market_value_rub: number | null;
+  /**
+   * Payments received, rubles.
+   */
+  received_rub: number | null;
+  /**
+   * Market-value-weighted yield, percent per year.
+   */
+  ytm: number | null;
+  /**
+   * Market-value-weighted current yield of the held positions, percent per year (coupon over clean price); null when it cannot be computed.
+   */
+  current_yield: number | null;
+  /**
+   * Market-value-weighted duration, days.
+   */
+  duration_days: number | null;
+  /**
+   * Annual coupon income at the current balance, rubles.
+   */
+  annual_coupons_rub: number | null;
+}
+/**
  * A portfolio in a list: attributes and composition. No analytics.
  */
 export interface AfbwsBondsChannelV1_PortfolioRef1 {
@@ -4188,9 +4236,9 @@ export interface AfbwsBondsChannelV1_Series {
   rows: (number | string | null)[][];
 }
 /**
- * Response only.
+ * Portfolio totals; each figure is null when it cannot be computed.
  */
-export interface AfbwsBondsChannelV1_Totals {
+export interface AfbwsBondsChannelV1_Totals1 {
   /**
    * Invested amount, rubles.
    */
@@ -4203,10 +4251,6 @@ export interface AfbwsBondsChannelV1_Totals {
    * Payments received, rubles.
    */
   received_rub: number | null;
-  /**
-   * Actual portfolio return (XIRR), percent per year.
-   */
-  xirr: number | null;
   /**
    * Market-value-weighted yield, percent per year.
    */
@@ -4953,46 +4997,6 @@ export interface AfbwsBondsChannelV1_Series1 {
    * Each row has the same length and order as `columns`; a missing value is null (never NaN).
    */
   rows: (number | string | null)[][];
-}
-/**
- * Portfolio totals; each figure is null when it cannot be computed.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsBondsChannelV1_Totals".
- */
-export interface AfbwsBondsChannelV1_Totals1 {
-  /**
-   * Invested amount, rubles.
-   */
-  invested_rub: number | null;
-  /**
-   * Market value, rubles.
-   */
-  market_value_rub: number | null;
-  /**
-   * Payments received, rubles.
-   */
-  received_rub: number | null;
-  /**
-   * Actual portfolio return (XIRR), percent per year.
-   */
-  xirr: number | null;
-  /**
-   * Market-value-weighted yield, percent per year.
-   */
-  ytm: number | null;
-  /**
-   * Market-value-weighted current yield of the held positions, percent per year (coupon over clean price); null when it cannot be computed.
-   */
-  current_yield: number | null;
-  /**
-   * Market-value-weighted duration, days.
-   */
-  duration_days: number | null;
-  /**
-   * Annual coupon income at the current balance, rubles.
-   */
-  annual_coupons_rub: number | null;
 }
 /**
  * Numeric range filter; both bounds inclusive, each optional. A value of a bond that is null does not pass a range with any bound set.

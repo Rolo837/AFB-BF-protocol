@@ -192,15 +192,24 @@ def test_portfolios_list_request_response_push(registry):
     _bad(v, _msg("portfolios", request_id="r", portfolios=[{**_REF, "visibility": "admin"}], bonds=[]))
     resp = _ex("portfolios.response")
     assert "summary" not in resp["portfolios"][0] and isinstance(resp["portfolios"][0]["instrument_keys"], list)
-    for key in ("bonds", "portfolios"):
+    for key in ("bonds", "portfolios", "totals"):
         broken = _ex("portfolios.response")
         del broken[key]
-        _bad(v, broken)  # a response carries both
-    push = _ex("portfolios.push")
-    del push["bonds"]
-    _bad(v, push)
-    v.validate(_msg("portfolios", portfolios=[], bonds=[]))  # empty list push
-    v.validate(_msg("portfolios", request_id="r", portfolios=[{**_REF, "instrument_keys": []}], bonds=[]))  # empty portfolio
+        _bad(v, broken)  # a response carries all three
+    for key in ("bonds", "totals"):
+        push = _ex("portfolios.push")
+        del push[key]
+        _bad(v, push)
+    v.validate(_msg("portfolios", portfolios=[], bonds=[], totals={}))  # empty list push
+    v.validate(_msg("portfolios", request_id="r", portfolios=[{**_REF, "instrument_keys": []}], bonds=[], totals={}))  # empty portfolio
+    # totals: keyed by portfolio id, the shared `totals` def (no xirr), every figure nullable
+    totals = _ex("portfolios.response")["totals"]
+    assert set(totals) <= {p["id"] for p in resp["portfolios"]}
+    one = totals["p-1"]
+    v.validate({**resp, "totals": {"p-1": {k: None for k in one}}})
+    _bad(v, {**resp, "totals": {"p-1": {**one, "xirr": None}}})  # xirr is gone
+    _bad(v, {**resp, "totals": {"p-1": {k: x for k, x in one.items() if k != "ytm"}}})
+    _bad(v, {**resp, "totals": {"p-1": {**one, "extra": 1}}})
     ref = _validator(registry, "portfolioRef")
     ref.validate(_REF)
     no_keys = {k: x for k, x in _REF.items() if k != "instrument_keys"}
@@ -252,6 +261,9 @@ def test_portfolios_set(registry):
         broken = _ex("portfolios_set.response")
         del broken[key]
         _bad(v, broken)
+    broken = _ex("portfolios_set.response")
+    del broken["totals"]
+    _bad(v, broken)  # a response (rejected[] present) carries totals
     _bad(v, _msg("portfolios.set", request_id="r", portfolios=[{"id": "a"}]))  # no name
     _bad(v, _msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "own": True}]))
     _bad(v, _msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "owner": {}}]))
@@ -536,6 +548,6 @@ def test_rejection_reasons(registry):
 def test_account_portfolio_example_compat_fields():
     d = _ex("portfolio.response.account")
     assert d["portfolio"]["account_id"] == "bond:p-1"
-    assert d["trades"] == [] and d["series"]["rows"] == [] and d["totals"]["xirr"] is None
+    assert d["trades"] == [] and d["series"]["rows"] == [] and "xirr" not in d["totals"]
     # old examples without account_id stay in the set unchanged
     assert "account_id" not in _ex("portfolio.response")["portfolio"]

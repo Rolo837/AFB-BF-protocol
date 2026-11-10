@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 7928ea0d082a43abb1642d96eea1f2d0105bf38eae2afcee1eb8d699c9e4f747
+# source-hash: e6368d57adcfbc91844bff7c31fd1842886e6f43f687b162a5e11454b955a7bb
 
 from __future__ import annotations
 
@@ -1100,7 +1100,7 @@ class AfbwsBondsChannelV1PortfolioRejection(TypedDict):
 
 class AfbwsBondsChannelV1Portfolios(TypedDict):
     """
-    Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests. No analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
+    Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests — and `totals`: the portfolio totals (see the property) for the portfolios with an account. No payment list and no per-position analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) and whenever the totals change (a market snapshot, an account operation) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
     """
 
     channel: Literal["bonds"]
@@ -1108,6 +1108,7 @@ class AfbwsBondsChannelV1Portfolios(TypedDict):
     request_id: NotRequired[AfbwsCommonV1RequestId]
     portfolios: NotRequired[list[AfbwsBondsChannelV1PortfolioRef]]
     bonds: NotRequired[list[AfbwsBondsChannelV1BondRow]]
+    totals: NotRequired[dict[str, AfbwsBondsChannelV1Totals]]
 
 
 class AfbwsBondsChannelV1PortfoliosSet(TypedDict):
@@ -1122,6 +1123,7 @@ class AfbwsBondsChannelV1PortfoliosSet(TypedDict):
     remove: NotRequired[list[RemoveItem]]
     rejected: NotRequired[list[AfbwsBondsChannelV1PortfolioRejection]]
     bonds: NotRequired[list[AfbwsBondsChannelV1BondRow]]
+    totals: NotRequired[dict[str, AfbwsBondsChannelV1Totals]]
 
 
 class AfbwsBondsChannelV1Position(TypedDict):
@@ -1454,7 +1456,6 @@ class AfbwsBondsChannelV1Totals(TypedDict):
     invested_rub: float | None
     market_value_rub: float | None
     received_rub: float | None
-    xirr: float | None
     ytm: float | None
     current_yield: float | None
     duration_days: int | None

@@ -12,7 +12,8 @@
       "instrument_keys": [
         "MISX:TQOB:SU26238RMFS4",
         "MISX:TQOB:SU52005RMFS4"
-      ]
+      ],
+      "account_id": "bond:p-1"
     },
     {
       "id": "g-1",
@@ -70,5 +71,16 @@
       "lifecycle": "active",
       "market": null
     }
-  ]
+  ],
+  "totals": {
+    "p-1": {
+      "invested_rub": 97750,
+      "market_value_rub": 98590,
+      "received_rub": 0,
+      "ytm": 15.2,
+      "current_yield": 11.6,
+      "duration_days": 1140,
+      "annual_coupons_rub": 7080
+    }
+  }
 }

@@ -1390,7 +1390,6 @@
         "invested_rub",
         "market_value_rub",
         "received_rub",
-        "xirr",
         "ytm",
         "current_yield",
         "duration_days",
@@ -1417,13 +1416,6 @@
             "null"
           ],
           "description": "Payments received, rubles."
-        },
-        "xirr": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Actual portfolio return (XIRR), percent per year."
         },
         "ytm": {
           "type": [
@@ -1849,7 +1841,7 @@
     "portfolios": {
       "type": "object",
       "title": "afbws.bonds.portfolios.v1 — portfolio list with the bonds of their compositions (request / response / push).",
-      "description": "Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests. No analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.",
+      "description": "Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests — and `totals`: the portfolio totals (see the property) for the portfolios with an account. No payment list and no per-position analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) and whenever the totals change (a market snapshot, an account operation) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.",
       "required": [
         "channel",
         "schema"
@@ -1878,6 +1870,13 @@
             "$ref": "#/$defs/bondRow"
           },
           "description": "Response and push. Bond rows of all compositions of `portfolios`, without duplicates."
+        },
+        "totals": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/totals"
+          },
+          "description": "Response and push. Totals of the portfolios with an account, keyed by portfolio id (the same ids as in `portfolios`): invested amount, market value, payments received, weighted yields, duration, annual coupons. A portfolio without an account, without read access or without held positions has no key (the client shows no figures). No payment list is computed."
         }
       },
       "allOf": [
@@ -1890,17 +1889,24 @@
           "then": {
             "dependentRequired": {
               "portfolios": [
-                "bonds"
+                "bonds",
+                "totals"
               ],
               "bonds": [
-                "portfolios"
+                "portfolios",
+                "totals"
+              ],
+              "totals": [
+                "portfolios",
+                "bonds"
               ]
             }
           },
           "else": {
             "required": [
               "portfolios",
-              "bonds"
+              "bonds",
+              "totals"
             ]
           }
         }
@@ -2078,6 +2084,13 @@
             "$ref": "#/$defs/bondRow"
           },
           "description": "Response only. Bond rows of all compositions of `portfolios`, without duplicates."
+        },
+        "totals": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/totals"
+          },
+          "description": "Response only. Totals of the portfolios of the resulting list, as in `portfolios`."
         }
       },
       "allOf": [
@@ -2091,6 +2104,7 @@
             "required": [
               "portfolios",
               "bonds",
+              "totals",
               "rejected"
             ]
           }

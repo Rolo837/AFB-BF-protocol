@@ -11,5 +11,6 @@
       "reason": "no_last_price"
     }
   ],
-  "bonds": []
+  "bonds": [],
+  "totals": {}
 }
