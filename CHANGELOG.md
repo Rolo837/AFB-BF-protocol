@@ -14,6 +14,7 @@
 
 ### Changed
 
+- `afbws.bonds.screener.v1` (запрос): обязательный булев флаг `summary`. `true` — сводка: фильтры не сохраняются на соединении, строки не строятся, ответ несёт `total` (число бумаг, прошедших фильтры), пустые `rows` и `emitters`; `false` — прежнее поведение (фильтры сохраняются как фильтры соединения, приходит весь набор). Потребителей `bonds.screener` пока нет — без совместимости.
 - `afbws.bonds.portfolio.v1` переделан без совместимости: тело — `id` и `payments`, колоночная таблица будущих выплат `paymentsTable` (`columns`/`rows`, ключ `date`, столбцы `instrument_key`/`kind`/`amount`/`amount_rub`/`faceunit`/`mark`; `assumed`+`projected` → `mark`, `status` убран: полученные выплаты — в `afbws.account.ledger.v2`). Сам портфель и итоги — в `portfolios`.
 
 ### Fixed

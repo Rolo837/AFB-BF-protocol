@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 058d61571b5c62874431d2814bea0a053baa185c01332eb6d0040128cc2c99af
+ * source-hash: 0ea3a497a39bc8a46baf8342cbb58537968097ad53abaa500d59c454302aadda
  */
 
 /**
@@ -831,7 +831,7 @@ export type AfbwsBondsChannelV1_Events = {
  */
 export type AfbwsBondsChannelV1_EventKind = 'offer' | 'maturity' | 'amortization' | 'call';
 /**
- * Request: optional `filters` (`screenerFilters`); the server stores them as THE filters of this connection (replacing the previous ones, an absent `filters` means no filters) and answers at once. Response: the whole filtered set without pages, columnar: `asof` (time of the market snapshot the rows are built from, null before the first snapshot), `liquidity_days` (window of `value_avg`/`numtrades_avg`), `total` (= number of rows), `emitters` (dictionary issuer id -> {title, rating_group}, only the issuers present in the rows; JSON keys are strings), `columns` and `rows`. Sorting is the client's job. Server push: the same body WITHOUT `request_id` after every market snapshot (about every 5 minutes) to the connections whose last state is an open screener, built by their stored filters. A filter the schema allows but the backend refuses (e.g. `min` > `max`) — error `validation_error`. Needs the `bonds` capability.
+ * Request: required boolean `summary` and optional `filters` (`screenerFilters`). `summary=false` — the server stores the filters as THE filters of this connection (replacing the previous ones, an absent `filters` means no filters) and answers at once with the whole set. `summary=true` — the filters are only counted: the server does NOT store them (the stored filters and the pushes stay as they were), builds no rows and answers with `total` and EMPTY `rows` and `emitters`. Response: the whole filtered set without pages, columnar: `asof` (time of the market snapshot the rows are built from, null before the first snapshot), `liquidity_days` (window of `value_avg`/`numtrades_avg`), `total` (= number of rows; with `summary=true` — the number of bonds that pass the filters while `rows` is empty), `emitters` (dictionary issuer id -> {title, rating_group}, only the issuers present in the rows; JSON keys are strings), `columns` and `rows`. Sorting is the client's job. Server push: the same body WITHOUT `request_id` after every market snapshot (about every 5 minutes) to the connections whose last state is an open screener, built by their stored filters. A filter the schema allows but the backend refuses (e.g. `min` > `max`) — error `validation_error`. Needs the `bonds` capability.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Screener".
@@ -843,6 +843,10 @@ export type AfbwsBondsChannelV1_Screener = {
   schema: 'afbws.bonds.screener.v1';
   request_id?: AfbwsCommonV1_RequestId;
   filters?: AfbwsBondsChannelV1_ScreenerFilters;
+  /**
+   * Request only, REQUIRED. `true` — summary: the filters are not stored on the connection, no rows are built; the response carries `total` (the number of bonds that pass the filters), an empty `rows` and an empty `emitters`. `false` — the full request: the filters are stored as THE filters of the connection and the whole filtered set is returned.
+   */
+  summary?: boolean;
   /**
    * Response and push. Date (YYYY-MM-DD) or time (ISO 8601) of the market snapshot the rows are built from; null before the first snapshot.
    */

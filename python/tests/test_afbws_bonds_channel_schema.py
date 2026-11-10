@@ -401,8 +401,25 @@ def test_screener(registry):
     v.validate(_ex("screener.request"))
     v.validate(_ex("screener.response"))
     v.validate(_ex("screener.push"))
-    v.validate(_msg("screener", request_id="r"))  # no filters = all defaults
-    v.validate(_msg("screener", request_id="r", filters={}))
+    v.validate(_ex("screener.summary.request"))
+    v.validate(_ex("screener.summary.response"))
+    v.validate(_msg("screener", request_id="r", summary=False))  # no filters = all defaults
+    v.validate(_msg("screener", request_id="r", summary=False, filters={}))
+    v.validate(_msg("screener", request_id="r", summary=True))
+    # `summary` is REQUIRED in a request and a boolean
+    _bad(v, _msg("screener", request_id="r"))
+    _bad(v, _msg("screener", request_id="r", filters={}))
+    for bad in ("yes", 1, 0, None):
+        _bad(v, _msg("screener", request_id="r", summary=bad))
+    no_summary = _ex("screener.request")
+    del no_summary["summary"]
+    _bad(v, no_summary)
+    assert _ex("screener.request")["summary"] is False
+    assert _ex("screener.summary.request")["summary"] is True
+    # a summary response: count without rows
+    summary = _ex("screener.summary.response")
+    assert summary["rows"] == [] and summary["emitters"] == {} and summary["total"] > 0
+    assert summary["columns"] == _ex("screener.response")["columns"]
     assert [c["const"] for c in _screener_columns()][:3] == ["instrument_key", "secid", "shortname"]
     assert "request_id" not in _ex("screener.push")
     _bad(v, _msg("screener"))  # neither request nor push
@@ -419,7 +436,7 @@ def test_screener(registry):
         {"unknown": 1}, {"include_default": "no"}, {"categories": ["cb"]}, {"emitter_id": "1"},
     ]
     for f in bad_filters:
-        _bad(v, _msg("screener", request_id="r", filters=f))
+        _bad(v, _msg("screener", request_id="r", summary=False, filters=f))
     # columns: fixed list and order
     resp = _ex("screener.response")
     resp["columns"] = list(reversed(resp["columns"]))

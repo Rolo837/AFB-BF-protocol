@@ -2,6 +2,7 @@
   "channel": "bonds",
   "schema": "afbws.bonds.screener.v1",
   "request_id": "b-10",
+  "summary": false,
   "filters": {
     "query": "ОФЗ",
     "categories": [
