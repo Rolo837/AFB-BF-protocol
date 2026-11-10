@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: e6368d57adcfbc91844bff7c31fd1842886e6f43f687b162a5e11454b955a7bb
+# source-hash: 058d61571b5c62874431d2814bea0a053baa185c01332eb6d0040128cc2c99af
 
 from __future__ import annotations
 
@@ -804,44 +804,6 @@ class AfbwsBondsChannelV1BondRow(TypedDict):
     market: AfbwsBondsChannelV1MarketOrNull
 
 
-class AfbwsBondsChannelV1Breakdown(TypedDict):
-    """
-    Structure of the portfolio over held positions that have a ruble market value (positions without one are not counted in any group). Shares are of market value in rubles. Empty arrays for a portfolio with no valued positions.
-    """
-
-    by_category: list[AfbwsBondsChannelV1BreakdownItem]
-    by_coupon_kind: list[AfbwsBondsChannelV1BreakdownItem]
-    by_currency: list[AfbwsBondsChannelV1BreakdownItem]
-    by_rating: list[AfbwsBondsChannelV1BreakdownItem]
-    by_maturity: list[AfbwsBondsChannelV1BreakdownItem]
-    by_emitter: list[AfbwsBondsChannelV1BreakdownItem]
-
-
-class AfbwsBondsChannelV1BreakdownItem(TypedDict):
-    """
-    One group of a portfolio structure.
-    """
-
-    key: str
-    label: NotRequired[str]
-    market_value_rub: float
-    share: float
-    ytm: float | None
-    positions: int
-
-
-class AfbwsBondsChannelV1CalendarMonth(TypedDict):
-    """
-    Expected payments of one month, in rubles; a sum is null when some payment of the month has no FX rate. Forecast and assumed amounts are included (they are marked in `payments[]`).
-    """
-
-    month: str
-    coupons_rub: float | None
-    amortizations_rub: float | None
-    redemptions_rub: float | None
-    items_count: int
-
-
 AfbwsBondsChannelV1Category: TypeAlias = Literal[
     "ofz", "subfederal", "municipal", "corporate", "currency", "default"
 ]
@@ -950,18 +912,6 @@ AfbwsBondsChannelV1FavoriteColor: TypeAlias = Literal[
 ]
 
 
-AfbwsBondsChannelV1Flag: TypeAlias = Literal[
-    "float_assumed",
-    "float_projected",
-    "indexed_nominal",
-    "no_fx",
-    "no_market",
-    "default",
-    "matured",
-    "no_trades",
-]
-
-
 class AfbwsBondsChannelV1History(TypedDict):
     """
     Daily history of the bond (columnar, like afbws.market.series.v1 tables), oldest first. `close` — percent of face value; `yield_close` — percent per year; `facevalue` — face value of the day in `faceunit`; `volume` — pieces.
@@ -993,24 +943,6 @@ AfbwsBondsChannelV1Market = TypedDict(
 AfbwsBondsChannelV1MarketOrNull: TypeAlias = AfbwsBondsChannelV1Market | None
 
 
-class AfbwsBondsChannelV1NextCoupon(TypedDict):
-    """
-    Next coupon of a position.
-    """
-
-    date: str
-    value: float | None
-
-
-class AfbwsBondsChannelV1NextEvent(TypedDict):
-    """
-    Nearest offer/maturity/amortization/call of a position.
-    """
-
-    kind: AfbwsBondsChannelV1EventKind
-    date: str
-
-
 class AfbwsBondsChannelV1Offer(TypedDict):
     """
     One offer of the bond schedule.
@@ -1023,40 +955,30 @@ class AfbwsBondsChannelV1Offer(TypedDict):
     kind: str | None
 
 
-class AfbwsBondsChannelV1Payment(TypedDict):
+class AfbwsBondsChannelV1PaymentsTable(TypedDict):
     """
-    A past or future payment of a position.
+    One row per expected (future) payment of the held positions, ordered by `date`, `instrument_key`, payment kind. `columns` starts with `date` and may list any subset of the allowed fields in any order — a client reads by column name, never by positional index — so the server can add a field later without a schema bump, as long as it stays inside the enum below. `rows` elements are `number | string | null`; a source NaN is sent as `null`. Amounts are for the CURRENT quantity of the position (the balance is not restored to the record date). `amount` is in the bond's `faceunit`, `amount_rub` in rubles (null without an FX rate). `mark` tells how reliable the amount is: null — taken from the schedule; `assumed` — an assumption (floater coupon with the rate not yet known, indexed nominal); `projected` — a forecast from the base rate (such a payment is also an assumption). Payments already received are not here — they are in the account log (afbws.account.ledger.v2).
     """
 
-    date: str
-    instrument_key: AfbwsCommonV1InstrumentKey
-    kind: Literal["coupon", "amortization", "maturity", "offer_redemption"]
-    amount: float
-    amount_rub: float | None
-    faceunit: AfbwsBondsChannelV1Faceunit
-    status: Literal["received", "expected"]
-    assumed: bool
-    projected: bool
+    columns: list[
+        Literal["date"]
+        | Literal[
+            "date", "instrument_key", "kind", "amount", "amount_rub", "faceunit", "mark"
+        ]
+    ]
+    rows: list[list[float | str | None]]
 
 
 class AfbwsBondsChannelV1Portfolio(TypedDict):
     """
-    Request: `id`. Response: the portfolio (`portfolioRef` with its composition) with analytics. A portfolio with a virtual account (`portfolio.account_id`, type `bond`, afbws.account.channel.v2) is filled from the account: `positions[]` (`quantity`, `avg_price_pct`, `invested`, `received`), `payments[]` (`received` from the account log plus `expected` for the current quantity), `totals`, `calendar`, `breakdown`. Compatibility fields, kept so older frontends do not break: `trades` is always `[]` (the journal is replaced by the account log, afbws.account.ledger.v2), `series.rows` is `[]`, `totals.xirr` is null. A public portfolio is read-only. Server push: the same body WITHOUT `request_id` once per market snapshot and after each account change (cash, set, income credit) or composition edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
+    Request: `id`. Response: the same `id` and `payments` — the table of the future payments of the portfolio's account positions (see `paymentsTable`); the portfolio itself (`portfolioRef`) and its totals are in `portfolios`, the received payments and the operation journal are in the account log (afbws.account.ledger.v2). A portfolio without an account or without held positions has an empty table. A public portfolio is read-only. Server push: the same body WITHOUT `request_id` once per market snapshot and after each account change (cash, set, income credit) or composition edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
     """
 
     channel: Literal["bonds"]
     schema: Literal["afbws.bonds.portfolio.v1"]
     request_id: NotRequired[AfbwsCommonV1RequestId]
-    id: NotRequired[str]
-    portfolio: NotRequired[AfbwsBondsChannelV1PortfolioRef]
-    positions: NotRequired[list[AfbwsBondsChannelV1Position]]
-    trades: NotRequired[list[AfbwsBondsChannelV1Trade]]
-    payments: NotRequired[list[AfbwsBondsChannelV1Payment]]
-    series: NotRequired[AfbwsBondsChannelV1Series]
-    totals: NotRequired[AfbwsBondsChannelV1Totals]
-    flags: NotRequired[list[AfbwsBondsChannelV1Flag]]
-    breakdown: NotRequired[AfbwsBondsChannelV1Breakdown]
-    calendar: NotRequired[list[AfbwsBondsChannelV1CalendarMonth]]
+    id: str
+    payments: NotRequired[AfbwsBondsChannelV1PaymentsTable]
 
 
 class AfbwsBondsChannelV1PortfolioEdit(TypedDict):
@@ -1124,35 +1046,6 @@ class AfbwsBondsChannelV1PortfoliosSet(TypedDict):
     rejected: NotRequired[list[AfbwsBondsChannelV1PortfolioRejection]]
     bonds: NotRequired[list[AfbwsBondsChannelV1BondRow]]
     totals: NotRequired[dict[str, AfbwsBondsChannelV1Totals]]
-
-
-class AfbwsBondsChannelV1Position(TypedDict):
-    """
-    One row per bond of the portfolio. Fields that depend on purchases (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`) are null for a bond without purchases (flag `no_trades`).
-    """
-
-    instrument_key: AfbwsCommonV1InstrumentKey
-    secid: AfbwsBondsChannelV1Secid
-    shortname: str
-    category: AfbwsBondsChannelV1Category
-    faceunit: AfbwsBondsChannelV1Faceunit
-    quantity: int | None
-    avg_price_pct: float | None
-    invested: float | None
-    facevalue: float
-    price_pct: float | None
-    accint: float | None
-    market_value: float | None
-    market_value_rub: float | None
-    current_yield: float | None
-    ytm_market: float | None
-    ytm_kind: Literal["ytm", "yto"] | None
-    ytm_purchase: float | None
-    duration_days: int | None
-    next_coupon: AfbwsBondsChannelV1NextCoupon | None
-    next_event: AfbwsBondsChannelV1NextEvent | None
-    received: Received | None
-    flags: list[AfbwsBondsChannelV1Flag]
 
 
 class AfbwsBondsChannelV1Range(TypedDict):
@@ -1377,21 +1270,6 @@ class AfbwsBondsChannelV1Search(TypedDict):
 AfbwsBondsChannelV1Secid: TypeAlias = str
 
 
-class AfbwsBondsChannelV1Series(TypedDict):
-    """
-    Daily series of the portfolio from the date of the first trade (columnar). `market_value_rub`, `invested_rub`, `received_rub` — rubles; `ytm` — percent per year.
-    """
-
-    columns: tuple[
-        Literal["date"],
-        Literal["market_value_rub"],
-        Literal["invested_rub"],
-        Literal["received_rub"],
-        Literal["ytm"],
-    ]
-    rows: list[list[float | str | None]]
-
-
 AfbwsBondsChannelV1Severity: TypeAlias = Literal["low", "medium", "high"]
 
 
@@ -1460,20 +1338,6 @@ class AfbwsBondsChannelV1Totals(TypedDict):
     current_yield: float | None
     duration_days: int | None
     annual_coupons_rub: float | None
-
-
-class AfbwsBondsChannelV1Trade(TypedDict):
-    """
-    One journal entry (purchase or sale).
-    """
-
-    trade_id: str
-    instrument_key: AfbwsCommonV1InstrumentKey
-    trade_date: str
-    quantity: int
-    price_pct: float
-    accrued_int: NotRequired[float]
-    commission: NotRequired[float]
 
 
 AfbwsBondsChannelV1Visibility: TypeAlias = Literal[
@@ -6023,15 +5887,6 @@ class PresetTimeframes(TypedDict):
 
 class Primitives(TypedDict):
     confirm_delete: NotRequired[bool]
-
-
-class Received(TypedDict):
-    """
-    Payments received so far; null without purchases.
-    """
-
-    coupons: float
-    amortizations: float
 
 
 class RejectedItem(TypedDict):

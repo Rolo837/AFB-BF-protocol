@@ -1,180 +1,45 @@
 {
   "channel": "bonds",
   "schema": "afbws.bonds.portfolio.v1",
-  "portfolio": {
-    "id": "p-1",
-    "name": "Основной",
-    "visibility": "personal",
-    "icon_id": null,
-    "icon_color": "green",
-    "owner": {},
-    "instrument_keys": [
-      "MISX:TQOB:SU26238RMFS4"
-    ]
-  },
-  "positions": [
-    {
-      "instrument_key": "MISX:TQOB:SU26238RMFS4",
-      "secid": "SU26238RMFS4",
-      "shortname": "ОФЗ 26238",
-      "category": "ofz",
-      "faceunit": "SUR",
-      "quantity": 100,
-      "avg_price_pct": 96.8,
-      "invested": 97750,
-      "facevalue": 1000,
-      "price_pct": 97.35,
-      "accint": 12.4,
-      "market_value": 98590,
-      "market_value_rub": 98590,
-      "current_yield": 7.2,
-      "ytm_market": 15.2,
-      "ytm_kind": "ytm",
-      "ytm_purchase": 15.6,
-      "duration_days": 1140,
-      "next_coupon": {
-        "date": "2026-11-18",
-        "value": 3540
-      },
-      "next_event": {
-        "kind": "maturity",
-        "date": "2041-05-15"
-      },
-      "received": {
-        "coupons": 0,
-        "amortizations": 0
-      },
-      "flags": []
-    }
-  ],
-  "trades": [
-    {
-      "trade_id": "t-1",
-      "instrument_key": "MISX:TQOB:SU26238RMFS4",
-      "trade_date": "2026-10-15",
-      "quantity": 100,
-      "price_pct": 96.8,
-      "accrued_int": 9.5,
-      "commission": 120
-    }
-  ],
-  "payments": [
-    {
-      "date": "2026-11-18",
-      "instrument_key": "MISX:TQOB:SU26238RMFS4",
-      "kind": "coupon",
-      "amount": 3540,
-      "amount_rub": 3540,
-      "faceunit": "SUR",
-      "status": "expected",
-      "assumed": false,
-      "projected": false
-    }
-  ],
-  "series": {
+  "id": "p-1",
+  "payments": {
     "columns": [
       "date",
-      "market_value_rub",
-      "invested_rub",
-      "received_rub",
-      "ytm"
+      "instrument_key",
+      "kind",
+      "amount",
+      "amount_rub",
+      "faceunit",
+      "mark"
     ],
     "rows": [
       [
-        "2026-10-15",
-        97750,
-        97750,
-        0,
-        15.6
+        "2026-11-18",
+        "MISX:TQOB:SU26238RMFS4",
+        "coupon",
+        3540,
+        3540,
+        "SUR",
+        null
       ],
       [
-        "2026-11-02",
-        98590,
-        97750,
-        0,
-        15.2
+        "2027-05-19",
+        "MISX:TQOB:SU26238RMFS4",
+        "coupon",
+        3540,
+        3540,
+        "SUR",
+        "assumed"
+      ],
+      [
+        "2027-11-17",
+        "MISX:TQOB:SU26238RMFS4",
+        "coupon",
+        3612.5,
+        3612.5,
+        "SUR",
+        "projected"
       ]
     ]
-  },
-  "totals": {
-    "invested_rub": 97750,
-    "market_value_rub": 98590,
-    "received_rub": 0,
-    "ytm": 15.2,
-    "current_yield": 11.6,
-    "duration_days": 1140,
-    "annual_coupons_rub": 7080
-  },
-  "flags": [],
-  "breakdown": {
-    "by_category": [
-      {
-        "key": "ofz",
-        "label": "ofz",
-        "market_value_rub": 98590,
-        "share": 1,
-        "ytm": 15.2,
-        "positions": 1
-      }
-    ],
-    "by_coupon_kind": [
-      {
-        "key": "fixed",
-        "label": "fixed",
-        "market_value_rub": 98590,
-        "share": 1,
-        "ytm": 15.2,
-        "positions": 1
-      }
-    ],
-    "by_currency": [
-      {
-        "key": "SUR",
-        "label": "SUR",
-        "market_value_rub": 98590,
-        "share": 1,
-        "ytm": 15.2,
-        "positions": 1
-      }
-    ],
-    "by_rating": [
-      {
-        "key": "none",
-        "label": "Без рейтинга",
-        "market_value_rub": 98590,
-        "share": 1,
-        "ytm": 15.2,
-        "positions": 1
-      }
-    ],
-    "by_maturity": [
-      {
-        "key": ">5",
-        "label": "более 5 лет",
-        "market_value_rub": 98590,
-        "share": 1,
-        "ytm": 15.2,
-        "positions": 1
-      }
-    ],
-    "by_emitter": [
-      {
-        "key": "none",
-        "label": "Эмитент не определён",
-        "market_value_rub": 98590,
-        "share": 1,
-        "ytm": 15.2,
-        "positions": 1
-      }
-    ]
-  },
-  "calendar": [
-    {
-      "month": "2026-11",
-      "coupons_rub": 3540,
-      "amortizations_rub": 0,
-      "redemptions_rub": 0,
-      "items_count": 1
-    }
-  ]
+  }
 }

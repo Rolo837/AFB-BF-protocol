@@ -1,0 +1,12 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.portfolio.v1",
+  "request_id": "b-40",
+  "id": "p-2",
+  "payments": {
+    "columns": [
+      "date"
+    ],
+    "rows": []
+  }
+}

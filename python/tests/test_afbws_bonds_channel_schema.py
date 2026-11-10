@@ -226,23 +226,39 @@ def test_portfolio_request_response_push(registry):
     v.validate(_ex("portfolio.request"))
     v.validate(_ex("portfolio.response"))
     v.validate(_ex("portfolio.push"))
-    _bad(v, _msg("portfolio", request_id="r"))  # no id
+    v.validate(_ex("portfolio.response.empty"))      # no account / no held positions: empty table
+    _bad(v, _msg("portfolio", request_id="r"))       # no id
+    _bad(v, _msg("portfolio"))                       # push without payments
     push = _ex("portfolio.push")
-    del push["totals"]
+    del push["payments"]
     _bad(v, push)
-    resp = _ex("portfolio.response")
-    resp["positions"][0]["flags"] = ["unknown_flag"]
-    _bad(v, resp)
-    assert "summary" not in _ex("portfolio.response")["portfolio"]
-    # a bond of the composition without purchases: purchase-based fields are null
-    resp = _ex("portfolio.response")
-    row = resp["positions"][0]
-    row.update({"quantity": None, "avg_price_pct": None, "invested": None, "market_value": None,
-                "market_value_rub": None, "current_yield": None, "ytm_purchase": None, "received": None,
-                "flags": ["no_trades"]})
-    v.validate(resp)
-    resp["portfolio"]["summary"] = {"market_value_rub": None, "ytm": None, "duration_days": None, "positions": 0}
-    _bad(v, resp)
+    assert "request_id" not in _ex("portfolio.push")
+    # the dead blocks are gone: the body carries `id` and `payments` only
+    for key in ("portfolio", "positions", "trades", "series", "totals", "flags", "breakdown", "calendar"):
+        _bad(v, {**_ex("portfolio.response"), key: [] if key in ("positions", "trades", "flags", "calendar") else {}})
+    doc = json.loads(SCHEMA_PATH.read_text())["$defs"]
+    for gone in ("trade", "position", "payment", "series", "flag", "breakdown", "breakdownItem", "calendarMonth",
+                 "nextCoupon", "nextEvent"):
+        assert gone not in doc, gone
+
+
+def test_portfolio_payments_table(registry):
+    v = _validator(registry, "paymentsTable")
+    table = _ex("portfolio.response")["payments"]
+    v.validate(table)
+    assert table["columns"][0] == "date"
+    assert {r[table["columns"].index("mark")] for r in table["rows"]} == {None, "assumed", "projected"}
+    v.validate({"columns": ["date"], "rows": []})
+    v.validate({"columns": ["date", "amount"], "rows": [["2026-11-18", 1.5]]})              # any subset after `date`
+    v.validate({"columns": ["date", "mark", "kind"], "rows": [["2026-11-18", None, "coupon"]]})  # any order
+    _bad(v, {"columns": ["amount", "date"], "rows": []})                                    # `date` first
+    _bad(v, {"columns": ["date", "date"], "rows": []})
+    _bad(v, {"columns": ["date", "status"], "rows": []})                                    # no `status`: only future payments
+    _bad(v, {"columns": ["date", "assumed"], "rows": []})                                   # replaced by `mark`
+    _bad(v, {"columns": [], "rows": []})
+    _bad(v, {"columns": ["date"], "rows": [[True]]})
+    _bad(v, {**table, "extra": 1})
+    _bad(v, {"columns": table["columns"]})
 
 
 def test_portfolios_set(registry):
@@ -277,7 +293,7 @@ def test_trades_set_is_gone(registry):
     assert "afbws.bonds.trades.set.v1" not in SCHEMA_PATH.read_text()
     assert not list(EXAMPLES.glob("trades_set*"))
     _bad(_validator(registry), _msg("trades.set", request_id="r", portfolio_id="p", upsert=[_TRADE]))
-    _validator(registry, "trade").validate({**_TRADE, "quantity": -5, "accrued_int": 1.2, "commission": 0})
+    assert "trade" not in doc["$defs"]
 
 
 def test_portfolio_owner(registry):
@@ -301,7 +317,7 @@ def test_portfolio_owner(registry):
 
 def test_totals_current_yield_required(registry):
     v = _validator(registry, "totals")
-    totals = _ex("portfolio.response")["totals"]
+    totals = _ex("portfolios.response")["totals"]["p-1"]
     assert totals["current_yield"] is not None
     v.validate(totals)
     v.validate({**totals, "current_yield": None})
@@ -354,10 +370,10 @@ def test_bond_identity_is_instrument_key_only(registry):
     """R3: `secid` is a display attribute; every identifier on the wire is `instrument_key`."""
     doc = json.loads(SCHEMA_PATH.read_text())
     defs = doc["$defs"]
-    for name in ("bondRow", "bond", "position"):
+    for name in ("bondRow", "bond"):
         assert "instrument_key" in defs[name]["required"], name
         assert "secid" in defs[name]["properties"], name  # display field is kept
-    for name in ("trade", "payment", "signal", "event"):
+    for name in ("signal", "event"):
         assert "instrument_key" in defs[name]["required"], name
         assert "secid" not in defs[name]["properties"], name
     for name in ("portfolioRef", "portfolioEdit"):
@@ -365,7 +381,7 @@ def test_bond_identity_is_instrument_key_only(registry):
         assert "instrument_keys" in defs[name]["properties"], name
     assert "secids" not in json.dumps(doc)
     # key is the shared instrumentKey def, no local pattern
-    assert defs["trade"]["properties"]["instrument_key"]["$ref"] == "common.v1.json#/$defs/instrumentKey"
+    assert defs["signal"]["properties"]["instrument_key"]["$ref"] == "common.v1.json#/$defs/instrumentKey"
     row = _ex("search.response")["items"][0]
     v = _validator(registry, "search")
     broken = {k: x for k, x in row.items() if k != "instrument_key"}
@@ -374,44 +390,6 @@ def test_bond_identity_is_instrument_key_only(registry):
     _bad(v, resp)  # a row without the key is not valid even with secid
     _bad(_validator(registry, "bondMsg"), _msg("bond", request_id="r", secid="SU26238RMFS4"))
     _validator(registry, "bondMsg").validate(_msg("bond", request_id="r", instrument_key="MISX:TQOB:SU26238RMFS4"))
-
-
-def test_projected_flag_and_payment(registry):
-    v = _validator(registry, "portfolio")
-    resp = _ex("portfolio.response")
-    resp["flags"] = ["float_assumed", "float_projected"]
-    resp["positions"][0]["flags"] = ["float_projected"]
-    resp["payments"][0]["projected"] = True
-    v.validate(resp)
-    del resp["payments"][0]["projected"]
-    _bad(v, resp)
-
-
-def test_portfolio_breakdown_and_calendar(registry):
-    v = _validator(registry, "portfolio")
-    for name in ("portfolio.response", "portfolio.push"):
-        v.validate(_ex(name))
-        for key in ("breakdown", "calendar"):
-            broken = _ex(name)
-            del broken[key]
-            _bad(v, broken)
-    resp = _ex("portfolio.response")
-    resp["breakdown"] = {k: [] for k in resp["breakdown"]}
-    resp["calendar"] = []
-    v.validate(resp)
-    resp["breakdown"]["by_rating"] = [{"key": "A", "market_value_rub": 1, "share": 1, "ytm": None, "positions": 1}]  # label optional
-    v.validate(resp)
-    resp["breakdown"]["by_rating"][0]["share"] = 1.5
-    _bad(v, resp)
-    resp = _ex("portfolio.response")
-    del resp["breakdown"]["by_emitter"]
-    _bad(v, resp)
-    resp = _ex("portfolio.response")
-    resp["breakdown"]["by_year"] = []
-    _bad(v, resp)
-    resp = _ex("portfolio.response")
-    resp["calendar"][0]["month"] = "2026-1"
-    _bad(v, resp)
 
 
 def _screener_columns():
@@ -545,9 +523,3 @@ def test_rejection_reasons(registry):
     _bad(pr, {**base, "reason": "x"})
 
 
-def test_account_portfolio_example_compat_fields():
-    d = _ex("portfolio.response.account")
-    assert d["portfolio"]["account_id"] == "bond:p-1"
-    assert d["trades"] == [] and d["series"]["rows"] == [] and "xirr" not in d["totals"]
-    # old examples without account_id stay in the set unchanged
-    assert "account_id" not in _ex("portfolio.response")["portfolio"]

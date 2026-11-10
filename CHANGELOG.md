@@ -14,10 +14,13 @@
 
 ### Changed
 
+- `afbws.bonds.portfolio.v1` переделан без совместимости: тело — `id` и `payments`, колоночная таблица будущих выплат `paymentsTable` (`columns`/`rows`, ключ `date`, столбцы `instrument_key`/`kind`/`amount`/`amount_rub`/`faceunit`/`mark`; `assumed`+`projected` → `mark`, `status` убран: полученные выплаты — в `afbws.account.ledger.v2`). Сам портфель и итоги — в `portfolios`.
+
 ### Fixed
 
 ### Removed
 
+- `afbws.bonds.portfolio.v1`: `portfolio`, `positions`, `trades`, `series`, `totals`, `flags`, `breakdown`, `calendar` (`calendar` дублировал `payments`; остальное — мертвяки или без читателя). Из `$defs` удалены `position`, `trade`, `payment`, `series`, `flag`, `breakdown`, `breakdownItem`, `calendarMonth`, `nextCoupon`, `nextEvent`.
 - `afbws.bonds.*` `totals.xirr` (всегда `null`) удалено из `$defs/totals`.
 
 ## v2.10.9 — 2026-11-10

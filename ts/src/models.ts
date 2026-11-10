@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: e6368d57adcfbc91844bff7c31fd1842886e6f43f687b162a5e11454b955a7bb
+ * source-hash: 058d61571b5c62874431d2814bea0a053baa185c01332eb6d0040128cc2c99af
  */
 
 /**
@@ -722,7 +722,7 @@ export type AfbwsBondsChannelV1_Visibility = 'personal' | 'guest' | 'user' | 'ma
 export type AfbwsBondsChannelV1_FavoriteColor =
   'yellow' | 'red' | 'blue' | 'green' | 'gray' | 'orange' | 'cyan' | 'purple' | 'pink' | 'teal';
 /**
- * Request: `id`. Response: the portfolio (`portfolioRef` with its composition) with analytics. A portfolio with a virtual account (`portfolio.account_id`, type `bond`, afbws.account.channel.v2) is filled from the account: `positions[]` (`quantity`, `avg_price_pct`, `invested`, `received`), `payments[]` (`received` from the account log plus `expected` for the current quantity), `totals`, `calendar`, `breakdown`. Compatibility fields, kept so older frontends do not break: `trades` is always `[]` (the journal is replaced by the account log, afbws.account.ledger.v2), `series.rows` is `[]`, `totals.xirr` is null. A public portfolio is read-only. Server push: the same body WITHOUT `request_id` once per market snapshot and after each account change (cash, set, income credit) or composition edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
+ * Request: `id`. Response: the same `id` and `payments` — the table of the future payments of the portfolio's account positions (see `paymentsTable`); the portfolio itself (`portfolioRef`) and its totals are in `portfolios`, the received payments and the operation journal are in the account log (afbws.account.ledger.v2). A portfolio without an account or without held positions has an empty table. A public portfolio is read-only. Server push: the same body WITHOUT `request_id` once per market snapshot and after each account change (cash, set, income credit) or composition edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Portfolio".
@@ -734,49 +734,11 @@ export type AfbwsBondsChannelV1_Portfolio = {
   schema: 'afbws.bonds.portfolio.v1';
   request_id?: AfbwsCommonV1_RequestId;
   /**
-   * Request. Portfolio id.
+   * Portfolio id (request, response and push).
    */
-  id?: string;
-  portfolio?: AfbwsBondsChannelV1_PortfolioRef1;
-  /**
-   * Response only.
-   */
-  positions?: AfbwsBondsChannelV1_Position[];
-  /**
-   * Response only. The whole journal.
-   */
-  trades?: AfbwsBondsChannelV1_Trade[];
-  /**
-   * Response only. Past and future payments of the positions.
-   */
-  payments?: AfbwsBondsChannelV1_Payment[];
-  series?: AfbwsBondsChannelV1_Series;
-  totals?: AfbwsBondsChannelV1_Totals1;
-  /**
-   * Response only. Assumptions behind the portfolio totals.
-   */
-  flags?: AfbwsBondsChannelV1_Flag[];
-  breakdown?: AfbwsBondsChannelV1_Breakdown;
-  /**
-   * Response only. Expected payments grouped by month, ascending (the grouping of `payments[]` with status `expected`).
-   */
-  calendar?: AfbwsBondsChannelV1_CalendarMonth[];
+  id: string;
+  payments?: AfbwsBondsChannelV1_PaymentsTable;
 };
-/**
- * Event kind: `offer` buyback offer, `maturity` redemption, `amortization` partial repayment, `call` issuer's call option.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsBondsChannelV1_EventKind".
- */
-export type AfbwsBondsChannelV1_EventKind = 'offer' | 'maturity' | 'amortization' | 'call';
-/**
- * Data-quality marker explaining an assumption behind a figure. `float_assumed` — a future coupon is taken equal to the last known one (floater); `float_projected` — a future floater coupon is a FORECAST from the base rate set by a manager (`rates`) plus the spread (such payments carry `projected`); `indexed_nominal` — a future face value of an inflation-indexed OFZ is taken equal to the current one; `no_fx` — no FX rate, `_rub` figures are missing; `no_market` — no market data, valued by the last known price; `default` — the issuer is in default; `matured` — the bond is already redeemed. `no_trades` — the bond is in the portfolio composition but has no purchases (purchase-based figures are null).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsBondsChannelV1_Flag".
- */
-export type AfbwsBondsChannelV1_Flag =
-  'float_assumed' | 'float_projected' | 'indexed_nominal' | 'no_fx' | 'no_market' | 'default' | 'matured' | 'no_trades';
 /**
  * Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `instrument_keys[]` in final order (omit `instrument_keys` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every instrument key must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `instrument_keys`), the bond rows of all compositions in `bonds` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
  *
@@ -861,6 +823,13 @@ export type AfbwsBondsChannelV1_Events = {
    */
   items?: AfbwsBondsChannelV1_Event[];
 };
+/**
+ * Event kind: `offer` buyback offer, `maturity` redemption, `amortization` partial repayment, `call` issuer's call option.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_EventKind".
+ */
+export type AfbwsBondsChannelV1_EventKind = 'offer' | 'maturity' | 'amortization' | 'call';
 /**
  * Request: optional `filters` (`screenerFilters`); the server stores them as THE filters of this connection (replacing the previous ones, an absent `filters` means no filters) and answers at once. Response: the whole filtered set without pages, columnar: `asof` (time of the market snapshot the rows are built from, null before the first snapshot), `liquidity_days` (window of `value_avg`/`numtrades_avg`), `total` (= number of rows), `emitters` (dictionary issuer id -> {title, rating_group}, only the issuers present in the rows; JSON keys are strings), `columns` and `rows`. Sorting is the client's job. Server push: the same body WITHOUT `request_id` after every market snapshot (about every 5 minutes) to the connections whose last state is an open screener, built by their stored filters. A filter the schema allows but the backend refuses (e.g. `min` > `max`) — error `validation_error`. Needs the `bonds` capability.
  *
@@ -3973,389 +3942,20 @@ export interface AfbwsBondsChannelV1_Totals {
   annual_coupons_rub: number | null;
 }
 /**
- * A portfolio in a list: attributes and composition. No analytics.
+ * Response and push.
  */
-export interface AfbwsBondsChannelV1_PortfolioRef1 {
+export interface AfbwsBondsChannelV1_PaymentsTable {
   /**
-   * Portfolio id (client-generated on create).
+   * @minItems 1
    */
-  id: string;
+  columns: [
+    'date' | 'instrument_key' | 'kind' | 'amount' | 'amount_rub' | 'faceunit' | 'mark',
+    ...('date' | 'instrument_key' | 'kind' | 'amount' | 'amount_rub' | 'faceunit' | 'mark')[]
+  ];
   /**
-   * Display name.
-   */
-  name: string;
-  visibility: AfbwsBondsChannelV1_Visibility;
-  /**
-   * Opaque icon key; null — none.
-   */
-  icon_id: string | null;
-  /**
-   * Icon color; null — none.
-   */
-  icon_color: AfbwsBondsChannelV1_FavoriteColor | null;
-  /**
-   * Owner of the portfolio. An EMPTY object `{}` means the portfolio is the caller's own (personal, or public of any visibility created by the caller). For a public portfolio of somebody else (read-only for the caller; its composition can be added to one's own portfolio via `portfolios.set`) `name` and `tier` describe the owner; `null` means the owner is unknown.
-   */
-  owner: {
-    /**
-     * Display name of the owner; null — unknown. Absent for the caller's own portfolio.
-     */
-    name?: string | null;
-    /**
-     * Tier of the owner (e.g. `admin`, `manager`); null — unknown. Absent for the caller's own portfolio.
-     */
-    tier?: string | null;
-  };
-  /**
-   * Composition: the instrument keys of the bonds of the portfolio in display order (at most 200, no duplicates). Empty for a new portfolio.
-   *
-   * @maxItems 200
-   */
-  instrument_keys: AfbwsCommonV1_InstrumentKey[];
-  /**
-   * Id of the portfolio's virtual account (type `bond`, `bond:<portfolio id>`, see afbws.account.channel.v2); null for a public portfolio created before the account was introduced, until staff makes the first record. Not in `required`: older payloads without the field stay valid.
-   */
-  account_id?: string | null;
-}
-/**
- * One row per bond of the portfolio. Fields that depend on purchases (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`) are null for a bond without purchases (flag `no_trades`).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsBondsChannelV1_Position".
- */
-export interface AfbwsBondsChannelV1_Position {
-  /**
-   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
-   */
-  instrument_key: string;
-  secid: AfbwsBondsChannelV1_Secid;
-  /**
-   * Short display name.
-   */
-  shortname: string;
-  category: AfbwsBondsChannelV1_Category;
-  faceunit: AfbwsBondsChannelV1_Faceunit;
-  /**
-   * Balance, pieces; null for a bond without purchases.
-   */
-  quantity: number | null;
-  /**
-   * Average purchase price, percent of face value; null without purchases.
-   */
-  avg_price_pct: number | null;
-  /**
-   * Sum of purchases including accrued interest and commission minus sales, in `faceunit`; null without purchases.
-   */
-  invested: number | null;
-  /**
-   * Current face value in `faceunit`.
-   */
-  facevalue: number;
-  /**
-   * Current price, percent of face value.
-   */
-  price_pct: number | null;
-  /**
-   * Accrued interest per bond, in `faceunit`.
-   */
-  accint: number | null;
-  /**
-   * Market value of the position in `faceunit`; null without purchases or market data.
-   */
-  market_value: number | null;
-  /**
-   * Market value of the position in rubles; null without purchases, market data or FX rate.
-   */
-  market_value_rub: number | null;
-  /**
-   * Annual coupon / (price + accrued interest), percent at the market price; does not depend on purchases (filled for a bond without purchases too); null only if undefined (no price or no coupon).
-   */
-  current_yield: number | null;
-  /**
-   * Yield at the market price, percent per year.
-   */
-  ytm_market: number | null;
-  /**
-   * What `ytm_market` is: to maturity or to offer; null without yield.
-   */
-  ytm_kind: 'ytm' | 'yto' | null;
-  /**
-   * XIRR of the purchases and future payments, percent per year; null without purchases.
-   */
-  ytm_purchase: number | null;
-  /**
-   * Duration, days.
-   */
-  duration_days: number | null;
-  /**
-   * Next coupon; null when none.
-   */
-  next_coupon: AfbwsBondsChannelV1_NextCoupon | null;
-  /**
-   * Nearest event; null when none.
-   */
-  next_event: AfbwsBondsChannelV1_NextEvent | null;
-  /**
-   * Payments received so far; null without purchases.
-   */
-  received: {
-    /**
-     * Coupons received so far, in `faceunit`.
-     */
-    coupons: number;
-    /**
-     * Amortizations received so far, in `faceunit`.
-     */
-    amortizations: number;
-  } | null;
-  /**
-   * Assumptions behind the figures of this position.
-   */
-  flags: AfbwsBondsChannelV1_Flag[];
-}
-/**
- * Next coupon of a position.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsBondsChannelV1_NextCoupon".
- */
-export interface AfbwsBondsChannelV1_NextCoupon {
-  /**
-   * Date of the next coupon.
-   */
-  date: string;
-  /**
-   * Next coupon amount per position (quantity applied), in `faceunit`.
-   */
-  value: number | null;
-}
-/**
- * Nearest offer/maturity/amortization/call of a position.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsBondsChannelV1_NextEvent".
- */
-export interface AfbwsBondsChannelV1_NextEvent {
-  kind: AfbwsBondsChannelV1_EventKind;
-  /**
-   * Event date.
-   */
-  date: string;
-}
-/**
- * One journal entry (purchase or sale).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsBondsChannelV1_Trade".
- */
-export interface AfbwsBondsChannelV1_Trade {
-  /**
-   * Journal entry id (client-generated on create); a known id updates the entry.
-   */
-  trade_id: string;
-  /**
-   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
-   */
-  instrument_key: string;
-  /**
-   * Trade date; not later than today and not earlier than the bond's issue date.
-   */
-  trade_date: string;
-  /**
-   * Pieces: positive — purchase, negative — sale. A sale cannot exceed the balance on the date.
-   */
-  quantity: number;
-  /**
-   * Price, percent of face value.
-   */
-  price_pct: number;
-  /**
-   * Accrued coupon interest per bond, in `faceunit`. Omitted: taken from the daily data of the date (ISS ACCINT).
-   */
-  accrued_int?: number;
-  /**
-   * Commission of the trade, in `faceunit`; part of the invested amount only, never affects yields.
-   */
-  commission?: number;
-}
-/**
- * A past or future payment of a position.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsBondsChannelV1_Payment".
- */
-export interface AfbwsBondsChannelV1_Payment {
-  /**
-   * Payment date.
-   */
-  date: string;
-  /**
-   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
-   */
-  instrument_key: string;
-  /**
-   * Payment kind.
-   */
-  kind: 'coupon' | 'amortization' | 'maturity' | 'offer_redemption';
-  /**
-   * Amount in `faceunit`.
-   */
-  amount: number;
-  /**
-   * Amount in rubles; null without FX rate.
-   */
-  amount_rub: number | null;
-  faceunit: AfbwsBondsChannelV1_Faceunit;
-  /**
-   * `received` — the bond was on the balance on the record date and the date has passed; `expected` — future.
-   */
-  status: 'received' | 'expected';
-  /**
-   * True when the amount is an assumption (see position flags `float_assumed`, `indexed_nominal`).
-   */
-  assumed: boolean;
-  /**
-   * True when the amount is a forecast from the base rate (flag `float_projected`); such a payment is also `assumed`.
-   */
-  projected: boolean;
-}
-/**
- * Response only.
- */
-export interface AfbwsBondsChannelV1_Series {
-  /**
-   * Fixed column order: date, market_value_rub, invested_rub, received_rub, ytm.
-   *
-   * @minItems 5
-   * @maxItems 5
-   */
-  columns: [unknown, unknown, unknown, unknown, unknown];
-  /**
-   * Each row has the same length and order as `columns`; a missing value is null (never NaN).
+   * Each row has the same length and column order as `columns`. `date` is YYYY-MM-DD; `kind` is `coupon` | `amortization` | `maturity` | `offer_redemption`; `faceunit` is a currency code of `#/$defs/faceunit`; `mark` is `assumed` | `projected` | null.
    */
   rows: (number | string | null)[][];
-}
-/**
- * Portfolio totals; each figure is null when it cannot be computed.
- */
-export interface AfbwsBondsChannelV1_Totals1 {
-  /**
-   * Invested amount, rubles.
-   */
-  invested_rub: number | null;
-  /**
-   * Market value, rubles.
-   */
-  market_value_rub: number | null;
-  /**
-   * Payments received, rubles.
-   */
-  received_rub: number | null;
-  /**
-   * Market-value-weighted yield, percent per year.
-   */
-  ytm: number | null;
-  /**
-   * Market-value-weighted current yield of the held positions, percent per year (coupon over clean price); null when it cannot be computed.
-   */
-  current_yield: number | null;
-  /**
-   * Market-value-weighted duration, days.
-   */
-  duration_days: number | null;
-  /**
-   * Annual coupon income at the current balance, rubles.
-   */
-  annual_coupons_rub: number | null;
-}
-/**
- * Response only. Portfolio structure.
- */
-export interface AfbwsBondsChannelV1_Breakdown {
-  /**
-   * By bond category, largest first.
-   */
-  by_category: AfbwsBondsChannelV1_BreakdownItem[];
-  /**
-   * By coupon type, largest first.
-   */
-  by_coupon_kind: AfbwsBondsChannelV1_BreakdownItem[];
-  /**
-   * By face value currency, largest first.
-   */
-  by_currency: AfbwsBondsChannelV1_BreakdownItem[];
-  /**
-   * By issuer rating group AAA..D, then `none` (unrated).
-   */
-  by_rating: AfbwsBondsChannelV1_BreakdownItem[];
-  /**
-   * By years to the nearest event (maturity or put offer): `<1`, `1-3`, `3-5`, `>5`, `none`.
-   */
-  by_maturity: AfbwsBondsChannelV1_BreakdownItem[];
-  /**
-   * By issuer: the top 10 largest, then `other`.
-   */
-  by_emitter: AfbwsBondsChannelV1_BreakdownItem[];
-}
-/**
- * One group of a portfolio structure.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsBondsChannelV1_BreakdownItem".
- */
-export interface AfbwsBondsChannelV1_BreakdownItem {
-  /**
-   * Group key: category / coupon kind / currency / rating group (`none` — unrated) / maturity bucket (`<1`, `1-3`, `3-5`, `>5`, `none`) / issuer id (`other` — the rest after the top 10, `none` — unknown).
-   */
-  key: string;
-  /**
-   * Display name when the key is not self-explanatory (issuer name, bucket, 'No rating'). Absent — show the key.
-   */
-  label?: string;
-  /**
-   * Market value of the group in rubles (with accrued interest).
-   */
-  market_value_rub: number;
-  /**
-   * Share of the group in the valued part of the portfolio, 0..1; shares of one grouping sum to 1.
-   */
-  share: number;
-  /**
-   * Market-value-weighted yield of the group, percent per year; null when none can be computed.
-   */
-  ytm: number | null;
-  /**
-   * Number of held positions in the group.
-   */
-  positions: number;
-}
-/**
- * Expected payments of one month, in rubles; a sum is null when some payment of the month has no FX rate. Forecast and assumed amounts are included (they are marked in `payments[]`).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsBondsChannelV1_CalendarMonth".
- */
-export interface AfbwsBondsChannelV1_CalendarMonth {
-  /**
-   * Month, YYYY-MM.
-   */
-  month: string;
-  /**
-   * Coupons.
-   */
-  coupons_rub: number | null;
-  /**
-   * Partial amortizations.
-   */
-  amortizations_rub: number | null;
-  /**
-   * Redemptions: maturity and offer redemption.
-   */
-  redemptions_rub: number | null;
-  /**
-   * Number of payments in the month.
-   */
-  items_count: number;
 }
 /**
  * A refused portfolio of `portfolios.set` (`forbidden`, `validation_error`, `not_found`). `reason` (optional, refines `code`): `no_last_price` / `no_fx` — the removal of a bond from the composition is refused because the auto-sale of the position at LAST MOEX is impossible (no known LAST / no exchange rate for the conversion). The deletion of a portfolio is unconditional: positions are not sold and prices are not needed.
@@ -4980,25 +4580,6 @@ export interface AfbwsBondsChannelV1_PortfolioEdit {
   instrument_keys?: AfbwsCommonV1_InstrumentKey[];
 }
 /**
- * Daily series of the portfolio from the date of the first trade (columnar). `market_value_rub`, `invested_rub`, `received_rub` — rubles; `ytm` — percent per year.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsBondsChannelV1_Series".
- */
-export interface AfbwsBondsChannelV1_Series1 {
-  /**
-   * Fixed column order: date, market_value_rub, invested_rub, received_rub, ytm.
-   *
-   * @minItems 5
-   * @maxItems 5
-   */
-  columns: [unknown, unknown, unknown, unknown, unknown];
-  /**
-   * Each row has the same length and order as `columns`; a missing value is null (never NaN).
-   */
-  rows: (number | string | null)[][];
-}
-/**
  * Numeric range filter; both bounds inclusive, each optional. A value of a bond that is null does not pass a range with any bound set.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -5154,36 +4735,23 @@ export interface AfbwsBondsChannelV1_RateEdit {
   value_pct: number | null;
 }
 /**
- * Structure of the portfolio over held positions that have a ruble market value (positions without one are not counted in any group). Shares are of market value in rubles. Empty arrays for a portfolio with no valued positions.
+ * One row per expected (future) payment of the held positions, ordered by `date`, `instrument_key`, payment kind. `columns` starts with `date` and may list any subset of the allowed fields in any order — a client reads by column name, never by positional index — so the server can add a field later without a schema bump, as long as it stays inside the enum below. `rows` elements are `number | string | null`; a source NaN is sent as `null`. Amounts are for the CURRENT quantity of the position (the balance is not restored to the record date). `amount` is in the bond's `faceunit`, `amount_rub` in rubles (null without an FX rate). `mark` tells how reliable the amount is: null — taken from the schedule; `assumed` — an assumption (floater coupon with the rate not yet known, indexed nominal); `projected` — a forecast from the base rate (such a payment is also an assumption). Payments already received are not here — they are in the account log (afbws.account.ledger.v2).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsBondsChannelV1_Breakdown".
+ * via the `definition` "AfbwsBondsChannelV1_PaymentsTable".
  */
-export interface AfbwsBondsChannelV1_Breakdown1 {
+export interface AfbwsBondsChannelV1_PaymentsTable1 {
   /**
-   * By bond category, largest first.
+   * @minItems 1
    */
-  by_category: AfbwsBondsChannelV1_BreakdownItem[];
+  columns: [
+    'date' | 'instrument_key' | 'kind' | 'amount' | 'amount_rub' | 'faceunit' | 'mark',
+    ...('date' | 'instrument_key' | 'kind' | 'amount' | 'amount_rub' | 'faceunit' | 'mark')[]
+  ];
   /**
-   * By coupon type, largest first.
+   * Each row has the same length and column order as `columns`. `date` is YYYY-MM-DD; `kind` is `coupon` | `amortization` | `maturity` | `offer_redemption`; `faceunit` is a currency code of `#/$defs/faceunit`; `mark` is `assumed` | `projected` | null.
    */
-  by_coupon_kind: AfbwsBondsChannelV1_BreakdownItem[];
-  /**
-   * By face value currency, largest first.
-   */
-  by_currency: AfbwsBondsChannelV1_BreakdownItem[];
-  /**
-   * By issuer rating group AAA..D, then `none` (unrated).
-   */
-  by_rating: AfbwsBondsChannelV1_BreakdownItem[];
-  /**
-   * By years to the nearest event (maturity or put offer): `<1`, `1-3`, `3-5`, `>5`, `none`.
-   */
-  by_maturity: AfbwsBondsChannelV1_BreakdownItem[];
-  /**
-   * By issuer: the top 10 largest, then `other`.
-   */
-  by_emitter: AfbwsBondsChannelV1_BreakdownItem[];
+  rows: (number | string | null)[][];
 }
 /**
  * `asset_ids`, when present, is the WHOLE ordered composition of the collection (the assets filed into it); an asset lives in at most one collection, so naming it here moves it. In a snapshot `asset_ids` is always present. Omit in a commit to leave the composition untouched.
