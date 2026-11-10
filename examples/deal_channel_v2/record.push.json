@@ -41,7 +41,7 @@
           "bf_id": "finam-arena-316",
           "broker": "finam-arena",
           "instrument": {
-            "exchange": "MOEX",
+            "exchange": "MISX",
             "board": "TQBR",
             "ticker": "SBER",
             "market": "stock",
@@ -144,7 +144,7 @@
           "bf_id": "finam-arena-316",
           "broker": "finam-arena",
           "instrument": {
-            "exchange": "MOEX",
+            "exchange": "MISX",
             "board": "TQBR",
             "ticker": "SBER",
             "market": "stock",

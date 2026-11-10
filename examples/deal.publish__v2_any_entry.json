@@ -9,7 +9,7 @@
   "created_at": "2026-06-26T12:00:00+03:00",
   "expires_at": "2026-06-26T12:05:00+03:00",
   "idempotency_key": "afb:deal.publish__v2_any_entry:fixture-0001",
-  "payload_hash": "09d418cba56e29deb365baa6c86068868502aff09545842a9da52c2543d3d4bb",
+  "payload_hash": "7f47d625d07f8bc98e17c9edce22c5433c93e43bf25a8cf047523193150a749e",
   "payload": {
     "deal": {
       "schema": "afb.deal.v2",
@@ -22,9 +22,11 @@
         "bf_id": "finam-arena-316",
         "broker": "finam-arena",
         "instrument": {
-          "exchange": "MOEX",
+          "exchange": "MISX",
           "board": "RFUD",
           "ticker": "GDU6",
+          "instrument_key": "MISX:RFUD:GDU6",
+          "broker_symbol": "GDU6@RTSX",
           "market": "futures",
           "price_step": "0.1",
           "step_price": "7.3439"
@@ -71,6 +73,6 @@
   "signature": {
     "alg": "Ed25519",
     "key_id": "afb-test-1",
-    "value": "3QuBe03U8eRduE6eGFe--BgTj557G6f3cuBfkYynbv1Jm_Sh_NUkAaDpDeqHySuk8L2nQ4hw9m0RyYlBnel_CQ"
+    "value": "tLyhWrbxBs_cna4PF2SPtH8RsO6iKQxVnJp72DxXTcTqv38UoOnQd74uCe9WNoyT9zIRpaKmyscgeL3pghO3Ag"
   }
 }

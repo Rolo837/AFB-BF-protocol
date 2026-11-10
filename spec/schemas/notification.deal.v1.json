@@ -4,7 +4,7 @@
   "title": "Deal notification afb.notification.deal.v1",
   "description": "AFB-side MQTT notification payload published to <topic_base>/deals/<user_id> for a deal lifecycle event the user opted into (Настройки → Торговля). Consumed by the AFB informer daemon (Telegram/email). NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time; `at` (when present) is the BF event-occurrence time carried through from the underlying order.*/position.*/deal.* payload. `display` carries human-readable strings pre-rendered by AFB backend, mirroring the alarm notification design.",
   "type": "object",
-  "required": ["schema", "event", "category", "deal_id", "display", "user"],
+  "required": ["schema", "event", "category", "deal_id", "instrument_key", "display", "user"],
   "properties": {
     "schema": {"const": "afb.notification.deal.v1"},
     "event": {
@@ -26,7 +26,15 @@
     },
     "deal_id": {"type": "string", "minLength": 1},
     "bf_id": {"type": "string"},
-    "ticker": {"type": "string", "minLength": 1},
+    "instrument_key": {
+      "description": "Full catalog key of the deal's instrument — its only identifier (see `afbws/common.v1.json#/$defs/instrumentKey`). Case-sensitive, never normalized.",
+      "$ref": "afbws/common.v1.json#/$defs/instrumentKey"
+    },
+    "ticker": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Display name of the instrument's ticker (e.g. SBER, GDU6). Not an identifier: the instrument is identified by `instrument_key` only."
+    },
     "instrument": {
       "type": "object",
       "properties": {

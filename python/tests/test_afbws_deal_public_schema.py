@@ -12,7 +12,7 @@ DEAL_PUBLIC_ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/
 _TARGET = {
     "bf_id": "bf-main",
     "broker": "finam",
-    "instrument": {"exchange": "MOEX", "board": "TQBR", "ticker": "SBER"},
+    "instrument": {"exchange": "MISX", "board": "TQBR", "ticker": "SBER", "instrument_key": "MISX:TQBR:SBER"},
 }
 
 _GOOD_V2 = {
@@ -35,6 +35,16 @@ def _validator(registry):
 
 def test_v2_valid(registry):
     _validator(registry).validate(_GOOD_V2)  # does not raise
+
+
+def test_v2_target_instrument_requires_instrument_key(registry):
+    """The projection reuses common.v1.json#/$defs/target: the instrument is an
+    AFB-formed object, so its catalog key is mandatory."""
+    from jsonschema import ValidationError
+
+    instrument = {k: v for k, v in _TARGET["instrument"].items() if k != "instrument_key"}
+    with pytest.raises(ValidationError):
+        _validator(registry).validate({**_GOOD_V2, "target": {**_TARGET, "instrument": instrument}})
 
 
 def test_missing_source_rejected(registry):

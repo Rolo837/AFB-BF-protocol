@@ -173,6 +173,7 @@
         "bf_id",
         "tradeplan_id",
         "ticker",
+        "instrument_key",
         "direction",
         "created_at",
         "updated_at"
@@ -199,11 +200,13 @@
           "$ref": "../common.v1.json#/$defs/tradeplanId"
         },
         "ticker": {
-          "type": "string"
+          "type": "string",
+          "deprecated": true,
+          "description": "Deprecated: a derived display value (the instrument's ticker), NOT an identifier; will be removed. Still always sent, for frontends that read it; the instrument is identified by `instrument_key` only."
         },
         "instrument_key": {
           "$ref": "common.v1.json#/$defs/instrumentKey",
-          "description": "Full catalog key of the deal's instrument. Optional: absent on deals stored before the key existed."
+          "description": "Full catalog key of the deal's instrument — its only identifier, mandatory. Case-sensitive, never normalized."
         },
         "market": {
           "enum": [
@@ -253,6 +256,7 @@
         "bf_id",
         "tradeplan_id",
         "ticker",
+        "instrument_key",
         "direction",
         "created_at",
         "updated_at",
@@ -281,11 +285,13 @@
           "$ref": "../common.v1.json#/$defs/tradeplanId"
         },
         "ticker": {
-          "type": "string"
+          "type": "string",
+          "deprecated": true,
+          "description": "Deprecated: a derived display value (the instrument's ticker), NOT an identifier; will be removed. Still always sent, for frontends that read it; the instrument is identified by `instrument_key` only."
         },
         "instrument_key": {
           "$ref": "common.v1.json#/$defs/instrumentKey",
-          "description": "Full catalog key of the deal's instrument. Optional: absent on deals stored before the key existed."
+          "description": "Full catalog key of the deal's instrument — its only identifier, mandatory. Case-sensitive, never normalized."
         },
         "market": {
           "enum": [
@@ -344,6 +350,7 @@
         "bf_id",
         "tradeplan_id",
         "ticker",
+        "instrument_key",
         "direction",
         "created_at",
         "updated_at"
@@ -370,11 +377,13 @@
           "$ref": "../common.v1.json#/$defs/tradeplanId"
         },
         "ticker": {
-          "type": "string"
+          "type": "string",
+          "deprecated": true,
+          "description": "Deprecated: a derived display value (the instrument's ticker), NOT an identifier; will be removed. Still always sent, for frontends that read it; the instrument is identified by `instrument_key` only."
         },
         "instrument_key": {
           "$ref": "common.v1.json#/$defs/instrumentKey",
-          "description": "Full catalog key of the deal's instrument. Optional: absent on deals stored before the key existed."
+          "description": "Full catalog key of the deal's instrument — its only identifier, mandatory. Case-sensitive, never normalized."
         },
         "market": {
           "enum": [
@@ -981,7 +990,7 @@
         "symbol": {
           "type": "string",
           "minLength": 1,
-          "description": "Instrument symbol of the position (the key of the client's per-deal position map): the broker symbol, else the bare ticker."
+          "description": "Symbol of the position for display/matching (the key of the client's per-deal position map): the broker symbol (`TICKER@MIC`) for a broker account, the displayed instrument ticker for a virtual account. NOT an instrument identifier — the instrument is identified by the deal's `instrument_key`."
         },
         "quantity": {
           "type": "integer",

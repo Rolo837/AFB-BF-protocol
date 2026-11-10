@@ -36,15 +36,27 @@
         "draft_id": {"type": "string", "deprecated": true, "description": "Deprecated alias of tradeplan_id predating the tradeplan/deal separation. New AFB never writes this."}
       }
     },
-    "instrument": {
+    "instrumentAddress": {
       "type": "object",
+      "description": "Venue address of an instrument WITHOUT the catalog key: the `exchange/board/ticker` triple as a party that has no instrument catalog can state it. Used only where the object is formed by BF (BF has no catalog and does not know `instrument_key`) — today payloads/dataset.subscribe.json (bf2afb, reserved). The triple is an address, not an identity; AFB translates it into an `instrument_key` once, at the boundary. Objects formed by AFB use `#/$defs/instrument`, where the key is mandatory.",
       "required": ["exchange", "board", "ticker"],
       "properties": {
-        "exchange": {"type": "string"},
-        "board": {"type": "string"},
-        "ticker": {"type": "string"},
-        "instrument_key": {"$ref": "afbws/common.v1.json#/$defs/instrumentKey", "description": "Full catalog key of the instrument. Optional: absent on deals published before the key existed; when present on both sides of an amend it alone decides whether the instrument changed."},
-        "broker_symbol": {"type": "string", "minLength": 1, "description": "Opaque broker locator of the instrument, e.g. `TICKER@MIC`. AFB takes it from its listing_link (finam.db); BF resolves the instrument ONLY by it (no BF-side catalog). Not part of the instrument identity: amend identity is decided by instrument_key (or exchange/board/ticker), see amend_rules. Absent => BF rejects with instrument_unresolvable unless the deal binding already carries a symbol."},
+        "exchange": {"type": "string", "description": "Venue MIC as in the AFB catalog (e.g. `MISX`)."},
+        "board": {"type": "string", "description": "Venue board; may be an empty string where the venue has none."},
+        "ticker": {"type": "string", "description": "Venue ticker. Case-sensitive, never normalized."},
+        "market": {"enum": ["stock", "futures", "currency"]}
+      }
+    },
+    "instrument": {
+      "type": "object",
+      "description": "Instrument of an object formed by AFB (deal `target.instrument`, a dataset.update record). IDENTITY is `instrument_key` alone (mandatory). The `exchange/board/ticker` triple is the VENUE ADDRESS, not an identity: BF cross-checks it against the instrument the broker returned for `broker_symbol` (`instrument_mismatch`) and it is part of `definition_hash`; `instrument_key` is NOT part of `definition_hash` and BF does not interpret it (BF code is unaware of the field and carries it through untouched).",
+      "required": ["exchange", "board", "ticker", "instrument_key"],
+      "properties": {
+        "exchange": {"type": "string", "description": "Venue address: MIC as in the AFB catalog (e.g. `MISX`)."},
+        "board": {"type": "string", "description": "Venue address: board; may be an empty string where the venue has none."},
+        "ticker": {"type": "string", "description": "Venue address: ticker. Case-sensitive, never normalized. Not an identifier."},
+        "instrument_key": {"$ref": "afbws/common.v1.json#/$defs/instrumentKey", "description": "Full catalog key of the instrument (`<MIC>[:<board|market>]:<ticker>`) — its only identity, mandatory. Case-sensitive, never normalized. Decides whether the instrument changed on an amend (amend_rules falls back to the venue triple only when a deal stored by BF before the key became mandatory lacks it)."},
+        "broker_symbol": {"type": "string", "minLength": 1, "description": "Opaque broker locator of the instrument, e.g. `TICKER@MIC`. AFB takes it from its catalog (the instrument's address at the account's broker); BF resolves the instrument ONLY by it (no BF-side catalog). Not part of the instrument identity (that is `instrument_key`), see amend_rules. Absent => BF rejects with instrument_unresolvable unless the deal binding already carries a symbol."},
         "market": {"enum": ["stock", "futures", "currency"]},
         "price_step": {"$ref": "#/$defs/decimalString"},
         "step_price": {"$ref": "#/$defs/decimalString"}

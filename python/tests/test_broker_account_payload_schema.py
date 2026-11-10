@@ -162,7 +162,7 @@ def test_position_rejects_instrument_block(registry):
         _validator(ACCOUNTS_ID, registry).validate(_accounts_with_position({
             "quantity": 1, "average_price": "1",
             "broker_ref": {"broker": "finam", "symbol": "SBER@MISX"},
-            "instrument": {"exchange": "MOEX", "board": "TQBR", "ticker": "SBER"},
+            "instrument": {"exchange": "MISX", "board": "TQBR", "ticker": "SBER"},
         }))
 
 
@@ -173,7 +173,8 @@ def test_resolve_instrument_accepts_v2_deal_with_broker_symbol_and_account_id(re
         "schema": "afb.deal.v2", "deal_id": "deal-1", "revision": 1,
         "target": {
             "bf_id": "bf-main", "broker": "finam",
-            "instrument": {"exchange": "MOEX", "board": "TQBR", "ticker": "SBER", "broker_symbol": "SBER@MISX"},
+            "instrument": {"exchange": "MISX", "board": "TQBR", "ticker": "SBER", "instrument_key": "MISX:TQBR:SBER",
+                           "broker_symbol": "SBER@MISX"},
         },
         "direction": "long",
         "entry": [{"condition": {"node_type": "event", "op": "above", "left": {"source": "price"}, "right": {"const": "100"}}}],
@@ -187,7 +188,7 @@ def test_resolve_instrument_rejects_v1_deal(registry):
 
     deal = {
         "schema": "afb.deal.v1", "deal_id": "deal-1", "revision": 1,
-        "target": {"bf_id": "bf-main", "broker": "finam", "instrument": {"exchange": "MOEX", "board": "TQBR", "ticker": "SBER"}},
+        "target": {"bf_id": "bf-main", "broker": "finam", "instrument": {"exchange": "MISX", "board": "TQBR", "ticker": "SBER"}},
         "direction": "long",
         "entry": {"condition": {"node_type": "event", "op": "above", "left": {"source": "price", "field": "last"}, "right": {"const": "100"}}},
         "sizing": {"mode": "lots", "value": "1"},

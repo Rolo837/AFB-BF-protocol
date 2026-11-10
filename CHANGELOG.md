@@ -16,6 +16,16 @@
 
 ### Removed
 
+## v2.10.9 — 2026-11-10
+
+### Changed
+- Этап 9 (сделки и виртуальный счёт): `instrument_key` — единственный идентификатор инструмента сделки.
+  - `common.v1.json#/$defs/instrument` (`target.instrument` сделки в `deal.publish`/`deal.amend`/`broker.resolve_instrument`, запись `dataset.update`): `instrument_key` добавлен в `required` рядом с `exchange`/`board`/`ticker`; тройка описана как адрес площадки (сверка BF `instrument_mismatch`, `definition_hash`), а не идентичность. `definition_hash` по-прежнему не включает `instrument_key`. Для канала AFB↔BF это изменение класса MINOR по `VERSIONING.md`: BF `instrument_key` не знает и не интерпретирует, принимает сделку с новым полем без правок кода; обязательность соблюдает AFB. Версия, теги и пины не менялись.
+  - Новый `common.v1.json#/$defs/instrumentAddress` (тройка без ключа) — для `payloads/dataset.subscribe.json` (BF→AFB, зарезервировано): объект формирует BF, у которого нет каталога и нет ключа.
+  - Примеры: `exchange: MOEX` → `MISX` в инструментах сделок и `dataset.update`; в примеры добавлен `instrument_key`.
+  - `notification.deal.v1`: добавлено обязательное `instrument_key`; `ticker` — поле отображения, не идентификатор.
+  - `afbws/deal.channel.v2`: в трёх формах сделки (summary, detail, record) `instrument_key` стал обязательным; `ticker` остаётся в `required` (его читает выпущенный фронт), помечен `deprecated: true` (производное значение, будет удалено, Этап 12); `position.symbol` — только уточнено описание (символ для отображения/сопоставления: символ брокера для брокерского счёта, отображаемый тикер для виртуального; не идентификатор), проводное значение и `required` не менялись.
+
 ## v2.10.8 — 2026-11-09
 
 ### Added

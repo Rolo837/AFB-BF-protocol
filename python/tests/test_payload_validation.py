@@ -29,10 +29,18 @@ def test_validate_deal_accepts_v2_fixture():
 
 def test_validate_deal_accepts_broker_symbol_and_instrument_key():
     """target.instrument.broker_symbol (opaque broker locator, e.g. TICKER@MIC)
-    and instrument_key are optional additive fields."""
+    is optional; instrument_key is the instrument's identity and mandatory."""
     deal = _fixture_deal("deal.publish")
     assert deal["target"]["instrument"]["broker_symbol"] == "GDU6@RTSX"
+    assert deal["target"]["instrument"]["instrument_key"] == "MISX:RFUD:GDU6"
     assert validate_deal(deal) == "afb.deal.v2"
+
+
+def test_validate_deal_rejects_missing_instrument_key():
+    deal = copy.deepcopy(_fixture_deal("deal.publish"))
+    del deal["target"]["instrument"]["instrument_key"]
+    with pytest.raises(PayloadValidationError):
+        validate_deal(deal)
 
 
 def test_validate_deal_rejects_empty_broker_symbol():

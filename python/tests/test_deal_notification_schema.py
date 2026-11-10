@@ -38,6 +38,23 @@ def test_rejects_missing_display(registry):
         _validator(registry).validate(data)
 
 
+def test_rejects_missing_instrument_key(registry):
+    """`instrument_key` is the identifier and mandatory; `ticker` is display only."""
+    from jsonschema import ValidationError
+
+    data = json.loads((EXAMPLES / "notifications" / "deal.order_executed.json").read_text())
+    assert data["instrument_key"] == "MISX:TQBR:SBER"
+    del data["instrument_key"]
+    with pytest.raises(ValidationError):
+        _validator(registry).validate(data)
+
+
+def test_ticker_is_optional_display(registry):
+    data = json.loads((EXAMPLES / "notifications" / "deal.order_executed.json").read_text())
+    del data["ticker"]
+    _validator(registry).validate(data)  # does not raise
+
+
 def test_rejects_unknown_category(registry):
     from jsonschema import ValidationError
 

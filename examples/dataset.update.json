@@ -9,15 +9,16 @@
   "created_at": "2026-06-26T12:00:00+03:00",
   "expires_at": "2026-06-26T12:05:00+03:00",
   "idempotency_key": "afb:dataset.update:fixture-0001",
-  "payload_hash": "20be6d754ce9c2ff175e74720fe83f270866a8d64bcc6ce7d1a62177c3933148",
+  "payload_hash": "fdeb5ce6fb18b54c7eb2ee894856a32ec1f1e0e0c0ef448cb5c693c268fa62aa",
   "payload": {
     "datasets": [
       {
         "dataset_id": "positions",
         "instrument": {
-          "exchange": "MOEX",
+          "exchange": "MISX",
           "board": "RFUD",
-          "ticker": "SiZ5"
+          "ticker": "SiZ5",
+          "instrument_key": "MISX:RFUD:SiZ5"
         },
         "as_of": "2026-07-25T10:35:00+03:00",
         "stale_after_sec": 900,
@@ -37,9 +38,10 @@
       {
         "dataset_id": "hhi",
         "instrument": {
-          "exchange": "MOEX",
+          "exchange": "MISX",
           "board": "TQBR",
-          "ticker": "SBER"
+          "ticker": "SBER",
+          "instrument_key": "MISX:TQBR:SBER"
         },
         "as_of": "2026-07-25T10:35:00+03:00",
         "stale_after_sec": 900,
@@ -52,6 +54,6 @@
   "signature": {
     "alg": "Ed25519",
     "key_id": "afb-test-1",
-    "value": "jmIs4RMi0GCDX0-qNvH_iY531HE6clveeqYadixHryfCHw6ZUpS8Ogm_wl5oJbDw2oyJT_s3B9Q6kkROfXdUDQ"
+    "value": "hRqx9ZhnHFSZqFHXSAZbzQqWc7esrHB3Omon303_hLcE2aaDROyEPXlsjr0M8ZHRGWY0gJLwHCCDyAQ7oGsDAg"
   }
 }

@@ -3,9 +3,10 @@
     {
       "dataset_id": "positions",
       "instrument": {
-        "exchange": "MOEX",
+        "exchange": "MISX",
         "board": "RFUD",
-        "ticker": "SiZ5"
+        "ticker": "SiZ5",
+        "instrument_key": "MISX:RFUD:SiZ5"
       },
       "as_of": "2026-07-25T10:35:00+03:00",
       "stale_after_sec": 900,
@@ -25,9 +26,10 @@
     {
       "dataset_id": "hhi",
       "instrument": {
-        "exchange": "MOEX",
+        "exchange": "MISX",
         "board": "TQBR",
-        "ticker": "SBER"
+        "ticker": "SBER",
+        "instrument_key": "MISX:TQBR:SBER"
       },
       "as_of": "2026-07-25T10:35:00+03:00",
       "stale_after_sec": 900,

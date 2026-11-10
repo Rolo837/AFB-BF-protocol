@@ -47,7 +47,7 @@ def test_legacy_v1_shape_rejected(registry):
         "target": {
             "bf_id": "bf1",
             "broker": "finam-arena",
-            "instrument": {"exchange": "MOEX", "board": "TQBR", "ticker": "SBER"},
+            "instrument": {"exchange": "MISX", "board": "TQBR", "ticker": "SBER", "instrument_key": "MISX:TQBR:SBER"},
         },
         "direction": "long",
         "entry": {

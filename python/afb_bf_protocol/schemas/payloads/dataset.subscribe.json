@@ -16,7 +16,7 @@
             "enum": ["positions", "orders", "hhi", "trades"],
             "description": "Same vocabulary as dataset.update.json#/properties/datasets/items/properties/dataset_id."
           },
-          "instrument": {"$ref": "../common.v1.json#/$defs/instrument"}
+          "instrument": {"$ref": "../common.v1.json#/$defs/instrumentAddress", "description": "Venue address (exchange/board/ticker) without the catalog key: this message is formed by BF, which has no instrument catalog and does not know `instrument_key`."}
         },
         "additionalProperties": true
       }
