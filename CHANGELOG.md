@@ -11,11 +11,15 @@
 ### Added
 
 ### Changed
-- `afbws.bonds.screener.v1` / `afbws.bonds.emitter.v1`: последняя колонка строки `years_to_event` (годы) заменена на `days_to_event` (целые дни до ближайшего погашения/оферты/call, `null` для бессрочной без события; `integer|null`). Фильтр `filters.years_to_event` (годы) переименован в `filters.days_to_event` (дни, тот же `range`). Потребителей строк скринера пока нет — без совместимости; схема, модели, примеры обновлены.
 
 ### Fixed
 
 ### Removed
+
+## v2.10.11 — 2026-11-11
+
+### Changed
+- `afbws.bonds.screener.v1` / `afbws.bonds.emitter.v1`: последняя колонка строки `years_to_event` (годы) заменена на `days_to_event` (целые дни до ближайшего погашения/оферты/call, `null` для бессрочной без события; `integer|null`). Фильтр `filters.years_to_event` (годы) переименован в `filters.days_to_event` (дни, тот же `range`). Потребителей строк скринера пока нет — без совместимости; схема, модели, примеры обновлены.
 
 ## v2.10.10 — 2026-11-11
 
