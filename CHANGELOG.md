@@ -11,6 +11,7 @@
 ### Added
 
 ### Changed
+- `afbws.bonds.screener.v1`: `coupon_percent` строки — единое число: у флоатера на ключевой ставке/RUONIA это ставка базы + `coupon_spread_pct` (описание схемы; формат не менялся).
 
 ### Fixed
 

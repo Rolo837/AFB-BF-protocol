@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 55add1c45476171ebae4fe140cec2660f273e53907b551ebe350eeae7532cad5
+# source-hash: 5be2762fb73c5c90659f47e649ee84694d7cd9b8ec4ea96122791b727557093b
 
 from __future__ import annotations
 
@@ -1847,7 +1847,7 @@ AfbwsBondsChannelV1ScreenerRow: TypeAlias = tuple[
 
 
 """
-One bond: values in the order of `columns`. Market columns (`price_pct`, `ytm`, `ytm_kind`, `current_yield`, `duration_days`, `accint`, `value_today`) are null without a quote; `value_avg`/`numtrades_avg` are null while the liquidity store is empty; the issuer rating of the row is taken from the `emitters` dictionary by `emitter_id`. `days_to_event` — whole days to the nearest maturity/put/call, null for a perpetual bond with no event.
+One bond: values in the order of `columns`. Market columns (`price_pct`, `ytm`, `ytm_kind`, `current_yield`, `duration_days`, `accint`, `value_today`) are null without a quote; `value_avg`/`numtrades_avg` are null while the liquidity store is empty; the issuer rating of the row is taken from the `emitters` dictionary by `emitter_id`. `coupon_percent` is a single number: for a floater on the key rate/RUONIA without its own percent it is the base rate + `coupon_spread_pct` (null while the base rate is unknown). `days_to_event` — whole days to the nearest maturity/put/call, null for a perpetual bond with no event.
 """
 
 
