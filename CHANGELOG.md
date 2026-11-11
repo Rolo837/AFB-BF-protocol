@@ -9,14 +9,22 @@
 ## Unreleased
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## v2.10.13 — 2026-11-12
+
+### Added
 - `afbws.bonds.portfolios.v1` и `afbws.bonds.portfolios.set.v1` (ответ/пуш): строки `bonds[]` — новый `$defs/portfolioBondRow` (всё из `bondRow` + `current_yield`, `days_to_event`, `value_avg`, `emitter_id`; значения те же, что в колонках `screener`) и словарь `emitters` (ключ — `emitter_id` строкой, значение — `$defs/bondEmitter`: `title`, `inn`, `rating_group`, `rating_changed_at`; только эмитенты перечисленных бумаг). `emitters` обязателен вместе с `portfolios`/`bonds`/`totals`. `bondRow` для `search` не менялся. Блок облигаций вне прода — без совместимости со старыми клиентами. Модели, примеры и тесты обновлены.
 
 ### Changed
 - `alarm.v2.json`: описание исправлено (прежний текст про «поддержку v1 для фронтендов без alarm.channel.v2» давно неверен, `alarm.channel.v1` удалён); схема теперь единственная версия аларма и держит `$defs` дерева условий (`alarmConditionNode`, `alarmIndicatorExpr` — побайтно те же, что были в `alarm.v1`). `notification.alarm.v1.json#/condition` ссылается на `alarm.v2.json#/$defs/alarmConditionNode`; валидация примеров уведомлений не изменилась. `gp.v2.json`, `condition.v1.json`, `common.v1.json`: из описаний убраны ссылки на удалённые схемы.
 - `payload_validation.validate_alarm` принимает только `afb.alarm.v2`, `validate_gp` — только `afb.gp.v2`.
 - Примеры алармов: `examples/alarms/` (v1) удалён, его примеры (`breakout`, `dataset_position`, `indicator_crossing`) переведены в `examples/alarms_v2/` (`instrument_key` вместо `ticker`); тесты алармов — `test_alarm_v2_schema.py`.
-
-### Fixed
 
 ### Removed
 - Этап 12 программы единого каталога: снята тикерная идентичность из протокола. Удалено поле `ticker` (было `deprecated`) из `tradeplan.v2.json` (схема закрыта: файл плана со старым `ticker` теперь не проходит валидацию), из `planItem` канала `afbws.tradeplan.*.v2` (выход; `instrument_key` по-прежнему обязателен, `instrument_missing` — «ключ не найден в справочнике») и из всех трёх форм сделки канала `afbws.deal.*.v2` (`dealSummary`, `dealDetail`, `dealItem` — и из `required`, и из `properties`). НЕ тронуто: `position.symbol`, `target.instrument.{exchange,board,ticker}` (адрес площадки для сверки BF и `definition_hash`), `notification.*` (`ticker` — поле отображения).
