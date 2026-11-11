@@ -53,6 +53,10 @@
       "coupon_spread_pct": null,
       "is_qualified": false,
       "lifecycle": "active",
+      "current_yield": 7.29,
+      "days_to_event": 5308,
+      "value_avg": 1850000000,
+      "emitter_id": null,
       "market": {
         "price_pct": 97.35,
         "yield": 15.2,
@@ -78,9 +82,14 @@
       "coupon_spread_pct": null,
       "is_qualified": false,
       "lifecycle": "active",
+      "current_yield": null,
+      "days_to_event": 5308,
+      "value_avg": 0,
+      "emitter_id": null,
       "market": null
     }
   ],
+  "emitters": {},
   "totals": {
     "p-1": {
       "invested_rub": 97750,

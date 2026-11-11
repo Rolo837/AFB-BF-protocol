@@ -174,9 +174,10 @@ def test_bond_row_coupon_kind_and_spread(registry):
     _bad(v, {**row, "coupon_kind": "floating"})
     _bad(v, {**row, "coupon_spread_pct": "3.5"})
     _bad(v, {**row, "coupon_benchmark": "RREFKEYR"})  # base code is not in the row
+    pv = _validator(registry, "portfolioBondRow")
     for name in ("portfolios.response", "portfolios.push", "portfolios_set.response"):
         for item in _ex(name)["bonds"]:
-            v.validate(item)
+            pv.validate(item)
             assert "coupon_kind" in item and "coupon_spread_pct" in item
     card = _ex("bond.response")["bond"]
     assert {"coupon_kind", "coupon_spread_pct"} <= card.keys()
@@ -192,16 +193,16 @@ def test_portfolios_list_request_response_push(registry):
     _bad(v, _msg("portfolios", request_id="r", portfolios=[{**_REF, "visibility": "admin"}], bonds=[]))
     resp = _ex("portfolios.response")
     assert "summary" not in resp["portfolios"][0] and isinstance(resp["portfolios"][0]["instrument_keys"], list)
-    for key in ("bonds", "portfolios", "totals"):
+    for key in ("bonds", "portfolios", "totals", "emitters"):
         broken = _ex("portfolios.response")
         del broken[key]
-        _bad(v, broken)  # a response carries all three
-    for key in ("bonds", "totals"):
+        _bad(v, broken)  # a response carries all four
+    for key in ("bonds", "totals", "emitters"):
         push = _ex("portfolios.push")
         del push[key]
         _bad(v, push)
-    v.validate(_msg("portfolios", portfolios=[], bonds=[], totals={}))  # empty list push
-    v.validate(_msg("portfolios", request_id="r", portfolios=[{**_REF, "instrument_keys": []}], bonds=[], totals={}))  # empty portfolio
+    v.validate(_msg("portfolios", portfolios=[], bonds=[], totals={}, emitters={}))  # empty list push
+    v.validate(_msg("portfolios", request_id="r", portfolios=[{**_REF, "instrument_keys": []}], bonds=[], totals={}, emitters={}))  # empty portfolio
     # totals: keyed by portfolio id, the shared `totals` def (no xirr), every figure nullable
     totals = _ex("portfolios.response")["totals"]
     assert set(totals) <= {p["id"] for p in resp["portfolios"]}
@@ -219,6 +220,33 @@ def test_portfolios_list_request_response_push(registry):
     _bad(ref, {**_REF, "instrument_keys": [f"S{i}" for i in range(201)]})
     ref.validate({**_REF, "instrument_keys": [f"S{i}" for i in range(200)]})
     _bad(ref, {**_REF, "instrument_keys": [""]})
+
+
+def test_portfolio_bond_row_and_emitters(registry):
+    """`portfolios.bonds[]` = bondRow + screener-table fields; `emitters` — issuers of the listed bonds only."""
+    row_v = _validator(registry, "portfolioBondRow")
+    resp = _ex("portfolios.response")
+    corp = next(b for b in resp["bonds"] if b["emitter_id"] is not None)
+    for key in ("current_yield", "days_to_event", "value_avg", "emitter_id"):
+        _bad(row_v, {k: x for k, x in corp.items() if k != key})  # all four are required
+    row_v.validate({**corp, "current_yield": None, "days_to_event": None, "value_avg": None, "emitter_id": None})
+    _bad(row_v, {**corp, "days_to_event": 1.5})
+    _bad(row_v, {**corp, "emitter_id": "1234"})
+    _bad(row_v, {**corp, "extra": 1})
+    _bad(_validator(registry, "bondRow"), corp)  # the plain bondRow (search/card) does not take them
+    em = _validator(registry, "bondEmitter")
+    entry = resp["emitters"][str(corp["emitter_id"])]
+    em.validate(entry)
+    em.validate({**entry, "inn": None, "rating_group": None, "rating_changed_at": None})
+    for key in entry:
+        _bad(em, {k: x for k, x in entry.items() if k != key})
+    _bad(em, {**entry, "rating_group": "AAAA"})
+    _bad(em, {**entry, "bonds_count": 3})
+    v = _validator(registry, "portfolios")
+    _bad(v, {**resp, "emitters": {"x": entry}})  # keys are digits
+    _bad(v, {**resp, "emitters": {"1234": {**entry, "extra": 1}}})
+    # search rows stay plain bondRow
+    _validator(registry, "bondRow").validate(_ex("search.response")["items"][0])
 
 
 def test_portfolio_request_response_push(registry):
@@ -280,6 +308,9 @@ def test_portfolios_set(registry):
     broken = _ex("portfolios_set.response")
     del broken["totals"]
     _bad(v, broken)  # a response (rejected[] present) carries totals
+    broken = _ex("portfolios_set.response")
+    del broken["emitters"]
+    _bad(v, broken)  # ... and the issuers of its bonds
     _bad(v, _msg("portfolios.set", request_id="r", portfolios=[{"id": "a"}]))  # no name
     _bad(v, _msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "own": True}]))
     _bad(v, _msg("portfolios.set", request_id="r", portfolios=[{"id": "a", "name": "A", "owner": {}}]))

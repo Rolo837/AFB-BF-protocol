@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 5be2762fb73c5c90659f47e649ee84694d7cd9b8ec4ea96122791b727557093b
+ * source-hash: 43b40d6835759eedbae41190bc1103cbd8327da988205eb202067e8f73c2caee
  */
 
 /**
@@ -680,7 +680,7 @@ export type AfbwsBondsChannelV1_RatingGroup =
   | 'C'
   | 'D';
 /**
- * Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests — and `totals`: the portfolio totals (see the property) for the portfolios with an account. No payment list and no per-position analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) and whenever the totals change (a market snapshot, an account operation) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
+ * Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (`bondRow` as in `search`, with `market`, plus the screener-table fields `current_yield`, `days_to_event`, `value_avg`, `emitter_id` — `portfolioBondRow`) — and `emitters`: the issuers of those bonds by `emitter_id` (title, INN, rating) — so that the client draws the bond tiles and the screener table without extra requests — and `totals`: the portfolio totals (see the property) for the portfolios with an account. No payment list and no per-position analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) and whenever the totals change (a market snapshot, an account operation) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Portfolios".
@@ -696,14 +696,20 @@ export type AfbwsBondsChannelV1_Portfolios = {
    */
   portfolios?: AfbwsBondsChannelV1_PortfolioRef[];
   /**
-   * Response and push. Bond rows of all compositions of `portfolios`, without duplicates.
+   * Response and push. Bond rows of all compositions of `portfolios`, without duplicates: `bondRow` plus the screener-table fields (`current_yield`, `days_to_event`, `value_avg`, `emitter_id`).
    */
-  bonds?: AfbwsBondsChannelV1_BondRow[];
+  bonds?: AfbwsBondsChannelV1_PortfolioBondRow[];
   /**
    * Response and push. Totals of the portfolios with an account, keyed by portfolio id (the same ids as in `portfolios`): invested amount, market value, payments received, weighted yields, duration, annual coupons. A portfolio without an account, without read access or without held positions has no key (the client shows no figures). No payment list is computed.
    */
   totals?: {
     [k: string]: AfbwsBondsChannelV1_Totals;
+  };
+  /**
+   * Response and push. Issuers of the bonds of `bonds` by issuer id (a string key, as in `screener`): only the issuers of the listed bonds, without duplicates; the issuer of a row is read here by its `emitter_id`. `{}` when no listed bond has a known issuer.
+   */
+  emitters?: {
+    [k: string]: AfbwsBondsChannelV1_BondEmitter;
   };
 };
 /**
@@ -740,7 +746,7 @@ export type AfbwsBondsChannelV1_Portfolio = {
   payments?: AfbwsBondsChannelV1_PaymentsTable;
 };
 /**
- * Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `instrument_keys[]` in final order (omit `instrument_keys` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every instrument key must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `instrument_keys`), the bond rows of all compositions in `bonds` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
+ * Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `instrument_keys[]` in final order (omit `instrument_keys` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every instrument key must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `instrument_keys`), the bond rows of all compositions in `bonds` and their issuers in `emitters` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_PortfoliosSet".
@@ -764,14 +770,20 @@ export type AfbwsBondsChannelV1_PortfoliosSet = {
    */
   rejected?: AfbwsBondsChannelV1_PortfolioRejection[];
   /**
-   * Response only. Bond rows of all compositions of `portfolios`, without duplicates.
+   * Response only. Bond rows of all compositions of `portfolios`, without duplicates (`portfolioBondRow`, as in `portfolios`).
    */
-  bonds?: AfbwsBondsChannelV1_BondRow[];
+  bonds?: AfbwsBondsChannelV1_PortfolioBondRow[];
   /**
    * Response only. Totals of the portfolios of the resulting list, as in `portfolios`.
    */
   totals?: {
     [k: string]: AfbwsBondsChannelV1_Totals;
+  };
+  /**
+   * Response only. Issuers of the bonds of `bonds` by issuer id, as in `portfolios`.
+   */
+  emitters?: {
+    [k: string]: AfbwsBondsChannelV1_BondEmitter;
   };
 };
 /**
@@ -3910,6 +3922,82 @@ export interface AfbwsBondsChannelV1_PortfolioRef {
   account_id?: string | null;
 }
 /**
+ * One bond of a portfolio list: every field of `bondRow` (same values as in `search`, with `market`) plus the screener-table fields `current_yield`, `days_to_event`, `value_avg`, `emitter_id`, with the same values as the matching columns of a `screener` row, so that the client draws the screener table for the portfolio without extra requests. The issuer itself (title, rating) is in the `emitters` dictionary of the message by `emitter_id`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_PortfolioBondRow".
+ */
+export interface AfbwsBondsChannelV1_PortfolioBondRow {
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key: string;
+  secid: AfbwsBondsChannelV1_Secid;
+  /**
+   * Full bond name (issue title) as given by ISS; null when unknown. Shown in the list plaque; search by ISIN stays a server-side filter (`query`) and does not add it to the row.
+   */
+  name: string | null;
+  /**
+   * Short display name.
+   */
+  shortname: string;
+  category: AfbwsBondsChannelV1_Category;
+  faceunit: AfbwsBondsChannelV1_Faceunit;
+  /**
+   * Current face value in `faceunit` (for inflation-indexed OFZ — the daily indexed value).
+   */
+  facevalue: number;
+  /**
+   * Maturity date; null for perpetual bonds.
+   */
+  matdate: string | null;
+  /**
+   * Nearest future offer date; null when none.
+   */
+  offerdate: string | null;
+  /**
+   * Current annual coupon rate, percent of face value; null when unknown.
+   */
+  coupon_percent: number | null;
+  /**
+   * Coupon payments per year; null when unknown.
+   */
+  coupon_frequency: number | null;
+  /**
+   * Coupon type from the bond passport; `unknown` when the bond has no passport yet.
+   */
+  coupon_kind: 'fixed' | 'fixed_unknown' | 'key_rate' | 'ruonia' | 'cpi' | 'other_float' | 'zero' | 'unknown';
+  /**
+   * Spread over the floating base, percentage points; null for fixed coupons, without a passport or without a spread.
+   */
+  coupon_spread_pct: number | null;
+  /**
+   * True when only qualified investors may buy the bond.
+   */
+  is_qualified: boolean;
+  /**
+   * `active` — traded or awaiting redemption; `matured` — redeemed (returned only with `include_matured`).
+   */
+  lifecycle: 'active' | 'matured';
+  market: AfbwsBondsChannelV1_MarketOrNull;
+  /**
+   * Current yield, percent per year: annual coupon over the clean price (for a floater on the key rate/RUONIA without its own percent the coupon is the base rate + `coupon_spread_pct`). Null without a quote or without a known coupon. Same value as the `current_yield` column of `screener`.
+   */
+  current_yield: number | null;
+  /**
+   * Whole days to the nearest maturity, put or call offer; null for a perpetual bond with no event. Same value as the `days_to_event` column of `screener`.
+   */
+  days_to_event: number | null;
+  /**
+   * Average daily turnover, rubles, over the liquidity window; null while the liquidity store is empty, 0 for a bond with no trades in the window once the store is filled. Same value as the `value_avg` column of `screener`.
+   */
+  value_avg: number | null;
+  /**
+   * Exchange issuer id, the key of the `emitters` dictionary of the message; null when the issuer is unknown (a bond without a passport).
+   */
+  emitter_id: number | null;
+}
+/**
  * Portfolio totals; each figure is null when it cannot be computed.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -3944,6 +4032,36 @@ export interface AfbwsBondsChannelV1_Totals {
    * Annual coupon income at the current balance, rubles.
    */
   annual_coupons_rub: number | null;
+}
+/**
+ * Issuer entry of the `emitters` dictionary of a portfolio list (only the issuers of the listed bonds). The same fields as the `emitter` block of the bond card.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema definition
+ * via the `patternProperty` "^[0-9]+$".
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema definition
+ * via the `patternProperty` "^[0-9]+$".
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_BondEmitter".
+ */
+export interface AfbwsBondsChannelV1_BondEmitter {
+  /**
+   * Issuer name.
+   */
+  title: string;
+  /**
+   * Issuer INN; null when unknown.
+   */
+  inn: string | null;
+  /**
+   * Issuer rating group; null — unrated.
+   */
+  rating_group: AfbwsBondsChannelV1_RatingGroup | null;
+  /**
+   * When our collection last saw the rating group change; null — never.
+   */
+  rating_changed_at: string | null;
 }
 /**
  * Response and push.

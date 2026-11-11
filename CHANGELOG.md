@@ -9,6 +9,7 @@
 ## Unreleased
 
 ### Added
+- `afbws.bonds.portfolios.v1` и `afbws.bonds.portfolios.set.v1` (ответ/пуш): строки `bonds[]` — новый `$defs/portfolioBondRow` (всё из `bondRow` + `current_yield`, `days_to_event`, `value_avg`, `emitter_id`; значения те же, что в колонках `screener`) и словарь `emitters` (ключ — `emitter_id` строкой, значение — `$defs/bondEmitter`: `title`, `inn`, `rating_group`, `rating_changed_at`; только эмитенты перечисленных бумаг). `emitters` обязателен вместе с `portfolios`/`bonds`/`totals`. `bondRow` для `search` не менялся. Блок облигаций вне прода — без совместимости со старыми клиентами. Модели, примеры и тесты обновлены.
 
 ### Changed
 

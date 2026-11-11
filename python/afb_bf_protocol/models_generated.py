@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 5be2762fb73c5c90659f47e649ee84694d7cd9b8ec4ea96122791b727557093b
+# source-hash: 43b40d6835759eedbae41190bc1103cbd8327da988205eb202067e8f73c2caee
 
 from __future__ import annotations
 
@@ -767,6 +767,17 @@ class AfbwsBondsChannelV1Bond(TypedDict):
     schedule_scan_at: str | None
 
 
+class AfbwsBondsChannelV1BondEmitter(TypedDict):
+    """
+    Issuer entry of the `emitters` dictionary of a portfolio list (only the issuers of the listed bonds). The same fields as the `emitter` block of the bond card.
+    """
+
+    title: str
+    inn: str | None
+    rating_group: AfbwsBondsChannelV1RatingGroup | None
+    rating_changed_at: str | None
+
+
 class AfbwsBondsChannelV1BondMsg(TypedDict):
     """
     Request: `instrument_key`. Response: the bond (the card carries `instrument_key` and the display `secid`), its payment `schedule` and the daily `history` (columnar). Unknown key — error `not_found`. Coupons of the schedule have `projected`: true when the amount is a FORECAST from the base rate (see `rates`).
@@ -981,6 +992,33 @@ class AfbwsBondsChannelV1Portfolio(TypedDict):
     payments: NotRequired[AfbwsBondsChannelV1PaymentsTable]
 
 
+class AfbwsBondsChannelV1PortfolioBondRow(TypedDict):
+    """
+    One bond of a portfolio list: every field of `bondRow` (same values as in `search`, with `market`) plus the screener-table fields `current_yield`, `days_to_event`, `value_avg`, `emitter_id`, with the same values as the matching columns of a `screener` row, so that the client draws the screener table for the portfolio without extra requests. The issuer itself (title, rating) is in the `emitters` dictionary of the message by `emitter_id`.
+    """
+
+    instrument_key: AfbwsCommonV1InstrumentKey
+    secid: AfbwsBondsChannelV1Secid
+    name: str | None
+    shortname: str
+    category: AfbwsBondsChannelV1Category
+    faceunit: AfbwsBondsChannelV1Faceunit
+    facevalue: float
+    matdate: str | None
+    offerdate: str | None
+    coupon_percent: float | None
+    coupon_frequency: int | None
+    coupon_kind: AfbwsBondsChannelV1CouponKind
+    coupon_spread_pct: float | None
+    is_qualified: bool
+    lifecycle: Literal["active", "matured"]
+    market: AfbwsBondsChannelV1MarketOrNull
+    current_yield: float | None
+    days_to_event: int | None
+    value_avg: float | None
+    emitter_id: int | None
+
+
 class AfbwsBondsChannelV1PortfolioEdit(TypedDict):
     """
     A portfolio upsert item.
@@ -1022,20 +1060,21 @@ class AfbwsBondsChannelV1PortfolioRejection(TypedDict):
 
 class AfbwsBondsChannelV1Portfolios(TypedDict):
     """
-    Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests — and `totals`: the portfolio totals (see the property) for the portfolios with an account. No payment list and no per-position analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) and whenever the totals change (a market snapshot, an account operation) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
+    Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (`bondRow` as in `search`, with `market`, plus the screener-table fields `current_yield`, `days_to_event`, `value_avg`, `emitter_id` — `portfolioBondRow`) — and `emitters`: the issuers of those bonds by `emitter_id` (title, INN, rating) — so that the client draws the bond tiles and the screener table without extra requests — and `totals`: the portfolio totals (see the property) for the portfolios with an account. No payment list and no per-position analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) and whenever the totals change (a market snapshot, an account operation) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
     """
 
     channel: Literal["bonds"]
     schema: Literal["afbws.bonds.portfolios.v1"]
     request_id: NotRequired[AfbwsCommonV1RequestId]
     portfolios: NotRequired[list[AfbwsBondsChannelV1PortfolioRef]]
-    bonds: NotRequired[list[AfbwsBondsChannelV1BondRow]]
+    bonds: NotRequired[list[AfbwsBondsChannelV1PortfolioBondRow]]
     totals: NotRequired[dict[str, AfbwsBondsChannelV1Totals]]
+    emitters: NotRequired[dict[str, AfbwsBondsChannelV1BondEmitter]]
 
 
 class AfbwsBondsChannelV1PortfoliosSet(TypedDict):
     """
-    Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `instrument_keys[]` in final order (omit `instrument_keys` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every instrument key must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `instrument_keys`), the bond rows of all compositions in `bonds` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
+    Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `instrument_keys[]` in final order (omit `instrument_keys` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every instrument key must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `instrument_keys`), the bond rows of all compositions in `bonds` and their issuers in `emitters` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
     """
 
     channel: Literal["bonds"]
@@ -1044,8 +1083,9 @@ class AfbwsBondsChannelV1PortfoliosSet(TypedDict):
     portfolios: NotRequired[list[Any]]
     remove: NotRequired[list[RemoveItem]]
     rejected: NotRequired[list[AfbwsBondsChannelV1PortfolioRejection]]
-    bonds: NotRequired[list[AfbwsBondsChannelV1BondRow]]
+    bonds: NotRequired[list[AfbwsBondsChannelV1PortfolioBondRow]]
     totals: NotRequired[dict[str, AfbwsBondsChannelV1Totals]]
+    emitters: NotRequired[dict[str, AfbwsBondsChannelV1BondEmitter]]
 
 
 class AfbwsBondsChannelV1Range(TypedDict):
