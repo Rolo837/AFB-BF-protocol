@@ -2320,7 +2320,7 @@
         }
       ],
       "items": false,
-      "description": "One bond: values in the order of `columns`. Market columns (`price_pct`, `ytm`, `ytm_kind`, `current_yield`, `duration_days`, `accint`, `value_today`) are null without a quote; `value_avg`/`numtrades_avg` are null while the liquidity store is empty; the issuer rating of the row is taken from the `emitters` dictionary by `emitter_id`. `days_to_event` — whole days to the nearest maturity/put/call, null for a perpetual bond with no event."
+      "description": "One bond: values in the order of `columns`. Market columns (`price_pct`, `ytm`, `ytm_kind`, `current_yield`, `duration_days`, `accint`, `value_today`) are null without a quote; `value_avg`/`numtrades_avg` are null while the liquidity store is empty; the issuer rating of the row is taken from the `emitters` dictionary by `emitter_id`. `coupon_percent` is a single number: for a floater on the key rate/RUONIA without its own percent it is the base rate + `coupon_spread_pct` (null while the base rate is unknown). `days_to_event` — whole days to the nearest maturity/put/call, null for a perpetual bond with no event."
     },
     "screener": {
       "type": "object",
