@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 7928ea0d082a43abb1642d96eea1f2d0105bf38eae2afcee1eb8d699c9e4f747
+# source-hash: 55add1c45476171ebae4fe140cec2660f273e53907b551ebe350eeae7532cad5
 
 from __future__ import annotations
 
@@ -804,44 +804,6 @@ class AfbwsBondsChannelV1BondRow(TypedDict):
     market: AfbwsBondsChannelV1MarketOrNull
 
 
-class AfbwsBondsChannelV1Breakdown(TypedDict):
-    """
-    Structure of the portfolio over held positions that have a ruble market value (positions without one are not counted in any group). Shares are of market value in rubles. Empty arrays for a portfolio with no valued positions.
-    """
-
-    by_category: list[AfbwsBondsChannelV1BreakdownItem]
-    by_coupon_kind: list[AfbwsBondsChannelV1BreakdownItem]
-    by_currency: list[AfbwsBondsChannelV1BreakdownItem]
-    by_rating: list[AfbwsBondsChannelV1BreakdownItem]
-    by_maturity: list[AfbwsBondsChannelV1BreakdownItem]
-    by_emitter: list[AfbwsBondsChannelV1BreakdownItem]
-
-
-class AfbwsBondsChannelV1BreakdownItem(TypedDict):
-    """
-    One group of a portfolio structure.
-    """
-
-    key: str
-    label: NotRequired[str]
-    market_value_rub: float
-    share: float
-    ytm: float | None
-    positions: int
-
-
-class AfbwsBondsChannelV1CalendarMonth(TypedDict):
-    """
-    Expected payments of one month, in rubles; a sum is null when some payment of the month has no FX rate. Forecast and assumed amounts are included (they are marked in `payments[]`).
-    """
-
-    month: str
-    coupons_rub: float | None
-    amortizations_rub: float | None
-    redemptions_rub: float | None
-    items_count: int
-
-
 AfbwsBondsChannelV1Category: TypeAlias = Literal[
     "ofz", "subfederal", "municipal", "corporate", "currency", "default"
 ]
@@ -950,18 +912,6 @@ AfbwsBondsChannelV1FavoriteColor: TypeAlias = Literal[
 ]
 
 
-AfbwsBondsChannelV1Flag: TypeAlias = Literal[
-    "float_assumed",
-    "float_projected",
-    "indexed_nominal",
-    "no_fx",
-    "no_market",
-    "default",
-    "matured",
-    "no_trades",
-]
-
-
 class AfbwsBondsChannelV1History(TypedDict):
     """
     Daily history of the bond (columnar, like afbws.market.series.v1 tables), oldest first. `close` — percent of face value; `yield_close` — percent per year; `facevalue` — face value of the day in `faceunit`; `volume` — pieces.
@@ -993,24 +943,6 @@ AfbwsBondsChannelV1Market = TypedDict(
 AfbwsBondsChannelV1MarketOrNull: TypeAlias = AfbwsBondsChannelV1Market | None
 
 
-class AfbwsBondsChannelV1NextCoupon(TypedDict):
-    """
-    Next coupon of a position.
-    """
-
-    date: str
-    value: float | None
-
-
-class AfbwsBondsChannelV1NextEvent(TypedDict):
-    """
-    Nearest offer/maturity/amortization/call of a position.
-    """
-
-    kind: AfbwsBondsChannelV1EventKind
-    date: str
-
-
 class AfbwsBondsChannelV1Offer(TypedDict):
     """
     One offer of the bond schedule.
@@ -1023,40 +955,30 @@ class AfbwsBondsChannelV1Offer(TypedDict):
     kind: str | None
 
 
-class AfbwsBondsChannelV1Payment(TypedDict):
+class AfbwsBondsChannelV1PaymentsTable(TypedDict):
     """
-    A past or future payment of a position.
+    One row per expected (future) payment of the held positions, ordered by `date`, `instrument_key`, payment kind. `columns` starts with `date` and may list any subset of the allowed fields in any order — a client reads by column name, never by positional index — so the server can add a field later without a schema bump, as long as it stays inside the enum below. `rows` elements are `number | string | null`; a source NaN is sent as `null`. Amounts are for the CURRENT quantity of the position (the balance is not restored to the record date). `amount` is in the bond's `faceunit`, `amount_rub` in rubles (null without an FX rate). `mark` tells how reliable the amount is: null — taken from the schedule; `assumed` — an assumption (floater coupon with the rate not yet known, indexed nominal); `projected` — a forecast from the base rate (such a payment is also an assumption). Payments already received are not here — they are in the account log (afbws.account.ledger.v2).
     """
 
-    date: str
-    instrument_key: AfbwsCommonV1InstrumentKey
-    kind: Literal["coupon", "amortization", "maturity", "offer_redemption"]
-    amount: float
-    amount_rub: float | None
-    faceunit: AfbwsBondsChannelV1Faceunit
-    status: Literal["received", "expected"]
-    assumed: bool
-    projected: bool
+    columns: list[
+        Literal["date"]
+        | Literal[
+            "date", "instrument_key", "kind", "amount", "amount_rub", "faceunit", "mark"
+        ]
+    ]
+    rows: list[list[float | str | None]]
 
 
 class AfbwsBondsChannelV1Portfolio(TypedDict):
     """
-    Request: `id`. Response: the portfolio (`portfolioRef` with its composition) with analytics. A portfolio with a virtual account (`portfolio.account_id`, type `bond`, afbws.account.channel.v2) is filled from the account: `positions[]` (`quantity`, `avg_price_pct`, `invested`, `received`), `payments[]` (`received` from the account log plus `expected` for the current quantity), `totals`, `calendar`, `breakdown`. Compatibility fields, kept so older frontends do not break: `trades` is always `[]` (the journal is replaced by the account log, afbws.account.ledger.v2), `series.rows` is `[]`, `totals.xirr` is null. A public portfolio is read-only. Server push: the same body WITHOUT `request_id` once per market snapshot and after each account change (cash, set, income credit) or composition edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
+    Request: `id`. Response: the same `id` and `payments` — the table of the future payments of the portfolio's account positions (see `paymentsTable`); the portfolio itself (`portfolioRef`) and its totals are in `portfolios`, the received payments and the operation journal are in the account log (afbws.account.ledger.v2). A portfolio without an account or without held positions has an empty table. A public portfolio is read-only. Server push: the same body WITHOUT `request_id` once per market snapshot and after each account change (cash, set, income credit) or composition edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.
     """
 
     channel: Literal["bonds"]
     schema: Literal["afbws.bonds.portfolio.v1"]
     request_id: NotRequired[AfbwsCommonV1RequestId]
-    id: NotRequired[str]
-    portfolio: NotRequired[AfbwsBondsChannelV1PortfolioRef]
-    positions: NotRequired[list[AfbwsBondsChannelV1Position]]
-    trades: NotRequired[list[AfbwsBondsChannelV1Trade]]
-    payments: NotRequired[list[AfbwsBondsChannelV1Payment]]
-    series: NotRequired[AfbwsBondsChannelV1Series]
-    totals: NotRequired[AfbwsBondsChannelV1Totals]
-    flags: NotRequired[list[AfbwsBondsChannelV1Flag]]
-    breakdown: NotRequired[AfbwsBondsChannelV1Breakdown]
-    calendar: NotRequired[list[AfbwsBondsChannelV1CalendarMonth]]
+    id: str
+    payments: NotRequired[AfbwsBondsChannelV1PaymentsTable]
 
 
 class AfbwsBondsChannelV1PortfolioEdit(TypedDict):
@@ -1100,7 +1022,7 @@ class AfbwsBondsChannelV1PortfolioRejection(TypedDict):
 
 class AfbwsBondsChannelV1Portfolios(TypedDict):
     """
-    Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests. No analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
+    Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests — and `totals`: the portfolio totals (see the property) for the portfolios with an account. No payment list and no per-position analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) and whenever the totals change (a market snapshot, an account operation) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
     """
 
     channel: Literal["bonds"]
@@ -1108,6 +1030,7 @@ class AfbwsBondsChannelV1Portfolios(TypedDict):
     request_id: NotRequired[AfbwsCommonV1RequestId]
     portfolios: NotRequired[list[AfbwsBondsChannelV1PortfolioRef]]
     bonds: NotRequired[list[AfbwsBondsChannelV1BondRow]]
+    totals: NotRequired[dict[str, AfbwsBondsChannelV1Totals]]
 
 
 class AfbwsBondsChannelV1PortfoliosSet(TypedDict):
@@ -1122,35 +1045,7 @@ class AfbwsBondsChannelV1PortfoliosSet(TypedDict):
     remove: NotRequired[list[RemoveItem]]
     rejected: NotRequired[list[AfbwsBondsChannelV1PortfolioRejection]]
     bonds: NotRequired[list[AfbwsBondsChannelV1BondRow]]
-
-
-class AfbwsBondsChannelV1Position(TypedDict):
-    """
-    One row per bond of the portfolio. Fields that depend on purchases (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`) are null for a bond without purchases (flag `no_trades`).
-    """
-
-    instrument_key: AfbwsCommonV1InstrumentKey
-    secid: AfbwsBondsChannelV1Secid
-    shortname: str
-    category: AfbwsBondsChannelV1Category
-    faceunit: AfbwsBondsChannelV1Faceunit
-    quantity: int | None
-    avg_price_pct: float | None
-    invested: float | None
-    facevalue: float
-    price_pct: float | None
-    accint: float | None
-    market_value: float | None
-    market_value_rub: float | None
-    current_yield: float | None
-    ytm_market: float | None
-    ytm_kind: Literal["ytm", "yto"] | None
-    ytm_purchase: float | None
-    duration_days: int | None
-    next_coupon: AfbwsBondsChannelV1NextCoupon | None
-    next_event: AfbwsBondsChannelV1NextEvent | None
-    received: Received | None
-    flags: list[AfbwsBondsChannelV1Flag]
+    totals: NotRequired[dict[str, AfbwsBondsChannelV1Totals]]
 
 
 class AfbwsBondsChannelV1Range(TypedDict):
@@ -1252,13 +1147,14 @@ class AfbwsBondsChannelV1Schedule(TypedDict):
 
 class AfbwsBondsChannelV1Screener(TypedDict):
     """
-    Request: optional `filters` (`screenerFilters`); the server stores them as THE filters of this connection (replacing the previous ones, an absent `filters` means no filters) and answers at once. Response: the whole filtered set without pages, columnar: `asof` (time of the market snapshot the rows are built from, null before the first snapshot), `liquidity_days` (window of `value_avg`/`numtrades_avg`), `total` (= number of rows), `emitters` (dictionary issuer id -> {title, rating_group}, only the issuers present in the rows; JSON keys are strings), `columns` and `rows`. Sorting is the client's job. Server push: the same body WITHOUT `request_id` after every market snapshot (about every 5 minutes) to the connections whose last state is an open screener, built by their stored filters. A filter the schema allows but the backend refuses (e.g. `min` > `max`) — error `validation_error`. Needs the `bonds` capability.
+    Request: required boolean `summary` and optional `filters` (`screenerFilters`). `summary=false` — the server stores the filters as THE filters of this connection (replacing the previous ones, an absent `filters` means no filters) and answers at once with the whole set. `summary=true` — the filters are only counted: the server does NOT store them (the stored filters and the pushes stay as they were), builds no rows and answers with `total` and EMPTY `rows` and `emitters`. Response: the whole filtered set without pages, columnar: `asof` (time of the market snapshot the rows are built from, null before the first snapshot), `liquidity_days` (window of `value_avg`/`numtrades_avg`), `total` (= number of rows; with `summary=true` — the number of bonds that pass the filters while `rows` is empty), `emitters` (dictionary issuer id -> {title, rating_group}, only the issuers present in the rows; JSON keys are strings), `columns` and `rows`. Sorting is the client's job. Server push: the same body WITHOUT `request_id` after every market snapshot (about every 5 minutes) to the connections whose last state is an open screener, built by their stored filters. A filter the schema allows but the backend refuses (e.g. `min` > `max`) — error `validation_error`. Needs the `bonds` capability.
     """
 
     channel: Literal["bonds"]
     schema: Literal["afbws.bonds.screener.v1"]
     request_id: NotRequired[AfbwsCommonV1RequestId]
     filters: NotRequired[AfbwsBondsChannelV1ScreenerFilters]
+    summary: NotRequired[bool]
     asof: NotRequired[str | None]
     liquidity_days: NotRequired[int]
     total: NotRequired[int]
@@ -1298,12 +1194,12 @@ AfbwsBondsChannelV1ScreenerColumns: TypeAlias = tuple[
     Literal["value_avg"],
     Literal["numtrades_avg"],
     Literal["value_today"],
-    Literal["years_to_event"],
+    Literal["days_to_event"],
 ]
 
 
 """
-Column names of `rows`, ALWAYS exactly this list in exactly this order (the order is part of the contract; a column is added only by a new schema version): instrument_key, secid, shortname, category, faceunit, coupon_kind, coupon_percent, coupon_benchmark, coupon_spread_pct, coupon_frequency, matdate, offerdate, call_date, redemption_kind, has_amortization, next_amort_date, is_qualified, high_risk, liquidity_class, list_level, emitter_id, price_pct, ytm, ytm_kind, current_yield, duration_days, accint, value_avg, numtrades_avg, value_today, years_to_event. Shared by `screener` and `emitter`.
+Column names of `rows`, ALWAYS exactly this list in exactly this order (the order is part of the contract; a column is added only by a new schema version): instrument_key, secid, shortname, category, faceunit, coupon_kind, coupon_percent, coupon_benchmark, coupon_spread_pct, coupon_frequency, matdate, offerdate, call_date, redemption_kind, has_amortization, next_amort_date, is_qualified, high_risk, liquidity_class, list_level, emitter_id, price_pct, ytm, ytm_kind, current_yield, duration_days, accint, value_avg, numtrades_avg, value_today, days_to_event. Shared by `screener` and `emitter`.
 """
 
 
@@ -1330,7 +1226,7 @@ class AfbwsBondsChannelV1ScreenerFilters(TypedDict):
     ytm: NotRequired[AfbwsBondsChannelV1Range]
     current_yield: NotRequired[AfbwsBondsChannelV1Range]
     coupon_percent: NotRequired[AfbwsBondsChannelV1Range]
-    years_to_event: NotRequired[AfbwsBondsChannelV1Range]
+    days_to_event: NotRequired[AfbwsBondsChannelV1Range]
     duration_days: NotRequired[AfbwsBondsChannelV1Range]
     amortization: NotRequired[Literal["any", "with", "without"]]
     offer: NotRequired[Literal["any", "with", "without"]]
@@ -1373,21 +1269,6 @@ class AfbwsBondsChannelV1Search(TypedDict):
 
 
 AfbwsBondsChannelV1Secid: TypeAlias = str
-
-
-class AfbwsBondsChannelV1Series(TypedDict):
-    """
-    Daily series of the portfolio from the date of the first trade (columnar). `market_value_rub`, `invested_rub`, `received_rub` — rubles; `ytm` — percent per year.
-    """
-
-    columns: tuple[
-        Literal["date"],
-        Literal["market_value_rub"],
-        Literal["invested_rub"],
-        Literal["received_rub"],
-        Literal["ytm"],
-    ]
-    rows: list[list[float | str | None]]
 
 
 AfbwsBondsChannelV1Severity: TypeAlias = Literal["low", "medium", "high"]
@@ -1454,25 +1335,10 @@ class AfbwsBondsChannelV1Totals(TypedDict):
     invested_rub: float | None
     market_value_rub: float | None
     received_rub: float | None
-    xirr: float | None
     ytm: float | None
     current_yield: float | None
     duration_days: int | None
     annual_coupons_rub: float | None
-
-
-class AfbwsBondsChannelV1Trade(TypedDict):
-    """
-    One journal entry (purchase or sale).
-    """
-
-    trade_id: str
-    instrument_key: AfbwsCommonV1InstrumentKey
-    trade_date: str
-    quantity: int
-    price_pct: float
-    accrued_int: NotRequired[float]
-    commission: NotRequired[float]
 
 
 AfbwsBondsChannelV1Visibility: TypeAlias = Literal[
@@ -1976,12 +1842,12 @@ AfbwsBondsChannelV1ScreenerRow: TypeAlias = tuple[
     float | None,
     float | None,
     float | None,
-    float | None,
+    int | None,
 ]
 
 
 """
-One bond: values in the order of `columns`. Market columns (`price_pct`, `ytm`, `ytm_kind`, `current_yield`, `duration_days`, `accint`, `value_today`) are null without a quote; `value_avg`/`numtrades_avg` are null while the liquidity store is empty; the issuer rating of the row is taken from the `emitters` dictionary by `emitter_id`. `years_to_event` — years to the nearest maturity/put/call, null for a perpetual bond with no event.
+One bond: values in the order of `columns`. Market columns (`price_pct`, `ytm`, `ytm_kind`, `current_yield`, `duration_days`, `accint`, `value_today`) are null without a quote; `value_avg`/`numtrades_avg` are null while the liquidity store is empty; the issuer rating of the row is taken from the `emitters` dictionary by `emitter_id`. `days_to_event` — whole days to the nearest maturity/put/call, null for a perpetual bond with no event.
 """
 
 
@@ -6022,15 +5888,6 @@ class PresetTimeframes(TypedDict):
 
 class Primitives(TypedDict):
     confirm_delete: NotRequired[bool]
-
-
-class Received(TypedDict):
-    """
-    Payments received so far; null without purchases.
-    """
-
-    coupons: float
-    amortizations: float
 
 
 class RejectedItem(TypedDict):

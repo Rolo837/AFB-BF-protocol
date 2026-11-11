@@ -16,6 +16,24 @@
 
 ### Removed
 
+## v2.10.11 — 2026-11-11
+
+### Changed
+- `afbws.bonds.screener.v1` / `afbws.bonds.emitter.v1`: последняя колонка строки `years_to_event` (годы) заменена на `days_to_event` (целые дни до ближайшего погашения/оферты/call, `null` для бессрочной без события; `integer|null`). Фильтр `filters.years_to_event` (годы) переименован в `filters.days_to_event` (дни, тот же `range`). Потребителей строк скринера пока нет — без совместимости; схема, модели, примеры обновлены.
+
+## v2.10.10 — 2026-11-11
+
+### Added
+- `afbws.bonds.portfolios.v1` и `afbws.bonds.portfolios.set.v1` (ответ): поле `totals` — итоги портфелей со счётом (объект по id портфеля, общий `$defs/totals`), чтобы список давал блок стоимости без запроса `portfolio`. Присутствует в ответе и пуше целиком (может быть `{}`); пуш также при смене итогов (снимок рынка, операция со счётом). Блок облигаций вне прода — без совместимости со старыми клиентами.
+
+### Changed
+- `afbws.bonds.screener.v1` (запрос): обязательный булев флаг `summary`. `true` — сводка: фильтры не сохраняются на соединении, строки не строятся, ответ несёт `total` (число бумаг, прошедших фильтры), пустые `rows` и `emitters`; `false` — прежнее поведение (фильтры сохраняются как фильтры соединения, приходит весь набор). Потребителей `bonds.screener` пока нет — без совместимости.
+- `afbws.bonds.portfolio.v1` переделан без совместимости: тело — `id` и `payments`, колоночная таблица будущих выплат `paymentsTable` (`columns`/`rows`, ключ `date`, столбцы `instrument_key`/`kind`/`amount`/`amount_rub`/`faceunit`/`mark`; `assumed`+`projected` → `mark`, `status` убран: полученные выплаты — в `afbws.account.ledger.v2`). Сам портфель и итоги — в `portfolios`.
+
+### Removed
+- `afbws.bonds.portfolio.v1`: `portfolio`, `positions`, `trades`, `series`, `totals`, `flags`, `breakdown`, `calendar` (`calendar` дублировал `payments`; остальное — мертвяки или без читателя). Из `$defs` удалены `position`, `trade`, `payment`, `series`, `flag`, `breakdown`, `breakdownItem`, `calendarMonth`, `nextCoupon`, `nextEvent`.
+- `afbws.bonds.*` `totals.xirr` (всегда `null`) удалено из `$defs/totals`.
+
 ## v2.10.9 — 2026-11-10
 
 ### Changed

@@ -2,6 +2,7 @@
   "channel": "bonds",
   "schema": "afbws.bonds.screener.v1",
   "request_id": "b-10",
+  "summary": false,
   "filters": {
     "query": "ОФЗ",
     "categories": [
@@ -17,9 +18,9 @@
     "ytm": {
       "min": 12
     },
-    "years_to_event": {
-      "min": 0.5,
-      "max": 10
+    "days_to_event": {
+      "min": 180,
+      "max": 3650
     },
     "amortization": "any",
     "liquidity_classes": [

@@ -1,0 +1,33 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.screener.v1",
+  "request_id": "b-11",
+  "summary": true,
+  "filters": {
+    "query": "ОФЗ",
+    "categories": [
+      "ofz",
+      "corporate"
+    ],
+    "coupon_kinds": [
+      "fixed",
+      "key_rate"
+    ],
+    "rating_min": "BBB",
+    "include_unrated": true,
+    "ytm": {
+      "min": 12
+    },
+    "days_to_event": {
+      "min": 180,
+      "max": 3650
+    },
+    "amortization": "any",
+    "liquidity_classes": [
+      1,
+      2
+    ],
+    "min_value_avg": 1000000,
+    "include_qualified": false
+  }
+}

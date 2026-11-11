@@ -91,19 +91,6 @@
       "maxLength": 8,
       "description": "Currency of the bond face value (ISS FACEUNIT, e.g. `SUR`, `USD`, `CNY`). All money fields without the `_rub` suffix are in this currency; fields with `_rub` are the same amount converted to rubles."
     },
-    "flag": {
-      "enum": [
-        "float_assumed",
-        "float_projected",
-        "indexed_nominal",
-        "no_fx",
-        "no_market",
-        "default",
-        "matured",
-        "no_trades"
-      ],
-      "description": "Data-quality marker explaining an assumption behind a figure. `float_assumed` — a future coupon is taken equal to the last known one (floater); `float_projected` — a future floater coupon is a FORECAST from the base rate set by a manager (`rates`) plus the spread (such payments carry `projected`); `indexed_nominal` — a future face value of an inflation-indexed OFZ is taken equal to the current one; `no_fx` — no FX rate, `_rub` figures are missing; `no_market` — no market data, valued by the last known price; `default` — the issuer is in default; `matured` — the bond is already redeemed. `no_trades` — the bond is in the portfolio composition but has no purchases (purchase-based figures are null)."
-    },
     "market": {
       "type": "object",
       "additionalProperties": false,
@@ -917,7 +904,10 @@
           "description": "Composition: the instrument keys of the bonds of the portfolio in display order (at most 200, no duplicates). Empty for a new portfolio."
         },
         "account_id": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Id of the portfolio's virtual account (type `bond`, `bond:<portfolio id>`, see afbws.account.channel.v2); null for a public portfolio created before the account was introduced, until staff makes the first record. Not in `required`: older payloads without the field stay valid."
         }
       }
@@ -974,102 +964,6 @@
         }
       }
     },
-    "trade": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "One journal entry (purchase or sale).",
-      "required": [
-        "trade_id",
-        "instrument_key",
-        "trade_date",
-        "quantity",
-        "price_pct"
-      ],
-      "properties": {
-        "trade_id": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 64,
-          "description": "Journal entry id (client-generated on create); a known id updates the entry."
-        },
-        "instrument_key": {
-          "$ref": "common.v1.json#/$defs/instrumentKey",
-          "description": "Bond identifier: the composite instrument key `MISX:<primary board>:<secid>` (e.g. `MISX:TQCB:RU000A10A3Z4`), the ONLY way to identify a bond. Case-sensitive, never normalized. A board change is another key, i.e. another bond."
-        },
-        "trade_date": {
-          "type": "string",
-          "format": "date",
-          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-          "description": "Trade date; not later than today and not earlier than the bond's issue date."
-        },
-        "quantity": {
-          "type": "integer",
-          "not": {
-            "const": 0
-          },
-          "description": "Pieces: positive — purchase, negative — sale. A sale cannot exceed the balance on the date."
-        },
-        "price_pct": {
-          "type": "number",
-          "description": "Price, percent of face value.",
-          "exclusiveMinimum": 0
-        },
-        "accrued_int": {
-          "type": "number",
-          "description": "Accrued coupon interest per bond, in `faceunit`. Omitted: taken from the daily data of the date (ISS ACCINT).",
-          "minimum": 0
-        },
-        "commission": {
-          "type": "number",
-          "description": "Commission of the trade, in `faceunit`; part of the invested amount only, never affects yields.",
-          "minimum": 0
-        }
-      }
-    },
-    "nextCoupon": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Next coupon of a position.",
-      "required": [
-        "date",
-        "value"
-      ],
-      "properties": {
-        "date": {
-          "type": "string",
-          "format": "date",
-          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-          "description": "Date of the next coupon."
-        },
-        "value": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Next coupon amount per position (quantity applied), in `faceunit`."
-        }
-      }
-    },
-    "nextEvent": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Nearest offer/maturity/amortization/call of a position.",
-      "required": [
-        "kind",
-        "date"
-      ],
-      "properties": {
-        "kind": {
-          "$ref": "#/$defs/eventKind"
-        },
-        "date": {
-          "type": "string",
-          "format": "date",
-          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-          "description": "Event date."
-        }
-      }
-    },
     "eventKind": {
       "enum": [
         "offer",
@@ -1079,309 +973,6 @@
       ],
       "description": "Event kind: `offer` buyback offer, `maturity` redemption, `amortization` partial repayment, `call` issuer's call option."
     },
-    "position": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "One row per bond of the portfolio. Fields that depend on purchases (`quantity`, `avg_price_pct`, `invested`, `market_value`, `market_value_rub`, `ytm_purchase`, `received`) are null for a bond without purchases (flag `no_trades`).",
-      "required": [
-        "instrument_key",
-        "secid",
-        "shortname",
-        "category",
-        "faceunit",
-        "quantity",
-        "avg_price_pct",
-        "invested",
-        "facevalue",
-        "price_pct",
-        "accint",
-        "market_value",
-        "market_value_rub",
-        "current_yield",
-        "ytm_market",
-        "ytm_kind",
-        "ytm_purchase",
-        "duration_days",
-        "next_coupon",
-        "next_event",
-        "received",
-        "flags"
-      ],
-      "properties": {
-        "instrument_key": {
-          "$ref": "common.v1.json#/$defs/instrumentKey",
-          "description": "Bond identifier: the composite instrument key `MISX:<primary board>:<secid>` (e.g. `MISX:TQCB:RU000A10A3Z4`), the ONLY way to identify a bond. Case-sensitive, never normalized. A board change is another key, i.e. another bond."
-        },
-        "secid": {
-          "$ref": "#/$defs/secid"
-        },
-        "shortname": {
-          "type": "string",
-          "description": "Short display name."
-        },
-        "category": {
-          "$ref": "#/$defs/category"
-        },
-        "faceunit": {
-          "$ref": "#/$defs/faceunit"
-        },
-        "quantity": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "description": "Balance, pieces; null for a bond without purchases."
-        },
-        "avg_price_pct": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Average purchase price, percent of face value; null without purchases."
-        },
-        "invested": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Sum of purchases including accrued interest and commission minus sales, in `faceunit`; null without purchases."
-        },
-        "facevalue": {
-          "type": "number",
-          "description": "Current face value in `faceunit`."
-        },
-        "price_pct": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Current price, percent of face value."
-        },
-        "accint": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Accrued interest per bond, in `faceunit`."
-        },
-        "market_value": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Market value of the position in `faceunit`; null without purchases or market data."
-        },
-        "market_value_rub": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Market value of the position in rubles; null without purchases, market data or FX rate."
-        },
-        "current_yield": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Annual coupon / (price + accrued interest), percent at the market price; does not depend on purchases (filled for a bond without purchases too); null only if undefined (no price or no coupon)."
-        },
-        "ytm_market": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Yield at the market price, percent per year."
-        },
-        "ytm_kind": {
-          "enum": [
-            "ytm",
-            "yto",
-            null
-          ],
-          "description": "What `ytm_market` is: to maturity or to offer; null without yield."
-        },
-        "ytm_purchase": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "XIRR of the purchases and future payments, percent per year; null without purchases."
-        },
-        "duration_days": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "description": "Duration, days."
-        },
-        "next_coupon": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/nextCoupon"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Next coupon; null when none."
-        },
-        "next_event": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/nextEvent"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Nearest event; null when none."
-        },
-        "received": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "additionalProperties": false,
-          "description": "Payments received so far; null without purchases.",
-          "required": [
-            "coupons",
-            "amortizations"
-          ],
-          "properties": {
-            "coupons": {
-              "type": "number",
-              "description": "Coupons received so far, in `faceunit`."
-            },
-            "amortizations": {
-              "type": "number",
-              "description": "Amortizations received so far, in `faceunit`."
-            }
-          }
-        },
-        "flags": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/flag"
-          },
-          "uniqueItems": true,
-          "description": "Assumptions behind the figures of this position."
-        }
-      }
-    },
-    "payment": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "A past or future payment of a position.",
-      "required": [
-        "date",
-        "instrument_key",
-        "kind",
-        "amount",
-        "amount_rub",
-        "faceunit",
-        "status",
-        "assumed",
-        "projected"
-      ],
-      "properties": {
-        "date": {
-          "type": "string",
-          "format": "date",
-          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-          "description": "Payment date."
-        },
-        "instrument_key": {
-          "$ref": "common.v1.json#/$defs/instrumentKey",
-          "description": "Bond identifier: the composite instrument key `MISX:<primary board>:<secid>` (e.g. `MISX:TQCB:RU000A10A3Z4`), the ONLY way to identify a bond. Case-sensitive, never normalized. A board change is another key, i.e. another bond."
-        },
-        "kind": {
-          "enum": [
-            "coupon",
-            "amortization",
-            "maturity",
-            "offer_redemption"
-          ],
-          "description": "Payment kind."
-        },
-        "amount": {
-          "type": "number",
-          "description": "Amount in `faceunit`."
-        },
-        "amount_rub": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Amount in rubles; null without FX rate."
-        },
-        "faceunit": {
-          "$ref": "#/$defs/faceunit"
-        },
-        "status": {
-          "enum": [
-            "received",
-            "expected"
-          ],
-          "description": "`received` — the bond was on the balance on the record date and the date has passed; `expected` — future."
-        },
-        "assumed": {
-          "type": "boolean",
-          "description": "True when the amount is an assumption (see position flags `float_assumed`, `indexed_nominal`)."
-        },
-        "projected": {
-          "type": "boolean",
-          "description": "True when the amount is a forecast from the base rate (flag `float_projected`); such a payment is also `assumed`."
-        }
-      }
-    },
-    "series": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "columns",
-        "rows"
-      ],
-      "description": "Daily series of the portfolio from the date of the first trade (columnar). `market_value_rub`, `invested_rub`, `received_rub` — rubles; `ytm` — percent per year.",
-      "properties": {
-        "columns": {
-          "type": "array",
-          "minItems": 5,
-          "maxItems": 5,
-          "prefixItems": [
-            {
-              "const": "date"
-            },
-            {
-              "const": "market_value_rub"
-            },
-            {
-              "const": "invested_rub"
-            },
-            {
-              "const": "received_rub"
-            },
-            {
-              "const": "ytm"
-            }
-          ],
-          "description": "Fixed column order: date, market_value_rub, invested_rub, received_rub, ytm."
-        },
-        "rows": {
-          "type": "array",
-          "items": {
-            "type": "array",
-            "items": {
-              "type": [
-                "number",
-                "string",
-                "null"
-              ]
-            }
-          },
-          "description": "Each row has the same length and order as `columns`; a missing value is null (never NaN)."
-        }
-      }
-    },
     "totals": {
       "type": "object",
       "additionalProperties": false,
@@ -1390,7 +981,6 @@
         "invested_rub",
         "market_value_rub",
         "received_rub",
-        "xirr",
         "ytm",
         "current_yield",
         "duration_days",
@@ -1417,13 +1007,6 @@
             "null"
           ],
           "description": "Payments received, rubles."
-        },
-        "xirr": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Actual portfolio return (XIRR), percent per year."
         },
         "ytm": {
           "type": [
@@ -1482,7 +1065,10 @@
           "description": "Human-readable reason."
         },
         "reason": {
-          "enum": ["no_last_price", "no_fx"],
+          "enum": [
+            "no_last_price",
+            "no_fx"
+          ],
           "description": "Machine-readable reason, optional. no_last_price: no known LAST MOEX (the last known one, not necessarily of today) for a position being auto-sold; no_fx: no exchange rate for the conversion. Open for additive extension."
         }
       }
@@ -1849,7 +1435,7 @@
     "portfolios": {
       "type": "object",
       "title": "afbws.bonds.portfolios.v1 — portfolio list with the bonds of their compositions (request / response / push).",
-      "description": "Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests. No analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.",
+      "description": "Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests — and `totals`: the portfolio totals (see the property) for the portfolios with an account. No payment list and no per-position analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) and whenever the totals change (a market snapshot, an account operation) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.",
       "required": [
         "channel",
         "schema"
@@ -1878,6 +1464,13 @@
             "$ref": "#/$defs/bondRow"
           },
           "description": "Response and push. Bond rows of all compositions of `portfolios`, without duplicates."
+        },
+        "totals": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/totals"
+          },
+          "description": "Response and push. Totals of the portfolios with an account, keyed by portfolio id (the same ids as in `portfolios`): invested amount, market value, payments received, weighted yields, duration, annual coupons. A portfolio without an account, without read access or without held positions has no key (the client shows no figures). No payment list is computed."
         }
       },
       "allOf": [
@@ -1890,17 +1483,24 @@
           "then": {
             "dependentRequired": {
               "portfolios": [
-                "bonds"
+                "bonds",
+                "totals"
               ],
               "bonds": [
-                "portfolios"
+                "portfolios",
+                "totals"
+              ],
+              "totals": [
+                "portfolios",
+                "bonds"
               ]
             }
           },
           "else": {
             "required": [
               "portfolios",
-              "bonds"
+              "bonds",
+              "totals"
             ]
           }
         }
@@ -1908,11 +1508,12 @@
     },
     "portfolio": {
       "type": "object",
-      "title": "afbws.bonds.portfolio.v1 — one portfolio with the journal and analytics (request / response / push).",
-      "description": "Request: `id`. Response: the portfolio (`portfolioRef` with its composition) with analytics. A portfolio with a virtual account (`portfolio.account_id`, type `bond`, afbws.account.channel.v2) is filled from the account: `positions[]` (`quantity`, `avg_price_pct`, `invested`, `received`), `payments[]` (`received` from the account log plus `expected` for the current quantity), `totals`, `calendar`, `breakdown`. Compatibility fields, kept so older frontends do not break: `trades` is always `[]` (the journal is replaced by the account log, afbws.account.ledger.v2), `series.rows` is `[]`, `totals.xirr` is null. A public portfolio is read-only. Server push: the same body WITHOUT `request_id` once per market snapshot and after each account change (cash, set, income credit) or composition edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.",
+      "title": "afbws.bonds.portfolio.v1 — expected payments of one portfolio (request / response / push).",
+      "description": "Request: `id`. Response: the same `id` and `payments` — the table of the future payments of the portfolio's account positions (see `paymentsTable`); the portfolio itself (`portfolioRef`) and its totals are in `portfolios`, the received payments and the operation journal are in the account log (afbws.account.ledger.v2). A portfolio without an account or without held positions has an empty table. A public portfolio is read-only. Server push: the same body WITHOUT `request_id` once per market snapshot and after each account change (cash, set, income credit) or composition edit — to the connections that requested this id last. Unknown or foreign personal id — error `not_found`.",
       "required": [
         "channel",
-        "schema"
+        "schema",
+        "id"
       ],
       "additionalProperties": false,
       "properties": {
@@ -1928,105 +1529,25 @@
         "id": {
           "type": "string",
           "minLength": 1,
-          "description": "Request. Portfolio id."
-        },
-        "portfolio": {
-          "$ref": "#/$defs/portfolioRef",
-          "description": "Response only."
-        },
-        "positions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/position"
-          },
-          "description": "Response only."
-        },
-        "trades": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/trade"
-          },
-          "description": "Response only. The whole journal."
+          "description": "Portfolio id (request, response and push)."
         },
         "payments": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/payment"
-          },
-          "description": "Response only. Past and future payments of the positions."
-        },
-        "series": {
-          "$ref": "#/$defs/series",
-          "description": "Response only."
-        },
-        "totals": {
-          "$ref": "#/$defs/totals",
-          "description": "Response only."
-        },
-        "flags": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "$ref": "#/$defs/flag"
-          },
-          "description": "Response only. Assumptions behind the portfolio totals."
-        },
-        "breakdown": {
-          "$ref": "#/$defs/breakdown",
-          "description": "Response only. Portfolio structure."
-        },
-        "calendar": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/calendarMonth"
-          },
-          "description": "Response only. Expected payments grouped by month, ascending (the grouping of `payments[]` with status `expected`)."
+          "$ref": "#/$defs/paymentsTable",
+          "description": "Response and push."
         }
       },
       "allOf": [
         {
           "if": {
-            "required": [
-              "portfolio"
-            ]
+            "not": {
+              "required": [
+                "request_id"
+              ]
+            }
           },
           "then": {
             "required": [
-              "portfolio",
-              "positions",
-              "trades",
-              "payments",
-              "series",
-              "totals",
-              "flags",
-              "breakdown",
-              "calendar"
-            ]
-          }
-        },
-        {
-          "if": {
-            "required": [
-              "request_id"
-            ]
-          },
-          "then": {
-            "anyOf": [
-              {
-                "required": [
-                  "id"
-                ]
-              },
-              {
-                "required": [
-                  "portfolio"
-                ]
-              }
-            ]
-          },
-          "else": {
-            "required": [
-              "portfolio"
+              "payments"
             ]
           }
         }
@@ -2078,6 +1599,13 @@
             "$ref": "#/$defs/bondRow"
           },
           "description": "Response only. Bond rows of all compositions of `portfolios`, without duplicates."
+        },
+        "totals": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/totals"
+          },
+          "description": "Response only. Totals of the portfolios of the resulting list, as in `portfolios`."
         }
       },
       "allOf": [
@@ -2091,6 +1619,7 @@
             "required": [
               "portfolios",
               "bonds",
+              "totals",
               "rejected"
             ]
           }
@@ -2424,9 +1953,9 @@
           "$ref": "#/$defs/range",
           "description": "Coupon rate, percent per year."
         },
-        "years_to_event": {
+        "days_to_event": {
           "$ref": "#/$defs/range",
-          "description": "Years to the nearest event (maturity, put or call offer)."
+          "description": "Days to the nearest event (maturity, put or call offer)."
         },
         "duration_days": {
           "$ref": "#/$defs/range",
@@ -2610,11 +2139,11 @@
           "const": "value_today"
         },
         {
-          "const": "years_to_event"
+          "const": "days_to_event"
         }
       ],
       "items": false,
-      "description": "Column names of `rows`, ALWAYS exactly this list in exactly this order (the order is part of the contract; a column is added only by a new schema version): instrument_key, secid, shortname, category, faceunit, coupon_kind, coupon_percent, coupon_benchmark, coupon_spread_pct, coupon_frequency, matdate, offerdate, call_date, redemption_kind, has_amortization, next_amort_date, is_qualified, high_risk, liquidity_class, list_level, emitter_id, price_pct, ytm, ytm_kind, current_yield, duration_days, accint, value_avg, numtrades_avg, value_today, years_to_event. Shared by `screener` and `emitter`."
+      "description": "Column names of `rows`, ALWAYS exactly this list in exactly this order (the order is part of the contract; a column is added only by a new schema version): instrument_key, secid, shortname, category, faceunit, coupon_kind, coupon_percent, coupon_benchmark, coupon_spread_pct, coupon_frequency, matdate, offerdate, call_date, redemption_kind, has_amortization, next_amort_date, is_qualified, high_risk, liquidity_class, list_level, emitter_id, price_pct, ytm, ytm_kind, current_yield, duration_days, accint, value_avg, numtrades_avg, value_today, days_to_event. Shared by `screener` and `emitter`."
     },
     "screenerRow": {
       "type": "array",
@@ -2785,18 +2314,18 @@
         },
         {
           "type": [
-            "number",
+            "integer",
             "null"
           ]
         }
       ],
       "items": false,
-      "description": "One bond: values in the order of `columns`. Market columns (`price_pct`, `ytm`, `ytm_kind`, `current_yield`, `duration_days`, `accint`, `value_today`) are null without a quote; `value_avg`/`numtrades_avg` are null while the liquidity store is empty; the issuer rating of the row is taken from the `emitters` dictionary by `emitter_id`. `years_to_event` — years to the nearest maturity/put/call, null for a perpetual bond with no event."
+      "description": "One bond: values in the order of `columns`. Market columns (`price_pct`, `ytm`, `ytm_kind`, `current_yield`, `duration_days`, `accint`, `value_today`) are null without a quote; `value_avg`/`numtrades_avg` are null while the liquidity store is empty; the issuer rating of the row is taken from the `emitters` dictionary by `emitter_id`. `days_to_event` — whole days to the nearest maturity/put/call, null for a perpetual bond with no event."
     },
     "screener": {
       "type": "object",
       "title": "afbws.bonds.screener.v1 — bond screener (request / response / push).",
-      "description": "Request: optional `filters` (`screenerFilters`); the server stores them as THE filters of this connection (replacing the previous ones, an absent `filters` means no filters) and answers at once. Response: the whole filtered set without pages, columnar: `asof` (time of the market snapshot the rows are built from, null before the first snapshot), `liquidity_days` (window of `value_avg`/`numtrades_avg`), `total` (= number of rows), `emitters` (dictionary issuer id -> {title, rating_group}, only the issuers present in the rows; JSON keys are strings), `columns` and `rows`. Sorting is the client's job. Server push: the same body WITHOUT `request_id` after every market snapshot (about every 5 minutes) to the connections whose last state is an open screener, built by their stored filters. A filter the schema allows but the backend refuses (e.g. `min` > `max`) — error `validation_error`. Needs the `bonds` capability.",
+      "description": "Request: required boolean `summary` and optional `filters` (`screenerFilters`). `summary=false` — the server stores the filters as THE filters of this connection (replacing the previous ones, an absent `filters` means no filters) and answers at once with the whole set. `summary=true` — the filters are only counted: the server does NOT store them (the stored filters and the pushes stay as they were), builds no rows and answers with `total` and EMPTY `rows` and `emitters`. Response: the whole filtered set without pages, columnar: `asof` (time of the market snapshot the rows are built from, null before the first snapshot), `liquidity_days` (window of `value_avg`/`numtrades_avg`), `total` (= number of rows; with `summary=true` — the number of bonds that pass the filters while `rows` is empty), `emitters` (dictionary issuer id -> {title, rating_group}, only the issuers present in the rows; JSON keys are strings), `columns` and `rows`. Sorting is the client's job. Server push: the same body WITHOUT `request_id` after every market snapshot (about every 5 minutes) to the connections whose last state is an open screener, built by their stored filters. A filter the schema allows but the backend refuses (e.g. `min` > `max`) — error `validation_error`. Needs the `bonds` capability.",
       "required": [
         "channel",
         "schema"
@@ -2815,6 +2344,10 @@
         "filters": {
           "$ref": "#/$defs/screenerFilters",
           "description": "Request only."
+        },
+        "summary": {
+          "type": "boolean",
+          "description": "Request only, REQUIRED. `true` — summary: the filters are not stored on the connection, no rows are built; the response carries `total` (the number of bonds that pass the filters), an empty `rows` and an empty `emitters`. `false` — the full request: the filters are stored as THE filters of the connection and the whole filtered set is returned."
         },
         "asof": {
           "type": [
@@ -2882,6 +2415,23 @@
           "else": {
             "required": [
               "rows"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "request_id"
+            ],
+            "not": {
+              "required": [
+                "rows"
+              ]
+            }
+          },
+          "then": {
+            "required": [
+              "summary"
             ]
           }
         }
@@ -3198,149 +2748,50 @@
         }
       ]
     },
-    "breakdownItem": {
+    "paymentsTable": {
       "type": "object",
-      "additionalProperties": false,
+      "title": "Columnar table of the expected payments of a portfolio.",
+      "description": "One row per expected (future) payment of the held positions, ordered by `date`, `instrument_key`, payment kind. `columns` starts with `date` and may list any subset of the allowed fields in any order — a client reads by column name, never by positional index — so the server can add a field later without a schema bump, as long as it stays inside the enum below. `rows` elements are `number | string | null`; a source NaN is sent as `null`. Amounts are for the CURRENT quantity of the position (the balance is not restored to the record date). `amount` is in the bond's `faceunit`, `amount_rub` in rubles (null without an FX rate). `mark` tells how reliable the amount is: null — taken from the schedule; `assumed` — an assumption (floater coupon with the rate not yet known, indexed nominal); `projected` — a forecast from the base rate (such a payment is also an assumption). Payments already received are not here — they are in the account log (afbws.account.ledger.v2).",
       "required": [
-        "key",
-        "market_value_rub",
-        "share",
-        "ytm",
-        "positions"
+        "columns",
+        "rows"
       ],
-      "description": "One group of a portfolio structure.",
-      "properties": {
-        "key": {
-          "type": "string",
-          "description": "Group key: category / coupon kind / currency / rating group (`none` — unrated) / maturity bucket (`<1`, `1-3`, `3-5`, `>5`, `none`) / issuer id (`other` — the rest after the top 10, `none` — unknown)."
-        },
-        "label": {
-          "type": "string",
-          "description": "Display name when the key is not self-explanatory (issuer name, bucket, 'No rating'). Absent — show the key."
-        },
-        "market_value_rub": {
-          "type": "number",
-          "description": "Market value of the group in rubles (with accrued interest)."
-        },
-        "share": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Share of the group in the valued part of the portfolio, 0..1; shares of one grouping sum to 1."
-        },
-        "ytm": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Market-value-weighted yield of the group, percent per year; null when none can be computed."
-        },
-        "positions": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Number of held positions in the group."
-        }
-      }
-    },
-    "breakdown": {
-      "type": "object",
       "additionalProperties": false,
-      "required": [
-        "by_category",
-        "by_coupon_kind",
-        "by_currency",
-        "by_rating",
-        "by_maturity",
-        "by_emitter"
-      ],
-      "description": "Structure of the portfolio over held positions that have a ruble market value (positions without one are not counted in any group). Shares are of market value in rubles. Empty arrays for a portfolio with no valued positions.",
       "properties": {
-        "by_category": {
+        "columns": {
           "type": "array",
-          "items": {
-            "$ref": "#/$defs/breakdownItem"
-          },
-          "description": "By bond category, largest first."
-        },
-        "by_coupon_kind": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/breakdownItem"
-          },
-          "description": "By coupon type, largest first."
-        },
-        "by_currency": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/breakdownItem"
-          },
-          "description": "By face value currency, largest first."
-        },
-        "by_rating": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/breakdownItem"
-          },
-          "description": "By issuer rating group AAA..D, then `none` (unrated)."
-        },
-        "by_maturity": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/breakdownItem"
-          },
-          "description": "By years to the nearest event (maturity or put offer): `<1`, `1-3`, `3-5`, `>5`, `none`."
-        },
-        "by_emitter": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/breakdownItem"
-          },
-          "description": "By issuer: the top 10 largest, then `other`."
-        }
-      }
-    },
-    "calendarMonth": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "month",
-        "coupons_rub",
-        "amortizations_rub",
-        "redemptions_rub",
-        "items_count"
-      ],
-      "description": "Expected payments of one month, in rubles; a sum is null when some payment of the month has no FX rate. Forecast and assumed amounts are included (they are marked in `payments[]`).",
-      "properties": {
-        "month": {
-          "type": "string",
-          "pattern": "^\\d{4}-\\d{2}$",
-          "description": "Month, YYYY-MM."
-        },
-        "coupons_rub": {
-          "type": [
-            "number",
-            "null"
+          "minItems": 1,
+          "uniqueItems": true,
+          "prefixItems": [
+            {
+              "const": "date"
+            }
           ],
-          "description": "Coupons."
+          "items": {
+            "enum": [
+              "date",
+              "instrument_key",
+              "kind",
+              "amount",
+              "amount_rub",
+              "faceunit",
+              "mark"
+            ]
+          }
         },
-        "amortizations_rub": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Partial amortizations."
-        },
-        "redemptions_rub": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Redemptions: maturity and offer redemption."
-        },
-        "items_count": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Number of payments in the month."
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": [
+                "number",
+                "string",
+                "null"
+              ]
+            }
+          },
+          "description": "Each row has the same length and column order as `columns`. `date` is YYYY-MM-DD; `kind` is `coupon` | `amortization` | `maturity` | `offer_redemption`; `faceunit` is a currency code of `#/$defs/faceunit`; `mark` is `assumed` | `projected` | null."
         }
       }
     }
