@@ -409,9 +409,8 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/schemas/deal.v2.json` | Схема сделки v2 (множество точек входа/выхода) |
 | `spec/schemas/tradeplan.v2.json` | Шаблон торгового плана v2 (AFB-сторонний, см. §10) |
 | `spec/schemas/condition.v1.json` | Единый словарь операторов условия (см. §12) |
-| `spec/schemas/alarm.v1.json` | Аларм AFB (AFB-сторонний, см. §11) |
-| `spec/schemas/alarm.v2.json` | Аларм AFB v2: `instrument_key` вместо `ticker` (см. §11.1) |
-| `spec/schemas/gp.v1.json` / `gp.v2.json` | Графический примитив AFB v1 / v2 (см. §11.1) |
+| `spec/schemas/alarm.v2.json` | Аларм AFB (AFB-сторонний, единственная версия; `instrument_key`; здесь же `$defs` дерева условий аларма, см. §11) |
+| `spec/schemas/gp.v2.json` | Графический примитив AFB (единственная версия, см. §11.1) |
 | `spec/schemas/afbws/{alarm,gp}.channel.v2.json` | Каналы alarm/gp v2 (capability `afbws.alarm.channel.v2`, `afbws.gp.channel.v2`) |
 | `spec/schemas/config.v1.json` | Настройки пользователя AFB (`settings`: `profile`/`interface`/`dataset`/`dashboard`/`trade`) и платформенные дефолты (`$defs/defaults`), AFB↔фронтенд |
 | `spec/schemas/afbws/tradeplan.channel.v2.json` | Канал `tradeplan` v2 (capability `afbws.tradeplan.channel.v2`): `list`/`set`/`delete`/`archive`/`sync`/`error` — всё списками (`items[]`/`ids[]`/`rejected[]`), без `get`; один schema id на сообщение (`afbws.tradeplan.<op>.v2`), пуш `sync` без `request_id`; `planInput` (что принимает `set`) и `planItem` (что отдаёт сервер), строгие, без legacy-форм (см. §11.1) |
@@ -427,8 +426,7 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/schemas/payloads/` | JSON Schema каждого payload |
 | `examples/` | Подписанные примеры конвертов |
 | `examples/tradeplans/` | Примеры шаблонов ТП (не конверты, не подписываются) |
-| `examples/alarms/` | Примеры алармов (не конверты, не подписываются) |
-| `examples/alarms_v2/` | Примеры алармов `afb.alarm.v2` |
+| `examples/alarms_v2/` | Примеры алармов `afb.alarm.v2` (не конверты, не подписываются) |
 | `examples/deal_channel_v2/` | Примеры сообщений канала `deal` v2 (пакетные запросы/ответы, пуши списками, по одному примеру на каждое событие `event` и пакетные `event.batch`/`outcome.batch`) |
 | `examples/tradeplan_channel_v2/` | Примеры сообщений канала `tradeplan` v2 (запрос/ответ/пуш по сообщению) |
 | `python/afb_bf_protocol/` | Python-пакет: модели, подпись, валидация |
@@ -493,16 +491,16 @@ dataset — `const` или выражение того же вида), кото�
 afb-bf-protocol[validation]`). BF эту зависимость не ставит — шаблоны ТП его
 не касаются.
 
-## 11. Алармы (afb.alarm.v1)
+## 11. Алармы (afb.alarm.v2)
 
 Аларм, как и шаблон ТП, — **не сообщение протокола**: не описан в
 `asyncapi.yaml`, не оборачивается в конверт, никогда не идёт по каналу
 AFB↔BF. Это AFB-сторонняя сущность (пользовательские оповещения),
-`spec/schemas/alarm.v1.json` живёт в этом репозитории по той же причине, что и
+`spec/schemas/alarm.v2.json` (`afb.alarm.v1` удалён) живёт в этом репозитории по той же причине, что и
 `tradeplan.v2.json` — общий словарь операторов условий с `deal.v2`/
 `tradeplan.v2` (см. §12).
 
-`afb.alarm.v1` заменяет легаси-формат YAML-аларма AFB (плоские поля
+`afb.alarm.v2` заменяет легаси-формат YAML-аларма AFB (плоские поля
 `condition_type`/`trigger_type`/`value_type`/`value`/`value_ref`, имена
 операторов `break_up`/`break_down`) на `conditionNode`, совместимый по форме с
 `condition.v1.json`, с одним отличием: индикаторное выражение (`left`/`right`
@@ -517,9 +515,9 @@ Top-level `period` — общий таймфрейм вычисления ала
 
 Легаси-алармы читаются конвертером (ленивая миграция: конверсия при чтении,
 перезапись в новом формате при сохранении/переактивации — инициируется
-фронтендом AFB). Таблица маппинга легаси → v1:
+фронтендом AFB). Таблица маппинга легаси → v2:
 
-| Легаси (`condition_type` + `trigger_type`/`value_type`) | `afb.alarm.v1` |
+| Легаси (`condition_type` + `trigger_type`/`value_type`) | `afb.alarm.v2` |
 |---|---|
 | `price` без `trigger_type` | `left: {source: price, field: last}`, `right: {const: value}`, **без `op`** (касание) |
 | `price` + `above`/`below` | `op: above`/`below` — deprecated-тиковая ветка **без переименования**: сохраняет легаси-семантику уровня (аларм с ценой уже за уровнем срабатывает сразу; касание при создании «за уровнем» не сработало бы). Из UI не предлагается; при редактировании пересохраняется как касание |
@@ -537,8 +535,8 @@ Top-level `period` — общий таймфрейм вычисления ала
 
 ### 11.1 v2: `instrument_key` вместо `ticker`, примитивы и индикаторы
 
-`afb.alarm.v2` и `afb.gp.v2` — полные копии v1, отличающиеся тем, что инструмент
-задаётся полным составным `instrument_key` (`<MIC>[:<board|market>]:<ticker>`,
+`afb.alarm.v2` и `afb.gp.v2` — единственные версии сущностей (`afb.alarm.v1`, `afb.gp.v1`
+и `afb.instrument.v1` удалены); инструмент задаётся полным составным `instrument_key` (`<MIC>[:<board|market>]:<ticker>`,
 регистрозависимый, см. `afbws/common.v1.json#/$defs/instrumentKey`), а не коротким
 `ticker`. Это AFB-сторонние сущности (не AsyncAPI, канал AFB↔BF не пересекают).
 
@@ -582,18 +580,17 @@ Top-level `period` — общий таймфрейм вычисления ала
     (актуальный `planItem`) бывает только при `conflict` (ревизия/блокировка архива и удаления
     живой сделкой/примитив чужого плана). Отказ плана пакет не роняет. Состав:
     - `planInput` — только редактируемая часть плана: `schema` (`afb.tradeplan.v2`), `id`,
-      `instrument_key` (обязателен; `ticker` сервер выводит сам), `direction`, `entries[]`,
+      `instrument_key` (обязателен; `ticker` не принимается), `direction`, `entries[]`,
       `stop_loss[]`, `take_profit[]`, `sizing`, `publish?`. Серверных полей (`status`,
       `activated_at`/`closed_at`/`created_at`/`updated_at`, `delivery_at`, `archived_*`,
       `instrument_missing`) во входе нет — сервер хранит их у себя (создание начинается с `draft`).
-    - `planItem` — то, что отдаёт сервер: `planInput` + `ticker?` (deprecated), `status`, `activated_at`,
+    - `planItem` — то, что отдаёт сервер: `planInput` + `status`, `activated_at`,
       `closed_at`, `created_at`, `updated_at`, `instrument_missing?`; у каждой ноги есть `leg_id`.
       `delivery_at`, `archived_components`, `archived_at`, `editor` наружу не уходят. Инструмент:
       `instrument_key` есть всегда (единственный идентификатор); `instrument_missing: true` — ключа нет в
-      справочнике (архивный инструмент найден, значит не missing); `ticker` — устаревшая производная подпись
-      из справочника для старых фронтов, не идентификатор, будет удалена. То же в хранимой схеме
-      `tradeplan.v2.json`: `instrument_key` обязателен, `ticker` помечен `deprecated` (объявлен только ради
-      файлов, записанных до обязательности ключа; AFB его больше не пишет).
+      справочнике (архивный инструмент найден, значит не missing). Поля `ticker` в `planItem` нет (удалено
+      в этапе 12). То же в хранимой схеме `tradeplan.v2.json`: `instrument_key` обязателен, `ticker` удалён
+      (схема закрыта, файл плана со старым `ticker` не проходит валидацию).
     - Условие ноги — `op` обязателен всегда; `leg_id` — только настоящий (синтетического
       `legacy:{role}:{index}` в канале нет). Общие `legId`/`tradeplanId` живут в
       `common.v1.json`. Внутренняя схема хранилища `tradeplan.v2.json` закрыта
@@ -658,7 +655,7 @@ Top-level `period` — общий таймфрейм вычисления ала
   `zone`/`ruler`/`trendline`/`fibonacci` → `{start, stop}`
   (`primitiveSettingsTwoPoint`). Новые параметры вида добавляются в `settings`, не
   затрагивая конверт. `set` заменяет `settings` целиком; `tradeplan_id` от клиента
-  по-прежнему игнорируется. `afb.gp.v1` (плоские `start`/`stop`/`text`) не менялся.
+  по-прежнему игнорируется.
 - Управление индикаторами (замена легаси `settings/*` `indicators`) живёт в
   `gp.channel.v2`: `indicator.list` / `indicator.set` (upsert массива по `id`) /
   `indicator.delete`; дельта **общих** индикаторов приходит теми же `indicator.set`
@@ -674,13 +671,13 @@ Top-level `period` — общий таймфрейм вычисления ала
   остальные соединения несут полный `styles`.
 - `notification.alarm.v1.json`: `instrument_key` (изначально опциональное; с Этапа 6
   программы единого каталога — обязательное, `ticker` — только отображение).
-- Валидация: `payload_validation.validate_alarm` (v1/v2), `validate_gp` (v1/v2).
+- Валидация: `payload_validation.validate_alarm` (только v2), `validate_gp` (только v2).
 
 ## 12. Семантика операторов условий (condition.v1.json)
 
 `spec/schemas/condition.v1.json` — единый источник истины словаря операторов
 условия, на который ссылаются `deal.v2.json`, `tradeplan.v2.json` (частично —
-без строгой матрицы пар, см. §10) и `alarm.v1.json`. Одна и та же семантика
+без строгой матрицы пар, см. §10) и `alarm.v2.json`. Одна и та же семантика
 применяется одинаково к алармам, торговым планам и сделкам. Эталонная
 реализация (не только описание) — `afb_bf_protocol.condition_semantics`
 (stdlib `decimal`, без побочных эффектов); BF и AFB обязаны вычислять условия
@@ -889,8 +886,8 @@ wire-сообщение AFB↔BF и **не** подписанный конвер
 аларма; демон **informer** (`AFB/informer/`) подписывается и рассылает
 Telegram/e-mail.
 
-Поле `condition` повторяет `alarm.v1.json#/$defs/alarmConditionNode` (тот же
-`conditionNode`, что в `afb.alarm.v1`). Блок `display` **обязателен** и
+Поле `condition` повторяет `alarm.v2.json#/$defs/alarmConditionNode` (тот же
+`conditionNode`, что в `afb.alarm.v2`). Блок `display` **обязателен** и
 заполняется бэкендом AFB до публикации — человекочитаемые строки для
 информера (зеркало карточек аларма во фронтенде). Информер **не** читает
 `config/users` и securities — только MQTT.

@@ -1,11 +1,17 @@
 {
-  "schema": "afb.alarm.v1",
+  "schema": "afb.alarm.v2",
   "id": "alarm-indicator-crossing-0001",
-  "ticker": "SBER",
+  "instrument_key": "MISX:TQBR:SBER",
   "condition": {
     "op": "crosses_above",
-    "left": {"source": "indicator", "id": "wma20"},
-    "right": {"source": "indicator", "id": "kama10"}
+    "left": {
+      "source": "indicator",
+      "id": "wma20"
+    },
+    "right": {
+      "source": "indicator",
+      "id": "kama10"
+    }
   },
   "period": "15min",
   "trigger_frequency": "every_candle",

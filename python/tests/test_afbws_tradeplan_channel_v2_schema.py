@@ -33,7 +33,6 @@ _INPUT = {
 _ITEM = {
     "schema": "afb.tradeplan.v2",
     "id": "tp1",
-    "ticker": "SBER",
     "instrument_key": "MISX:TQBR:SBER",
     "direction": "long",
     "status": "draft",
@@ -154,9 +153,9 @@ def test_tradeplan_v2_plan_item(registry):
     v = _v("planItem", registry)
     v.validate(_ITEM)
     v.validate(_with(_ITEM, publish={"bf_id": "virtual"}))
-    # instrument: the key is mandatory; `ticker` (deprecated) is optional; `instrument_missing` = key not in the catalog
-    v.validate(_with(_ITEM, ticker=None))
-    v.validate(_with(_ITEM, ticker=None, instrument_missing=True))
+    # instrument: the key is mandatory and the only identifier; `ticker` is no longer part of the item;
+    # `instrument_missing` = key not in the catalog
+    _invalid(v, _with(_ITEM, ticker="SBER"))
     v.validate(_with(_ITEM, instrument_missing=True))
     _invalid(v, _with(_ITEM, instrument_key=None))
     _invalid(v, _with(_ITEM, instrument_key=None, instrument_missing=True))

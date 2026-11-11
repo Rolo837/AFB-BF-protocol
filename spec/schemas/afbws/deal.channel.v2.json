@@ -172,7 +172,6 @@
         "execution_phase",
         "bf_id",
         "tradeplan_id",
-        "ticker",
         "instrument_key",
         "direction",
         "created_at",
@@ -198,11 +197,6 @@
         },
         "tradeplan_id": {
           "$ref": "../common.v1.json#/$defs/tradeplanId"
-        },
-        "ticker": {
-          "type": "string",
-          "deprecated": true,
-          "description": "Deprecated: a derived display value (the instrument's ticker), NOT an identifier; will be removed. Still always sent, for frontends that read it; the instrument is identified by `instrument_key` only."
         },
         "instrument_key": {
           "$ref": "common.v1.json#/$defs/instrumentKey",
@@ -255,7 +249,6 @@
         "execution_phase",
         "bf_id",
         "tradeplan_id",
-        "ticker",
         "instrument_key",
         "direction",
         "created_at",
@@ -283,11 +276,6 @@
         },
         "tradeplan_id": {
           "$ref": "../common.v1.json#/$defs/tradeplanId"
-        },
-        "ticker": {
-          "type": "string",
-          "deprecated": true,
-          "description": "Deprecated: a derived display value (the instrument's ticker), NOT an identifier; will be removed. Still always sent, for frontends that read it; the instrument is identified by `instrument_key` only."
         },
         "instrument_key": {
           "$ref": "common.v1.json#/$defs/instrumentKey",
@@ -349,7 +337,6 @@
         "execution_phase",
         "bf_id",
         "tradeplan_id",
-        "ticker",
         "instrument_key",
         "direction",
         "created_at",
@@ -375,11 +362,6 @@
         },
         "tradeplan_id": {
           "$ref": "../common.v1.json#/$defs/tradeplanId"
-        },
-        "ticker": {
-          "type": "string",
-          "deprecated": true,
-          "description": "Deprecated: a derived display value (the instrument's ticker), NOT an identifier; will be removed. Still always sent, for frontends that read it; the instrument is identified by `instrument_key` only."
         },
         "instrument_key": {
           "$ref": "common.v1.json#/$defs/instrumentKey",

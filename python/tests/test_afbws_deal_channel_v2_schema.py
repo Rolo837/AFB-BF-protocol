@@ -33,7 +33,7 @@ _COND = {"node_type": "event", "op": "above", "left": {"source": "price", "field
          "right": {"const": "100"}}
 _DETAIL = {
     "deal_id": "d1", "revision": 2, "status": "active", "execution_phase": "holding", "bf_id": "bf1",
-    "tradeplan_id": "tp1", "ticker": "SBER", "instrument_key": "MISX:TQBR:SBER", "direction": "long",
+    "tradeplan_id": "tp1", "instrument_key": "MISX:TQBR:SBER", "direction": "long",
     "created_at": "2026-10-21T10:00:00+03:00", "updated_at": "2026-10-21T10:00:00+03:00",
     "deal": {
         "schema": "afb.deal.v2", "deal_id": "d1", "revision": 2,
@@ -186,7 +186,7 @@ def test_deal_v2_summary_and_detail(registry):
     for field in ("source_refs", "status_history", "event_journal", "orders", "owner_user_id",
                   "broker_instrument", "observed", "deal"):
         _invalid(v, _with(_SUMMARY, **{field: {}}))
-    for field in ("deal_id", "revision", "status", "execution_phase", "bf_id", "tradeplan_id", "ticker",
+    for field in ("deal_id", "revision", "status", "execution_phase", "bf_id", "tradeplan_id",
                   "instrument_key", "direction", "created_at", "updated_at"):
         _invalid(v, _with(_SUMMARY, **{field: None}))
     _invalid(v, _with(_SUMMARY, instrument_key=""))
@@ -204,20 +204,24 @@ def test_deal_v2_summary_and_detail(registry):
     _invalid(d, no_key)
 
 
-def test_deal_v2_instrument_key_mandatory_ticker_deprecated():
-    """Three deal shapes (summary / detail / amend deal): `instrument_key` is the
-    identifier and mandatory; `ticker` is a deprecated display value that is
-    still required on output (older frontends read it; removal is a later stage)."""
+def test_deal_v2_instrument_key_mandatory_no_ticker():
+    """Three deal shapes (summary / detail / item): `instrument_key` is the only
+    identifier and mandatory; the former deprecated `ticker` field is gone."""
     defs = _schema()["$defs"]
     shapes = [name for name, d in defs.items()
-              if isinstance(d, dict) and {"ticker", "instrument_key"} <= set(d.get("properties", {}))]
-    assert len(shapes) == 3, shapes
+              if isinstance(d, dict) and "instrument_key" in d.get("properties", {})]
+    assert sorted(shapes) == ["dealDetail", "dealItem", "dealSummary"], shapes
     for name in shapes:
         d = defs[name]
         assert "instrument_key" in d["required"], name
-        assert "ticker" in d["required"], name
-        assert d["properties"]["ticker"].get("deprecated") is True, name
+        assert "ticker" not in d["required"], name
+        assert "ticker" not in d["properties"], name
         assert "deprecated" not in d["properties"]["instrument_key"], name
+
+
+def test_deal_v2_ticker_not_accepted(registry):
+    _invalid(_v("dealSummary", registry), _with(_SUMMARY, ticker="SBER"))
+    _invalid(_v("dealDetail", registry), _with(_DETAIL, ticker="SBER"))
 
 
 def test_deal_v2_item(registry):

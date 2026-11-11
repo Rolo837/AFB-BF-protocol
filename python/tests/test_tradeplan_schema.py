@@ -68,14 +68,15 @@ def _v2_plan(**over):
     return plan
 
 
-def test_v2_requires_instrument_key_and_still_declares_deprecated_ticker(registry):
+def test_v2_requires_instrument_key_and_no_longer_declares_ticker(registry):
     from jsonschema import ValidationError
 
     v = _validator(TRADEPLAN_V2_ID, registry)
     v.validate(_v2_plan(instrument_key="MISX:TQBR:SBER"))
-    # `ticker` is deprecated but still declared: the closed storage schema accepts files that carry it
-    v.validate(_v2_plan(ticker="CL", instrument_key="XNYM:futures:CL"))
-    assert registry[TRADEPLAN_V2_ID].contents["properties"]["ticker"]["deprecated"] is True
+    assert "ticker" not in registry[TRADEPLAN_V2_ID].contents["properties"]
+    # the storage schema is closed: a plan file that still carries `ticker` is rejected
+    with pytest.raises(ValidationError):
+        v.validate(_v2_plan(ticker="CL", instrument_key="XNYM:futures:CL"))
 
 
 def test_v2_ticker_alone_is_no_longer_enough(registry):

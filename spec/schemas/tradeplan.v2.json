@@ -8,7 +8,6 @@
   "additionalProperties": false,
   "properties": {
     "id": {"$ref": "common.v1.json#/$defs/tradeplanId"},
-    "ticker": {"type": "string", "minLength": 1, "deprecated": true, "description": "Deprecated: a derived short display form of the instrument, NOT an identifier; will be removed. AFB no longer writes it (the identity is `instrument_key`). It stays declared only so the closed storage schema still accepts plan files written before the key became mandatory; a reader must never resolve the instrument from it when `instrument_key` is present."},
     "instrument_key": {"$ref": "afbws/common.v1.json#/$defs/instrumentKey", "description": "Full catalog key of the instrument (`<MIC>[:<board|market>]:<ticker>`): the only identifier of the plan's instrument, mandatory. Case-sensitive, never normalized."},
     "status": {"enum": ["draft", "published", "completed", "archived"]},
     "editor": {
