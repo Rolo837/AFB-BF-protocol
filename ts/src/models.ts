@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 8df1c814c0ab98115f93c6a148d1048c56eb62d420b12729de84f2917f6bad27
+ * source-hash: 55add1c45476171ebae4fe140cec2660f273e53907b551ebe350eeae7532cad5
  */
 
 /**
@@ -4133,7 +4133,7 @@ export interface AfbwsBondsChannelV1_ScreenerFilters {
   ytm?: AfbwsBondsChannelV1_Range;
   current_yield?: AfbwsBondsChannelV1_Range1;
   coupon_percent?: AfbwsBondsChannelV1_Range2;
-  years_to_event?: AfbwsBondsChannelV1_Range3;
+  days_to_event?: AfbwsBondsChannelV1_Range3;
   duration_days?: AfbwsBondsChannelV1_Range4;
   /**
    * `with` — only bonds with a future amortization, `without` — only without; default `any`.
@@ -4212,7 +4212,7 @@ export interface AfbwsBondsChannelV1_Range2 {
   max?: number;
 }
 /**
- * Years to the nearest event (maturity, put or call offer).
+ * Days to the nearest event (maturity, put or call offer).
  */
 export interface AfbwsBondsChannelV1_Range3 {
   /**
@@ -4653,7 +4653,7 @@ export interface AfbwsBondsChannelV1_ScreenerFilters1 {
   ytm?: AfbwsBondsChannelV1_Range;
   current_yield?: AfbwsBondsChannelV1_Range1;
   coupon_percent?: AfbwsBondsChannelV1_Range2;
-  years_to_event?: AfbwsBondsChannelV1_Range3;
+  days_to_event?: AfbwsBondsChannelV1_Range3;
   duration_days?: AfbwsBondsChannelV1_Range4;
   /**
    * `with` — only bonds with a future amortization, `without` — only without; default `any`.

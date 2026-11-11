@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 8df1c814c0ab98115f93c6a148d1048c56eb62d420b12729de84f2917f6bad27
+# source-hash: 55add1c45476171ebae4fe140cec2660f273e53907b551ebe350eeae7532cad5
 
 from __future__ import annotations
 
@@ -1226,7 +1226,7 @@ class AfbwsBondsChannelV1ScreenerFilters(TypedDict):
     ytm: NotRequired[AfbwsBondsChannelV1Range]
     current_yield: NotRequired[AfbwsBondsChannelV1Range]
     coupon_percent: NotRequired[AfbwsBondsChannelV1Range]
-    years_to_event: NotRequired[AfbwsBondsChannelV1Range]
+    days_to_event: NotRequired[AfbwsBondsChannelV1Range]
     duration_days: NotRequired[AfbwsBondsChannelV1Range]
     amortization: NotRequired[Literal["any", "with", "without"]]
     offer: NotRequired[Literal["any", "with", "without"]]

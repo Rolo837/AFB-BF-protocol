@@ -1953,9 +1953,9 @@
           "$ref": "#/$defs/range",
           "description": "Coupon rate, percent per year."
         },
-        "years_to_event": {
+        "days_to_event": {
           "$ref": "#/$defs/range",
-          "description": "Years to the nearest event (maturity, put or call offer)."
+          "description": "Days to the nearest event (maturity, put or call offer)."
         },
         "duration_days": {
           "$ref": "#/$defs/range",
