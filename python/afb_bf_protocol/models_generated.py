@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 0ea3a497a39bc8a46baf8342cbb58537968097ad53abaa500d59c454302aadda
+# source-hash: 8df1c814c0ab98115f93c6a148d1048c56eb62d420b12729de84f2917f6bad27
 
 from __future__ import annotations
 
@@ -1194,12 +1194,12 @@ AfbwsBondsChannelV1ScreenerColumns: TypeAlias = tuple[
     Literal["value_avg"],
     Literal["numtrades_avg"],
     Literal["value_today"],
-    Literal["years_to_event"],
+    Literal["days_to_event"],
 ]
 
 
 """
-Column names of `rows`, ALWAYS exactly this list in exactly this order (the order is part of the contract; a column is added only by a new schema version): instrument_key, secid, shortname, category, faceunit, coupon_kind, coupon_percent, coupon_benchmark, coupon_spread_pct, coupon_frequency, matdate, offerdate, call_date, redemption_kind, has_amortization, next_amort_date, is_qualified, high_risk, liquidity_class, list_level, emitter_id, price_pct, ytm, ytm_kind, current_yield, duration_days, accint, value_avg, numtrades_avg, value_today, years_to_event. Shared by `screener` and `emitter`.
+Column names of `rows`, ALWAYS exactly this list in exactly this order (the order is part of the contract; a column is added only by a new schema version): instrument_key, secid, shortname, category, faceunit, coupon_kind, coupon_percent, coupon_benchmark, coupon_spread_pct, coupon_frequency, matdate, offerdate, call_date, redemption_kind, has_amortization, next_amort_date, is_qualified, high_risk, liquidity_class, list_level, emitter_id, price_pct, ytm, ytm_kind, current_yield, duration_days, accint, value_avg, numtrades_avg, value_today, days_to_event. Shared by `screener` and `emitter`.
 """
 
 
@@ -1842,12 +1842,12 @@ AfbwsBondsChannelV1ScreenerRow: TypeAlias = tuple[
     float | None,
     float | None,
     float | None,
-    float | None,
+    int | None,
 ]
 
 
 """
-One bond: values in the order of `columns`. Market columns (`price_pct`, `ytm`, `ytm_kind`, `current_yield`, `duration_days`, `accint`, `value_today`) are null without a quote; `value_avg`/`numtrades_avg` are null while the liquidity store is empty; the issuer rating of the row is taken from the `emitters` dictionary by `emitter_id`. `years_to_event` — years to the nearest maturity/put/call, null for a perpetual bond with no event.
+One bond: values in the order of `columns`. Market columns (`price_pct`, `ytm`, `ytm_kind`, `current_yield`, `duration_days`, `accint`, `value_today`) are null without a quote; `value_avg`/`numtrades_avg` are null while the liquidity store is empty; the issuer rating of the row is taken from the `emitters` dictionary by `emitter_id`. `days_to_event` — whole days to the nearest maturity/put/call, null for a perpetual bond with no event.
 """
 
 
