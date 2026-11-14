@@ -9,7 +9,7 @@
 // at that flat key, and a SINGLE compile() call (unreachableDefinitions:
 // true) emits one named interface/type per key — so a $def reused by several
 // schemas (e.g. condition.v1.json's priceExpr, shared by deal.v2/tradeplan.v2
-// /alarm.v1) is declared once and referenced by name everywhere else.
+// /alarm.v2) is declared once and referenced by name everywhere else.
 //
 // Keys that are part of NAMED_SCHEMAS (the public export surface) use the
 // export name itself as the $defs key, so the single compile() call names
@@ -45,7 +45,7 @@ function pascalCase(stem) {
 // Schema files whose ROOT is deliberately not emitted as a type: AFB-internal
 // shapes (never an AsyncAPI wire message) whose allOf/if root the compiler can
 // only render as an empty `{[k]: unknown}`. Their `$defs` are still bundled.
-const SKIPPED_ROOTS = new Set(["instrument.v1.json"]);
+const SKIPPED_ROOTS = new Set([]);
 
 // relative-to-spec/schemas path -> desired export name for the file's ROOT.
 function namedRootSchemas() {
@@ -54,9 +54,7 @@ function namedRootSchemas() {
     "deal.v2.json": "DealV2",
     "deal_state.v2.json": "DealStateV2",
     "tradeplan.v2.json": "TradePlanV2",
-    "alarm.v1.json": "AlarmV1",
     "alarm.v2.json": "AlarmV2",
-    "gp.v1.json": "GpV1",
     "gp.v2.json": "GpV2",
     "notification.deal.v1.json": "NotificationDealV1",
     "notification.alarm.v1.json": "NotificationAlarmV1",

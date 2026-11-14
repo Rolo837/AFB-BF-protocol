@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 5be2762fb73c5c90659f47e649ee84694d7cd9b8ec4ea96122791b727557093b
+ * source-hash: 087a88e106b537e99d3eed712be3eb0305f106ea353eecbea7f85ee792ad2f2b
  */
 
 /**
@@ -680,7 +680,7 @@ export type AfbwsBondsChannelV1_RatingGroup =
   | 'C'
   | 'D';
 /**
- * Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests — and `totals`: the portfolio totals (see the property) for the portfolios with an account. No payment list and no per-position analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) and whenever the totals change (a market snapshot, an account operation) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
+ * Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (`bondRow` as in `search`, with `market`, plus the screener-table fields `current_yield`, `days_to_event`, `value_avg`, `emitter_id` — `portfolioBondRow`) — and `emitters`: the issuers of those bonds by `emitter_id` (title, INN, rating) — so that the client draws the bond tiles and the screener table without extra requests — and `totals`: the portfolio totals (see the property) for the portfolios with an account. No payment list and no per-position analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) and whenever the totals change (a market snapshot, an account operation) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Portfolios".
@@ -696,14 +696,20 @@ export type AfbwsBondsChannelV1_Portfolios = {
    */
   portfolios?: AfbwsBondsChannelV1_PortfolioRef[];
   /**
-   * Response and push. Bond rows of all compositions of `portfolios`, without duplicates.
+   * Response and push. Bond rows of all compositions of `portfolios`, without duplicates: `bondRow` plus the screener-table fields (`current_yield`, `days_to_event`, `value_avg`, `emitter_id`).
    */
-  bonds?: AfbwsBondsChannelV1_BondRow[];
+  bonds?: AfbwsBondsChannelV1_PortfolioBondRow[];
   /**
    * Response and push. Totals of the portfolios with an account, keyed by portfolio id (the same ids as in `portfolios`): invested amount, market value, payments received, weighted yields, duration, annual coupons. A portfolio without an account, without read access or without held positions has no key (the client shows no figures). No payment list is computed.
    */
   totals?: {
     [k: string]: AfbwsBondsChannelV1_Totals;
+  };
+  /**
+   * Response and push. Issuers of the bonds of `bonds` by issuer id (a string key, as in `screener`): only the issuers of the listed bonds, without duplicates; the issuer of a row is read here by its `emitter_id`. `{}` when no listed bond has a known issuer.
+   */
+  emitters?: {
+    [k: string]: AfbwsBondsChannelV1_BondEmitter;
   };
 };
 /**
@@ -740,7 +746,7 @@ export type AfbwsBondsChannelV1_Portfolio = {
   payments?: AfbwsBondsChannelV1_PaymentsTable;
 };
 /**
- * Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `instrument_keys[]` in final order (omit `instrument_keys` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every instrument key must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `instrument_keys`), the bond rows of all compositions in `bonds` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
+ * Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `instrument_keys[]` in final order (omit `instrument_keys` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every instrument key must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `instrument_keys`), the bond rows of all compositions in `bonds` and their issuers in `emitters` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_PortfoliosSet".
@@ -764,14 +770,20 @@ export type AfbwsBondsChannelV1_PortfoliosSet = {
    */
   rejected?: AfbwsBondsChannelV1_PortfolioRejection[];
   /**
-   * Response only. Bond rows of all compositions of `portfolios`, without duplicates.
+   * Response only. Bond rows of all compositions of `portfolios`, without duplicates (`portfolioBondRow`, as in `portfolios`).
    */
-  bonds?: AfbwsBondsChannelV1_BondRow[];
+  bonds?: AfbwsBondsChannelV1_PortfolioBondRow[];
   /**
    * Response only. Totals of the portfolios of the resulting list, as in `portfolios`.
    */
   totals?: {
     [k: string]: AfbwsBondsChannelV1_Totals;
+  };
+  /**
+   * Response only. Issuers of the bonds of `bonds` by issuer id, as in `portfolios`.
+   */
+  emitters?: {
+    [k: string]: AfbwsBondsChannelV1_BondEmitter;
   };
 };
 /**
@@ -1472,7 +1484,7 @@ export type DealV2TriggerEvent = DealV2TriggerStatusChanged | DealV2TriggerRejec
 export type GpChannelV2Message =
   GpV2List | GpV2Set | GpV2Delete | GpV2IndicatorList | GpV2IndicatorSet | GpV2IndicatorDelete | GpV2Style | GpV2Error;
 /**
- * v2 of afb.gp.v1 with differences: (1) the instrument is identified by the full composite `instrument_key` (afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`; (2) new kinds `trendline` and `fibonacci` — both two-anchor primitives; their rendering is not specified yet; (3) the primitive's own parameters (`start`, `stop`, `text`) live in the `settings` dictionary, not at the root, so a kind can gain parameters without touching the envelope. ROOT = identity and server-side ownership: `schema`, `id`, `instrument_key`, `kind`, `tradeplan_id` (all other parameters go to `settings`). `settings` is REQUIRED and strictly typed by `kind` (enforced by the `allOf` below, each branch is additionalProperties:false): line/line_enter/line_sl/line_tp → `primitiveSettingsLine` {start}; note → `primitiveSettingsNote` {start, text? (≤160)}; zone/ruler/trendline/fibonacci → `primitiveSettingsTwoPoint` {start, stop}. v1 (`afb.gp.v1`, flat start/stop/text) stays supported for frontends without afbws.gp.channel.v2; v1 clients never receive trendline/fibonacci. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`.
+ * The AFB graphic-primitive entity (the only one; afb.gp.v1 was removed). Notable points: (1) the instrument is identified by the full composite `instrument_key` (afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`; (2) new kinds `trendline` and `fibonacci` — both two-anchor primitives; their rendering is not specified yet; (3) the primitive's own parameters (`start`, `stop`, `text`) live in the `settings` dictionary, not at the root, so a kind can gain parameters without touching the envelope. ROOT = identity and server-side ownership: `schema`, `id`, `instrument_key`, `kind`, `tradeplan_id` (all other parameters go to `settings`). `settings` is REQUIRED and strictly typed by `kind` (enforced by the `allOf` below, each branch is additionalProperties:false): line/line_enter/line_sl/line_tp → `primitiveSettingsLine` {start}; note → `primitiveSettingsNote` {start, text? (≤160)}; zone/ruler/trendline/fibonacci → `primitiveSettingsTwoPoint` {start, stop}. The former v1 (`afb.gp.v1`, flat start/stop/text) has been removed. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpV2".
@@ -2236,37 +2248,6 @@ export type TradeplanV2Archive1 = {
 };
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV1_AlarmConditionNode".
- */
-export type AlarmV1_AlarmConditionNode =
-  | {
-      left?: ConditionV1_PriceExpr;
-      right?: ConditionV1_RightConst;
-      op?: 'touch';
-    }
-  | {
-      left?: ConditionV1_PriceExpr;
-      right?: ConditionV1_RightConst;
-      op: 'breakout' | 'breakdown' | 'crossing';
-      timeframe: ConditionV1_Timeframe;
-    }
-  | {
-      left?: ConditionV1_PriceExpr;
-      right?: ConditionV1_RightConst;
-      op: ConditionV1_PriceLevelOp;
-    }
-  | {
-      left?: AlarmV1_AlarmIndicatorExpr;
-      right?: ConditionV1_RightConst | AlarmV1_AlarmIndicatorExpr;
-      op: ConditionV1_ScalarOp;
-    }
-  | {
-      left?: ConditionV1_DatasetExpr;
-      right?: ConditionV1_RightConst | ConditionV1_DatasetExpr;
-      op: ConditionV1_ScalarOp;
-    };
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2_ExitList".
  */
 export type DealV2_ExitList = {
@@ -2275,15 +2256,6 @@ export type DealV2_ExitList = {
   condition: DealV2_ConditionNode;
   source?: DealV2_LegSource;
 }[];
-/**
- * AFB-side chart primitive (line/line_enter/line_sl/line_tp/note/zone/ruler) — like afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`. `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV1".
- */
-export type GpV1 = {
-  [k: string]: unknown;
-};
 /**
  * AFB-side MQTT notification payload published to <topic_base>/system/<user_id> about an event of a bond the user holds in a portfolio: an offer, a maturity, an amortization, an issuer call, or a price/volume anomaly signal. Consumed by the AFB informer daemon (Telegram/email) exactly like alarm/deal/link/system/expiration notifications — informer never reads AFB settings, the recipient and channels come only from `user`. Event notices are sent at most once per (user, bond, `kind`, `stage`, event date) and not at all when the user's `bonds.notice_days` is 0; anomaly notices are not sent when `bonds.notify_anomaly` is false. NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time.
  *
@@ -3232,7 +3204,7 @@ export interface AlarmV2List {
   items?: AlarmV2[];
 }
 /**
- * v2 of afb.alarm.v1 (full copy): the only difference is that the instrument is identified by the full composite `instrument_key` (<MIC>[:<board|market>]:<ticker>, case-sensitive, never normalized — see afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`. v1 stays supported for frontends that did not negotiate afbws.alarm.channel.v2; the backend stores v2 and converts v1<->v2 at the channel boundary. AFB-side entity, NOT an AsyncAPI wire message, never crosses the AFB<->BF channel. it is documented here (rather than only in AFB) because it shares condition.v1.json's operator vocabulary with deal.v2 and tradeplan.v2. Replaces the legacy YAML shape (condition_type/trigger_type/value_type/value/value_ref flat fields, break_up/break_down operator names) with a conditionNode. Legacy alarms are read via a lazy converter (see docs/PROTOCOL.md 'Алармы' mapping table) and rewritten in this format on next save/reactivation; the API layer only accepts/emits this format going forward. `period` is the alarm's overall computation timeframe (legacy default '10min'); when `condition` is a price candle operator, `condition.timeframe` carries the candle timeframe and by construction equals `period`.
+ * The AFB alarm entity (formerly v2 of the removed afb.alarm.v1): the instrument is identified by the full composite `instrument_key` (<MIC>[:<board|market>]:<ticker>, case-sensitive, never normalized — see afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`. v1 (identified by the short `ticker`) has been removed together with afbws.alarm.channel.v1; this schema is the only alarm entity and also hosts the condition-tree `$defs` (alarmConditionNode, alarmIndicatorExpr) referenced by notification.alarm.v1.json. AFB-side entity, NOT an AsyncAPI wire message, never crosses the AFB<->BF channel. it is documented here (rather than only in AFB) because it shares condition.v1.json's operator vocabulary with deal.v2 and tradeplan.v2. Replaces the legacy YAML shape (condition_type/trigger_type/value_type/value/value_ref flat fields, break_up/break_down operator names) with a conditionNode. Legacy alarms are read via a lazy converter (see docs/PROTOCOL.md 'Алармы' mapping table) and rewritten in this format on next save/reactivation; the API layer only accepts/emits this format going forward. `period` is the alarm's overall computation timeframe (legacy default '10min'); when `condition` is a price candle operator, `condition.timeframe` carries the candle timeframe and by construction equals `period`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AlarmV2".
@@ -3910,6 +3882,82 @@ export interface AfbwsBondsChannelV1_PortfolioRef {
   account_id?: string | null;
 }
 /**
+ * One bond of a portfolio list: every field of `bondRow` (same values as in `search`, with `market`) plus the screener-table fields `current_yield`, `days_to_event`, `value_avg`, `emitter_id`, with the same values as the matching columns of a `screener` row, so that the client draws the screener table for the portfolio without extra requests. The issuer itself (title, rating) is in the `emitters` dictionary of the message by `emitter_id`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_PortfolioBondRow".
+ */
+export interface AfbwsBondsChannelV1_PortfolioBondRow {
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key: string;
+  secid: AfbwsBondsChannelV1_Secid;
+  /**
+   * Full bond name (issue title) as given by ISS; null when unknown. Shown in the list plaque; search by ISIN stays a server-side filter (`query`) and does not add it to the row.
+   */
+  name: string | null;
+  /**
+   * Short display name.
+   */
+  shortname: string;
+  category: AfbwsBondsChannelV1_Category;
+  faceunit: AfbwsBondsChannelV1_Faceunit;
+  /**
+   * Current face value in `faceunit` (for inflation-indexed OFZ — the daily indexed value).
+   */
+  facevalue: number;
+  /**
+   * Maturity date; null for perpetual bonds.
+   */
+  matdate: string | null;
+  /**
+   * Nearest future offer date; null when none.
+   */
+  offerdate: string | null;
+  /**
+   * Current annual coupon rate, percent of face value; null when unknown.
+   */
+  coupon_percent: number | null;
+  /**
+   * Coupon payments per year; null when unknown.
+   */
+  coupon_frequency: number | null;
+  /**
+   * Coupon type from the bond passport; `unknown` when the bond has no passport yet.
+   */
+  coupon_kind: 'fixed' | 'fixed_unknown' | 'key_rate' | 'ruonia' | 'cpi' | 'other_float' | 'zero' | 'unknown';
+  /**
+   * Spread over the floating base, percentage points; null for fixed coupons, without a passport or without a spread.
+   */
+  coupon_spread_pct: number | null;
+  /**
+   * True when only qualified investors may buy the bond.
+   */
+  is_qualified: boolean;
+  /**
+   * `active` — traded or awaiting redemption; `matured` — redeemed (returned only with `include_matured`).
+   */
+  lifecycle: 'active' | 'matured';
+  market: AfbwsBondsChannelV1_MarketOrNull;
+  /**
+   * Current yield, percent per year: annual coupon over the clean price (for a floater on the key rate/RUONIA without its own percent the coupon is the base rate + `coupon_spread_pct`). Null without a quote or without a known coupon. Same value as the `current_yield` column of `screener`.
+   */
+  current_yield: number | null;
+  /**
+   * Whole days to the nearest maturity, put or call offer; null for a perpetual bond with no event. Same value as the `days_to_event` column of `screener`.
+   */
+  days_to_event: number | null;
+  /**
+   * Average daily turnover, rubles, over the liquidity window; null while the liquidity store is empty, 0 for a bond with no trades in the window once the store is filled. Same value as the `value_avg` column of `screener`.
+   */
+  value_avg: number | null;
+  /**
+   * Exchange issuer id, the key of the `emitters` dictionary of the message; null when the issuer is unknown (a bond without a passport).
+   */
+  emitter_id: number | null;
+}
+/**
  * Portfolio totals; each figure is null when it cannot be computed.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -3944,6 +3992,36 @@ export interface AfbwsBondsChannelV1_Totals {
    * Annual coupon income at the current balance, rubles.
    */
   annual_coupons_rub: number | null;
+}
+/**
+ * Issuer entry of the `emitters` dictionary of a portfolio list (only the issuers of the listed bonds). The same fields as the `emitter` block of the bond card.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema definition
+ * via the `patternProperty` "^[0-9]+$".
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema definition
+ * via the `patternProperty` "^[0-9]+$".
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_BondEmitter".
+ */
+export interface AfbwsBondsChannelV1_BondEmitter {
+  /**
+   * Issuer name.
+   */
+  title: string;
+  /**
+   * Issuer INN; null when unknown.
+   */
+  inn: string | null;
+  /**
+   * Issuer rating group; null — unrated.
+   */
+  rating_group: AfbwsBondsChannelV1_RatingGroup | null;
+  /**
+   * When our collection last saw the rating group change; null — never.
+   */
+  rating_changed_at: string | null;
 }
 /**
  * Response and push.
@@ -5455,11 +5533,6 @@ export interface DealV2Item {
   bf_id: DealV2BfId;
   tradeplan_id: TradeplanId;
   /**
-   * @deprecated
-   * Deprecated: a derived display value (the instrument's ticker), NOT an identifier; will be removed. Still always sent, for frontends that read it; the instrument is identified by `instrument_key` only.
-   */
-  ticker: string;
-  /**
    * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
    */
   instrument_key: string;
@@ -5721,11 +5794,6 @@ export interface DealV2Detail {
   execution_phase: DealExecutionPhase;
   bf_id: DealV2BfId;
   tradeplan_id: TradeplanId;
-  /**
-   * @deprecated
-   * Deprecated: a derived display value (the instrument's ticker), NOT an identifier; will be removed. Still always sent, for frontends that read it; the instrument is identified by `instrument_key` only.
-   */
-  ticker: string;
   /**
    * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
    */
@@ -6589,11 +6657,6 @@ export interface DealV2Summary {
   execution_phase: DealExecutionPhase;
   bf_id: DealV2BfId;
   tradeplan_id: TradeplanId;
-  /**
-   * @deprecated
-   * Deprecated: a derived display value (the instrument's ticker), NOT an identifier; will be removed. Still always sent, for frontends that read it; the instrument is identified by `instrument_key` only.
-   */
-  ticker: string;
   /**
    * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
    */
@@ -7616,7 +7679,7 @@ export interface TradeplanV2List {
   items?: TradeplanV2PlanItem[];
 }
 /**
- * An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is always present and is the only identifier. `instrument_missing: true` means the key is not found in the instrument catalog (an archived instrument is found, so not missing; a plan stored before the key became mandatory whose old reference the server could not resolve comes with that old reference echoed in `instrument_key` and `instrument_missing: true`). `ticker` is deprecated: a derived display form (the wire ticker) the server takes from the catalog while the key resolves, kept for older frontends that still read it; may be absent when the key is not found. Never an identifier. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.
+ * An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is always present and is the only identifier. `instrument_missing: true` means the key is not found in the instrument catalog (an archived instrument is found, so not missing; a plan stored before the key became mandatory whose old reference the server could not resolve comes with that old reference echoed in `instrument_key` and `instrument_missing: true`). The projection carries no `ticker` field: the instrument is identified by `instrument_key` alone. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2PlanItem".
@@ -7624,11 +7687,6 @@ export interface TradeplanV2List {
 export interface TradeplanV2PlanItem {
   schema: 'afb.tradeplan.v2';
   id: TradeplanId;
-  /**
-   * @deprecated
-   * Deprecated display form of the instrument (derived by the server from the catalog; NOT an identifier). Kept for older frontends; will be removed.
-   */
-  ticker?: string;
   instrument_key: AfbwsCommonV1_InstrumentKey;
   /**
    * Overlaid on output only (not persisted): the plan's `instrument_key` is not found in the instrument catalog (an archived instrument is found). A reference note, not a lifecycle state. Absent otherwise.
@@ -7705,7 +7763,7 @@ export interface TradeplanV2Set {
   amend_results?: TradeplanV2AmendResultItem[];
 }
 /**
- * Deliberately has NO server-owned fields: `status` (lifecycle is driven by the plan's deals), `activated_at`, `closed_at`, `archived_at`, `created_at`, `updated_at`, `delivery_at`, `archived_components`, `instrument_missing`; the server keeps them from its own storage (a create starts as `draft`). `ticker` is not accepted either: it is derived by the server from `instrument_key`, the authoritative instrument reference (case-sensitive, never normalized). `editor` (frontend editor-mode hint) is not part of the channel: the current frontend neither sends nor reads it.
+ * Deliberately has NO server-owned fields: `status` (lifecycle is driven by the plan's deals), `activated_at`, `closed_at`, `archived_at`, `created_at`, `updated_at`, `delivery_at`, `archived_components`, `instrument_missing`; the server keeps them from its own storage (a create starts as `draft`). `ticker` is not accepted either: `instrument_key` is the only instrument reference (case-sensitive, never normalized). `editor` (frontend editor-mode hint) is not part of the channel: the current frontend neither sends nor reads it.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2PlanInput".
@@ -7805,40 +7863,7 @@ export interface TradeplanV2Error {
   message: string;
 }
 /**
- * AFB-side user alarm — like afb.tradeplan.v2, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel; it is documented here (rather than only in AFB) because it shares condition.v1.json's operator vocabulary with deal.v2 and tradeplan.v2. Replaces the legacy YAML shape (condition_type/trigger_type/value_type/value/value_ref flat fields, break_up/break_down operator names) with a conditionNode. Legacy alarms are read via a lazy converter (see docs/PROTOCOL.md 'Алармы' mapping table) and rewritten in this format on next save/reactivation; the API layer only accepts/emits this format going forward. `period` is the alarm's overall computation timeframe (legacy default '10min'); when `condition` is a price candle operator, `condition.timeframe` carries the candle timeframe and by construction equals `period`.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV1".
- */
-export interface AlarmV1 {
-  schema: 'afb.alarm.v1';
-  id: string;
-  ticker: string;
-  condition: AlarmV1_AlarmConditionNode;
-  period?: ConditionV1_Timeframe;
-  trigger_frequency?: 'once' | 'every_candle' | 'daily';
-  status?: 'active' | 'triggered' | 'expired';
-  created_at?: string;
-  updated_at?: string;
-  triggered_at?: string;
-  delivery_at?: string;
-  trigger_count?: number;
-}
-/**
- * Unlike condition.v1.json#/$defs/indicatorExpr, only `source`+`id` are required: AFB resolves `type`/`field`/`params` from the user's saved indicator settings by `id` rather than carrying them inline.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AlarmV1_AlarmIndicatorExpr".
- */
-export interface AlarmV1_AlarmIndicatorExpr {
-  source: 'indicator';
-  id: string;
-  type?: 'wma' | 'kama' | 'psar';
-  field?: string;
-  params?: {};
-}
-/**
- * Building blocks reused across deal.v2.json/tradeplan.v2.json/condition.v1.json/instrument.v1.json and payloads/dataset.*.json. Extracted from the former deal.v1.json (2026-08-11); deal.v1/tradeplan.v1 have since been removed.
+ * Building blocks reused across deal.v2.json/tradeplan.v2.json/condition.v1.json and payloads/dataset.*.json. Extracted from the former deal.v1.json (2026-08-11); deal.v1/tradeplan.v1 have since been removed.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "CommonV1_Root".
@@ -8042,17 +8067,6 @@ export interface Envelope_Signature {
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV1_Point".
- */
-export interface GpV1_Point {
-  /**
-   * Unix seconds, as in klines.
-   */
-  time: number;
-  price: number;
-}
-/**
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "IssIssColumnsV1_Root".
  */
 export interface IssIssColumnsV1_Root {
@@ -8169,7 +8183,7 @@ export interface NotificationAlarmV1 {
     shortname?: string;
     secname?: string;
   };
-  condition: AlarmV1_AlarmConditionNode;
+  condition: AlarmV2_AlarmConditionNode;
   period?: ConditionV1_Timeframe;
   trigger_frequency?: 'once' | 'every_candle' | 'daily';
   /**
@@ -9479,11 +9493,6 @@ export interface SessionResyncResponsePayload {
  */
 export interface TradePlanV2 {
   id: TradeplanId;
-  /**
-   * @deprecated
-   * Deprecated: a derived short display form of the instrument, NOT an identifier; will be removed. AFB no longer writes it (the identity is `instrument_key`). It stays declared only so the closed storage schema still accepts plan files written before the key became mandatory; a reader must never resolve the instrument from it when `instrument_key` is present.
-   */
-  ticker?: string;
   /**
    * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
    */

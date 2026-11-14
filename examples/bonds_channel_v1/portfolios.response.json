@@ -12,7 +12,8 @@
       "owner": {},
       "instrument_keys": [
         "MISX:TQOB:SU26238RMFS4",
-        "MISX:TQOB:SU52005RMFS4"
+        "MISX:TQOB:SU52005RMFS4",
+        "MISX:TQCB:RU000A10A3Z4"
       ],
       "account_id": "bond:p-1"
     },
@@ -45,6 +46,10 @@
       "coupon_spread_pct": null,
       "is_qualified": false,
       "lifecycle": "active",
+      "current_yield": 7.29,
+      "days_to_event": 5308,
+      "value_avg": 1850000000,
+      "emitter_id": null,
       "market": {
         "price_pct": 97.35,
         "yield": 15.2,
@@ -70,9 +75,50 @@
       "coupon_spread_pct": null,
       "is_qualified": false,
       "lifecycle": "active",
+      "current_yield": null,
+      "days_to_event": 5308,
+      "value_avg": 0,
+      "emitter_id": null,
       "market": null
+    },
+    {
+      "instrument_key": "MISX:TQCB:RU000A10A3Z4",
+      "secid": "RU000A10A3Z4",
+      "name": "Пример БО-01",
+      "shortname": "Пример БО01",
+      "category": "corporate",
+      "faceunit": "SUR",
+      "facevalue": 1000,
+      "matdate": "2028-08-20",
+      "offerdate": null,
+      "coupon_percent": 18,
+      "coupon_frequency": 4,
+      "coupon_kind": "fixed",
+      "coupon_spread_pct": null,
+      "is_qualified": false,
+      "lifecycle": "active",
+      "current_yield": 18.27,
+      "days_to_event": 647,
+      "value_avg": 52000000,
+      "emitter_id": 1234,
+      "market": {
+        "price_pct": 98.5,
+        "yield": 19.4,
+        "ytm_kind": "ytm",
+        "duration_days": 560,
+        "accint": 21.7,
+        "updated_at": "2026-11-02T12:05:00+03:00"
+      }
     }
   ],
+  "emitters": {
+    "1234": {
+      "title": "ООО «Пример»",
+      "inn": "7700000000",
+      "rating_group": "A+",
+      "rating_changed_at": "2026-03-01T09:00:00+03:00"
+    }
+  },
   "totals": {
     "p-1": {
       "invested_rub": 97750,

@@ -57,7 +57,7 @@
     "planInput": {
       "type": "object",
       "title": "afb.tradeplan.v2 as accepted by `set` — the user-editable part of a plan.",
-      "description": "Deliberately has NO server-owned fields: `status` (lifecycle is driven by the plan's deals), `activated_at`, `closed_at`, `archived_at`, `created_at`, `updated_at`, `delivery_at`, `archived_components`, `instrument_missing`; the server keeps them from its own storage (a create starts as `draft`). `ticker` is not accepted either: it is derived by the server from `instrument_key`, the authoritative instrument reference (case-sensitive, never normalized). `editor` (frontend editor-mode hint) is not part of the channel: the current frontend neither sends nor reads it.",
+      "description": "Deliberately has NO server-owned fields: `status` (lifecycle is driven by the plan's deals), `activated_at`, `closed_at`, `archived_at`, `created_at`, `updated_at`, `delivery_at`, `archived_components`, `instrument_missing`; the server keeps them from its own storage (a create starts as `draft`). `ticker` is not accepted either: `instrument_key` is the only instrument reference (case-sensitive, never normalized). `editor` (frontend editor-mode hint) is not part of the channel: the current frontend neither sends nor reads it.",
       "required": ["schema", "id", "instrument_key", "direction", "entries", "stop_loss", "take_profit", "sizing"],
       "additionalProperties": false,
       "properties": {
@@ -75,13 +75,12 @@
     "planItem": {
       "type": "object",
       "title": "afb.tradeplan.v2 as returned by the server (list/set/archive/sync, and `rejected[].item` on a conflict).",
-      "description": "An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is always present and is the only identifier. `instrument_missing: true` means the key is not found in the instrument catalog (an archived instrument is found, so not missing; a plan stored before the key became mandatory whose old reference the server could not resolve comes with that old reference echoed in `instrument_key` and `instrument_missing: true`). `ticker` is deprecated: a derived display form (the wire ticker) the server takes from the catalog while the key resolves, kept for older frontends that still read it; may be absent when the key is not found. Never an identifier. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.",
+      "description": "An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is always present and is the only identifier. `instrument_missing: true` means the key is not found in the instrument catalog (an archived instrument is found, so not missing; a plan stored before the key became mandatory whose old reference the server could not resolve comes with that old reference echoed in `instrument_key` and `instrument_missing: true`). The projection carries no `ticker` field: the instrument is identified by `instrument_key` alone. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.",
       "required": ["schema", "id", "instrument_key", "direction", "status", "entries", "stop_loss", "take_profit", "sizing", "activated_at", "closed_at", "created_at", "updated_at"],
       "additionalProperties": false,
       "properties": {
         "schema": { "const": "afb.tradeplan.v2" },
         "id": { "$ref": "../common.v1.json#/$defs/tradeplanId" },
-        "ticker": { "type": "string", "minLength": 1, "deprecated": true, "description": "Deprecated display form of the instrument (derived by the server from the catalog; NOT an identifier). Kept for older frontends; will be removed." },
         "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
         "instrument_missing": {
           "const": true,

@@ -80,7 +80,9 @@ def test_alarm_v2_single_item_is_gone(registry):
     _invalid(_v(_ALARM, "set", registry), {**msg, "item": _ALARM_ITEM})
     _invalid(_v(_ALARM, "delete", registry), {**msg, "schema": "afbws.alarm.delete.v2", "id": "a"})
     # v1 items and a ticker filter are rejected
-    v1_item = json.loads((EXAMPLES / "alarms" / "alarm.touch.json").read_text())
+    v1_item = json.loads((EXAMPLES / "alarms_v2" / "alarm.touch.json").read_text())
+    v1_item = {**v1_item, "schema": "afb.alarm.v1", "ticker": "SBER"}
+    del v1_item["instrument_key"]
     _invalid(_v(_ALARM, "set", registry), {**msg, "items": [v1_item]})
     _invalid(_v(_ALARM, "list", registry), {**msg, "schema": "afbws.alarm.list.v2", "ticker": "SBER"})
 

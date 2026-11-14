@@ -269,6 +269,191 @@
         }
       }
     },
+    "portfolioBondRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One bond of a portfolio list: every field of `bondRow` (same values as in `search`, with `market`) plus the screener-table fields `current_yield`, `days_to_event`, `value_avg`, `emitter_id`, with the same values as the matching columns of a `screener` row, so that the client draws the screener table for the portfolio without extra requests. The issuer itself (title, rating) is in the `emitters` dictionary of the message by `emitter_id`.",
+      "required": [
+        "instrument_key",
+        "secid",
+        "name",
+        "shortname",
+        "category",
+        "faceunit",
+        "facevalue",
+        "matdate",
+        "offerdate",
+        "coupon_percent",
+        "coupon_frequency",
+        "coupon_kind",
+        "coupon_spread_pct",
+        "is_qualified",
+        "lifecycle",
+        "market",
+        "current_yield",
+        "days_to_event",
+        "value_avg",
+        "emitter_id"
+      ],
+      "properties": {
+        "instrument_key": {
+          "$ref": "common.v1.json#/$defs/instrumentKey",
+          "description": "Bond identifier: the composite instrument key `MISX:<primary board>:<secid>` (e.g. `MISX:TQCB:RU000A10A3Z4`), the ONLY way to identify a bond. Case-sensitive, never normalized. A board change is another key, i.e. another bond."
+        },
+        "secid": {
+          "$ref": "#/$defs/secid"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Full bond name (issue title) as given by ISS; null when unknown. Shown in the list plaque; search by ISIN stays a server-side filter (`query`) and does not add it to the row."
+        },
+        "shortname": {
+          "type": "string",
+          "description": "Short display name."
+        },
+        "category": {
+          "$ref": "#/$defs/category"
+        },
+        "faceunit": {
+          "$ref": "#/$defs/faceunit"
+        },
+        "facevalue": {
+          "type": "number",
+          "description": "Current face value in `faceunit` (for inflation-indexed OFZ — the daily indexed value)."
+        },
+        "matdate": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Maturity date; null for perpetual bonds."
+        },
+        "offerdate": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Nearest future offer date; null when none."
+        },
+        "coupon_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Current annual coupon rate, percent of face value; null when unknown."
+        },
+        "coupon_frequency": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Coupon payments per year; null when unknown."
+        },
+        "coupon_kind": {
+          "$ref": "#/$defs/couponKind",
+          "description": "Coupon type from the bond passport; `unknown` when the bond has no passport yet."
+        },
+        "coupon_spread_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Spread over the floating base, percentage points; null for fixed coupons, without a passport or without a spread."
+        },
+        "is_qualified": {
+          "type": "boolean",
+          "description": "True when only qualified investors may buy the bond."
+        },
+        "lifecycle": {
+          "enum": [
+            "active",
+            "matured"
+          ],
+          "description": "`active` — traded or awaiting redemption; `matured` — redeemed (returned only with `include_matured`)."
+        },
+        "market": {
+          "$ref": "#/$defs/marketOrNull"
+        },
+        "current_yield": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Current yield, percent per year: annual coupon over the clean price (for a floater on the key rate/RUONIA without its own percent the coupon is the base rate + `coupon_spread_pct`). Null without a quote or without a known coupon. Same value as the `current_yield` column of `screener`."
+        },
+        "days_to_event": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Whole days to the nearest maturity, put or call offer; null for a perpetual bond with no event. Same value as the `days_to_event` column of `screener`."
+        },
+        "value_avg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Average daily turnover, rubles, over the liquidity window; null while the liquidity store is empty, 0 for a bond with no trades in the window once the store is filled. Same value as the `value_avg` column of `screener`."
+        },
+        "emitter_id": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Exchange issuer id, the key of the `emitters` dictionary of the message; null when the issuer is unknown (a bond without a passport)."
+        }
+      }
+    },
+    "bondEmitter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "inn",
+        "rating_group",
+        "rating_changed_at"
+      ],
+      "description": "Issuer entry of the `emitters` dictionary of a portfolio list (only the issuers of the listed bonds). The same fields as the `emitter` block of the bond card.",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Issuer name."
+        },
+        "inn": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Issuer INN; null when unknown."
+        },
+        "rating_group": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ratingGroup"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Issuer rating group; null — unrated."
+        },
+        "rating_changed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "When our collection last saw the rating group change; null — never."
+        }
+      }
+    },
     "bond": {
       "type": "object",
       "additionalProperties": false,
@@ -1435,7 +1620,7 @@
     "portfolios": {
       "type": "object",
       "title": "afbws.bonds.portfolios.v1 — portfolio list with the bonds of their compositions (request / response / push).",
-      "description": "Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests — and `totals`: the portfolio totals (see the property) for the portfolios with an account. No payment list and no per-position analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) and whenever the totals change (a market snapshot, an account operation) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.",
+      "description": "Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (`bondRow` as in `search`, with `market`, plus the screener-table fields `current_yield`, `days_to_event`, `value_avg`, `emitter_id` — `portfolioBondRow`) — and `emitters`: the issuers of those bonds by `emitter_id` (title, INN, rating) — so that the client draws the bond tiles and the screener table without extra requests — and `totals`: the portfolio totals (see the property) for the portfolios with an account. No payment list and no per-position analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) and whenever the totals change (a market snapshot, an account operation) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.",
       "required": [
         "channel",
         "schema"
@@ -1461,9 +1646,9 @@
         "bonds": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/bondRow"
+            "$ref": "#/$defs/portfolioBondRow"
           },
-          "description": "Response and push. Bond rows of all compositions of `portfolios`, without duplicates."
+          "description": "Response and push. Bond rows of all compositions of `portfolios`, without duplicates: `bondRow` plus the screener-table fields (`current_yield`, `days_to_event`, `value_avg`, `emitter_id`)."
         },
         "totals": {
           "type": "object",
@@ -1471,6 +1656,16 @@
             "$ref": "#/$defs/totals"
           },
           "description": "Response and push. Totals of the portfolios with an account, keyed by portfolio id (the same ids as in `portfolios`): invested amount, market value, payments received, weighted yields, duration, annual coupons. A portfolio without an account, without read access or without held positions has no key (the client shows no figures). No payment list is computed."
+        },
+        "emitters": {
+          "type": "object",
+          "patternProperties": {
+            "^[0-9]+$": {
+              "$ref": "#/$defs/bondEmitter"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Response and push. Issuers of the bonds of `bonds` by issuer id (a string key, as in `screener`): only the issuers of the listed bonds, without duplicates; the issuer of a row is read here by its `emitter_id`. `{}` when no listed bond has a known issuer."
         }
       },
       "allOf": [
@@ -1484,15 +1679,23 @@
             "dependentRequired": {
               "portfolios": [
                 "bonds",
-                "totals"
+                "totals",
+                "emitters"
               ],
               "bonds": [
                 "portfolios",
-                "totals"
+                "totals",
+                "emitters"
               ],
               "totals": [
                 "portfolios",
-                "bonds"
+                "bonds",
+                "emitters"
+              ],
+              "emitters": [
+                "portfolios",
+                "bonds",
+                "totals"
               ]
             }
           },
@@ -1500,7 +1703,8 @@
             "required": [
               "portfolios",
               "bonds",
-              "totals"
+              "totals",
+              "emitters"
             ]
           }
         }
@@ -1556,7 +1760,7 @@
     "portfoliosSet": {
       "type": "object",
       "title": "afbws.bonds.portfolios.set.v1 — create / change / reorder / delete portfolios and their compositions (request / response).",
-      "description": "Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `instrument_keys[]` in final order (omit `instrument_keys` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every instrument key must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `instrument_keys`), the bond rows of all compositions in `bonds` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.",
+      "description": "Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `instrument_keys[]` in final order (omit `instrument_keys` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every instrument key must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `instrument_keys`), the bond rows of all compositions in `bonds` and their issuers in `emitters` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.",
       "required": [
         "channel",
         "schema",
@@ -1596,9 +1800,9 @@
         "bonds": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/bondRow"
+            "$ref": "#/$defs/portfolioBondRow"
           },
-          "description": "Response only. Bond rows of all compositions of `portfolios`, without duplicates."
+          "description": "Response only. Bond rows of all compositions of `portfolios`, without duplicates (`portfolioBondRow`, as in `portfolios`)."
         },
         "totals": {
           "type": "object",
@@ -1606,6 +1810,16 @@
             "$ref": "#/$defs/totals"
           },
           "description": "Response only. Totals of the portfolios of the resulting list, as in `portfolios`."
+        },
+        "emitters": {
+          "type": "object",
+          "patternProperties": {
+            "^[0-9]+$": {
+              "$ref": "#/$defs/bondEmitter"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Response only. Issuers of the bonds of `bonds` by issuer id, as in `portfolios`."
         }
       },
       "allOf": [
@@ -1620,6 +1834,7 @@
               "portfolios",
               "bonds",
               "totals",
+              "emitters",
               "rejected"
             ]
           }

@@ -1,11 +1,16 @@
 {
-  "schema": "afb.alarm.v1",
+  "schema": "afb.alarm.v2",
   "id": "alarm-breakout-0001",
-  "ticker": "GDU6",
+  "instrument_key": "MISX:RFUD:GDU6",
   "condition": {
     "op": "breakout",
-    "left": {"source": "price", "field": "last"},
-    "right": {"const": "4300.0"},
+    "left": {
+      "source": "price",
+      "field": "last"
+    },
+    "right": {
+      "const": "4300.0"
+    },
     "timeframe": "1h"
   },
   "period": "1h",

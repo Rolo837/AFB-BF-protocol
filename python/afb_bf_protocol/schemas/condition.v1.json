@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/condition.v1.json",
   "title": "condition.v1 — unified condition node vocabulary",
-  "description": "Single source of truth for the condition-node vocabulary shared by afb.deal.v2, afb.tradeplan.v2 and afb.alarm.v1. Left/right pairing is enforced per source via oneOf: price supports four operators — `touch` (op omitted, for wire back-compat, or op=\"touch\"): level between prev/cur; `above`/`below`: inclusive level check (cur >= level / cur <= level), optionally with `duration` (seconds, BF-only debounce); `breakout`/`breakdown`/`crossing`: candle op, requires `timeframe`. BF executes a fired `touch` as a LIMIT order and the other three as a MARKET order — see belphegor.plan_engine.order_policy. `field` is required only on dataset expressions; price and indicator legs omit it on the wire. indicator and dataset nodes use strict scalar ops (above/below/crosses_*/crossing).",
+  "description": "Single source of truth for the condition-node vocabulary shared by afb.deal.v2, afb.tradeplan.v2 and afb.alarm.v2. Left/right pairing is enforced per source via oneOf: price supports four operators — `touch` (op omitted, for wire back-compat, or op=\"touch\"): level between prev/cur; `above`/`below`: inclusive level check (cur >= level / cur <= level), optionally with `duration` (seconds, BF-only debounce); `breakout`/`breakdown`/`crossing`: candle op, requires `timeframe`. BF executes a fired `touch` as a LIMIT order and the other three as a MARKET order — see belphegor.plan_engine.order_policy. `field` is required only on dataset expressions; price and indicator legs omit it on the wire. indicator and dataset nodes use strict scalar ops (above/below/crosses_*/crossing).",
   "type": "object",
   "$ref": "#/$defs/conditionNode",
   "$defs": {
@@ -106,7 +106,7 @@
         },
         {
           "title": "indicator operator",
-          "description": "Scalar comparison (see #/$defs/scalarOp) of an indicator against a constant or another indicator expression. `timeframe` is optional at the schema level (this same conditionNode is reused by afb.alarm.v1, where the timeframe lives on the alarm itself, not the node) but is REQUIRED by the BF executor for afb.deal.v2/afb.tradeplan.v2 indicator conditions — see condition_semantics module docstring. When present, it applies to BOTH sides of the comparison: left and right are evaluated on the same bar series. Indicator values are a (previous CLOSED bar, current FORMING bar) pair, matching evaluate_scalar_op's cur/prev semantics.",
+          "description": "Scalar comparison (see #/$defs/scalarOp) of an indicator against a constant or another indicator expression. `timeframe` is optional at the schema level (this same conditionNode is reused by afb.alarm.v2, where the timeframe lives on the alarm itself, not the node) but is REQUIRED by the BF executor for afb.deal.v2/afb.tradeplan.v2 indicator conditions — see condition_semantics module docstring. When present, it applies to BOTH sides of the comparison: left and right are evaluated on the same bar series. Indicator values are a (previous CLOSED bar, current FORMING bar) pair, matching evaluate_scalar_op's cur/prev semantics.",
           "required": ["op"],
           "properties": {
             "left": {"$ref": "#/$defs/indicatorExpr"},

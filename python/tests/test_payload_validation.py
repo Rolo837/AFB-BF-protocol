@@ -169,13 +169,13 @@ def test_validate_tradeplan_v2_rejects_empty_entries():
 
 
 def test_validate_alarm_accepts_touch_example():
-    data = json.loads((EXAMPLES / "alarms" / "alarm.touch.json").read_text())
-    assert validate_alarm(data) == "afb.alarm.v1"
+    data = json.loads((EXAMPLES / "alarms_v2" / "alarm.touch.json").read_text())
+    assert validate_alarm(data) == "afb.alarm.v2"
 
 
 def test_validate_alarm_accepts_breakout_example():
-    data = json.loads((EXAMPLES / "alarms" / "alarm.breakout.json").read_text())
-    assert validate_alarm(data) == "afb.alarm.v1"
+    data = json.loads((EXAMPLES / "alarms_v2" / "alarm.breakout.json").read_text())
+    assert validate_alarm(data) == "afb.alarm.v2"
 
 
 def test_validate_alarm_rejects_unknown_schema():
@@ -184,7 +184,7 @@ def test_validate_alarm_rejects_unknown_schema():
 
 
 def test_validate_alarm_rejects_candle_op_without_timeframe():
-    data = json.loads((EXAMPLES / "alarms" / "alarm.breakout.json").read_text())
+    data = json.loads((EXAMPLES / "alarms_v2" / "alarm.breakout.json").read_text())
     del data["condition"]["timeframe"]
     with pytest.raises(PayloadValidationError):
         validate_alarm(data)
@@ -247,15 +247,14 @@ def test_validate_alarm_v2_rejects_ticker():
         validate_alarm(data)
 
 
-def test_validate_gp_dispatches_v1_and_v2():
+def test_validate_gp_accepts_v2_rejects_v1():
     from afb_bf_protocol.payload_validation import validate_gp
 
     pt = {"time": 1721000000, "price": 1.5}
-    assert validate_gp({"schema": "afb.gp.v1", "id": "a", "ticker": "SBER", "kind": "line", "start": pt}) == "afb.gp.v1"
     assert validate_gp(
         {"schema": "afb.gp.v2", "id": "a", "instrument_key": "MISX:TQBR:SBER", "kind": "fibonacci", "settings": {"start": pt, "stop": pt}}
     ) == "afb.gp.v2"
     with pytest.raises(PayloadValidationError):
         validate_gp({"schema": "afb.gp.v3"})
     with pytest.raises(PayloadValidationError):
-        validate_gp({"schema": "afb.gp.v1", "id": "a", "ticker": "SBER", "kind": "trendline", "start": pt, "stop": pt})
+        validate_gp({"schema": "afb.gp.v1", "id": "a", "ticker": "SBER", "kind": "line", "start": pt})

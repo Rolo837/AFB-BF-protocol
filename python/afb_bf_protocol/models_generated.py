@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 5be2762fb73c5c90659f47e649ee84694d7cd9b8ec4ea96122791b727557093b
+# source-hash: 087a88e106b537e99d3eed712be3eb0305f106ea353eecbea7f85ee792ad2f2b
 
 from __future__ import annotations
 
@@ -767,6 +767,17 @@ class AfbwsBondsChannelV1Bond(TypedDict):
     schedule_scan_at: str | None
 
 
+class AfbwsBondsChannelV1BondEmitter(TypedDict):
+    """
+    Issuer entry of the `emitters` dictionary of a portfolio list (only the issuers of the listed bonds). The same fields as the `emitter` block of the bond card.
+    """
+
+    title: str
+    inn: str | None
+    rating_group: AfbwsBondsChannelV1RatingGroup | None
+    rating_changed_at: str | None
+
+
 class AfbwsBondsChannelV1BondMsg(TypedDict):
     """
     Request: `instrument_key`. Response: the bond (the card carries `instrument_key` and the display `secid`), its payment `schedule` and the daily `history` (columnar). Unknown key — error `not_found`. Coupons of the schedule have `projected`: true when the amount is a FORECAST from the base rate (see `rates`).
@@ -981,6 +992,33 @@ class AfbwsBondsChannelV1Portfolio(TypedDict):
     payments: NotRequired[AfbwsBondsChannelV1PaymentsTable]
 
 
+class AfbwsBondsChannelV1PortfolioBondRow(TypedDict):
+    """
+    One bond of a portfolio list: every field of `bondRow` (same values as in `search`, with `market`) plus the screener-table fields `current_yield`, `days_to_event`, `value_avg`, `emitter_id`, with the same values as the matching columns of a `screener` row, so that the client draws the screener table for the portfolio without extra requests. The issuer itself (title, rating) is in the `emitters` dictionary of the message by `emitter_id`.
+    """
+
+    instrument_key: AfbwsCommonV1InstrumentKey
+    secid: AfbwsBondsChannelV1Secid
+    name: str | None
+    shortname: str
+    category: AfbwsBondsChannelV1Category
+    faceunit: AfbwsBondsChannelV1Faceunit
+    facevalue: float
+    matdate: str | None
+    offerdate: str | None
+    coupon_percent: float | None
+    coupon_frequency: int | None
+    coupon_kind: AfbwsBondsChannelV1CouponKind
+    coupon_spread_pct: float | None
+    is_qualified: bool
+    lifecycle: Literal["active", "matured"]
+    market: AfbwsBondsChannelV1MarketOrNull
+    current_yield: float | None
+    days_to_event: int | None
+    value_avg: float | None
+    emitter_id: int | None
+
+
 class AfbwsBondsChannelV1PortfolioEdit(TypedDict):
     """
     A portfolio upsert item.
@@ -1022,20 +1060,21 @@ class AfbwsBondsChannelV1PortfolioRejection(TypedDict):
 
 class AfbwsBondsChannelV1Portfolios(TypedDict):
     """
-    Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (same `bondRow` as in `search`, with `market`), so that the client draws the bond tiles without extra requests — and `totals`: the portfolio totals (see the property) for the portfolios with an account. No payment list and no per-position analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) and whenever the totals change (a market snapshot, an account operation) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
+    Request is an empty command. Response and push carry `portfolios` — the caller's own portfolios first, then the public ones visible to their tier, each with its composition `instrument_keys[]` — and `bonds`: the rows of the bonds of ALL listed compositions, without duplicates (`bondRow` as in `search`, with `market`, plus the screener-table fields `current_yield`, `days_to_event`, `value_avg`, `emitter_id` — `portfolioBondRow`) — and `emitters`: the issuers of those bonds by `emitter_id` (title, INN, rating) — so that the client draws the bond tiles and the screener table without extra requests — and `totals`: the portfolio totals (see the property) for the portfolios with an account. No payment list and no per-position analytics is computed for the list. Server push: the same body WITHOUT `request_id` whenever the STRUCTURE changes (a portfolio is created, deleted, renamed, its visibility, composition or order changes) and whenever the totals change (a market snapshot, an account operation) — to the other connections of the owner for a personal portfolio, to every connection with the `bonds` capability that requested the list for a public one; each recipient gets its own list by its tier.
     """
 
     channel: Literal["bonds"]
     schema: Literal["afbws.bonds.portfolios.v1"]
     request_id: NotRequired[AfbwsCommonV1RequestId]
     portfolios: NotRequired[list[AfbwsBondsChannelV1PortfolioRef]]
-    bonds: NotRequired[list[AfbwsBondsChannelV1BondRow]]
+    bonds: NotRequired[list[AfbwsBondsChannelV1PortfolioBondRow]]
     totals: NotRequired[dict[str, AfbwsBondsChannelV1Totals]]
+    emitters: NotRequired[dict[str, AfbwsBondsChannelV1BondEmitter]]
 
 
 class AfbwsBondsChannelV1PortfoliosSet(TypedDict):
     """
-    Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `instrument_keys[]` in final order (omit `instrument_keys` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every instrument key must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `instrument_keys`), the bond rows of all compositions in `bonds` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
+    Request: `portfolios[]` — upsert by `id` (an unknown id creates), each with its WHOLE composition `instrument_keys[]` in final order (omit `instrument_keys` to leave a composition untouched); the order of `portfolios[]` is the display order (personal ones and public ones are ordered separately); `remove[]` — ids to delete (their purchases go with them); at least one of `portfolios`/`remove`. Rules: a personal portfolio — for everybody with the `bonds` capability; a public visibility — staff only (`forbidden`); the scope personal <-> public cannot change (`validation_error`); a foreign personal portfolio is `not_found`; an id taken by a set of another type is `validation_error`. Composition: every instrument key must exist (otherwise `validation_error`, the unknown ones are listed in the message), duplicates are dropped, at most 200 bonds (`maxItems`; the backend constant gives `validation_error`), a public portfolio cannot contain a `category=default` bond; bonds removed from the composition of a personal portfolio lose their purchases there. A refused item goes to `rejected[]`, the others are applied. Response: the caller's whole current list in `portfolios` (with `instrument_keys`), the bond rows of all compositions in `bonds` and their issuers in `emitters` (as in `portfolios`) and the refused items in `rejected` (empty when all applied). Other connections receive the changed structure as a `portfolios` push.
     """
 
     channel: Literal["bonds"]
@@ -1044,8 +1083,9 @@ class AfbwsBondsChannelV1PortfoliosSet(TypedDict):
     portfolios: NotRequired[list[Any]]
     remove: NotRequired[list[RemoveItem]]
     rejected: NotRequired[list[AfbwsBondsChannelV1PortfolioRejection]]
-    bonds: NotRequired[list[AfbwsBondsChannelV1BondRow]]
+    bonds: NotRequired[list[AfbwsBondsChannelV1PortfolioBondRow]]
     totals: NotRequired[dict[str, AfbwsBondsChannelV1Totals]]
+    emitters: NotRequired[dict[str, AfbwsBondsChannelV1BondEmitter]]
 
 
 class AfbwsBondsChannelV1Range(TypedDict):
@@ -2419,80 +2459,9 @@ class AfbwsScreenerChannelV1ListItem(TypedDict):
     size: int
 
 
-class AlarmV1(TypedDict):
-    """
-    AFB-side user alarm — like afb.tradeplan.v2, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel; it is documented here (rather than only in AFB) because it shares condition.v1.json's operator vocabulary with deal.v2 and tradeplan.v2. Replaces the legacy YAML shape (condition_type/trigger_type/value_type/value/value_ref flat fields, break_up/break_down operator names) with a conditionNode. Legacy alarms are read via a lazy converter (see docs/PROTOCOL.md 'Алармы' mapping table) and rewritten in this format on next save/reactivation; the API layer only accepts/emits this format going forward. `period` is the alarm's overall computation timeframe (legacy default '10min'); when `condition` is a price candle operator, `condition.timeframe` carries the candle timeframe and by construction equals `period`.
-    """
-
-    schema: Literal["afb.alarm.v1"]
-    id: str
-    ticker: str
-    condition: AlarmV1AlarmConditionNode
-    period: NotRequired[ConditionV1Timeframe]
-    trigger_frequency: NotRequired[Literal["once", "every_candle", "daily"]]
-    status: NotRequired[Literal["active", "triggered", "expired"]]
-    created_at: NotRequired[str]
-    updated_at: NotRequired[str]
-    triggered_at: NotRequired[str]
-    delivery_at: NotRequired[str]
-    trigger_count: NotRequired[int]
-
-
-class AlarmV1AlarmConditionNode1(TypedDict):
-    left: ConditionV1PriceExpr
-    right: ConditionV1RightConst
-    op: NotRequired[Literal["touch"]]
-
-
-class AlarmV1AlarmConditionNode2(TypedDict):
-    left: ConditionV1PriceExpr
-    right: ConditionV1RightConst
-    op: Literal["breakout", "breakdown", "crossing"]
-    timeframe: ConditionV1Timeframe
-
-
-class AlarmV1AlarmConditionNode3(TypedDict):
-    left: ConditionV1PriceExpr
-    right: ConditionV1RightConst
-    op: ConditionV1PriceLevelOp
-
-
-class AlarmV1AlarmConditionNode4(TypedDict):
-    left: AlarmV1AlarmIndicatorExpr
-    right: ConditionV1RightConst | AlarmV1AlarmIndicatorExpr
-    op: ConditionV1ScalarOp
-
-
-class AlarmV1AlarmConditionNode5(TypedDict):
-    left: ConditionV1DatasetExpr
-    right: ConditionV1RightConst | ConditionV1DatasetExpr
-    op: ConditionV1ScalarOp
-
-
-AlarmV1AlarmConditionNode: TypeAlias = (
-    AlarmV1AlarmConditionNode1
-    | AlarmV1AlarmConditionNode2
-    | AlarmV1AlarmConditionNode3
-    | AlarmV1AlarmConditionNode4
-    | AlarmV1AlarmConditionNode5
-)
-
-
-class AlarmV1AlarmIndicatorExpr(TypedDict):
-    """
-    Unlike condition.v1.json#/$defs/indicatorExpr, only `source`+`id` are required: AFB resolves `type`/`field`/`params` from the user's saved indicator settings by `id` rather than carrying them inline.
-    """
-
-    source: Literal["indicator"]
-    id: str
-    type: NotRequired[Literal["wma", "kama", "psar"]]
-    field: NotRequired[str]
-    params: NotRequired[dict[str, Any]]
-
-
 class AlarmV2(TypedDict):
     """
-    v2 of afb.alarm.v1 (full copy): the only difference is that the instrument is identified by the full composite `instrument_key` (<MIC>[:<board|market>]:<ticker>, case-sensitive, never normalized — see afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`. v1 stays supported for frontends that did not negotiate afbws.alarm.channel.v2; the backend stores v2 and converts v1<->v2 at the channel boundary. AFB-side entity, NOT an AsyncAPI wire message, never crosses the AFB<->BF channel. it is documented here (rather than only in AFB) because it shares condition.v1.json's operator vocabulary with deal.v2 and tradeplan.v2. Replaces the legacy YAML shape (condition_type/trigger_type/value_type/value/value_ref flat fields, break_up/break_down operator names) with a conditionNode. Legacy alarms are read via a lazy converter (see docs/PROTOCOL.md 'Алармы' mapping table) and rewritten in this format on next save/reactivation; the API layer only accepts/emits this format going forward. `period` is the alarm's overall computation timeframe (legacy default '10min'); when `condition` is a price candle operator, `condition.timeframe` carries the candle timeframe and by construction equals `period`.
+    The AFB alarm entity (formerly v2 of the removed afb.alarm.v1): the instrument is identified by the full composite `instrument_key` (<MIC>[:<board|market>]:<ticker>, case-sensitive, never normalized — see afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`. v1 (identified by the short `ticker`) has been removed together with afbws.alarm.channel.v1; this schema is the only alarm entity and also hosts the condition-tree `$defs` (alarmConditionNode, alarmIndicatorExpr) referenced by notification.alarm.v1.json. AFB-side entity, NOT an AsyncAPI wire message, never crosses the AFB<->BF channel. it is documented here (rather than only in AFB) because it shares condition.v1.json's operator vocabulary with deal.v2 and tradeplan.v2. Replaces the legacy YAML shape (condition_type/trigger_type/value_type/value/value_ref flat fields, break_up/break_down operator names) with a conditionNode. Legacy alarms are read via a lazy converter (see docs/PROTOCOL.md 'Алармы' mapping table) and rewritten in this format on next save/reactivation; the API layer only accepts/emits this format going forward. `period` is the alarm's overall computation timeframe (legacy default '10min'); when `condition` is a price candle operator, `condition.timeframe` carries the candle timeframe and by construction equals `period`.
     """
 
     schema: Literal["afb.alarm.v2"]
@@ -2990,7 +2959,7 @@ class ConditionNode3(TypedDict):
 
 class ConditionNode4(TypedDict):
     """
-    Scalar comparison (see #/$defs/scalarOp) of an indicator against a constant or another indicator expression. `timeframe` is optional at the schema level (this same conditionNode is reused by afb.alarm.v1, where the timeframe lives on the alarm itself, not the node) but is REQUIRED by the BF executor for afb.deal.v2/afb.tradeplan.v2 indicator conditions — see condition_semantics module docstring. When present, it applies to BOTH sides of the comparison: left and right are evaluated on the same bar series. Indicator values are a (previous CLOSED bar, current FORMING bar) pair, matching evaluate_scalar_op's cur/prev semantics.
+    Scalar comparison (see #/$defs/scalarOp) of an indicator against a constant or another indicator expression. `timeframe` is optional at the schema level (this same conditionNode is reused by afb.alarm.v2, where the timeframe lives on the alarm itself, not the node) but is REQUIRED by the BF executor for afb.deal.v2/afb.tradeplan.v2 indicator conditions — see condition_semantics module docstring. When present, it applies to BOTH sides of the comparison: left and right are evaluated on the same bar series. Indicator values are a (previous CLOSED bar, current FORMING bar) pair, matching evaluate_scalar_op's cur/prev semantics.
     """
 
     node_type: NotRequired[Literal["event"]]
@@ -3857,7 +3826,7 @@ class DealV2ConditionNode3(TypedDict):
 
 class DealV2ConditionNode4(TypedDict):
     """
-    Scalar comparison (see #/$defs/scalarOp) of an indicator against a constant or another indicator expression. `timeframe` is optional at the schema level (this same conditionNode is reused by afb.alarm.v1, where the timeframe lives on the alarm itself, not the node) but is REQUIRED by the BF executor for afb.deal.v2/afb.tradeplan.v2 indicator conditions — see condition_semantics module docstring. When present, it applies to BOTH sides of the comparison: left and right are evaluated on the same bar series. Indicator values are a (previous CLOSED bar, current FORMING bar) pair, matching evaluate_scalar_op's cur/prev semantics.
+    Scalar comparison (see #/$defs/scalarOp) of an indicator against a constant or another indicator expression. `timeframe` is optional at the schema level (this same conditionNode is reused by afb.alarm.v2, where the timeframe lives on the alarm itself, not the node) but is REQUIRED by the BF executor for afb.deal.v2/afb.tradeplan.v2 indicator conditions — see condition_semantics module docstring. When present, it applies to BOTH sides of the comparison: left and right are evaluated on the same bar series. Indicator values are a (previous CLOSED bar, current FORMING bar) pair, matching evaluate_scalar_op's cur/prev semantics.
     """
 
     node_type: NotRequired[Literal["event"]]
@@ -3984,7 +3953,6 @@ class DealV2Detail(TypedDict):
     execution_phase: DealExecutionPhase
     bf_id: DealV2BfId
     tradeplan_id: TradeplanId
-    ticker: str
     instrument_key: AfbwsCommonV1InstrumentKey
     market: NotRequired[Literal["stock", "futures", "currency"]]
     direction: Literal["long", "short"]
@@ -4237,7 +4205,6 @@ class DealV2Item(TypedDict):
     execution_phase: DealExecutionPhase
     bf_id: DealV2BfId
     tradeplan_id: TradeplanId
-    ticker: str
     instrument_key: AfbwsCommonV1InstrumentKey
     market: NotRequired[Literal["stock", "futures", "currency"]]
     direction: Literal["long", "short"]
@@ -4569,7 +4536,6 @@ class DealV2Summary(TypedDict):
     execution_phase: DealExecutionPhase
     bf_id: DealV2BfId
     tradeplan_id: TradeplanId
-    ticker: str
     instrument_key: AfbwsCommonV1InstrumentKey
     market: NotRequired[Literal["stock", "futures", "currency"]]
     direction: Literal["long", "short"]
@@ -4812,29 +4778,9 @@ class Fill(TypedDict):
     timestamp: NotRequired[str | float | int | bool | dict[str, Any] | list[Any] | None]
 
 
-class GpV1(TypedDict):
-    """
-    AFB-side chart primitive (line/line_enter/line_sl/line_tp/note/zone/ruler) — like afb.alarm.v1, this is NOT an AsyncAPI wire message, it never crosses the AFB<->BF channel. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity: `ticker` becomes an explicit required field instead of an implicit dict key, so get(id)/list(ticker) work on a flat collection. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`. `stop` is a second anchor point required only for zone/ruler (forbidden for every other kind, enforced by the `allOf` below, not just by convention); `text` is accepted only for `note` (optional even there).
-    """
-
-    schema: Literal["afb.gp.v1"]
-    id: str
-    ticker: str
-    kind: Literal["line", "line_enter", "line_sl", "line_tp", "note", "zone", "ruler"]
-    start: GpV1Point
-    stop: NotRequired[GpV1Point]
-    text: NotRequired[str]
-    tradeplan_id: NotRequired[str]
-
-
-class GpV1Point(TypedDict):
-    time: int
-    price: float
-
-
 class GpV2(TypedDict):
     """
-    v2 of afb.gp.v1 with differences: (1) the instrument is identified by the full composite `instrument_key` (afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`; (2) new kinds `trendline` and `fibonacci` — both two-anchor primitives; their rendering is not specified yet; (3) the primitive's own parameters (`start`, `stop`, `text`) live in the `settings` dictionary, not at the root, so a kind can gain parameters without touching the envelope. ROOT = identity and server-side ownership: `schema`, `id`, `instrument_key`, `kind`, `tradeplan_id` (all other parameters go to `settings`). `settings` is REQUIRED and strictly typed by `kind` (enforced by the `allOf` below, each branch is additionalProperties:false): line/line_enter/line_sl/line_tp → `primitiveSettingsLine` {start}; note → `primitiveSettingsNote` {start, text? (≤160)}; zone/ruler/trendline/fibonacci → `primitiveSettingsTwoPoint` {start, stop}. v1 (`afb.gp.v1`, flat start/stop/text) stays supported for frontends without afbws.gp.channel.v2; v1 clients never receive trendline/fibonacci. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`.
+    The AFB graphic-primitive entity (the only one; afb.gp.v1 was removed). Notable points: (1) the instrument is identified by the full composite `instrument_key` (afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`; (2) new kinds `trendline` and `fibonacci` — both two-anchor primitives; their rendering is not specified yet; (3) the primitive's own parameters (`start`, `stop`, `text`) live in the `settings` dictionary, not at the root, so a kind can gain parameters without touching the envelope. ROOT = identity and server-side ownership: `schema`, `id`, `instrument_key`, `kind`, `tradeplan_id` (all other parameters go to `settings`). `settings` is REQUIRED and strictly typed by `kind` (enforced by the `allOf` below, each branch is additionalProperties:false): line/line_enter/line_sl/line_tp → `primitiveSettingsLine` {start}; note → `primitiveSettingsNote` {start, text? (≤160)}; zone/ruler/trendline/fibonacci → `primitiveSettingsTwoPoint` {start, stop}. The former v1 (`afb.gp.v1`, flat start/stop/text) has been removed. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`.
     """
 
     schema: Literal["afb.gp.v2"]
@@ -5577,7 +5523,7 @@ class NotificationAlarmV1(TypedDict):
     instrument_key: AfbwsCommonV1InstrumentKey
     ticker: str
     instrument: NotRequired[Instrument]
-    condition: AlarmV1AlarmConditionNode
+    condition: AlarmV2AlarmConditionNode
     period: NotRequired[ConditionV1Timeframe]
     trigger_frequency: NotRequired[Literal["once", "every_candle", "daily"]]
     triggered_value: NotRequired[float | str]
@@ -6140,7 +6086,6 @@ class TradePlanV2(TypedDict):
     """
 
     id: TradeplanId
-    ticker: NotRequired[str]
     instrument_key: AfbwsCommonV1InstrumentKey
     status: NotRequired[Literal["draft", "published", "completed", "archived"]]
     editor: NotRequired[Literal["simple", "advanced"]]
@@ -6311,7 +6256,7 @@ class TradeplanV2List(TypedDict):
 
 class TradeplanV2PlanInput(TypedDict):
     """
-    Deliberately has NO server-owned fields: `status` (lifecycle is driven by the plan's deals), `activated_at`, `closed_at`, `archived_at`, `created_at`, `updated_at`, `delivery_at`, `archived_components`, `instrument_missing`; the server keeps them from its own storage (a create starts as `draft`). `ticker` is not accepted either: it is derived by the server from `instrument_key`, the authoritative instrument reference (case-sensitive, never normalized). `editor` (frontend editor-mode hint) is not part of the channel: the current frontend neither sends nor reads it.
+    Deliberately has NO server-owned fields: `status` (lifecycle is driven by the plan's deals), `activated_at`, `closed_at`, `archived_at`, `created_at`, `updated_at`, `delivery_at`, `archived_components`, `instrument_missing`; the server keeps them from its own storage (a create starts as `draft`). `ticker` is not accepted either: `instrument_key` is the only instrument reference (case-sensitive, never normalized). `editor` (frontend editor-mode hint) is not part of the channel: the current frontend neither sends nor reads it.
     """
 
     schema: Literal["afb.tradeplan.v2"]
@@ -6327,12 +6272,11 @@ class TradeplanV2PlanInput(TypedDict):
 
 class TradeplanV2PlanItem(TypedDict):
     """
-    An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is always present and is the only identifier. `instrument_missing: true` means the key is not found in the instrument catalog (an archived instrument is found, so not missing; a plan stored before the key became mandatory whose old reference the server could not resolve comes with that old reference echoed in `instrument_key` and `instrument_missing: true`). `ticker` is deprecated: a derived display form (the wire ticker) the server takes from the catalog while the key resolves, kept for older frontends that still read it; may be absent when the key is not found. Never an identifier. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.
+    An allow-list projection of the stored plan. `status` is the plan lifecycle (draft -> published -> completed, + archived manually). `activated_at`/`closed_at`/`created_at`/`updated_at` are market-time ISO strings, `activated_at`/`closed_at` may be empty. Instrument: `instrument_key` is always present and is the only identifier. `instrument_missing: true` means the key is not found in the instrument catalog (an archived instrument is found, so not missing; a plan stored before the key became mandatory whose old reference the server could not resolve comes with that old reference echoed in `instrument_key` and `instrument_missing: true`). The projection carries no `ticker` field: the instrument is identified by `instrument_key` alone. Never returned: `delivery_at`, `archived_components`, `archived_at`, `editor`.
     """
 
     schema: Literal["afb.tradeplan.v2"]
     id: TradeplanId
-    ticker: NotRequired[str]
     instrument_key: AfbwsCommonV1InstrumentKey
     instrument_missing: NotRequired[Literal[True]]
     direction: Literal["long", "short"]

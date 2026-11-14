@@ -33,7 +33,7 @@
       },
       "additionalProperties": false
     },
-    "condition": {"$ref": "alarm.v1.json#/$defs/alarmConditionNode"},
+    "condition": {"$ref": "alarm.v2.json#/$defs/alarmConditionNode"},
     "period": {"$ref": "condition.v1.json#/$defs/timeframe"},
     "trigger_frequency": {"enum": ["once", "every_candle", "daily"]},
     "triggered_value": {

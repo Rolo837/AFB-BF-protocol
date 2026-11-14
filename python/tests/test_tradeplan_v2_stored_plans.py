@@ -52,6 +52,9 @@ def test_stored_plans_validate_against_storage_schema(registry):
         if _is_pre_v2(plan):
             continue
         checked += 1
+        # `ticker` was removed from the schema (stage 12); plan files written before that still carry it and
+        # the AFB reader ignores it, so it is not a storage-shape violation of the file as it stands.
+        plan.pop("ticker", None)
         for error in validator.iter_errors(plan):
             where = "/".join(str(p) for p in error.absolute_path) or "<root>"
             failures.append(f"{path.relative_to(_STATE)}: {error.message[:160]} (at {where})")
