@@ -220,8 +220,21 @@ def test_auth_request_forbids_response_fields(registry):
     v = _v(_AUTH_ID, "auth", registry)
     req = _example("auth_v1", "request.json")
     resp = _example("auth_v1", "response.json")
-    for key in ("timezone", "brokers", "access"):
+    for key in ("name", "timezone", "brokers", "access"):
         _bad(v, {**req, key: resp[key]})
+    _bad(v, {**req, "password_required": True})
+
+
+def test_auth_name_and_password_required(registry):
+    v = _v(_AUTH_ID, "auth", registry)
+    resp = _example("auth_v1", "response.json")
+    push = _example("auth_v1", "push.password_required.json")
+    _ok(v, push)
+    assert resp["name"] == push["name"] and push["password_required"] is True
+    _ok(v, {k: x for k, x in resp.items() if k != "name"})  # name — необязателен (старые бэкенды)
+    _bad(v, {**resp, "name": ""})
+    _bad(v, {**resp, "password_required": "yes"})
+    _ok(v, {**resp, "password_required": False})
 
 
 def test_auth_response_and_push(registry):
@@ -544,6 +557,15 @@ def test_users_delete_request_vs_response(registry):
     _bad(v, {**req, "items": [{"user_id": ""}]})
     _bad(v, {**req, "items": [{"user_id": "gc_1", "provider": "getcourse"}]})
     _bad(v, {**req, "items": ["gc_1"]})
+
+
+def test_users_set_reset_password(registry):
+    v = _v(_ACCESS_ID, "usersSet", registry)
+    req = _example("access_channel_v1", "users.set.request.reset_password.json")
+    _ok(v, req)
+    _bad(v, {**req, "items": [{"user_id": "id_9910336377", "reset_password": False}]})  # только true
+    _bad(v, {**req, "items": [{"user_id": "id_9910336377", "reset_password": "yes"}]})
+    _ok(v, {**req, "items": [{"user_id": "id_9910336377", "name": "N", "reset_password": True}]})
 
 
 def test_users_set_request_vs_response(registry):

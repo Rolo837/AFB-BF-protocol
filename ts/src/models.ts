@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 087a88e106b537e99d3eed712be3eb0305f106ea353eecbea7f85ee792ad2f2b
+ * source-hash: cebbff0dfaabf34bd256a8a91d11e48460cf810bd5bfec6bc0ab14022eac9ffc
  */
 
 /**
@@ -61,7 +61,7 @@ export type AccessDate = string;
  */
 export type AccessTier = string;
 /**
- * Элемент запроса users.set: хотя бы одно из `name`, `tier`, `capabilities`, `grace_until`.
+ * Элемент запроса users.set: хотя бы одно из `name`, `tier`, `capabilities`, `grace_until`, `reset_password`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1UsersSetItem".
@@ -84,6 +84,10 @@ export type AccessV1UsersSetItem = AccessV1UsersSetItem1 & {
    * Последний день льготного периода; null — снять.
    */
   grace_until?: null | AccessDate;
+  /**
+   * Сбросить пароль локального пользователя (staff): пароль становится пустым, при следующем входе клиент обязан потребовать задать новый (`password_required` в `afbws.auth.v1`). Только `provider=local`, иначе `validation_error`. Необратимо: отменить сброс нельзя, можно только задать пароль.
+   */
+  reset_password?: true;
 };
 export type AccessV1UsersSetItem1 = {
   [k: string]: unknown;
@@ -2418,7 +2422,7 @@ export interface AccessV1UsersAddItem {
   password?: string;
 }
 /**
- * Запрос: `items[]` — `{user_id, name?, tier?, capabilities?, grace_until?}` (хотя бы одно поле кроме `user_id`). Поле `tier` хотя бы в одном элементе от не-admin → error `forbidden`; неизвестный tier / снятие последнего `admin` → `validation_error`. Ответ: `items[]` — обновлённые строки userRow. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей.
+ * Запрос: `items[]` — `{user_id, name?, tier?, capabilities?, grace_until?, reset_password?}` (хотя бы одно поле кроме `user_id`; `reset_password: true` — сброс пароля `local`, staff). Поле `tier` хотя бы в одном элементе от не-admin → error `forbidden`; неизвестный tier / снятие последнего `admin` → `validation_error`. Ответ: `items[]` — обновлённые строки userRow. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1UsersSet".
@@ -3331,7 +3335,7 @@ export interface AlarmV2Error {
   details?: {};
 }
 /**
- * Request (client -> server, first message; no `user_id`): `request_id`, `support`, `version`, optional `session_id`. The session is taken from the `afb_session` cookie, or from `session_id` when the cookie is absent/invalid (iframe). `version` (frontend build) is logged for monitoring only — never parsed, compared or used to gate behaviour; all behaviour is gated on `support` alone. Response (same `request_id`): `user_id`, `timezone`, `brokers`, `support`, `access`; `support` — the backend's own declared afbws capability ids (not the intersection; the client computes it). Push (no `request_id`): the whole response, sent when the effective `access` of the connection changes; the client replaces its auth state (в т.ч. в полночь пояса сервера, когда меняется `trial.days_left`/`grace.days_left`, и после afbws.access.trial.start.v1).
+ * Request (client -> server, first message; no `user_id`): `request_id`, `support`, `version`, optional `session_id`. The session is taken from the `afb_session` cookie, or from `session_id` when the cookie is absent/invalid (iframe). `version` (frontend build) is logged for monitoring only — never parsed, compared or used to gate behaviour; all behaviour is gated on `support` alone. Response (same `request_id`): `user_id`, `name`, `timezone`, `brokers`, `support`, `access`, optional `password_required`; `support` — the backend's own declared afbws capability ids (not the intersection; the client computes it). Push (no `request_id`): the whole response, sent when the effective `access` of the connection changes; the client replaces its auth state (в т.ч. в полночь пояса сервера, когда меняется `trial.days_left`/`grace.days_left`, и после afbws.access.trial.start.v1).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AuthV1".
@@ -3356,6 +3360,14 @@ export interface AuthV1 {
    * Response/push only.
    */
   user_id?: string;
+  /**
+   * Response/push only, optional (the backend always sends it): the user's shown name — `name` set by staff ?? `display_name` from the provider ?? `user_id` (never empty). Replaces the deprecated read-only `settings.profile.name`; a rename by staff arrives as a push. Optional only for compatibility with older backends.
+   */
+  name?: string;
+  /**
+   * Response/push only, optional (absent = false): a `local` user has no password (reset by staff) and signed in with an empty one — the client must require setting a new password (REST `/auth/change-password` with an empty `current_password`) before normal work; the server sends a push without this flag once it is set.
+   */
+  password_required?: boolean;
   /**
    * Response/push only: IANA timezone name of the platform (market time on the frontend, e.g. `Europe/Moscow`).
    */
@@ -5078,7 +5090,8 @@ export interface ConfigSettingsV1 {
  */
 export interface ConfigProfile {
   /**
-   * Read-only display name (server-side source: user registry). Present in responses/pushes when set; a client write is ignored.
+   * @deprecated
+   * DEPRECATED: read-only display name (server-side source: access registry, `name ?? display_name`); new clients take the name from `afbws.auth.v1` (`name`). Present in responses/pushes when set; a client write is ignored.
    */
   name?: string;
   email?: string;
