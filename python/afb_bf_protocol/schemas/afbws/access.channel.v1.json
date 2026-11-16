@@ -731,7 +731,7 @@
     },
     "usersSetItem": {
       "type": "object",
-      "description": "Элемент запроса users.set: хотя бы одно из `name`, `tier`, `capabilities`, `grace_until`.",
+      "description": "Элемент запроса users.set: хотя бы одно из `name`, `tier`, `capabilities`, `grace_until`, `reset_password`.",
       "required": [
         "user_id"
       ],
@@ -770,9 +770,18 @@
             }
           ],
           "description": "Последний день льготного периода; null — снять."
+        },
+        "reset_password": {
+          "const": true,
+          "description": "Сбросить пароль локального пользователя (staff): пароль становится пустым, при следующем входе клиент обязан потребовать задать новый (`password_required` в `afbws.auth.v1`). Только `provider=local`, иначе `validation_error`. Необратимо: отменить сброс нельзя, можно только задать пароль."
         }
       },
       "anyOf": [
+        {
+          "required": [
+            "reset_password"
+          ]
+        },
         {
           "required": [
             "name"
@@ -798,7 +807,7 @@
     "usersSet": {
       "type": "object",
       "title": "afbws.access.users.set.v1 — имя, tier, добавленные capabilities и льготный период пользователей пакетом (запрос / ответ), staff; поле `tier` — только admin.",
-      "description": "Запрос: `items[]` — `{user_id, name?, tier?, capabilities?, grace_until?}` (хотя бы одно поле кроме `user_id`). Поле `tier` хотя бы в одном элементе от не-admin → error `forbidden`; неизвестный tier / снятие последнего `admin` → `validation_error`. Ответ: `items[]` — обновлённые строки userRow. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей.",
+      "description": "Запрос: `items[]` — `{user_id, name?, tier?, capabilities?, grace_until?, reset_password?}` (хотя бы одно поле кроме `user_id`; `reset_password: true` — сброс пароля `local`, staff). Поле `tier` хотя бы в одном элементе от не-admin → error `forbidden`; неизвестный tier / снятие последнего `admin` → `validation_error`. Ответ: `items[]` — обновлённые строки userRow. Пакет — всё или ничего: все элементы проверяются до записи, одна транзакция; ошибка → error с перечнем `user_id` и причин в `message`; повтор `user_id` в `items` → `validation_error`. `user_id` — только из реестра пользователей.",
       "required": [
         "channel",
         "schema",

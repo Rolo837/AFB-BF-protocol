@@ -16,6 +16,14 @@
 
 ### Removed
 
+## v2.10.14 — 2026-11-16
+
+### Added
+- `afbws.auth.v1` (ответ/пуш): необязательные поля `name` (показываемое имя: `name` персонала ?? `display_name` провайдера ?? `user_id`; заменяет deprecated `settings.profile.name`) и `password_required` (у `local`-пользователя нет пароля после сброса — клиент обязан потребовать задать новый). В запросе запрещены. `afbws.access.users.set.v1`: элемент `reset_password: true` — сброс пароля `local` (staff). Примеры `auth_v1/push.password_required.json`, `access_channel_v1/users.set.request.reset_password.json`; модели перегенерированы.
+
+### Changed
+- `config.v1.json` `profile.name` помечено `deprecated` (поле остаётся для старых фронтов; новые берут имя из `afbws.auth.v1`).
+
 ## v2.10.13 — 2026-11-12
 
 ### Added

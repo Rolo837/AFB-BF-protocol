@@ -39,7 +39,7 @@
       "title": "settings.profile — contacts and notification prefs (formerly `me`).",
       "additionalProperties": true,
       "properties": {
-        "name": { "type": "string", "description": "Read-only display name (server-side source: user registry). Present in responses/pushes when set; a client write is ignored." },
+        "name": { "type": "string", "description": "DEPRECATED: read-only display name (server-side source: access registry, `name ?? display_name`); new clients take the name from `afbws.auth.v1` (`name`). Present in responses/pushes when set; a client write is ignored.", "deprecated": true },
         "email": { "type": "string" },
         "telegram": { "type": "string" },
         "notify_telegram": { "type": "boolean" },
