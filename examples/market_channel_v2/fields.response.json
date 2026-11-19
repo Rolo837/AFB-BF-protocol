@@ -1,0 +1,25 @@
+{
+  "channel": "market",
+  "schema": "afbws.market.fields.v2",
+  "request_id": "get-4",
+  "instrument_key": "MISX:TQBR:SBER",
+  "sources": [
+    {
+      "source": "trades",
+      "step_sec": 300,
+      "fields": [{ "name": "val_b", "median": true, "unit": "rub" }, { "name": "val_s", "median": true, "unit": "rub" }]
+    },
+    {
+      "source": "positions",
+      "resolved_key": "MISX:SBRF",
+      "step_sec": 300,
+      "fields": [{ "name": "openinterest", "median": false, "unit": "contracts" }]
+    },
+    {
+      "source": "hhi",
+      "step_sec": 86400,
+      "fields": [{ "name": "volume", "median": true, "unit": "hhi" }]
+    }
+  ],
+  "median_max_days": 31
+}

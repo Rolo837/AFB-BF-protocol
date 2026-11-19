@@ -1,0 +1,7 @@
+{
+  "channel": "market",
+  "schema": "afbws.market.quotes.v2",
+  "mode": "update",
+  "columns": ["instrument_key", "last", "close", "percent", "volume"],
+  "rows": [["MISX:TQBR:SBER", 301.4, 300.0, 0.47, 123999999]]
+}

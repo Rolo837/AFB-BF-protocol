@@ -1,0 +1,15 @@
+{
+  "channel": "market",
+  "schema": "afbws.market.series.v2",
+  "slot": 1,
+  "instrument_key": "MISX:TQBR:SBER",
+  "period": "1d",
+  "mode": "merge",
+  "tables": [
+    {
+      "source": "candles",
+      "columns": ["time", "open", "high", "low", "close", "volume"],
+      "rows": [[1795046400, 301.1, 302.5, 300.9, 302.2, 1200000]]
+    }
+  ]
+}

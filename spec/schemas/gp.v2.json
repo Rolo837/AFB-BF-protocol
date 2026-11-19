@@ -193,14 +193,22 @@
     },
     "indicatorSettings": {
       "type": "object",
-      "description": "Display + calculation settings. Common: color/lineWidth/lineStyle; period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.",
+      "description": "Display + calculation settings. Required: color/lineWidth/lineStyle. Typed optional keys: seriesType (Line|Histogram|Area|Baseline, absent = Line); period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Any other key is allowed (value: number, string or boolean), except `enabled` (per-device view flag, never protocol) — indicators are computed by the frontend, so a new indicator brings its own parameters without a protocol change. Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.",
       "required": [
         "color",
         "lineWidth",
         "lineStyle"
       ],
-      "additionalProperties": false,
+      "additionalProperties": {
+        "type": [
+          "number",
+          "string",
+          "boolean"
+        ],
+        "tsType": "unknown"
+      },
       "properties": {
+        "enabled": false,
         "color": {
           "type": "string",
           "minLength": 1
@@ -214,6 +222,15 @@
             "Solid",
             "Dots"
           ]
+        },
+        "seriesType": {
+          "enum": [
+            "Line",
+            "Histogram",
+            "Area",
+            "Baseline"
+          ],
+          "description": "Series kind the frontend draws the indicator as; absent = Line."
         },
         "period": {
           "type": "integer",
@@ -245,7 +262,7 @@
     "indicator": {
       "type": "object",
       "title": "Chart indicator (user or shared)",
-      "description": "`scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `settings` carry the parameters. Whether an indicator is shown on the chart is not part of the protocol (per-device view setting kept in the client's localStorage). Type `cot` is chart-only; alarm indicator conditions support wma/kama/psar.",
+      "description": "`scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `settings` carry the parameters. Whether an indicator is shown on the chart is not part of the protocol (per-device view setting kept in the client's localStorage). `type` is an open string (pattern `^[a-z][a-z0-9_]*$`), not an enum; the server computes only wma/kama/psar (alarm indicator conditions, virtual account), other types are stored and returned as is. Type `cot` is chart-only.",
       "required": [
         "id",
         "type",
@@ -259,12 +276,19 @@
           "minLength": 1
         },
         "type": {
-          "enum": [
-            "wma",
-            "kama",
-            "psar",
-            "cot"
-          ]
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Indicator type, an open set: indicators are computed by the frontend, so a new indicator needs no protocol change. Known: wma, kama, psar, cot, sma, ema, value_imbalance, volume_imbalance, rel_median, order_flow; `field` is the primary-data pseudo-formula (draws a registry field as is)."
+        },
+        "inputs": {
+          "type": "object",
+          "description": "Optional input binding `{slot: fieldRef}`. Absent = the formula's default inputs, so existing records keep their meaning. For `type = \"field\"` the slot `value` is REQUIRED — enforced by the server, not by this schema.",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/fieldRef"
+          }
         },
         "settings": {
           "$ref": "#/$defs/indicatorSettings"
@@ -275,6 +299,71 @@
             "personal"
           ]
         }
+      }
+    },
+    "fieldRef": {
+      "type": "string",
+      "title": "Reference to an input series of an indicator.",
+      "description": "Either a candle column `candles.(open|high|low|close|volume)` or a market.v2 registry field `<source>.<field>` with an optional `@median(N)` suffix (same shape as afbws/market.channel.v2.json#/$defs/fieldRequest; the real bounds of N are enforced by the server).",
+      "pattern": "^(candles\\.(open|high|low|close|volume)|[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*(@median\\([1-9][0-9]{0,2}\\))?)$"
+    },
+    "preset": {
+      "type": "object",
+      "title": "Chart preset (user or shared)",
+      "description": "A set of indicators with a binding `which indicator is drawn on which pane`. `scope: shared` presets are common to all users and editable only by staff; `personal` belong to the caller. `panes` has three panes: `price` (the candle pane; only indicators whose scale is the price), `upper` and `lower` (the two extra panes). Each pane lists indicator ids (`$defs/indicator.id`); the ORDER is the draw and legend order. An id must not repeat across panes (checked by the server). Referenced indicators must exist and be visible to the author; a shared preset may reference shared indicators only (`validation_error` otherwise); a `field` indicator whose field unit is not `price` on pane `price` is a `validation_error`. Scale compatibility of other indicators on a pane is checked by the frontend.",
+      "required": [
+        "id",
+        "scope",
+        "name",
+        "panes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "enum": [
+            "shared",
+            "personal"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "panes": {
+          "type": "object",
+          "required": [
+            "price",
+            "upper",
+            "lower"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "price": {
+              "$ref": "#/$defs/presetPane"
+            },
+            "upper": {
+              "$ref": "#/$defs/presetPane"
+            },
+            "lower": {
+              "$ref": "#/$defs/presetPane"
+            }
+          }
+        }
+      }
+    },
+    "presetPane": {
+      "type": "array",
+      "maxItems": 16,
+      "uniqueItems": true,
+      "description": "Indicator ids on one pane, in draw/legend order.",
+      "items": {
+        "type": "string",
+        "minLength": 1
       }
     },
     "primitiveKindStyle": {

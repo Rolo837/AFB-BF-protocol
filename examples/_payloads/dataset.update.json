@@ -11,15 +11,15 @@
       "as_of": "2026-07-25T10:35:00+03:00",
       "stale_after_sec": 900,
       "current": {
-        "long": 18452,
-        "short": 12930,
-        "position": 5522,
+        "yur_long": 18452,
+        "yur_short": 12930,
+        "yur_net": 5522,
         "openinterest": 214870
       },
       "previous": {
-        "long": 18010,
-        "short": 13205,
-        "position": 4805,
+        "yur_long": 18010,
+        "yur_short": 13205,
+        "yur_net": 4805,
         "openinterest": 213340
       }
     },
@@ -34,7 +34,28 @@
       "as_of": "2026-07-25T10:35:00+03:00",
       "stale_after_sec": 900,
       "current": {
-        "hhi_agressive_buy": 0.0842
+        "volume": 0.0842
+      }
+    },
+    {
+      "dataset_id": "depth",
+      "instrument": {
+        "exchange": "MISX",
+        "board": "TQBR",
+        "ticker": "SBER",
+        "instrument_key": "MISX:TQBR:SBER"
+      },
+      "as_of": "2026-07-25T10:35:00+03:00",
+      "stale_after_sec": 900,
+      "current": {
+        "bid_depth": 152000,
+        "offer_depth": 98000,
+        "delta": 54000
+      },
+      "previous": {
+        "bid_depth": 149000,
+        "offer_depth": 101000,
+        "delta": 48000
       }
     }
   ]

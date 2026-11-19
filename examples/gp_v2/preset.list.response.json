@@ -1,0 +1,19 @@
+{
+  "channel": "gp",
+  "schema": "afbws.gp.preset.list.v2",
+  "request_id": "pl-1",
+  "items": [
+    {
+      "id": "preset-shared-1",
+      "scope": "shared",
+      "name": "Позиции юрлиц",
+      "panes": { "price": [], "upper": ["ind-yur-long"], "lower": [] }
+    },
+    {
+      "id": "preset-1",
+      "scope": "personal",
+      "name": "Мой пресет",
+      "panes": { "price": ["ind-wma-5"], "upper": ["ind-sma-yur"], "lower": ["ind-rel-median"] }
+    }
+  ]
+}

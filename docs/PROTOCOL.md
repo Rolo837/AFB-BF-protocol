@@ -412,6 +412,7 @@ BF           correlation_id = "BBB"  (ссылается на команду AFB
 | `spec/schemas/alarm.v2.json` | Аларм AFB (AFB-сторонний, единственная версия; `instrument_key`; здесь же `$defs` дерева условий аларма, см. §11) |
 | `spec/schemas/gp.v2.json` | Графический примитив AFB (единственная версия, см. §11.1) |
 | `spec/schemas/afbws/{alarm,gp}.channel.v2.json` | Каналы alarm/gp v2 (capability `afbws.alarm.channel.v2`, `afbws.gp.channel.v2`) |
+| `spec/schemas/afbws/market.channel.v2.json` | Канал `market` v2 (capability `afbws.market.channel.v2`; v1 живёт рядом до полного переезда фронтенда): один schema id на сообщение (`afbws.market.<op>.v2`). `get` с `target` = `series` / `quotes` / `fields` (каждый target допускает только свои поля); `series` — свечи (`tables[0]` всегда `candles`) плюс запрошенные поля реестра сервера `<источник>.<поле>[@median(N)]` (`get.fields`, имя проверяется только по форме, допустимость решает реестр; недоступные — в `unavailable` с причиной `unknown`/`not_applicable`/`no_access`/`not_supported`); `@median(N)` — медиана поля в том же слоте дня за N календарных дней до даты бара, текущий день не входит; `slot` (0/1, обязателен в `get series` и `series`) — у соединения не больше одной живой series-подписки на слот, живой `get` заменяет только подписку своего слота, явной отписки нет; `quotes` (колонки `instrument_key, last, close, percent, volume` зафиксированы схемой), `subscribe`/`subscription` (replace-all подписка на котировки), `fields` (источники и поля инструмента, `median_max_days`), `source_status`, `error` (коды v1 плюс `provider_error`/`timeout` — сбой загрузки свечей; `series.message` в v2 нет) |
 | `spec/schemas/config.v1.json` | Настройки пользователя AFB (`settings`: `profile`/`interface`/`dataset`/`dashboard`/`trade`) и платформенные дефолты (`$defs/defaults`), AFB↔фронтенд |
 | `spec/schemas/afbws/tradeplan.channel.v2.json` | Канал `tradeplan` v2 (capability `afbws.tradeplan.channel.v2`): `list`/`set`/`delete`/`archive`/`sync`/`error` — всё списками (`items[]`/`ids[]`/`rejected[]`), без `get`; один schema id на сообщение (`afbws.tradeplan.<op>.v2`), пуш `sync` без `request_id`; `planInput` (что принимает `set`) и `planItem` (что отдаёт сервер), строгие, без legacy-форм (см. §11.1) |
 | `spec/schemas/afbws/deal.channel.v2.json` | Канал `deal` v2 (capability `afbws.deal.channel.v2`): `list`/`publish`/`rebind`/`operation`/`amend`/`ack`/`error` (запрос/ответ одной схемой, всё пакетами, без `get`) и пуши без `request_id`, тоже списками — `record` (`items[]` состояний), `outcome` (`items[]` исходов), `event` (`events[]`, каждый типизирован по `(category, event)`: 18 событий, у каждого своя форма `data`), `pnl` (`items[]`), `triggered`; `status`/`execution_phase` — общие enum `common.v1.json#/$defs/dealStatus`/`executionPhase`, `error.v2` без `details`/`item` (см. §11.2) |
@@ -644,6 +645,22 @@ Top-level `period` — общий таймфрейм вычисления ала
     `delete` (`ids[]` и/или `instrument_keys[]` — «удалить все свободные примитивы
     инструмента» одним сообщением; примитивы плана в `rejected[]` с `conflict`;
     без `request_id` — push удаления), `indicator.list|set|delete`, `style`, `error`.
+  - Пресеты графика: `preset.list|set|delete` (та же схема, что у `indicator.*`:
+    запрос/ответ/push без `request_id` для общих, `rejected[]`). `$defs/preset` в
+    `gp.v2.json`: `id`, `scope` (`shared|personal`), `name` (1..64), `panes`
+    `{price, upper, lower}` — массивы id индикаторов (≤16, без повторов; порядок =
+    порядок отрисовки и легенды; id не повторяется между панелями — проверяет сервер).
+    Общие пресеты пишет и удаляет только персонал (иначе `forbidden`); общий пресет
+    может ссылаться только на общие индикаторы, ссылки должны существовать и быть
+    видимы автору, индикатор `field` с единицей поля не `price` на панели `price` —
+    `validation_error`. `$defs/indicator` получил необязательное `inputs`
+    (`{слот: fieldRef}`; `fieldRef` — `candles.(open|high|low|close|volume)` или поле
+    реестра `market.v2`, в т.ч. `@median(N)`; нет `inputs` — входы формулы по
+    умолчанию), тип `field` («первичные данные») требует `inputs.value` (проверяет
+    сервер). `settings.seriesType` — `Line|Histogram|Area|Baseline`, нет — `Line`.
+  - `market.fields.v2`: `get fields` без `instrument_key` отдаёт полный каталог
+    источников и полей; у каждого поля обязательная `unit`
+    (`price|lots|rub|count|contracts|persons|ratio|hhi`).
 - `afb.gp.v2` добавляет категории `trendline` и `fibonacci`: обе двухточечные
   (`start` и `stop` обязательны, `text` запрещён). Вид примитивов не специфицирован.
 - Параметры самого примитива (`start`, `stop`, `text`) в `afb.gp.v2` лежат не на корне,
@@ -1001,6 +1018,18 @@ AFB) и `stale_after_sec` (TTL в секундах, задаёт AFB). Запи�
 этой логике резолюции ничего не знает и не должен — он просто сопоставляет
 записи `dataset.update` с условиями по значению `instrument`, которое видит в
 обоих местах.
+
+### Словарь условий
+
+Словарь dataset-условий — реестр полей `market.v2` (`afbws.market.channel.v2`):
+`dataset_id` = источник реестра (`positions`, `trades`, `hhi`, `depth`, `obstats`;
+`orders` остаётся в enum до удаления legacy), `field` = имя поля реестра без
+префикса источника (`positions.yur_long` → `dataset_id=positions`, `field=yur_long`;
+имена `hhi.*` — без прежнего префикса `hhi_`, например `hhi.volume`). Ключи
+`current`/`previous` в `dataset.update` — те же имена полей. Устаревшие имена
+условий (в т.ч. `long`/`short`/`position`, `hhi_*`) AFB переводит в новые сам при
+формировании фида; BF ничего не переводит. Схема `condition.v1.json` не меняется
+(`dataset_id` и `field` — свободные строки).
 
 ### Частота обновления
 

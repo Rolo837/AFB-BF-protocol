@@ -1,0 +1,6 @@
+{
+  "channel": "market",
+  "schema": "afbws.market.get.v2",
+  "request_id": "get-5",
+  "target": "fields"
+}

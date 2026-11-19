@@ -1,0 +1,43 @@
+{
+  "channel": "market",
+  "schema": "afbws.market.fields.v2",
+  "request_id": "get-5",
+  "sources": [
+    {
+      "source": "trades",
+      "step_sec": 300,
+      "fields": [
+        { "name": "val_b", "median": true, "unit": "rub" },
+        { "name": "vol_b", "median": true, "unit": "lots" },
+        { "name": "trades_b", "median": true, "unit": "count" }
+      ]
+    },
+    {
+      "source": "positions",
+      "step_sec": 300,
+      "fields": [
+        { "name": "yur_long", "median": false, "unit": "contracts" },
+        { "name": "yur_short", "median": false, "unit": "contracts" },
+        { "name": "yur_net", "median": false, "unit": "contracts" },
+        { "name": "openinterest", "median": false, "unit": "contracts" }
+      ]
+    },
+    {
+      "source": "depth",
+      "step_sec": 300,
+      "fields": [
+        { "name": "bid_depth", "median": true, "unit": "lots" },
+        { "name": "delta", "median": false, "unit": "lots" }
+      ]
+    },
+    {
+      "source": "hhi",
+      "step_sec": 86400,
+      "fields": [
+        { "name": "volume", "median": true, "unit": "hhi" },
+        { "name": "netflow_buy", "median": true, "unit": "hhi" }
+      ]
+    }
+  ],
+  "median_max_days": 31
+}

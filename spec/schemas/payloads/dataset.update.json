@@ -14,8 +14,8 @@
         "required": ["dataset_id", "instrument", "as_of", "stale_after_sec", "current"],
         "properties": {
           "dataset_id": {
-            "enum": ["positions", "orders", "hhi", "trades"],
-            "description": "Same vocabulary as condition.v1.json#/$defs/datasetExpr/dataset_id, except `volume` — declared in condition.v1.json but not computed by AFB or BF and never pushed here."
+            "enum": ["positions", "orders", "hhi", "trades", "depth", "obstats"],
+            "description": "Condition vocabulary = the market.v2 field registry: `dataset_id` is the registry source, the condition `field` is the registry field name (e.g. positions.yur_long, depth.delta, obstats.vol_b). `orders` is kept until the legacy datasets are removed; legacy names are translated by AFB. Same vocabulary as condition.v1.json#/$defs/datasetExpr/dataset_id, except `volume` — declared in condition.v1.json but not computed by AFB or BF and never pushed here."
           },
           "instrument": {
             "$ref": "../common.v1.json#/$defs/instrument",

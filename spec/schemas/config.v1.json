@@ -71,6 +71,12 @@
           "items": { "type": "string" },
           "description": "Elements are either `dataset-<preset>` keys or indicator ids."
         },
+        "favorite_presets": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Ids of chart presets (gp.v2.json#/$defs/preset) in the favorites of the `/new` chart toolbar; `favorite_datasets` stays for `/`."
+        },
         "favorite_primitives": {
           "type": "array",
           "items": { "type": "string" },
