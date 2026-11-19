@@ -1,0 +1,7 @@
+{
+  "channel": "gp",
+  "schema": "afbws.gp.preset.delete.v2",
+  "request_id": "pd-1",
+  "ids": ["preset-1"],
+  "rejected": [{ "id": "preset-shared-1", "code": "forbidden", "message": "shared presets are deleted by staff only" }]
+}

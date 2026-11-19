@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 81b0197b0f13d49cd11089029a8f88155faa0315b1fc50b4b3320f5d8b758ce5
+ * source-hash: 09601a9173edf04f9d30ef9ff65ffbebb47a302af77b9a827888bcd1daf9567a
  */
 
 /**
@@ -1480,13 +1480,23 @@ export type DealV2OrderEventStatus =
  */
 export type DealV2TriggerEvent = DealV2TriggerStatusChanged | DealV2TriggerRejected | DealV2TriggerReport;
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.gp.channel.v2). Items are afb.gp.v2 (`instrument_key`, kinds trendline/fibonacci; primitive parameters `start`/`stop`/`text` live in the `settings` dictionary, strictly typed by `kind`). Same convention as afbws.market: ONE schema id per message (`afbws.gp.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response and, where documented, a server push. Requests and responses are told apart by direction and fields (a response echoes the request's `request_id`); a message WITHOUT `request_id` is a server push. Collections are always arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. Chart-indicator management (replaces legacy settings/{get,set,get_default,set_default} `indicators`) is `indicator.list|set|delete`; shared indicators are changed by a manager only and pushed to everyone via `indicator.set`/`indicator.delete` without `request_id`. Primitive display settings: `style`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.gp.channel.v2). Items are afb.gp.v2 (`instrument_key`, kinds trendline/fibonacci; primitive parameters `start`/`stop`/`text` live in the `settings` dictionary, strictly typed by `kind`). Same convention as afbws.market: ONE schema id per message (`afbws.gp.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response and, where documented, a server push. Requests and responses are told apart by direction and fields (a response echoes the request's `request_id`); a message WITHOUT `request_id` is a server push. Collections are always arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. Chart-indicator management (replaces legacy settings/{get,set,get_default,set_default} `indicators`) is `indicator.list|set|delete`; shared indicators are changed by a manager only and pushed to everyone via `indicator.set`/`indicator.delete` without `request_id`. Chart presets (sets of indicators bound to the price/upper/lower panes) are `preset.list|set|delete`, with the same rules (shared presets are written and deleted by staff only; changes of shared presets are pushed without `request_id`). Primitive display settings: `style`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpChannelV2Message".
  */
 export type GpChannelV2Message =
-  GpV2List | GpV2Set | GpV2Delete | GpV2IndicatorList | GpV2IndicatorSet | GpV2IndicatorDelete | GpV2Style | GpV2Error;
+  | GpV2List
+  | GpV2Set
+  | GpV2Delete
+  | GpV2IndicatorList
+  | GpV2IndicatorSet
+  | GpV2IndicatorDelete
+  | AfbwsGpChannelV2_PresetList
+  | AfbwsGpChannelV2_PresetSet
+  | AfbwsGpChannelV2_PresetDelete
+  | GpV2Style
+  | GpV2Error;
 /**
  * The AFB graphic-primitive entity (the only one; afb.gp.v1 was removed). Notable points: (1) the instrument is identified by the full composite `instrument_key` (afbws/common.v1.json#/$defs/instrumentKey) instead of the short `ticker`; (2) new kinds `trendline` and `fibonacci` — both two-anchor primitives; their rendering is not specified yet; (3) the primitive's own parameters (`start`, `stop`, `text`) live in the `settings` dictionary, not at the root, so a kind can gain parameters without touching the envelope. ROOT = identity and server-side ownership: `schema`, `id`, `instrument_key`, `kind`, `tradeplan_id` (all other parameters go to `settings`). `settings` is REQUIRED and strictly typed by `kind` (enforced by the `allOf` below, each branch is additionalProperties:false): line/line_enter/line_sl/line_tp → `primitiveSettingsLine` {start}; note → `primitiveSettingsNote` {start, text? (≤160)}; zone/ruler/trendline/fibonacci → `primitiveSettingsTwoPoint` {start, stop}. The former v1 (`afb.gp.v1`, flat start/stop/text) has been removed. Promotes the parked settings.primitives[secid][] draft (draft/primitive.v1.json) into a strict canonical entity. Whether a primitive is REFERENCED BY a tradeplan's condition is still derived fresh from the tradeplans themselves on every read, never persisted here. OWNERSHIP is different and is persisted — see `tradeplan_id`.
  *
@@ -1544,6 +1554,13 @@ export type GpV2Delete = {
   rejected?: GpV2Rejection[];
 };
 /**
+ * Either a candle column `candles.(open|high|low|close|volume)` or a market.v2 registry field `<source>.<field>` with an optional `@median(N)` suffix (same shape as afbws/market.channel.v2.json#/$defs/fieldRequest; the real bounds of N are enforced by the server).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2_FieldRef".
+ */
+export type GpV2_FieldRef = string;
+/**
  * Request: upsert by `id`, batched. Personal indicators for everyone; `scope: shared` only for a manager (otherwise that item is rejected with `forbidden`). Response (same `request_id`): applied `items[]` (possibly empty) + `rejected[]`. Push (no `request_id`): changed SHARED indicators to every connection with this capability (full authoritative records); personal ones are never pushed. Whether an indicator is drawn on the chart is NOT part of the protocol — it is a per-device view setting kept in the client's localStorage.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1572,6 +1589,95 @@ export type GpV2IndicatorDelete = {
   request_id?: AfbwsCommonV1_RequestId;
   ids: string[];
   rejected?: GpV2IndicatorRejection[];
+};
+/**
+ * Indicator ids on one pane, in draw/legend order.
+ *
+ * @maxItems 16
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2_PresetPane".
+ */
+export type GpV2_PresetPane =
+  | []
+  | [string]
+  | [string, string]
+  | [string, string, string]
+  | [string, string, string, string]
+  | [string, string, string, string, string]
+  | [string, string, string, string, string, string]
+  | [string, string, string, string, string, string, string]
+  | [string, string, string, string, string, string, string, string]
+  | [string, string, string, string, string, string, string, string, string]
+  | [string, string, string, string, string, string, string, string, string, string]
+  | [string, string, string, string, string, string, string, string, string, string, string]
+  | [string, string, string, string, string, string, string, string, string, string, string, string]
+  | [string, string, string, string, string, string, string, string, string, string, string, string, string]
+  | [string, string, string, string, string, string, string, string, string, string, string, string, string, string]
+  | [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string
+    ]
+  | [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string
+    ];
+/**
+ * Request: upsert by `id`, batched. Personal presets for everyone; `scope: shared` only for staff (otherwise that item is rejected with `forbidden`). Validation per item (violation = rejected with `validation_error`): every referenced indicator id must exist and be visible to the author; a shared preset may reference shared indicators only; an indicator id must not repeat across panes; a `field` indicator whose field unit is not `price` must not be on pane `price`. Response (same `request_id`): applied `items[]` (possibly empty) + `rejected[]`. Push (no `request_id`): changed SHARED presets to every connection with this capability (full authoritative records); personal ones are never pushed.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsGpChannelV2_PresetSet".
+ */
+export type AfbwsGpChannelV2_PresetSet = {
+  [k: string]: unknown;
+} & {
+  channel: 'gp';
+  schema: 'afbws.gp.preset.set.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  items: GpV2_Preset[];
+  rejected?: AfbwsGpChannelV2_PresetRejection[];
+};
+/**
+ * Request: `ids[]` (shared ones: staff only, otherwise rejected with `forbidden`; unknown id: `not_found`). Response (same `request_id`): `ids[]` actually removed + `rejected[]`. Push (no `request_id`): shared presets deleted by staff (`ids[]`, `rejected` not allowed).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsGpChannelV2_PresetDelete".
+ */
+export type AfbwsGpChannelV2_PresetDelete = {
+  [k: string]: unknown;
+} & {
+  channel: 'gp';
+  schema: 'afbws.gp.preset.delete.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  ids: string[];
+  rejected?: AfbwsGpChannelV2_PresetRejection[];
 };
 /**
  * Per-user chart styling of primitives by kind (replaces the legacy `settings.interface.primitive_styles`). Request without `styles` = read. Request with `styles` = write: the supplied kinds replace the stored ones, kinds not supplied are left as they are. Response (same `request_id`) always carries the full stored `styles`. Push (no `request_id`) delivers the full `styles` to the user's other connections after a write; `styles` is required there.
@@ -2093,7 +2199,7 @@ export type MarketChannelV2Message =
   | MarketV2SourceStatus
   | MarketV2Error;
 /**
- * Reply by `target`: series -> `series` (mode:"replace"), quotes -> `quotes` (mode:"full"), fields -> `fields`; or `error` — all with the same `request_id`. Each target allows only its own fields (the others are rejected by the schema). target=series: candles are ALWAYS delivered (they are the grid the data rows live on, there is no flag for it); `fields` asks for additional data fields (see `$defs/fieldRequest`), its validity is decided by the server registry and an unserved field lands in `series.unavailable` instead of failing the request. LIVE RULE: if `end_date` is absent, or not earlier than "today" in the instrument's market timezone, this request ALSO becomes the live series subscription OF ITS `slot` and replaces only that slot's previous subscription (the replaced live `get`, if still pending, is answered with `error` code `superseded`); the server then pushes `series` (mode:"merge") for it. A request with `end_date` strictly before today (history paging) is a pure history fetch and touches no subscription. A connection has at most one live series subscription per slot, so at most two; there is no explicit unsubscribe — it lives until replaced by a live `get` of the same slot or until the connection closes. Identical sets in the two slots are two independent subscriptions. The limit of concurrently running heavy `get`s per connection is unchanged and applies across slots (`busy`). target=quotes: `instrument_keys` omitted means all instruments with cached data. target=fields: the answer lists the registry's sources and fields for the instrument.
+ * Reply by `target`: series -> `series` (mode:"replace"), quotes -> `quotes` (mode:"full"), fields -> `fields`; or `error` — all with the same `request_id`. Each target allows only its own fields (the others are rejected by the schema). target=series: candles are ALWAYS delivered (they are the grid the data rows live on, there is no flag for it); `fields` asks for additional data fields (see `$defs/fieldRequest`), its validity is decided by the server registry and an unserved field lands in `series.unavailable` instead of failing the request. LIVE RULE: if `end_date` is absent, or not earlier than "today" in the instrument's market timezone, this request ALSO becomes the live series subscription OF ITS `slot` and replaces only that slot's previous subscription (the replaced live `get`, if still pending, is answered with `error` code `superseded`); the server then pushes `series` (mode:"merge") for it. A request with `end_date` strictly before today (history paging) is a pure history fetch and touches no subscription. A connection has at most one live series subscription per slot, so at most two; there is no explicit unsubscribe — it lives until replaced by a live `get` of the same slot or until the connection closes. Identical sets in the two slots are two independent subscriptions. The limit of concurrently running heavy `get`s per connection is unchanged and applies across slots (`busy`). target=quotes: `instrument_keys` omitted means all instruments with cached data. target=fields: the answer lists the registry's sources and fields. With `instrument_key` — those applicable to that instrument and available to the caller; WITHOUT it — the full catalog of sources and fields (no `resolved_key`), used by the indicator editor.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketV2Get".
@@ -5271,6 +5377,10 @@ export interface ConfigV1_ChartToolbar {
    */
   favorite_datasets?: string[];
   /**
+   * Ids of chart presets (gp.v2.json#/$defs/preset) in the favorites of the `/new` chart toolbar; `favorite_datasets` stays for `/`.
+   */
+  favorite_presets?: string[];
+  /**
    * Primitive kind values (gp.v2.json).
    */
   favorite_primitives?: string[];
@@ -6969,14 +7079,20 @@ export interface GpV2IndicatorList {
 export interface GpV2Indicator {
   id: string;
   /**
-   * Indicator type, an open set: indicators are computed by the frontend, so a new indicator needs no protocol change. Known: wma, kama, psar, cot.
+   * Indicator type, an open set: indicators are computed by the frontend, so a new indicator needs no protocol change. Known: wma, kama, psar, cot, sma, ema, value_imbalance, volume_imbalance, rel_median, order_flow; `field` is the primary-data pseudo-formula (draws a registry field as is).
    */
   type: string;
+  /**
+   * Optional input binding `{slot: fieldRef}`. Absent = the formula's default inputs, so existing records keep their meaning. For `type = "field"` the slot `value` is REQUIRED — enforced by the server, not by this schema.
+   */
+  inputs?: {
+    [k: string]: GpV2_FieldRef;
+  };
   settings: GpV2IndicatorSettings;
   scope: 'shared' | 'personal';
 }
 /**
- * Display + calculation settings. Required: color/lineWidth/lineStyle. Typed optional keys of the built-in indicators: period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Any other key is allowed (value: number, string or boolean), except `enabled` (per-device view flag, never protocol) — indicators are computed by the frontend, so a new indicator brings its own parameters without a protocol change. Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.
+ * Display + calculation settings. Required: color/lineWidth/lineStyle. Typed optional keys: seriesType (Line|Histogram|Area|Baseline, absent = Line); period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Any other key is allowed (value: number, string or boolean), except `enabled` (per-device view flag, never protocol) — indicators are computed by the frontend, so a new indicator brings its own parameters without a protocol change. Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpV2IndicatorSettings".
@@ -6986,6 +7102,10 @@ export interface GpV2IndicatorSettings {
   color: string;
   lineWidth: number;
   lineStyle: 'Solid' | 'Dots';
+  /**
+   * Series kind the frontend draws the indicator as; absent = Line.
+   */
+  seriesType?: 'Line' | 'Histogram' | 'Area' | 'Baseline';
   period?: number;
   erPeriod?: number;
   fastPeriod?: number;
@@ -7000,6 +7120,43 @@ export interface GpV2IndicatorSettings {
  * via the `definition` "GpV2IndicatorRejection".
  */
 export interface GpV2IndicatorRejection {
+  id: string;
+  code: AfbwsCommonV1_ErrorCode;
+  message?: string;
+}
+/**
+ * Request: only `request_id`. Response (same `request_id`): `items[]` — the caller's merged list (shared + personal).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsGpChannelV2_PresetList".
+ */
+export interface AfbwsGpChannelV2_PresetList {
+  channel: 'gp';
+  schema: 'afbws.gp.preset.list.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  items?: GpV2_Preset[];
+}
+/**
+ * A set of indicators with a binding `which indicator is drawn on which pane`. `scope: shared` presets are common to all users and editable only by staff; `personal` belong to the caller. `panes` has three panes: `price` (the candle pane; only indicators whose scale is the price), `upper` and `lower` (the two extra panes). Each pane lists indicator ids (`$defs/indicator.id`); the ORDER is the draw and legend order. An id must not repeat across panes (checked by the server). Referenced indicators must exist and be visible to the author; a shared preset may reference shared indicators only (`validation_error` otherwise); a `field` indicator whose field unit is not `price` on pane `price` is a `validation_error`. Scale compatibility of other indicators on a pane is checked by the frontend.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2_Preset".
+ */
+export interface GpV2_Preset {
+  id: string;
+  scope: 'shared' | 'personal';
+  name: string;
+  panes: {
+    price: GpV2_PresetPane;
+    upper: GpV2_PresetPane;
+    lower: GpV2_PresetPane;
+  };
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsGpChannelV2_PresetRejection".
+ */
+export interface AfbwsGpChannelV2_PresetRejection {
   id: string;
   code: AfbwsCommonV1_ErrorCode;
   message?: string;
@@ -7809,7 +7966,7 @@ export interface MarketV2Quotes {
   rows: [unknown, unknown, unknown, unknown, unknown][];
 }
 /**
- * Reply to `get` (target=fields); always carries `request_id`. `sources` lists only the sources that are applicable to the instrument AND available to the caller (a source the caller has no access to is omitted, not marked).
+ * Reply to `get` (target=fields); always carries `request_id`. `sources` lists only the sources that are applicable to the instrument AND available to the caller (a source the caller has no access to is omitted, not marked). When the request carried no `instrument_key`, the reply is the full catalog of the registry's sources and fields: `instrument_key` is absent and no source carries `resolved_key`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketV2Fields".
@@ -7818,7 +7975,10 @@ export interface MarketV2Fields {
   channel: 'market';
   schema: 'afbws.market.fields.v2';
   request_id: AfbwsCommonV1_RequestId;
-  instrument_key: AfbwsCommonV1_InstrumentKey;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  instrument_key?: string;
   sources: MarketV2FieldSource[];
   /**
    * Upper bound of N in `@median(N)` (calendar days).
@@ -7854,6 +8014,10 @@ export interface MarketV2FieldEntry {
    * True when `@median(N)` is allowed for this field.
    */
   median: boolean;
+  /**
+   * Unit of the field's values: price (instrument price), lots, rub (money), count (number of trades/orders/levels), contracts, persons (number of participants), ratio (dimensionless share/imbalance), hhi (Herfindahl-Hirschman index). The client uses it to decide which fields may share a chart pane.
+   */
+  unit: 'price' | 'lots' | 'rub' | 'count' | 'contracts' | 'persons' | 'ratio' | 'hhi';
 }
 /**
  * Unsolicited push, no `request_id`: sent on each health-state transition of an external source and once as a full snapshot right after this channel's first `subscribe`/`get`. `sources` lists every source the backend currently tracks; a source absent from the list has never reported a call yet — treat as "ok". Same structure as v1.
@@ -9234,7 +9398,7 @@ export interface DatasetSubscribePayload {
     /**
      * Same vocabulary as dataset.update.json#/properties/datasets/items/properties/dataset_id.
      */
-    dataset_id: 'positions' | 'orders' | 'hhi' | 'trades';
+    dataset_id: 'positions' | 'orders' | 'hhi' | 'trades' | 'depth' | 'obstats';
     instrument: CommonV1_InstrumentAddress1;
     [k: string]: unknown;
   }[];
@@ -9270,9 +9434,9 @@ export interface DatasetUpdatePayload {
    */
   datasets: {
     /**
-     * Same vocabulary as condition.v1.json#/$defs/datasetExpr/dataset_id, except `volume` — declared in condition.v1.json but not computed by AFB or BF and never pushed here.
+     * Condition vocabulary = the market.v2 field registry: `dataset_id` is the registry source, the condition `field` is the registry field name (e.g. positions.yur_long, depth.delta, obstats.vol_b). `orders` is kept until the legacy datasets are removed; legacy names are translated by AFB. Same vocabulary as condition.v1.json#/$defs/datasetExpr/dataset_id, except `volume` — declared in condition.v1.json but not computed by AFB or BF and never pushed here.
      */
-    dataset_id: 'positions' | 'orders' | 'hhi' | 'trades';
+    dataset_id: 'positions' | 'orders' | 'hhi' | 'trades' | 'depth' | 'obstats';
     instrument: DealInstrument1;
     /**
      * ISO-8601 exchange-side snapshot time (when this data was true on MOEX), not the time AFB sent the message.

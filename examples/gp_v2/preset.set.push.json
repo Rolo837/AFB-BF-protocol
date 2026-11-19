@@ -1,0 +1,12 @@
+{
+  "channel": "gp",
+  "schema": "afbws.gp.preset.set.v2",
+  "items": [
+    {
+      "id": "preset-shared-1",
+      "scope": "shared",
+      "name": "Позиции юрлиц",
+      "panes": { "price": [], "upper": ["ind-yur-long"], "lower": [] }
+    }
+  ]
+}

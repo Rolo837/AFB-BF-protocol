@@ -9,7 +9,7 @@
   "created_at": "2026-06-26T12:00:00+03:00",
   "expires_at": "2026-06-26T12:05:00+03:00",
   "idempotency_key": "afb:dataset.update:fixture-0001",
-  "payload_hash": "fdeb5ce6fb18b54c7eb2ee894856a32ec1f1e0e0c0ef448cb5c693c268fa62aa",
+  "payload_hash": "81d1e03038027d3eac51452e0b475f96263f12e4a9bcdf803af9887b02c0ba69",
   "payload": {
     "datasets": [
       {
@@ -23,15 +23,15 @@
         "as_of": "2026-07-25T10:35:00+03:00",
         "stale_after_sec": 900,
         "current": {
-          "long": 18452,
-          "short": 12930,
-          "position": 5522,
+          "yur_long": 18452,
+          "yur_short": 12930,
+          "yur_net": 5522,
           "openinterest": 214870
         },
         "previous": {
-          "long": 18010,
-          "short": 13205,
-          "position": 4805,
+          "yur_long": 18010,
+          "yur_short": 13205,
+          "yur_net": 4805,
           "openinterest": 213340
         }
       },
@@ -46,7 +46,28 @@
         "as_of": "2026-07-25T10:35:00+03:00",
         "stale_after_sec": 900,
         "current": {
-          "hhi_agressive_buy": 0.0842
+          "volume": 0.0842
+        }
+      },
+      {
+        "dataset_id": "depth",
+        "instrument": {
+          "exchange": "MISX",
+          "board": "TQBR",
+          "ticker": "SBER",
+          "instrument_key": "MISX:TQBR:SBER"
+        },
+        "as_of": "2026-07-25T10:35:00+03:00",
+        "stale_after_sec": 900,
+        "current": {
+          "bid_depth": 152000,
+          "offer_depth": 98000,
+          "delta": 54000
+        },
+        "previous": {
+          "bid_depth": 149000,
+          "offer_depth": 101000,
+          "delta": 48000
         }
       }
     ]
@@ -54,6 +75,6 @@
   "signature": {
     "alg": "Ed25519",
     "key_id": "afb-test-1",
-    "value": "hRqx9ZhnHFSZqFHXSAZbzQqWc7esrHB3Omon303_hLcE2aaDROyEPXlsjr0M8ZHRGWY0gJLwHCCDyAQ7oGsDAg"
+    "value": "Pf098s9GmjiXOGyAhkXblz5dR5oc2pevTo5EUBgAjj2oAjCTdPw186BHAJgogkN6pRwLHeUWfMqlJej_wQNVDw"
   }
 }

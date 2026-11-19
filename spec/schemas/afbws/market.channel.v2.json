@@ -201,7 +201,7 @@
     "fieldEntry": {
       "type": "object",
       "title": "One field of a source in `fields.sources[].fields[]`.",
-      "required": ["name", "median"],
+      "required": ["name", "median", "unit"],
       "additionalProperties": false,
       "properties": {
         "name": {
@@ -212,6 +212,10 @@
         "median": {
           "type": "boolean",
           "description": "True when `@median(N)` is allowed for this field."
+        },
+        "unit": {
+          "enum": ["price", "lots", "rub", "count", "contracts", "persons", "ratio", "hhi"],
+          "description": "Unit of the field's values: price (instrument price), lots, rub (money), count (number of trades/orders/levels), contracts, persons (number of participants), ratio (dimensionless share/imbalance), hhi (Herfindahl-Hirschman index). The client uses it to decide which fields may share a chart pane."
         }
       }
     },
@@ -244,15 +248,15 @@
 
     "fields": {
       "type": "object",
-      "title": "afbws.market.fields.v2 — data fields available for one instrument.",
-      "description": "Reply to `get` (target=fields); always carries `request_id`. `sources` lists only the sources that are applicable to the instrument AND available to the caller (a source the caller has no access to is omitted, not marked).",
-      "required": ["channel", "schema", "request_id", "instrument_key", "sources", "median_max_days"],
+      "title": "afbws.market.fields.v2 — data fields available for one instrument, or the full catalog.",
+      "description": "Reply to `get` (target=fields); always carries `request_id`. `sources` lists only the sources that are applicable to the instrument AND available to the caller (a source the caller has no access to is omitted, not marked). When the request carried no `instrument_key`, the reply is the full catalog of the registry's sources and fields: `instrument_key` is absent and no source carries `resolved_key`.",
+      "required": ["channel", "schema", "request_id", "sources", "median_max_days"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "market" },
         "schema": { "const": "afbws.market.fields.v2" },
         "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
-        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey", "description": "Echo of the request's instrument; absent in the full-catalog reply." },
         "sources": {
           "type": "array",
           "items": { "$ref": "#/$defs/fieldSource" }
@@ -320,7 +324,7 @@
     "get": {
       "type": "object",
       "title": "afbws.market.get.v2 — one-shot request (client -> server); `target` selects the kind.",
-      "description": "Reply by `target`: series -> `series` (mode:\"replace\"), quotes -> `quotes` (mode:\"full\"), fields -> `fields`; or `error` — all with the same `request_id`. Each target allows only its own fields (the others are rejected by the schema). target=series: candles are ALWAYS delivered (they are the grid the data rows live on, there is no flag for it); `fields` asks for additional data fields (see `$defs/fieldRequest`), its validity is decided by the server registry and an unserved field lands in `series.unavailable` instead of failing the request. LIVE RULE: if `end_date` is absent, or not earlier than \"today\" in the instrument's market timezone, this request ALSO becomes the live series subscription OF ITS `slot` and replaces only that slot's previous subscription (the replaced live `get`, if still pending, is answered with `error` code `superseded`); the server then pushes `series` (mode:\"merge\") for it. A request with `end_date` strictly before today (history paging) is a pure history fetch and touches no subscription. A connection has at most one live series subscription per slot, so at most two; there is no explicit unsubscribe — it lives until replaced by a live `get` of the same slot or until the connection closes. Identical sets in the two slots are two independent subscriptions. The limit of concurrently running heavy `get`s per connection is unchanged and applies across slots (`busy`). target=quotes: `instrument_keys` omitted means all instruments with cached data. target=fields: the answer lists the registry's sources and fields for the instrument.",
+      "description": "Reply by `target`: series -> `series` (mode:\"replace\"), quotes -> `quotes` (mode:\"full\"), fields -> `fields`; or `error` — all with the same `request_id`. Each target allows only its own fields (the others are rejected by the schema). target=series: candles are ALWAYS delivered (they are the grid the data rows live on, there is no flag for it); `fields` asks for additional data fields (see `$defs/fieldRequest`), its validity is decided by the server registry and an unserved field lands in `series.unavailable` instead of failing the request. LIVE RULE: if `end_date` is absent, or not earlier than \"today\" in the instrument's market timezone, this request ALSO becomes the live series subscription OF ITS `slot` and replaces only that slot's previous subscription (the replaced live `get`, if still pending, is answered with `error` code `superseded`); the server then pushes `series` (mode:\"merge\") for it. A request with `end_date` strictly before today (history paging) is a pure history fetch and touches no subscription. A connection has at most one live series subscription per slot, so at most two; there is no explicit unsubscribe — it lives until replaced by a live `get` of the same slot or until the connection closes. Identical sets in the two slots are two independent subscriptions. The limit of concurrently running heavy `get`s per connection is unchanged and applies across slots (`busy`). target=quotes: `instrument_keys` omitted means all instruments with cached data. target=fields: the answer lists the registry's sources and fields. With `instrument_key` — those applicable to that instrument and available to the caller; WITHOUT it — the full catalog of sources and fields (no `resolved_key`), used by the indicator editor.",
       "required": ["channel", "schema", "request_id", "target"],
       "additionalProperties": false,
       "properties": {
@@ -380,7 +384,6 @@
         {
           "if": { "properties": { "target": { "const": "fields" } }, "required": ["target"] },
           "then": {
-            "required": ["instrument_key"],
             "properties": {
               "slot": false,
               "period": false,

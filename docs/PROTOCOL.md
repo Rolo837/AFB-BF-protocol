@@ -645,6 +645,22 @@ Top-level `period` — общий таймфрейм вычисления ала
     `delete` (`ids[]` и/или `instrument_keys[]` — «удалить все свободные примитивы
     инструмента» одним сообщением; примитивы плана в `rejected[]` с `conflict`;
     без `request_id` — push удаления), `indicator.list|set|delete`, `style`, `error`.
+  - Пресеты графика: `preset.list|set|delete` (та же схема, что у `indicator.*`:
+    запрос/ответ/push без `request_id` для общих, `rejected[]`). `$defs/preset` в
+    `gp.v2.json`: `id`, `scope` (`shared|personal`), `name` (1..64), `panes`
+    `{price, upper, lower}` — массивы id индикаторов (≤16, без повторов; порядок =
+    порядок отрисовки и легенды; id не повторяется между панелями — проверяет сервер).
+    Общие пресеты пишет и удаляет только персонал (иначе `forbidden`); общий пресет
+    может ссылаться только на общие индикаторы, ссылки должны существовать и быть
+    видимы автору, индикатор `field` с единицей поля не `price` на панели `price` —
+    `validation_error`. `$defs/indicator` получил необязательное `inputs`
+    (`{слот: fieldRef}`; `fieldRef` — `candles.(open|high|low|close|volume)` или поле
+    реестра `market.v2`, в т.ч. `@median(N)`; нет `inputs` — входы формулы по
+    умолчанию), тип `field` («первичные данные») требует `inputs.value` (проверяет
+    сервер). `settings.seriesType` — `Line|Histogram|Area|Baseline`, нет — `Line`.
+  - `market.fields.v2`: `get fields` без `instrument_key` отдаёт полный каталог
+    источников и полей; у каждого поля обязательная `unit`
+    (`price|lots|rub|count|contracts|persons|ratio|hhi`).
 - `afb.gp.v2` добавляет категории `trendline` и `fibonacci`: обе двухточечные
   (`start` и `stop` обязательны, `text` запрещён). Вид примитивов не специфицирован.
 - Параметры самого примитива (`start`, `stop`, `text`) в `afb.gp.v2` лежат не на корне,
@@ -1002,6 +1018,18 @@ AFB) и `stale_after_sec` (TTL в секундах, задаёт AFB). Запи�
 этой логике резолюции ничего не знает и не должен — он просто сопоставляет
 записи `dataset.update` с условиями по значению `instrument`, которое видит в
 обоих местах.
+
+### Словарь условий
+
+Словарь dataset-условий — реестр полей `market.v2` (`afbws.market.channel.v2`):
+`dataset_id` = источник реестра (`positions`, `trades`, `hhi`, `depth`, `obstats`;
+`orders` остаётся в enum до удаления legacy), `field` = имя поля реестра без
+префикса источника (`positions.yur_long` → `dataset_id=positions`, `field=yur_long`;
+имена `hhi.*` — без прежнего префикса `hhi_`, например `hhi.volume`). Ключи
+`current`/`previous` в `dataset.update` — те же имена полей. Устаревшие имена
+условий (в т.ч. `long`/`short`/`position`, `hhi_*`) AFB переводит в новые сам при
+формировании фида; BF ничего не переводит. Схема `condition.v1.json` не меняется
+(`dataset_id` и `field` — свободные строки).
 
 ### Частота обновления
 

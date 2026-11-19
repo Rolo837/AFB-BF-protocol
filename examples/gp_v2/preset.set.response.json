@@ -1,0 +1,9 @@
+{
+  "channel": "gp",
+  "schema": "afbws.gp.preset.set.v2",
+  "request_id": "ps-1",
+  "items": [],
+  "rejected": [
+    { "id": "preset-1", "code": "validation_error", "message": "indicator ind-yur-long (unit contracts) is not allowed on pane price" }
+  ]
+}

@@ -108,7 +108,7 @@ def test_get_quotes_and_fields_targets(registry):
     _bad(v, _msg("get", request_id="r", target="quotes", period="1d"))
     _bad(v, _msg("get", request_id="r", target="quotes", instrument_keys=["a"] * 2 + ["b"]))  # duplicates
     v.validate(_msg("get", request_id="r", target="fields", instrument_key="MISX:TQBR:SBER"))
-    _bad(v, _msg("get", request_id="r", target="fields"))
+    v.validate(_msg("get", request_id="r", target="fields"))  # no instrument_key: full catalog
     _bad(v, _msg("get", request_id="r", target="fields", instrument_key="MISX:TQBR:SBER", slot=0))
     _bad(v, _msg("get", request_id="r", target="fields", instrument_key="MISX:TQBR:SBER", fields=["trades.val_b"]))
 
@@ -206,15 +206,20 @@ def test_quotes_fixed_columns(registry):
 def test_fields_message(registry):
     v = _validator(registry, "fields")
     ok = _msg("fields", request_id="r", instrument_key="MISX:TQBR:SBER", median_max_days=31,
-              sources=[{"source": "trades", "step_sec": 300, "fields": [{"name": "val_b", "median": True}]},
+              sources=[{"source": "trades", "step_sec": 300, "fields": [{"name": "val_b", "median": True, "unit": "rub"}]},
                        {"source": "hhi", "resolved_key": "MISX:RFUD:X", "step_sec": 86400, "fields": []}])
     v.validate(ok)
-    for key in ("request_id", "instrument_key", "sources", "median_max_days"):
+    for key in ("request_id", "sources", "median_max_days"):
         doc = copy.deepcopy(ok)
         del doc[key]
         _bad(v, doc)
+    catalog = copy.deepcopy(ok)
+    del catalog["instrument_key"]
+    catalog["sources"] = [catalog["sources"][0]]
+    v.validate(catalog)  # full catalog reply: no instrument_key
     for patch in ({"median_max_days": 0}, {"sources": [{"source": "trades", "step_sec": 0, "fields": []}]},
-                  {"sources": [{"source": "trades", "step_sec": 300, "fields": [{"name": "val_b"}]}]},
+                  {"sources": [{"source": "trades", "step_sec": 300, "fields": [{"name": "val_b", "median": True}]}]},
+                  {"sources": [{"source": "trades", "step_sec": 300, "fields": [{"name": "val_b", "median": True, "unit": "kg"}]}]},
                   {"sources": [{"source": "trades", "step_sec": 300, "fields": [{"name": "val_b", "median": "yes"}]}]},
                   {"sources": [{"source": "Trades", "step_sec": 300, "fields": []}]}):
         _bad(v, {**ok, **patch})
@@ -265,3 +270,14 @@ def test_root_oneof_rejects_wrong_schema_id(registry):
     root = _validator(registry)
     _bad(root, _msg("snapshot", mode="full"))
     _bad(root, {"channel": "market", "schema": "afbws.market.get.v1", "request_id": "r", "target": "series"})
+
+
+@pytest.mark.parametrize("unit", ["price", "lots", "rub", "count", "contracts", "persons", "ratio", "hhi"])
+def test_field_entry_units(registry, unit):
+    _validator(registry, "fieldEntry").validate({"name": "val_b", "median": False, "unit": unit})
+
+
+def test_field_entry_unit_required_and_closed(registry):
+    v = _validator(registry, "fieldEntry")
+    _bad(v, {"name": "val_b", "median": False})
+    _bad(v, {"name": "val_b", "median": False, "unit": "percent"})

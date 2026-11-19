@@ -1,6 +1,8 @@
 """Tests for afb_bf_protocol.alarm_display — mirrors frontend alarm cards."""
 from __future__ import annotations
 
+import pytest
+
 from afb_bf_protocol.alarm_display import (
     build_display,
     chart_indicator_display_label,
@@ -93,3 +95,13 @@ def test_build_display():
     display = build_display(condition=cond, ticker="SBER", shortname="Сбербанк")
     assert display["instrument_label"] == "Сбербанк (SBER)"
     assert display["condition_text"] == "Цена касание 250.5"
+
+
+@pytest.mark.parametrize("dataset_id, label", [("depth", "Стакан"), ("obstats", "Статистика стакана"), ("orders", "Ордера")])
+def test_condition_description_new_sources(dataset_id, label):
+    cond = {
+        "op": "above",
+        "left": {"source": "dataset", "dataset_id": dataset_id, "field": "delta"},
+        "right": {"const": "5"},
+    }
+    assert condition_description(cond) == f"{label}/delta 5"

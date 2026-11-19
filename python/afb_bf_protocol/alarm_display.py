@@ -23,6 +23,8 @@ DATASET_LABELS: dict[str, str] = {
     "trades": "Сделки",
     "hhi": "Концентрация",
     "orders": "Ордера",
+    "depth": "Стакан",
+    "obstats": "Статистика стакана",
 }
 
 

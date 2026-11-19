@@ -35,7 +35,7 @@
   ],
   "unavailable": [
     { "field": "obstats.spread_bbo", "reason": "no_access" },
-    { "field": "hhi.hhi_volume", "reason": "not_applicable" },
+    { "field": "hhi.volume", "reason": "not_applicable" },
     { "field": "trades.nope", "reason": "unknown" },
     { "field": "positions.long@median(5)", "reason": "not_supported" }
   ],

@@ -114,7 +114,8 @@ def test_alarm_v2_root_dispatch(registry):
 # ------------------------------------------------------------------------ gp
 def test_gp_v2_no_request_response_pairs(registry):
     schema = json.loads((EXAMPLES.parent / "spec" / "schemas" / "afbws" / "gp.channel.v2.json").read_text())
-    expected = {"list", "set", "delete", "indicatorList", "indicatorSet", "indicatorDelete", "style", "error"}
+    expected = {"list", "set", "delete", "indicatorList", "indicatorSet", "indicatorDelete",
+                "presetList", "presetSet", "presetDelete", "presetRejection", "style", "error"}
     assert expected <= set(schema["$defs"])
     stale = {"getRequest", "getResponse", "setRequest", "setResponse", "deleteRequest", "deleteResponse", "syncPush",
              "indicatorSyncPush", "indicatorSetRequest", "indicatorSetResponse", "errorResponse"}
@@ -122,7 +123,8 @@ def test_gp_v2_no_request_response_pairs(registry):
     ids = {d["properties"]["schema"]["const"] for d in schema["$defs"].values() if "schema" in d.get("properties", {}) and "channel" in d["properties"]}
     assert ids == {
         "afbws.gp.list.v2", "afbws.gp.set.v2", "afbws.gp.delete.v2", "afbws.gp.indicator.list.v2",
-        "afbws.gp.indicator.set.v2", "afbws.gp.indicator.delete.v2", "afbws.gp.style.v2", "afbws.gp.error.v2",
+        "afbws.gp.indicator.set.v2", "afbws.gp.indicator.delete.v2", "afbws.gp.preset.list.v2",
+        "afbws.gp.preset.set.v2", "afbws.gp.preset.delete.v2", "afbws.gp.style.v2", "afbws.gp.error.v2",
     }
 
 
@@ -266,3 +268,60 @@ def test_alarm_set_push_without_request_id(registry):
     ):
         with pytest.raises(ValidationError):
             v.validate(bad)
+
+
+# ----------------------------------------------------------------- gp presets
+_PRESET = {"id": "preset-1", "scope": "personal", "name": "Мой",
+           "panes": {"price": ["ind-1"], "upper": [], "lower": []}}
+
+
+def test_gp_v2_preset_commands(registry):
+    base = {"channel": "gp", "request_id": "r"}
+    lst = _v(_GP, "presetList", registry)
+    lst.validate({**base, "schema": "afbws.gp.preset.list.v2"})
+    lst.validate({**base, "schema": "afbws.gp.preset.list.v2", "items": [_PRESET]})
+    _invalid(lst, {**base, "schema": "afbws.gp.preset.list.v2", "items": [dict(_PRESET, name="")]})
+    st = _v(_GP, "presetSet", registry)
+    st.validate({**base, "schema": "afbws.gp.preset.set.v2", "items": [_PRESET]})
+    st.validate({**base, "schema": "afbws.gp.preset.set.v2", "items": [],
+                 "rejected": [{"id": "preset-1", "code": "validation_error", "message": "unit"}]})
+    _invalid(st, {**base, "schema": "afbws.gp.preset.set.v2", "item": _PRESET})
+    _invalid(st, {**base, "schema": "afbws.gp.preset.set.v2", "items": [dict(_PRESET, panes={"price": []})]})
+    dl = _v(_GP, "presetDelete", registry)
+    dl.validate({**base, "schema": "afbws.gp.preset.delete.v2", "ids": ["preset-1"]})
+    dl.validate({**base, "schema": "afbws.gp.preset.delete.v2", "ids": [], "rejected": [{"id": "x", "code": "forbidden"}]})
+    _invalid(dl, {**base, "schema": "afbws.gp.preset.delete.v2", "id": "preset-1"})
+
+
+def test_gp_v2_preset_shared_push(registry):
+    st = _v(_GP, "presetSet", registry)
+    st.validate({"channel": "gp", "schema": "afbws.gp.preset.set.v2", "items": [dict(_PRESET, scope="shared")]})
+    _invalid(st, {"channel": "gp", "schema": "afbws.gp.preset.set.v2", "items": []})
+    _invalid(st, {"channel": "gp", "schema": "afbws.gp.preset.set.v2", "items": [_PRESET],
+                  "rejected": [{"id": "p", "code": "forbidden"}]})  # rejected needs request_id
+    dl = _v(_GP, "presetDelete", registry)
+    dl.validate({"channel": "gp", "schema": "afbws.gp.preset.delete.v2", "ids": ["preset-1"]})
+    _invalid(dl, {"channel": "gp", "schema": "afbws.gp.preset.delete.v2", "ids": []})
+
+
+def test_gp_v2_root_dispatch_presets(registry):
+    root = _root(_GP, registry)
+    root.validate({"channel": "gp", "schema": "afbws.gp.preset.list.v2", "request_id": "r"})
+    root.validate({"channel": "gp", "schema": "afbws.gp.preset.delete.v2", "ids": ["p"]})
+
+
+def test_gp_v2_examples_validate(registry):
+    import json as _json
+
+    from conftest import EXAMPLES as _EX
+
+    root = _root(_GP, registry)
+    from jsonschema import Draft202012Validator
+
+    ind = Draft202012Validator({"$ref": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/gp.v2.json#/$defs/indicator"},
+                               registry=registry)
+    files = sorted((_EX / "gp_v2").glob("*.json"))
+    assert len(files) >= 10
+    for path in files:
+        doc = _json.loads(path.read_text(encoding="utf-8"))
+        (root if "schema" in doc and doc.get("channel") == "gp" else ind).validate(doc)

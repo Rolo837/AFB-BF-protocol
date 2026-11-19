@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 81b0197b0f13d49cd11089029a8f88155faa0315b1fc50b4b3320f5d8b758ce5
+# source-hash: 09601a9173edf04f9d30ef9ff65ffbebb47a302af77b9a827888bcd1daf9567a
 
 from __future__ import annotations
 
@@ -1948,6 +1948,47 @@ AccessChannelV1Message: TypeAlias = (
 AfbwsCommonV1Root: TypeAlias = Any
 
 
+class AfbwsGpChannelV2PresetDelete(TypedDict):
+    """
+    Request: `ids[]` (shared ones: staff only, otherwise rejected with `forbidden`; unknown id: `not_found`). Response (same `request_id`): `ids[]` actually removed + `rejected[]`. Push (no `request_id`): shared presets deleted by staff (`ids[]`, `rejected` not allowed).
+    """
+
+    channel: Literal["gp"]
+    schema: Literal["afbws.gp.preset.delete.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    ids: list[Id]
+    rejected: NotRequired[list[AfbwsGpChannelV2PresetRejection]]
+
+
+class AfbwsGpChannelV2PresetList(TypedDict):
+    """
+    Request: only `request_id`. Response (same `request_id`): `items[]` — the caller's merged list (shared + personal).
+    """
+
+    channel: Literal["gp"]
+    schema: Literal["afbws.gp.preset.list.v2"]
+    request_id: AfbwsCommonV1RequestId
+    items: NotRequired[list[GpV2Preset]]
+
+
+class AfbwsGpChannelV2PresetRejection(TypedDict):
+    id: str
+    code: AfbwsCommonV1ErrorCode
+    message: NotRequired[str]
+
+
+class AfbwsGpChannelV2PresetSet(TypedDict):
+    """
+    Request: upsert by `id`, batched. Personal presets for everyone; `scope: shared` only for staff (otherwise that item is rejected with `forbidden`). Validation per item (violation = rejected with `validation_error`): every referenced indicator id must exist and be visible to the author; a shared preset may reference shared indicators only; an indicator id must not repeat across panes; a `field` indicator whose field unit is not `price` must not be on pane `price`. Response (same `request_id`): applied `items[]` (possibly empty) + `rejected[]`. Push (no `request_id`): changed SHARED presets to every connection with this capability (full authoritative records); personal ones are never pushed.
+    """
+
+    channel: Literal["gp"]
+    schema: Literal["afbws.gp.preset.set.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    items: list[GpV2Preset]
+    rejected: NotRequired[list[AfbwsGpChannelV2PresetRejection]]
+
+
 class AfbwsInstrumentChannelV2AccountDetail(TypedDict):
     bf_id: str
     account_id: str
@@ -3292,6 +3333,7 @@ class ConfigV1Bonds(TypedDict):
 class ConfigV1ChartToolbar(TypedDict):
     favorite_timeframes: NotRequired[list[str]]
     favorite_datasets: NotRequired[list[str]]
+    favorite_presets: NotRequired[list[FavoritePreset]]
     favorite_primitives: NotRequired[list[str]]
 
 
@@ -3416,7 +3458,7 @@ class Data(TypedDict):
 
 
 class Dataset(TypedDict):
-    dataset_id: Literal["positions", "orders", "hhi", "trades"]
+    dataset_id: Literal["positions", "orders", "hhi", "trades", "depth", "obstats"]
     instrument: DealInstrument
     as_of: str
     stale_after_sec: float
@@ -4779,6 +4821,9 @@ class ExchangeFee(TypedDict):
     currency: str
 
 
+FavoritePreset: TypeAlias = str
+
+
 class Features(TypedDict):
     dry_run: NotRequired[bool]
     server_sltp: NotRequired[bool]
@@ -4857,6 +4902,9 @@ class GpV2ErrorDetails(TypedDict):
     locked_scopes: NotRequired[list[Literal["entry", "stop_loss", "take_profit"]]]
 
 
+GpV2FieldRef: TypeAlias = str
+
+
 class GpV2Indicator(TypedDict):
     """
     `scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `settings` carry the parameters. Whether an indicator is shown on the chart is not part of the protocol (per-device view setting kept in the client's localStorage). `type` is an open string (pattern `^[a-z][a-z0-9_]*$`), not an enum; the server computes only wma/kama/psar (alarm indicator conditions, virtual account), other types are stored and returned as is. Type `cot` is chart-only.
@@ -4864,6 +4912,7 @@ class GpV2Indicator(TypedDict):
 
     id: str
     type: str
+    inputs: NotRequired[dict[str, GpV2FieldRef]]
     settings: GpV2IndicatorSettings
     scope: Literal["shared", "personal"]
 
@@ -4911,13 +4960,14 @@ class GpV2IndicatorSet(TypedDict):
 
 class GpV2IndicatorSettings(TypedDict):
     """
-    Display + calculation settings. Required: color/lineWidth/lineStyle. Typed optional keys of the built-in indicators: period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Any other key is allowed (value: number, string or boolean), except `enabled` (per-device view flag, never protocol) — indicators are computed by the frontend, so a new indicator brings its own parameters without a protocol change. Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.
+    Display + calculation settings. Required: color/lineWidth/lineStyle. Typed optional keys: seriesType (Line|Histogram|Area|Baseline, absent = Line); period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Any other key is allowed (value: number, string or boolean), except `enabled` (per-device view flag, never protocol) — indicators are computed by the frontend, so a new indicator brings its own parameters without a protocol change. Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.
     """
 
     enabled: NotRequired[Any]
     color: str
     lineWidth: float
     lineStyle: Literal["Solid", "Dots"]
+    seriesType: NotRequired[Literal["Line", "Histogram", "Area", "Baseline"]]
     period: NotRequired[int]
     erPeriod: NotRequired[int]
     fastPeriod: NotRequired[int]
@@ -4943,6 +4993,28 @@ class GpV2List(TypedDict):
 class GpV2Point(TypedDict):
     time: int
     price: float
+
+
+class GpV2Preset(TypedDict):
+    """
+    A set of indicators with a binding `which indicator is drawn on which pane`. `scope: shared` presets are common to all users and editable only by staff; `personal` belong to the caller. `panes` has three panes: `price` (the candle pane; only indicators whose scale is the price), `upper` and `lower` (the two extra panes). Each pane lists indicator ids (`$defs/indicator.id`); the ORDER is the draw and legend order. An id must not repeat across panes (checked by the server). Referenced indicators must exist and be visible to the author; a shared preset may reference shared indicators only (`validation_error` otherwise); a `field` indicator whose field unit is not `price` on pane `price` is a `validation_error`. Scale compatibility of other indicators on a pane is checked by the frontend.
+    """
+
+    id: str
+    scope: Literal["shared", "personal"]
+    name: str
+    panes: Panes
+
+
+GpV2PresetPaneItem: TypeAlias = str
+
+
+GpV2PresetPane: TypeAlias = list[GpV2PresetPaneItem]
+
+
+"""
+Indicator ids on one pane, in draw/legend order.
+"""
 
 
 class GpV2PrimitiveKindStyle(TypedDict):
@@ -5035,6 +5107,9 @@ GpChannelV2Message: TypeAlias = (
     | GpV2IndicatorList
     | GpV2IndicatorSet
     | GpV2IndicatorDelete
+    | AfbwsGpChannelV2PresetList
+    | AfbwsGpChannelV2PresetSet
+    | AfbwsGpChannelV2PresetDelete
     | GpV2Style
     | GpV2Error
 )
@@ -5564,6 +5639,9 @@ MarketV2ErrorCode: TypeAlias = Literal[
 class MarketV2FieldEntry(TypedDict):
     name: str
     median: bool
+    unit: Literal[
+        "price", "lots", "rub", "count", "contracts", "persons", "ratio", "hhi"
+    ]
 
 
 MarketV2FieldRequest: TypeAlias = str
@@ -5578,20 +5656,20 @@ class MarketV2FieldSource(TypedDict):
 
 class MarketV2Fields(TypedDict):
     """
-    Reply to `get` (target=fields); always carries `request_id`. `sources` lists only the sources that are applicable to the instrument AND available to the caller (a source the caller has no access to is omitted, not marked).
+    Reply to `get` (target=fields); always carries `request_id`. `sources` lists only the sources that are applicable to the instrument AND available to the caller (a source the caller has no access to is omitted, not marked). When the request carried no `instrument_key`, the reply is the full catalog of the registry's sources and fields: `instrument_key` is absent and no source carries `resolved_key`.
     """
 
     channel: Literal["market"]
     schema: Literal["afbws.market.fields.v2"]
     request_id: AfbwsCommonV1RequestId
-    instrument_key: AfbwsCommonV1InstrumentKey
+    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
     sources: list[MarketV2FieldSource]
     median_max_days: int
 
 
 class MarketV2Get(TypedDict):
     """
-    Reply by `target`: series -> `series` (mode:"replace"), quotes -> `quotes` (mode:"full"), fields -> `fields`; or `error` — all with the same `request_id`. Each target allows only its own fields (the others are rejected by the schema). target=series: candles are ALWAYS delivered (they are the grid the data rows live on, there is no flag for it); `fields` asks for additional data fields (see `$defs/fieldRequest`), its validity is decided by the server registry and an unserved field lands in `series.unavailable` instead of failing the request. LIVE RULE: if `end_date` is absent, or not earlier than "today" in the instrument's market timezone, this request ALSO becomes the live series subscription OF ITS `slot` and replaces only that slot's previous subscription (the replaced live `get`, if still pending, is answered with `error` code `superseded`); the server then pushes `series` (mode:"merge") for it. A request with `end_date` strictly before today (history paging) is a pure history fetch and touches no subscription. A connection has at most one live series subscription per slot, so at most two; there is no explicit unsubscribe — it lives until replaced by a live `get` of the same slot or until the connection closes. Identical sets in the two slots are two independent subscriptions. The limit of concurrently running heavy `get`s per connection is unchanged and applies across slots (`busy`). target=quotes: `instrument_keys` omitted means all instruments with cached data. target=fields: the answer lists the registry's sources and fields for the instrument.
+    Reply by `target`: series -> `series` (mode:"replace"), quotes -> `quotes` (mode:"full"), fields -> `fields`; or `error` — all with the same `request_id`. Each target allows only its own fields (the others are rejected by the schema). target=series: candles are ALWAYS delivered (they are the grid the data rows live on, there is no flag for it); `fields` asks for additional data fields (see `$defs/fieldRequest`), its validity is decided by the server registry and an unserved field lands in `series.unavailable` instead of failing the request. LIVE RULE: if `end_date` is absent, or not earlier than "today" in the instrument's market timezone, this request ALSO becomes the live series subscription OF ITS `slot` and replaces only that slot's previous subscription (the replaced live `get`, if still pending, is answered with `error` code `superseded`); the server then pushes `series` (mode:"merge") for it. A request with `end_date` strictly before today (history paging) is a pure history fetch and touches no subscription. A connection has at most one live series subscription per slot, so at most two; there is no explicit unsubscribe — it lives until replaced by a live `get` of the same slot or until the connection closes. Identical sets in the two slots are two independent subscriptions. The limit of concurrently running heavy `get`s per connection is unchanged and applies across slots (`busy`). target=quotes: `instrument_keys` omitted means all instruments with cached data. target=fields: the answer lists the registry's sources and fields. With `instrument_key` — those applicable to that instrument and available to the caller; WITHOUT it — the full catalog of sources and fields (no `resolved_key`), used by the indicator editor.
     """
 
     channel: Literal["market"]
@@ -5956,6 +6034,12 @@ class Owner1(TypedDict):
     tier: NotRequired[str | None]
 
 
+class Panes(TypedDict):
+    price: GpV2PresetPane
+    upper: GpV2PresetPane
+    lower: GpV2PresetPane
+
+
 class Participants(TypedDict):
     use_recommended: NotRequired[bool]
     collection_colors: NotRequired[bool]
@@ -6305,7 +6389,7 @@ class Sort(TypedDict):
 
 
 class Subscription(TypedDict):
-    dataset_id: Literal["positions", "orders", "hhi", "trades"]
+    dataset_id: Literal["positions", "orders", "hhi", "trades", "depth", "obstats"]
     instrument: CommonV1InstrumentAddress
 
 
