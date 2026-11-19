@@ -9,6 +9,16 @@
 ## Unreleased
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## v2.11.0 — 2026-11-19
+
+### Added
 - Индикаторы и пресеты графика: `gp.v2.json` — `indicator.inputs` (`{слот: fieldRef}`, `$defs/fieldRef`), `indicatorSettings.seriesType` (`Line|Histogram|Area|Baseline`), `$defs/preset` (`panes` price/upper/lower, ≤16 id, без повторов) и канал `gp.channel.v2` — `preset.list|set|delete` (+ `presetRejection`), по семантике копия `indicator.*`. `config.v1.json`: `chart_toolbar.favorite_presets`. Примеры `gp_v2/`, тесты.
 - `market.channel.v2`: `get target=fields` без `instrument_key` отдаёт полный каталог источников и полей (в `fields` `instrument_key` необязателен); у поля обязательная `unit` (`price|lots|rub|count|contracts|persons|ratio|hhi`). Примеры `fields.catalog.response.json`, `get.fields.catalog.request.json`; имена `hhi.*` в примерах без префикса `hhi_`.
 - `dataset.update` / `dataset.subscribe`: `dataset_id` += `depth`, `obstats`; словарь условий = реестр `market.v2` (`docs/PROTOCOL.md` §16). `alarm_display`: подписи источников `depth`/`obstats`.
@@ -16,10 +26,6 @@
 
 ### Changed
 - `gp.v2.json`: `indicator.type` — открытая строка (`^[a-z][a-z0-9_]*$`) вместо enum `wma|kama|psar|cot`; `indicatorSettings` допускает произвольные дополнительные ключи (number|string|boolean), кроме `enabled`. Новый индикатор не требует правки протокола.
-
-### Fixed
-
-### Removed
 
 ## v2.10.14 — 2026-11-16
 
