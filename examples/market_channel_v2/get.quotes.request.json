@@ -1,0 +1,7 @@
+{
+  "channel": "market",
+  "schema": "afbws.market.get.v2",
+  "request_id": "get-3",
+  "target": "quotes",
+  "instrument_keys": ["MISX:TQBR:SBER"]
+}

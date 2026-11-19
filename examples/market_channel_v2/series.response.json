@@ -1,0 +1,49 @@
+{
+  "channel": "market",
+  "schema": "afbws.market.series.v2",
+  "request_id": "get-1",
+  "slot": 0,
+  "instrument_key": "MISX:TQBR:SBER",
+  "period": "5min",
+  "mode": "replace",
+  "tables": [
+    {
+      "source": "candles",
+      "columns": ["time", "open", "high", "low", "close", "volume"],
+      "rows": [
+        [1795000800, 301.1, 301.5, 300.9, 301.2, 12000],
+        [1795001100, 301.2, 301.4, 301.0, 301.3, 9000]
+      ]
+    },
+    {
+      "source": "trades",
+      "columns": ["time", "val_b", "val_s@median(10)"],
+      "rows": [
+        [1795000800, 1500000.5, 1200000],
+        [1795001100, null, null]
+      ]
+    },
+    {
+      "source": "positions",
+      "resolved_key": "MISX:SBRF",
+      "columns": ["time", "openinterest"],
+      "rows": [
+        [1795000800, 450000],
+        [1795001100, 450100]
+      ]
+    }
+  ],
+  "unavailable": [
+    { "field": "obstats.spread_bbo", "reason": "no_access" },
+    { "field": "hhi.hhi_volume", "reason": "not_applicable" },
+    { "field": "trades.nope", "reason": "unknown" },
+    { "field": "positions.long@median(5)", "reason": "not_supported" }
+  ],
+  "future_times": [1795001400, 1795001700],
+  "data_status": {
+    "state": "stale",
+    "source": "exchange",
+    "reason": "freshness lag",
+    "since": "2026-11-19T10:00:00+03:00"
+  }
+}

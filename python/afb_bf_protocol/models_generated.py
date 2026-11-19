@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: cebbff0dfaabf34bd256a8a91d11e48460cf810bd5bfec6bc0ab14022eac9ffc
+# source-hash: 81b0197b0f13d49cd11089029a8f88155faa0315b1fc50b4b3320f5d8b758ce5
 
 from __future__ import annotations
 
@@ -4859,11 +4859,11 @@ class GpV2ErrorDetails(TypedDict):
 
 class GpV2Indicator(TypedDict):
     """
-    `scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `settings` carry the parameters. Whether an indicator is shown on the chart is not part of the protocol (per-device view setting kept in the client's localStorage). Type `cot` is chart-only; alarm indicator conditions support wma/kama/psar.
+    `scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `settings` carry the parameters. Whether an indicator is shown on the chart is not part of the protocol (per-device view setting kept in the client's localStorage). `type` is an open string (pattern `^[a-z][a-z0-9_]*$`), not an enum; the server computes only wma/kama/psar (alarm indicator conditions, virtual account), other types are stored and returned as is. Type `cot` is chart-only.
     """
 
     id: str
-    type: Literal["wma", "kama", "psar", "cot"]
+    type: str
     settings: GpV2IndicatorSettings
     scope: Literal["shared", "personal"]
 
@@ -4911,9 +4911,10 @@ class GpV2IndicatorSet(TypedDict):
 
 class GpV2IndicatorSettings(TypedDict):
     """
-    Display + calculation settings. Common: color/lineWidth/lineStyle; period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.
+    Display + calculation settings. Required: color/lineWidth/lineStyle. Typed optional keys of the built-in indicators: period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Any other key is allowed (value: number, string or boolean), except `enabled` (per-device view flag, never protocol) — indicators are computed by the frontend, so a new indicator brings its own parameters without a protocol change. Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.
     """
 
+    enabled: NotRequired[Any]
     color: str
     lineWidth: float
     lineStyle: Literal["Solid", "Dots"]
@@ -5514,6 +5515,226 @@ MarketChannelV1Message: TypeAlias = (
 
 class MarketSnapshotTable(MarketTable):
     kind: NotRequired[Literal["quote", "oi", "oi_daily"]]
+
+
+class MarketV2DataStatus(TypedDict):
+    """
+    Present on a `series` message only when it is NOT a normal fresh answer: either the external source's circuit breaker was open when it was built (served from the cache only, no network; the `candles` table may then be shorter or missing) or the freshness detector found the instrument's data lagging behind a live market while the fetch itself nominally succeeded. Absent means a normal, fresh answer.
+    """
+
+    state: Literal["stale", "partial"]
+    source: str
+    reason: str
+    since: str
+
+
+class MarketV2Error(TypedDict):
+    """
+    Reply to a failed `get` (same `request_id`) or a channel-level error. Codes are the v1 codes plus the candle-load failures `provider_error` and `timeout`. `superseded` — a live `get` (target=series) was cancelled because a newer live `get` of the SAME slot replaced it before it finished; the client discards the pending request silently. `busy` — the connection's concurrent heavy-`get` limit was exceeded or the server is under memory pressure; carries `retry_after_sec`. `provider_error` — loading the candles failed at the data provider (the reason is in `message`; no live subscription was created). `timeout` — loading the candles timed out (same consequences). `not_supported` — the period or the instrument is not supported by the candle source (also used for an unsupported period of a data source).
+    """
+
+    channel: Literal["market"]
+    schema: Literal["afbws.market.error.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    code: MarketV2ErrorCode
+    message: str
+    details: NotRequired[dict[str, Any]]
+    retry_after_sec: NotRequired[float]
+
+
+MarketV2ErrorCode: TypeAlias = Literal[
+    "not_found",
+    "invalid_schema",
+    "invalid_channel",
+    "validation_error",
+    "conflict",
+    "internal_error",
+    "forbidden",
+    "bf_offline",
+    "unsupported_action",
+    "not_paired",
+    "superseded",
+    "busy",
+    "not_supported",
+    "provider_error",
+    "timeout",
+]
+
+
+class MarketV2FieldEntry(TypedDict):
+    name: str
+    median: bool
+
+
+MarketV2FieldRequest: TypeAlias = str
+
+
+class MarketV2FieldSource(TypedDict):
+    source: str
+    resolved_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    step_sec: int
+    fields: list[MarketV2FieldEntry]
+
+
+class MarketV2Fields(TypedDict):
+    """
+    Reply to `get` (target=fields); always carries `request_id`. `sources` lists only the sources that are applicable to the instrument AND available to the caller (a source the caller has no access to is omitted, not marked).
+    """
+
+    channel: Literal["market"]
+    schema: Literal["afbws.market.fields.v2"]
+    request_id: AfbwsCommonV1RequestId
+    instrument_key: AfbwsCommonV1InstrumentKey
+    sources: list[MarketV2FieldSource]
+    median_max_days: int
+
+
+class MarketV2Get(TypedDict):
+    """
+    Reply by `target`: series -> `series` (mode:"replace"), quotes -> `quotes` (mode:"full"), fields -> `fields`; or `error` — all with the same `request_id`. Each target allows only its own fields (the others are rejected by the schema). target=series: candles are ALWAYS delivered (they are the grid the data rows live on, there is no flag for it); `fields` asks for additional data fields (see `$defs/fieldRequest`), its validity is decided by the server registry and an unserved field lands in `series.unavailable` instead of failing the request. LIVE RULE: if `end_date` is absent, or not earlier than "today" in the instrument's market timezone, this request ALSO becomes the live series subscription OF ITS `slot` and replaces only that slot's previous subscription (the replaced live `get`, if still pending, is answered with `error` code `superseded`); the server then pushes `series` (mode:"merge") for it. A request with `end_date` strictly before today (history paging) is a pure history fetch and touches no subscription. A connection has at most one live series subscription per slot, so at most two; there is no explicit unsubscribe — it lives until replaced by a live `get` of the same slot or until the connection closes. Identical sets in the two slots are two independent subscriptions. The limit of concurrently running heavy `get`s per connection is unchanged and applies across slots (`busy`). target=quotes: `instrument_keys` omitted means all instruments with cached data. target=fields: the answer lists the registry's sources and fields for the instrument.
+    """
+
+    channel: Literal["market"]
+    schema: Literal["afbws.market.get.v2"]
+    request_id: AfbwsCommonV1RequestId
+    target: Literal["series", "quotes", "fields"]
+    slot: NotRequired[MarketV2Slot]
+    instrument_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    period: NotRequired[MarketV2Period]
+    start_date: NotRequired[str]
+    end_date: NotRequired[str]
+    fields: NotRequired[list[MarketV2FieldRequest]]
+    instrument_keys: NotRequired[list[AfbwsCommonV1InstrumentKey]]
+
+
+MarketV2Period: TypeAlias = Literal[
+    "1min", "5min", "10min", "15min", "30min", "1h", "2h", "4h", "1d"
+]
+
+
+class MarketV2Quotes(TypedDict):
+    """
+    Reply to `get` (target=quotes) when `request_id` is present (always `mode:"full"`); unsolicited push to the connection's quotes subscription when it is absent: `mode:"full"` right after `subscribe`, then `mode:"update"` with only the rows that changed (about every 30 s). `columns` is fixed by the schema (`instrument_key, last, close, percent, volume`); adding a column is a protocol PATCH. Each row is keyed by its first column, `instrument_key`.
+    """
+
+    channel: Literal["market"]
+    schema: Literal["afbws.market.quotes.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    mode: Literal["full", "update"]
+    columns: list[str]
+    rows: list[
+        tuple[
+            AfbwsCommonV1InstrumentKey,
+            float | None,
+            float | None,
+            float | None,
+            float | None,
+        ]
+    ]
+
+
+class MarketV2Series(TypedDict):
+    """
+    Reply to `get` (target=series) when `request_id` is present — `mode:"replace"`, the full requested range; the client replaces its copy of this slot's instrument+period range with `tables`. Unsolicited push to the slot's live subscription when `request_id` is absent — `mode:"merge"`: rows only at the timestamp(s) of the latest candle(s) (the just-closed bar plus the new one on a period rollover), upserted by `time`. `tables[0]` is ALWAYS the candles table (source `candles`, columns `time, open, high, low, close, volume`) — the grid every other table is aligned to; further tables follow, one per requested source that delivered at least one field. Fields that were requested but not delivered are listed in `unavailable`. A failure to load the candles themselves is NOT answered with a `series` but with `error` (`provider_error`, `timeout` or `not_supported`) and creates no live subscription; a failed merge-push update is simply not sent (freshness is reported by `data_status`). There is no free-text `message` here.
+    """
+
+    channel: Literal["market"]
+    schema: Literal["afbws.market.series.v2"]
+    request_id: NotRequired[AfbwsCommonV1RequestId]
+    slot: MarketV2Slot
+    instrument_key: AfbwsCommonV1InstrumentKey
+    period: MarketV2Period
+    mode: Literal["replace", "merge"]
+    tables: list[MarketV2CandlesTable | MarketV2DataTable]
+    unavailable: NotRequired[list[MarketV2UnavailableEntry]]
+    future_times: NotRequired[list[int]]
+    data_status: NotRequired[MarketV2DataStatus]
+
+
+MarketV2Slot: TypeAlias = Literal[0, 1]
+
+
+class MarketV2SourceStatus(TypedDict):
+    """
+    Unsolicited push, no `request_id`: sent on each health-state transition of an external source and once as a full snapshot right after this channel's first `subscribe`/`get`. `sources` lists every source the backend currently tracks; a source absent from the list has never reported a call yet — treat as "ok". Same structure as v1.
+    """
+
+    channel: Literal["market"]
+    schema: Literal["afbws.market.source_status.v2"]
+    sources: list[MarketV2SourceStatusEntry]
+
+
+class MarketV2SourceStatusEntry(TypedDict):
+    source: str
+    state: Literal["ok", "degraded", "down"]
+    since: str
+    reason: NotRequired[str]
+
+
+class MarketV2Subscribe(TypedDict):
+    """
+    The client states its whole desired set of instruments every time; the server does not diff against a previous `subscribe`. An empty `instrument_keys` unsubscribes. Reply is `subscription` with the same `request_id`, immediately followed by a `quotes` push with `mode:"full"`. Does not affect the series subscriptions, those are driven by `get` (target=series) alone.
+    """
+
+    channel: Literal["market"]
+    schema: Literal["afbws.market.subscribe.v2"]
+    request_id: AfbwsCommonV1RequestId
+    instrument_keys: list[AfbwsCommonV1InstrumentKey]
+
+
+class MarketV2Subscription(TypedDict):
+    """
+    `instrument_keys` is the accepted subset of what was requested; `rejected` lists the instruments that could not be subscribed with a reason code. Always followed by a `quotes` push with `mode:"full"`.
+    """
+
+    channel: Literal["market"]
+    schema: Literal["afbws.market.subscription.v2"]
+    request_id: AfbwsCommonV1RequestId
+    instrument_keys: list[AfbwsCommonV1InstrumentKey]
+    rejected: list[MarketV2SubscriptionRejection]
+
+
+MarketChannelV2Message: TypeAlias = (
+    MarketV2Subscribe
+    | MarketV2Subscription
+    | MarketV2Get
+    | MarketV2Series
+    | MarketV2Quotes
+    | MarketV2Fields
+    | MarketV2SourceStatus
+    | MarketV2Error
+)
+
+
+class MarketV2SubscriptionRejection(TypedDict):
+    instrument_key: AfbwsCommonV1InstrumentKey
+    code: Literal["not_found", "forbidden", "not_supported"]
+    message: NotRequired[str]
+
+
+class MarketV2Table(TypedDict):
+    """
+    `columns` lists `time` first (UTC unix seconds = the candle's timestamp), then field names WITHOUT the source prefix, with the `@median(N)` suffix where one was requested. A client reads by column name, never by position. `rows` hold only numbers and `null` (NaN is sent as `null`), each row as long as `columns`. Rows exist only at the timestamps of the candles of the SAME message (the `candles` table is the grid): the server aligns every source to it; there are no rows outside trading hours and no forward-filled values.
+    """
+
+    source: str
+    resolved_key: NotRequired[AfbwsCommonV1InstrumentKey]
+    columns: list[Literal["time"] | Column]
+    rows: list[list[float | None]]
+
+
+class MarketV2CandlesTable(MarketV2Table):
+    source: NotRequired[Literal["candles"]]
+    columns: NotRequired[list[Literal["time"] | Column]]
+
+
+class MarketV2DataTable(MarketV2Table):
+    source: NotRequired[str]
+
+
+class MarketV2UnavailableEntry(TypedDict):
+    field: str
+    reason: Literal["unknown", "not_applicable", "no_access", "not_supported"]
 
 
 class Meta(TypedDict):

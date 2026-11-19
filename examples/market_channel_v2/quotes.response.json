@@ -1,0 +1,11 @@
+{
+  "channel": "market",
+  "schema": "afbws.market.quotes.v2",
+  "request_id": "get-3",
+  "mode": "full",
+  "columns": ["instrument_key", "last", "close", "percent", "volume"],
+  "rows": [
+    ["MISX:TQBR:SBER", 301.2, 300.0, 0.4, 123456789],
+    ["MISX:TQBR:GAZP", null, 150.0, null, null]
+  ]
+}

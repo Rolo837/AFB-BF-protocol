@@ -1,0 +1,8 @@
+{
+  "channel": "market",
+  "schema": "afbws.market.source_status.v2",
+  "sources": [
+    { "source": "exchange", "state": "degraded", "since": "2026-11-19T10:00:00+03:00", "reason": "error rate 40%" },
+    { "source": "getcourse", "state": "ok", "since": "2026-11-19T09:00:00+03:00" }
+  ]
+}

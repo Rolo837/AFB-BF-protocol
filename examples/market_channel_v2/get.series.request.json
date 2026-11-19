@@ -1,0 +1,11 @@
+{
+  "channel": "market",
+  "schema": "afbws.market.get.v2",
+  "request_id": "get-1",
+  "target": "series",
+  "slot": 0,
+  "instrument_key": "MISX:TQBR:SBER",
+  "period": "5min",
+  "start_date": "2026-11-17",
+  "fields": ["trades.val_b", "trades.val_s@median(10)", "positions.openinterest"]
+}

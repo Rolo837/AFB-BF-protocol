@@ -9,8 +9,10 @@
 ## Unreleased
 
 ### Added
+- Канал `afbws.market.channel.v2` (`spec/schemas/afbws/market.channel.v2.json`, capability `afbws.market.channel.v2`; v1 остаётся до полного переезда фронтенда): `subscribe`/`subscription`, `get` (`target` series|quotes|fields), `series` (свечи в `tables[0]` + поля реестра `<источник>.<поле>[@median(N)]`, `unavailable[{field, reason}]`, обязательный `slot` 0|1 — по одной живой подписке на слот), `quotes` (фиксированные колонки), `fields`, `source_status`, `error` (коды v1 + `provider_error`, `timeout`). Примеры `market_channel_v2/`, тесты, модели и `MARKET_CHANNEL_V2` перегенерированы.
 
 ### Changed
+- `gp.v2.json`: `indicator.type` — открытая строка (`^[a-z][a-z0-9_]*$`) вместо enum `wma|kama|psar|cot`; `indicatorSettings` допускает произвольные дополнительные ключи (number|string|boolean), кроме `enabled`. Новый индикатор не требует правки протокола.
 
 ### Fixed
 

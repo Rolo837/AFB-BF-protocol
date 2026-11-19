@@ -1,0 +1,8 @@
+{
+  "channel": "market",
+  "schema": "afbws.market.error.v2",
+  "request_id": "get-1",
+  "code": "busy",
+  "message": "too many concurrent requests",
+  "retry_after_sec": 2
+}

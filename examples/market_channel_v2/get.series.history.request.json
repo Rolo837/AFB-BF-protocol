@@ -1,0 +1,11 @@
+{
+  "channel": "market",
+  "schema": "afbws.market.get.v2",
+  "request_id": "get-2",
+  "target": "series",
+  "slot": 1,
+  "instrument_key": "MISX:TQBR:SBER",
+  "period": "1d",
+  "start_date": "2026-01-01",
+  "end_date": "2026-11-01"
+}

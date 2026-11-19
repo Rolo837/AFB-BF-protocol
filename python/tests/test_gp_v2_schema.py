@@ -131,9 +131,27 @@ def test_indicator_types_valid(type_, registry):
 def test_indicator_rejects_bad_scope_and_type(registry):
     from jsonschema import ValidationError
 
-    for bad in (_indicator(scope="global"), _indicator(type="rsi")):
+    for bad in (_indicator(scope="global"), _indicator(type="RSI"), _indicator(type="1x"), _indicator(type="")):
         with pytest.raises(ValidationError):
             _validator(registry, "#/$defs/indicator").validate(bad)
+
+
+def test_indicator_open_type_and_extra_settings(registry):
+    """type is an open string; settings take extra number/string/boolean keys."""
+    from jsonschema import ValidationError
+
+    v = _validator(registry, "#/$defs/indicator")
+    ind = _indicator(type="rsi_smooth")
+    ind["settings"] = dict(ind["settings"], smoothing="ema", upperLevel=70, showFill=True)
+    v.validate(ind)
+    bad = _indicator()
+    bad["settings"] = dict(bad["settings"], levels=[30, 70])  # non-scalar extra value
+    with pytest.raises(ValidationError):
+        v.validate(bad)
+    bad = _indicator()
+    del bad["settings"]["color"]  # required keys stay required
+    with pytest.raises(ValidationError):
+        v.validate(bad)
 
 
 def test_indicator_rejects_enabled_flag(registry):

@@ -1,0 +1,468 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/market.channel.v2.json",
+  "x-afbws-support-id": "afbws.market.channel.v2",
+  "title": "market channel v2 — registry fields, chart slots (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.market.channel.v2). Second generation of the `market` channel; afbws.market.channel.v1 stays available next to it until the frontend has fully migrated, the backend chooses the generation per connection by `auth.support` only (a client may declare both ids during the migration; there is no version-gated behaviour). Every instrument is addressed by the catalog's full `instrument_key` (see common.v1.json#/$defs/instrumentKey), never a bare SECID. ONE schema id per message (`afbws.market.<op>.v2`): the same schema is the reply to a request (carries `request_id`) and an unsolicited push to a live subscription (no `request_id`) — deliberately no `.request`/`.response`/`.push` suffixes. Messages: `subscribe`/`subscription` (replace-all quotes subscription), `get` (one request, `target` = series|quotes|fields), `series` (candles plus requested data fields, columnar), `quotes` (cross-instrument quote rows), `fields` (which data fields exist for an instrument), `source_status` (health push) and `error`. DATA FIELDS. Instead of closed per-kind column lists, a client asks for concrete fields named `<source>.<field>` (e.g. `trades.val_b`), optionally with a rolling-median suffix `@median(N)`. The protocol fixes only the NAME SHAPE (pattern on `get.fields`); which source/field/median combinations are valid is decided by the server's field registry, so a new field of an existing source needs no protocol change. A requested field that the server cannot serve is not an error: it is listed in `series.unavailable` with a reason and the rest is delivered. `get` with target=fields tells a client what the registry offers for one instrument. CHART SLOTS. A chart page has up to two charts; each is a `slot` (0 or 1). `slot` is mandatory in `get` (target=series) and in `series`: there is no default. A connection has at most one live series subscription PER SLOT (so at most two); a live `get` replaces only the subscription of its own slot, `superseded` acts inside the slot only, a history `get` touches no subscription, and there is no explicit unsubscribe — a subscription lives until a live `get` of the same slot replaces it or the connection closes (a client that switched a slot off simply ignores its pushes). Identical (instrument, period, fields) sets in two slots are two independent subscriptions. QUOTES. `subscribe` is explicit and replace-all (the client states its whole desired set every time); `get` (target=quotes) is the one-shot variant. The quote column set is fixed by the schema. `NaN` never appears on the wire — sources that produce it are converted to `null`. See AFB/docs/ws/market.v2.md.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/subscribe" },
+    { "$ref": "#/$defs/subscription" },
+    { "$ref": "#/$defs/get" },
+    { "$ref": "#/$defs/series" },
+    { "$ref": "#/$defs/quotes" },
+    { "$ref": "#/$defs/fields" },
+    { "$ref": "#/$defs/sourceStatus" },
+    { "$ref": "#/$defs/error" }
+  ],
+  "$defs": {
+    "period": {
+      "enum": ["1min", "5min", "10min", "15min", "30min", "1h", "2h", "4h", "1d"]
+    },
+
+    "slot": {
+      "type": "integer",
+      "enum": [0, 1],
+      "description": "Chart slot (two charts on a page). In `get` (target=series) it names the slot whose live subscription this request may replace; in `series` it is the echo of the request's slot (reply) or the slot of the subscription (merge push), by which the client routes a push to the right chart."
+    },
+
+    "fieldRequest": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*(@median\\([1-9][0-9]{0,2}\\))?$",
+      "description": "`<source>.<field>` with an optional `@median(N)` suffix, N an integer 1..999 by shape (the real upper bound is `fields.median_max_days`, enforced by the server). `@median(N)`: N is the width in CALENDAR DAYS of a rolling window before the bar's date; for a bar of date D and in-day slot s the value is the median of the same field in the same slot s over the days [D-N, D) — the current day D is excluded, days without a value are skipped, no values means null. Defined for intraday periods and `1d` (for `1d` the slot is the whole day); other periods answer the field as `unavailable` (`not_supported`). The response column is named `<field>@median(N)` (without the source prefix)."
+    },
+
+    "unavailableEntry": {
+      "type": "object",
+      "title": "One `series.unavailable[]` element — a requested field the server did not deliver.",
+      "required": ["field", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The requested field exactly as sent in `get.fields`."
+        },
+        "reason": {
+          "enum": ["unknown", "not_applicable", "no_access", "not_supported"],
+          "description": "`unknown` — no such source/field in the registry. `not_applicable` — the field exists but not for this instrument/market. `no_access` — the caller's access does not include this source. `not_supported` — the field has no median (or no such mode), or the period / N is outside what the registry supports for it."
+        }
+      }
+    },
+
+    "table": {
+      "type": "object",
+      "title": "Columnar data block of one source for a `series`.",
+      "description": "`columns` lists `time` first (UTC unix seconds = the candle's timestamp), then field names WITHOUT the source prefix, with the `@median(N)` suffix where one was requested. A client reads by column name, never by position. `rows` hold only numbers and `null` (NaN is sent as `null`), each row as long as `columns`. Rows exist only at the timestamps of the candles of the SAME message (the `candles` table is the grid): the server aligns every source to it; there are no rows outside trading hours and no forward-filled values.",
+      "required": ["source", "columns", "rows"],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "`candles` or a source name of the server's field registry (the part of `get.fields` before the dot)."
+        },
+        "resolved_key": {
+          "$ref": "common.v1.json#/$defs/instrumentKey",
+          "description": "Present only when the server substituted the source instrument (e.g. a stock or a broker-only instrument of an asset resolved to its derivative for positions). Absent means the requested `instrument_key` itself was used."
+        },
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "prefixItems": [{ "const": "time" }],
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*(@median\\([1-9][0-9]{0,2}\\))?$"
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": ["number", "null"] }
+          },
+          "description": "Each row has the same length and column order as `columns`."
+        }
+      }
+    },
+
+    "candlesTable": {
+      "title": "The candles table: always `tables[0]` of a series.",
+      "allOf": [
+        { "$ref": "#/$defs/table" },
+        {
+          "properties": {
+            "source": { "const": "candles" },
+            "columns": { "const": ["time", "open", "high", "low", "close", "volume"] }
+          }
+        }
+      ]
+    },
+
+    "dataTable": {
+      "title": "A non-candle table of a series (`source` is never `candles`).",
+      "allOf": [
+        { "$ref": "#/$defs/table" },
+        { "properties": { "source": { "not": { "const": "candles" } } } }
+      ]
+    },
+
+    "dataStatus": {
+      "type": "object",
+      "title": "Degraded-data marker.",
+      "description": "Present on a `series` message only when it is NOT a normal fresh answer: either the external source's circuit breaker was open when it was built (served from the cache only, no network; the `candles` table may then be shorter or missing) or the freshness detector found the instrument's data lagging behind a live market while the fetch itself nominally succeeded. Absent means a normal, fresh answer.",
+      "required": ["state", "source", "reason", "since"],
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "enum": ["stale", "partial"],
+          "description": "\"partial\": at least one requested table could not be served at all. \"stale\": every requested table is present but may lag behind the live market."
+        },
+        "source": { "type": "string", "minLength": 1, "description": "Which external source this is attributed to." },
+        "reason": { "type": "string", "minLength": 1, "description": "Human-readable cause (breaker cooldown, freshness lag, ...)." },
+        "since": { "type": "string", "format": "date-time", "description": "When this degraded condition started, ISO-8601 with offset." }
+      }
+    },
+
+    "series": {
+      "type": "object",
+      "title": "afbws.market.series.v2 — candles of one instrument plus the requested data fields.",
+      "description": "Reply to `get` (target=series) when `request_id` is present — `mode:\"replace\"`, the full requested range; the client replaces its copy of this slot's instrument+period range with `tables`. Unsolicited push to the slot's live subscription when `request_id` is absent — `mode:\"merge\"`: rows only at the timestamp(s) of the latest candle(s) (the just-closed bar plus the new one on a period rollover), upserted by `time`. `tables[0]` is ALWAYS the candles table (source `candles`, columns `time, open, high, low, close, volume`) — the grid every other table is aligned to; further tables follow, one per requested source that delivered at least one field. Fields that were requested but not delivered are listed in `unavailable`. A failure to load the candles themselves is NOT answered with a `series` but with `error` (`provider_error`, `timeout` or `not_supported`) and creates no live subscription; a failed merge-push update is simply not sent (freshness is reported by `data_status`). There is no free-text `message` here.",
+      "required": ["channel", "schema", "slot", "instrument_key", "period", "mode", "tables"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "market" },
+        "schema": { "const": "afbws.market.series.v2" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "slot": { "$ref": "#/$defs/slot" },
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "period": { "$ref": "#/$defs/period" },
+        "mode": {
+          "enum": ["replace", "merge"],
+          "description": "\"replace\": the full answer to a `get`. \"merge\": a live push — rows only at the latest candle time(s)."
+        },
+        "tables": {
+          "type": "array",
+          "minItems": 1,
+          "prefixItems": [{ "$ref": "#/$defs/candlesTable" }],
+          "items": { "$ref": "#/$defs/dataTable" }
+        },
+        "unavailable": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/unavailableEntry" },
+          "description": "Optional: requested fields that are not in `tables`, with the reason. Absent when everything requested was delivered."
+        },
+        "future_times": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "Optional, live series only: UTC unix seconds of the opening tick of each future (not-yet-formed) `period` bar after the last candle in `tables`, per the trading calendar — strictly increasing, no duplicates. Computed server-side; there is no client-side calendar lookup. Present on the `mode:\"replace\"` reply to a live `get` and re-sent on a `mode:\"merge\"` push only when the list actually changed — a `merge` push without `future_times` means it is unchanged. Never present on a pure history fetch (`end_date` strictly before today). Rendered as whitespace bar slots past the last real candle."
+        },
+        "data_status": { "$ref": "#/$defs/dataStatus" }
+      }
+    },
+
+    "quotes": {
+      "type": "object",
+      "title": "afbws.market.quotes.v2 — cross-instrument quote rows.",
+      "description": "Reply to `get` (target=quotes) when `request_id` is present (always `mode:\"full\"`); unsolicited push to the connection's quotes subscription when it is absent: `mode:\"full\"` right after `subscribe`, then `mode:\"update\"` with only the rows that changed (about every 30 s). `columns` is fixed by the schema (`instrument_key, last, close, percent, volume`); adding a column is a protocol PATCH. Each row is keyed by its first column, `instrument_key`.",
+      "required": ["channel", "schema", "mode", "columns", "rows"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "market" },
+        "schema": { "const": "afbws.market.quotes.v2" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "mode": {
+          "enum": ["full", "update"],
+          "description": "\"full\": the client replaces its whole quote cache (reply to `get`, first push after `subscribe`). \"update\": only the changed rows; the client upserts them by `instrument_key`."
+        },
+        "columns": {
+          "const": ["instrument_key", "last", "close", "percent", "volume"]
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "prefixItems": [
+              { "$ref": "common.v1.json#/$defs/instrumentKey" },
+              { "type": ["number", "null"] },
+              { "type": ["number", "null"] },
+              { "type": ["number", "null"] },
+              { "type": ["number", "null"] }
+            ]
+          },
+          "description": "Each row follows `columns`: instrument_key (string), then last, close, percent, volume (number or null)."
+        }
+      }
+    },
+
+    "fieldEntry": {
+      "type": "object",
+      "title": "One field of a source in `fields.sources[].fields[]`.",
+      "required": ["name", "median"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Field name; the client requests it as `<source>.<name>`. Stored and computed fields are not distinguished."
+        },
+        "median": {
+          "type": "boolean",
+          "description": "True when `@median(N)` is allowed for this field."
+        }
+      }
+    },
+
+    "fieldSource": {
+      "type": "object",
+      "title": "One data source applicable to the instrument, as seen by the caller.",
+      "required": ["source", "step_sec", "fields"],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "resolved_key": {
+          "$ref": "common.v1.json#/$defs/instrumentKey",
+          "description": "Present only when the source instrument differs from the requested one (same meaning as `table.resolved_key`)."
+        },
+        "step_sec": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Native step of the source's data in seconds (currently 300 or 86400). Deliberately not a closed enum: a source with another native step is a registry row on the server, not a protocol change."
+        },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/fieldEntry" }
+        }
+      }
+    },
+
+    "fields": {
+      "type": "object",
+      "title": "afbws.market.fields.v2 — data fields available for one instrument.",
+      "description": "Reply to `get` (target=fields); always carries `request_id`. `sources` lists only the sources that are applicable to the instrument AND available to the caller (a source the caller has no access to is omitted, not marked).",
+      "required": ["channel", "schema", "request_id", "instrument_key", "sources", "median_max_days"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "market" },
+        "schema": { "const": "afbws.market.fields.v2" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "sources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/fieldSource" }
+        },
+        "median_max_days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Upper bound of N in `@median(N)` (calendar days)."
+        }
+      }
+    },
+
+    "subscribe": {
+      "type": "object",
+      "title": "afbws.market.subscribe.v2 — replace-all quotes subscription (client -> server).",
+      "description": "The client states its whole desired set of instruments every time; the server does not diff against a previous `subscribe`. An empty `instrument_keys` unsubscribes. Reply is `subscription` with the same `request_id`, immediately followed by a `quotes` push with `mode:\"full\"`. Does not affect the series subscriptions, those are driven by `get` (target=series) alone.",
+      "required": ["channel", "schema", "request_id", "instrument_keys"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "market" },
+        "schema": { "const": "afbws.market.subscribe.v2" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "instrument_keys": {
+          "type": "array",
+          "maxItems": 2000,
+          "uniqueItems": true,
+          "items": { "$ref": "common.v1.json#/$defs/instrumentKey" }
+        }
+      }
+    },
+
+    "subscriptionRejection": {
+      "type": "object",
+      "required": ["instrument_key", "code"],
+      "additionalProperties": false,
+      "properties": {
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "code": { "enum": ["not_found", "forbidden", "not_supported"] },
+        "message": { "type": "string" }
+      }
+    },
+
+    "subscription": {
+      "type": "object",
+      "title": "afbws.market.subscription.v2 — accepted quotes subscription, reply to subscribe.v2.",
+      "description": "`instrument_keys` is the accepted subset of what was requested; `rejected` lists the instruments that could not be subscribed with a reason code. Always followed by a `quotes` push with `mode:\"full\"`.",
+      "required": ["channel", "schema", "request_id", "instrument_keys", "rejected"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "market" },
+        "schema": { "const": "afbws.market.subscription.v2" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "instrument_keys": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "common.v1.json#/$defs/instrumentKey" }
+        },
+        "rejected": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/subscriptionRejection" }
+        }
+      }
+    },
+
+    "get": {
+      "type": "object",
+      "title": "afbws.market.get.v2 — one-shot request (client -> server); `target` selects the kind.",
+      "description": "Reply by `target`: series -> `series` (mode:\"replace\"), quotes -> `quotes` (mode:\"full\"), fields -> `fields`; or `error` — all with the same `request_id`. Each target allows only its own fields (the others are rejected by the schema). target=series: candles are ALWAYS delivered (they are the grid the data rows live on, there is no flag for it); `fields` asks for additional data fields (see `$defs/fieldRequest`), its validity is decided by the server registry and an unserved field lands in `series.unavailable` instead of failing the request. LIVE RULE: if `end_date` is absent, or not earlier than \"today\" in the instrument's market timezone, this request ALSO becomes the live series subscription OF ITS `slot` and replaces only that slot's previous subscription (the replaced live `get`, if still pending, is answered with `error` code `superseded`); the server then pushes `series` (mode:\"merge\") for it. A request with `end_date` strictly before today (history paging) is a pure history fetch and touches no subscription. A connection has at most one live series subscription per slot, so at most two; there is no explicit unsubscribe — it lives until replaced by a live `get` of the same slot or until the connection closes. Identical sets in the two slots are two independent subscriptions. The limit of concurrently running heavy `get`s per connection is unchanged and applies across slots (`busy`). target=quotes: `instrument_keys` omitted means all instruments with cached data. target=fields: the answer lists the registry's sources and fields for the instrument.",
+      "required": ["channel", "schema", "request_id", "target"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "market" },
+        "schema": { "const": "afbws.market.get.v2" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "target": { "enum": ["series", "quotes", "fields"] },
+        "slot": { "$ref": "#/$defs/slot" },
+        "instrument_key": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+        "period": { "$ref": "#/$defs/period" },
+        "start_date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "target=series only: first date to fetch, YYYY-MM-DD in the instrument's market timezone."
+        },
+        "end_date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "target=series only: last date to fetch, YYYY-MM-DD; omitted means up to the latest available. Also decides whether this request becomes the slot's live subscription — see the parent description."
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/fieldRequest" },
+          "description": "target=series only: data fields to deliver next to the candles; omitted means candles only. A `@median(N)` request widens the data read backwards by N days on the server; the answer still covers only the requested range."
+        },
+        "instrument_keys": {
+          "type": "array",
+          "maxItems": 2000,
+          "uniqueItems": true,
+          "items": { "$ref": "common.v1.json#/$defs/instrumentKey" },
+          "description": "target=quotes only: instruments to fetch; omitted means every instrument with cached data."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "target": { "const": "series" } }, "required": ["target"] },
+          "then": {
+            "required": ["slot", "instrument_key", "period", "start_date"],
+            "properties": { "instrument_keys": false }
+          }
+        },
+        {
+          "if": { "properties": { "target": { "const": "quotes" } }, "required": ["target"] },
+          "then": {
+            "properties": {
+              "slot": false,
+              "instrument_key": false,
+              "period": false,
+              "start_date": false,
+              "end_date": false,
+              "fields": false
+            }
+          }
+        },
+        {
+          "if": { "properties": { "target": { "const": "fields" } }, "required": ["target"] },
+          "then": {
+            "required": ["instrument_key"],
+            "properties": {
+              "slot": false,
+              "period": false,
+              "start_date": false,
+              "end_date": false,
+              "fields": false,
+              "instrument_keys": false
+            }
+          }
+        }
+      ]
+    },
+
+    "sourceStatusEntry": {
+      "type": "object",
+      "title": "One `source_status.sources[]` element — one external source's current health.",
+      "required": ["source", "state", "since"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "type": "string", "minLength": 1, "description": "External source name as tracked by the backend's health registry." },
+        "state": { "enum": ["ok", "degraded", "down"] },
+        "since": { "type": "string", "format": "date-time", "description": "When this source entered its CURRENT state, ISO-8601 with offset." },
+        "reason": { "type": "string", "description": "Human-readable cause (window error rate/p90 for degraded, breaker cooldown for down)." }
+      }
+    },
+
+    "sourceStatus": {
+      "type": "object",
+      "title": "afbws.market.source_status.v2 — health snapshot of the backend's external data sources.",
+      "description": "Unsolicited push, no `request_id`: sent on each health-state transition of an external source and once as a full snapshot right after this channel's first `subscribe`/`get`. `sources` lists every source the backend currently tracks; a source absent from the list has never reported a call yet — treat as \"ok\". Same structure as v1.",
+      "required": ["channel", "schema", "sources"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "market" },
+        "schema": { "const": "afbws.market.source_status.v2" },
+        "sources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/sourceStatusEntry" }
+        }
+      }
+    },
+
+    "error": {
+      "type": "object",
+      "title": "afbws.market.error.v2",
+      "description": "Reply to a failed `get` (same `request_id`) or a channel-level error. Codes are the v1 codes plus the candle-load failures `provider_error` and `timeout`. `superseded` — a live `get` (target=series) was cancelled because a newer live `get` of the SAME slot replaced it before it finished; the client discards the pending request silently. `busy` — the connection's concurrent heavy-`get` limit was exceeded or the server is under memory pressure; carries `retry_after_sec`. `provider_error` — loading the candles failed at the data provider (the reason is in `message`; no live subscription was created). `timeout` — loading the candles timed out (same consequences). `not_supported` — the period or the instrument is not supported by the candle source (also used for an unsupported period of a data source).",
+      "required": ["channel", "schema", "code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "channel": { "const": "market" },
+        "schema": { "const": "afbws.market.error.v2" },
+        "request_id": { "$ref": "common.v1.json#/$defs/requestId" },
+        "code": { "$ref": "#/$defs/errorCode" },
+        "message": { "type": "string", "minLength": 1 },
+        "details": { "type": "object" },
+        "retry_after_sec": {
+          "type": "number",
+          "minimum": 0,
+          "description": "code=busy only: seconds the client should wait before retrying the same request once."
+        }
+      }
+    },
+
+    "errorCode": {
+      "enum": [
+        "not_found",
+        "invalid_schema",
+        "invalid_channel",
+        "validation_error",
+        "conflict",
+        "internal_error",
+        "forbidden",
+        "bf_offline",
+        "unsupported_action",
+        "not_paired",
+        "superseded",
+        "busy",
+        "not_supported",
+        "provider_error",
+        "timeout"
+      ],
+      "description": "Own enum of this channel (not common.v1.json#/$defs/errorCode, so that v1 does not widen): the common codes plus `provider_error` and `timeout`."
+    }
+  }
+}

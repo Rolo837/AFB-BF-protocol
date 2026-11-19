@@ -1,0 +1,7 @@
+{
+  "channel": "market",
+  "schema": "afbws.market.subscription.v2",
+  "request_id": "sub-1",
+  "instrument_keys": ["MISX:TQBR:SBER"],
+  "rejected": [{ "instrument_key": "MISX:RFUD:SiZ6", "code": "forbidden" }]
+}

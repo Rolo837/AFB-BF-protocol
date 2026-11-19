@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: cebbff0dfaabf34bd256a8a91d11e48460cf810bd5bfec6bc0ab14022eac9ffc
+ * source-hash: 81b0197b0f13d49cd11089029a8f88155faa0315b1fc50b4b3320f5d8b758ce5
  */
 
 /**
@@ -2076,6 +2076,116 @@ export type MarketTable = {
  */
 export type MarketSnapshotTable = MarketTable & {
   kind?: 'quote' | 'oi' | 'oi_daily';
+};
+/**
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.market.channel.v2). Second generation of the `market` channel; afbws.market.channel.v1 stays available next to it until the frontend has fully migrated, the backend chooses the generation per connection by `auth.support` only (a client may declare both ids during the migration; there is no version-gated behaviour). Every instrument is addressed by the catalog's full `instrument_key` (see common.v1.json#/$defs/instrumentKey), never a bare SECID. ONE schema id per message (`afbws.market.<op>.v2`): the same schema is the reply to a request (carries `request_id`) and an unsolicited push to a live subscription (no `request_id`) — deliberately no `.request`/`.response`/`.push` suffixes. Messages: `subscribe`/`subscription` (replace-all quotes subscription), `get` (one request, `target` = series|quotes|fields), `series` (candles plus requested data fields, columnar), `quotes` (cross-instrument quote rows), `fields` (which data fields exist for an instrument), `source_status` (health push) and `error`. DATA FIELDS. Instead of closed per-kind column lists, a client asks for concrete fields named `<source>.<field>` (e.g. `trades.val_b`), optionally with a rolling-median suffix `@median(N)`. The protocol fixes only the NAME SHAPE (pattern on `get.fields`); which source/field/median combinations are valid is decided by the server's field registry, so a new field of an existing source needs no protocol change. A requested field that the server cannot serve is not an error: it is listed in `series.unavailable` with a reason and the rest is delivered. `get` with target=fields tells a client what the registry offers for one instrument. CHART SLOTS. A chart page has up to two charts; each is a `slot` (0 or 1). `slot` is mandatory in `get` (target=series) and in `series`: there is no default. A connection has at most one live series subscription PER SLOT (so at most two); a live `get` replaces only the subscription of its own slot, `superseded` acts inside the slot only, a history `get` touches no subscription, and there is no explicit unsubscribe — a subscription lives until a live `get` of the same slot replaces it or the connection closes (a client that switched a slot off simply ignores its pushes). Identical (instrument, period, fields) sets in two slots are two independent subscriptions. QUOTES. `subscribe` is explicit and replace-all (the client states its whole desired set every time); `get` (target=quotes) is the one-shot variant. The quote column set is fixed by the schema. `NaN` never appears on the wire — sources that produce it are converted to `null`. See AFB/docs/ws/market.v2.md.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketChannelV2Message".
+ */
+export type MarketChannelV2Message =
+  | MarketV2Subscribe
+  | MarketV2Subscription
+  | MarketV2Get
+  | MarketV2Series
+  | MarketV2Quotes
+  | MarketV2Fields
+  | MarketV2SourceStatus
+  | MarketV2Error;
+/**
+ * Reply by `target`: series -> `series` (mode:"replace"), quotes -> `quotes` (mode:"full"), fields -> `fields`; or `error` — all with the same `request_id`. Each target allows only its own fields (the others are rejected by the schema). target=series: candles are ALWAYS delivered (they are the grid the data rows live on, there is no flag for it); `fields` asks for additional data fields (see `$defs/fieldRequest`), its validity is decided by the server registry and an unserved field lands in `series.unavailable` instead of failing the request. LIVE RULE: if `end_date` is absent, or not earlier than "today" in the instrument's market timezone, this request ALSO becomes the live series subscription OF ITS `slot` and replaces only that slot's previous subscription (the replaced live `get`, if still pending, is answered with `error` code `superseded`); the server then pushes `series` (mode:"merge") for it. A request with `end_date` strictly before today (history paging) is a pure history fetch and touches no subscription. A connection has at most one live series subscription per slot, so at most two; there is no explicit unsubscribe — it lives until replaced by a live `get` of the same slot or until the connection closes. Identical sets in the two slots are two independent subscriptions. The limit of concurrently running heavy `get`s per connection is unchanged and applies across slots (`busy`). target=quotes: `instrument_keys` omitted means all instruments with cached data. target=fields: the answer lists the registry's sources and fields for the instrument.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2Get".
+ */
+export type MarketV2Get = {
+  [k: string]: unknown;
+} & {
+  channel: 'market';
+  schema: 'afbws.market.get.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  target: 'series' | 'quotes' | 'fields';
+  slot?: MarketV2Slot;
+  instrument_key?: AfbwsCommonV1_InstrumentKey;
+  period?: MarketV2Period;
+  /**
+   * target=series only: first date to fetch, YYYY-MM-DD in the instrument's market timezone.
+   */
+  start_date?: string;
+  /**
+   * target=series only: last date to fetch, YYYY-MM-DD; omitted means up to the latest available. Also decides whether this request becomes the slot's live subscription — see the parent description.
+   */
+  end_date?: string;
+  /**
+   * target=series only: data fields to deliver next to the candles; omitted means candles only. A `@median(N)` request widens the data read backwards by N days on the server; the answer still covers only the requested range.
+   *
+   * @minItems 1
+   */
+  fields?: [MarketV2FieldRequest, ...MarketV2FieldRequest[]];
+  /**
+   * target=quotes only: instruments to fetch; omitted means every instrument with cached data.
+   *
+   * @maxItems 2000
+   */
+  instrument_keys?: AfbwsCommonV1_InstrumentKey[];
+};
+/**
+ * Chart slot (two charts on a page). In `get` (target=series) it names the slot whose live subscription this request may replace; in `series` it is the echo of the request's slot (reply) or the slot of the subscription (merge push), by which the client routes a push to the right chart.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2Slot".
+ */
+export type MarketV2Slot = 0 | 1;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2Period".
+ */
+export type MarketV2Period = '1min' | '5min' | '10min' | '15min' | '30min' | '1h' | '2h' | '4h' | '1d';
+/**
+ * `<source>.<field>` with an optional `@median(N)` suffix, N an integer 1..999 by shape (the real upper bound is `fields.median_max_days`, enforced by the server). `@median(N)`: N is the width in CALENDAR DAYS of a rolling window before the bar's date; for a bar of date D and in-day slot s the value is the median of the same field in the same slot s over the days [D-N, D) — the current day D is excluded, days without a value are skipped, no values means null. Defined for intraday periods and `1d` (for `1d` the slot is the whole day); other periods answer the field as `unavailable` (`not_supported`). The response column is named `<field>@median(N)` (without the source prefix).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2FieldRequest".
+ */
+export type MarketV2FieldRequest = string;
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2DataTable".
+ */
+export type MarketV2DataTable = MarketV2Table & {
+  source?: {
+    [k: string]: unknown;
+  };
+};
+/**
+ * Own enum of this channel (not common.v1.json#/$defs/errorCode, so that v1 does not widen): the common codes plus `provider_error` and `timeout`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2ErrorCode".
+ */
+export type MarketV2ErrorCode =
+  | 'not_found'
+  | 'invalid_schema'
+  | 'invalid_channel'
+  | 'validation_error'
+  | 'conflict'
+  | 'internal_error'
+  | 'forbidden'
+  | 'bf_offline'
+  | 'unsupported_action'
+  | 'not_paired'
+  | 'superseded'
+  | 'busy'
+  | 'not_supported'
+  | 'provider_error'
+  | 'timeout';
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2CandlesTable".
+ */
+export type MarketV2CandlesTable = MarketV2Table & {
+  source?: 'candles';
+  columns?: ['time', 'open', 'high', 'low', 'close', 'volume'];
 };
 /**
  * Negotiated via auth.support/auth_ok.support (capability id afbws.screener.channel.v1). Read-only access to the screener's published JSON exports (contract v1, see AFB/docs/SCREENER_RESULTS.md); the backend never opens the screener database. Same convention as afbws.market/afbws.config: ONE schema id per message (`afbws.screener.<op>.v1`, no .request/.response suffixes); the same schema is the request and its response. `request_id` is required in every client request. The only server push is `afbws.screener.participants.v1` without `request_id` (see its description); the other operations are answered on demand. A failed request is answered with `afbws.screener.error.v1`. Operations: `list` (available exports, newest first, content not read), `get` (one export by id) and `participants` (market participants snapshot: four lists now/d1/d2/w1 of derivatives with fiz/yur positions, open interest and volume, computed by the backend from market_cache). Export ids: `night:YYYY-MM-DD` (night result of a trading day), `intraday:YYYY-MM-DDTHHMM` (intraday snapshot), or the aliases `latest` (newest night export) and `intraday_latest` (newest intraday snapshot). Access requires the `screener` capability of the user's role; otherwise `forbidden`. The exported document is intentionally an open object: only `contract_version` is relied upon; the screener's fields (signals, reliability, models, errors) evolve and are described in AFB/docs/SCREENER_RESULTS.md. A document with an unsupported `contract_version` is answered with `unsupported_action`. See AFB/docs/ws/screener.md.
@@ -6851,24 +6961,28 @@ export interface GpV2IndicatorList {
   items?: GpV2Indicator[];
 }
 /**
- * `scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `settings` carry the parameters. Whether an indicator is shown on the chart is not part of the protocol (per-device view setting kept in the client's localStorage). Type `cot` is chart-only; alarm indicator conditions support wma/kama/psar.
+ * `scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `settings` carry the parameters. Whether an indicator is shown on the chart is not part of the protocol (per-device view setting kept in the client's localStorage). `type` is an open string (pattern `^[a-z][a-z0-9_]*$`), not an enum; the server computes only wma/kama/psar (alarm indicator conditions, virtual account), other types are stored and returned as is. Type `cot` is chart-only.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpV2Indicator".
  */
 export interface GpV2Indicator {
   id: string;
-  type: 'wma' | 'kama' | 'psar' | 'cot';
+  /**
+   * Indicator type, an open set: indicators are computed by the frontend, so a new indicator needs no protocol change. Known: wma, kama, psar, cot.
+   */
+  type: string;
   settings: GpV2IndicatorSettings;
   scope: 'shared' | 'personal';
 }
 /**
- * Display + calculation settings. Common: color/lineWidth/lineStyle; period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.
+ * Display + calculation settings. Required: color/lineWidth/lineStyle. Typed optional keys of the built-in indicators: period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Any other key is allowed (value: number, string or boolean), except `enabled` (per-device view flag, never protocol) — indicators are computed by the frontend, so a new indicator brings its own parameters without a protocol change. Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpV2IndicatorSettings".
  */
 export interface GpV2IndicatorSettings {
+  enabled?: never;
   color: string;
   lineWidth: number;
   lineStyle: 'Solid' | 'Dots';
@@ -6879,6 +6993,7 @@ export interface GpV2IndicatorSettings {
   start?: number;
   maximum?: number;
   increment?: number;
+  [k: string]: unknown;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -7536,6 +7651,251 @@ export interface MarketErrorResponse {
   schema: 'afbws.market.error.v1';
   request_id?: AfbwsCommonV1_RequestId;
   code: AfbwsCommonV1_ErrorCode;
+  message: string;
+  details?: {};
+  /**
+   * code=busy only: seconds the client should wait before retrying the same request once.
+   */
+  retry_after_sec?: number;
+}
+/**
+ * The client states its whole desired set of instruments every time; the server does not diff against a previous `subscribe`. An empty `instrument_keys` unsubscribes. Reply is `subscription` with the same `request_id`, immediately followed by a `quotes` push with `mode:"full"`. Does not affect the series subscriptions, those are driven by `get` (target=series) alone.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2Subscribe".
+ */
+export interface MarketV2Subscribe {
+  channel: 'market';
+  schema: 'afbws.market.subscribe.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * @maxItems 2000
+   */
+  instrument_keys: AfbwsCommonV1_InstrumentKey[];
+}
+/**
+ * `instrument_keys` is the accepted subset of what was requested; `rejected` lists the instruments that could not be subscribed with a reason code. Always followed by a `quotes` push with `mode:"full"`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2Subscription".
+ */
+export interface MarketV2Subscription {
+  channel: 'market';
+  schema: 'afbws.market.subscription.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  instrument_keys: AfbwsCommonV1_InstrumentKey[];
+  rejected: MarketV2SubscriptionRejection[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2SubscriptionRejection".
+ */
+export interface MarketV2SubscriptionRejection {
+  instrument_key: AfbwsCommonV1_InstrumentKey;
+  code: 'not_found' | 'forbidden' | 'not_supported';
+  message?: string;
+}
+/**
+ * Reply to `get` (target=series) when `request_id` is present — `mode:"replace"`, the full requested range; the client replaces its copy of this slot's instrument+period range with `tables`. Unsolicited push to the slot's live subscription when `request_id` is absent — `mode:"merge"`: rows only at the timestamp(s) of the latest candle(s) (the just-closed bar plus the new one on a period rollover), upserted by `time`. `tables[0]` is ALWAYS the candles table (source `candles`, columns `time, open, high, low, close, volume`) — the grid every other table is aligned to; further tables follow, one per requested source that delivered at least one field. Fields that were requested but not delivered are listed in `unavailable`. A failure to load the candles themselves is NOT answered with a `series` but with `error` (`provider_error`, `timeout` or `not_supported`) and creates no live subscription; a failed merge-push update is simply not sent (freshness is reported by `data_status`). There is no free-text `message` here.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2Series".
+ */
+export interface MarketV2Series {
+  channel: 'market';
+  schema: 'afbws.market.series.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  slot: MarketV2Slot;
+  instrument_key: AfbwsCommonV1_InstrumentKey;
+  period: MarketV2Period;
+  /**
+   * "replace": the full answer to a `get`. "merge": a live push — rows only at the latest candle time(s).
+   */
+  mode: 'replace' | 'merge';
+  /**
+   * @minItems 1
+   */
+  tables: [MarketV2DataTable, ...MarketV2DataTable[]];
+  /**
+   * Optional: requested fields that are not in `tables`, with the reason. Absent when everything requested was delivered.
+   */
+  unavailable?: MarketV2UnavailableEntry[];
+  /**
+   * Optional, live series only: UTC unix seconds of the opening tick of each future (not-yet-formed) `period` bar after the last candle in `tables`, per the trading calendar — strictly increasing, no duplicates. Computed server-side; there is no client-side calendar lookup. Present on the `mode:"replace"` reply to a live `get` and re-sent on a `mode:"merge"` push only when the list actually changed — a `merge` push without `future_times` means it is unchanged. Never present on a pure history fetch (`end_date` strictly before today). Rendered as whitespace bar slots past the last real candle.
+   */
+  future_times?: number[];
+  data_status?: MarketV2DataStatus;
+}
+/**
+ * `columns` lists `time` first (UTC unix seconds = the candle's timestamp), then field names WITHOUT the source prefix, with the `@median(N)` suffix where one was requested. A client reads by column name, never by position. `rows` hold only numbers and `null` (NaN is sent as `null`), each row as long as `columns`. Rows exist only at the timestamps of the candles of the SAME message (the `candles` table is the grid): the server aligns every source to it; there are no rows outside trading hours and no forward-filled values.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2Table".
+ */
+export interface MarketV2Table {
+  /**
+   * `candles` or a source name of the server's field registry (the part of `get.fields` before the dot).
+   */
+  source: string;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  resolved_key?: string;
+  /**
+   * @minItems 1
+   */
+  columns: [string, ...string[]];
+  /**
+   * Each row has the same length and column order as `columns`.
+   */
+  rows: (number | null)[][];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2UnavailableEntry".
+ */
+export interface MarketV2UnavailableEntry {
+  /**
+   * The requested field exactly as sent in `get.fields`.
+   */
+  field: string;
+  /**
+   * `unknown` — no such source/field in the registry. `not_applicable` — the field exists but not for this instrument/market. `no_access` — the caller's access does not include this source. `not_supported` — the field has no median (or no such mode), or the period / N is outside what the registry supports for it.
+   */
+  reason: 'unknown' | 'not_applicable' | 'no_access' | 'not_supported';
+}
+/**
+ * Present on a `series` message only when it is NOT a normal fresh answer: either the external source's circuit breaker was open when it was built (served from the cache only, no network; the `candles` table may then be shorter or missing) or the freshness detector found the instrument's data lagging behind a live market while the fetch itself nominally succeeded. Absent means a normal, fresh answer.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2DataStatus".
+ */
+export interface MarketV2DataStatus {
+  /**
+   * "partial": at least one requested table could not be served at all. "stale": every requested table is present but may lag behind the live market.
+   */
+  state: 'stale' | 'partial';
+  /**
+   * Which external source this is attributed to.
+   */
+  source: string;
+  /**
+   * Human-readable cause (breaker cooldown, freshness lag, ...).
+   */
+  reason: string;
+  /**
+   * When this degraded condition started, ISO-8601 with offset.
+   */
+  since: string;
+}
+/**
+ * Reply to `get` (target=quotes) when `request_id` is present (always `mode:"full"`); unsolicited push to the connection's quotes subscription when it is absent: `mode:"full"` right after `subscribe`, then `mode:"update"` with only the rows that changed (about every 30 s). `columns` is fixed by the schema (`instrument_key, last, close, percent, volume`); adding a column is a protocol PATCH. Each row is keyed by its first column, `instrument_key`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2Quotes".
+ */
+export interface MarketV2Quotes {
+  channel: 'market';
+  schema: 'afbws.market.quotes.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  /**
+   * "full": the client replaces its whole quote cache (reply to `get`, first push after `subscribe`). "update": only the changed rows; the client upserts them by `instrument_key`.
+   */
+  mode: 'full' | 'update';
+  columns: ['instrument_key', 'last', 'close', 'percent', 'volume'];
+  /**
+   * Each row follows `columns`: instrument_key (string), then last, close, percent, volume (number or null).
+   */
+  rows: [unknown, unknown, unknown, unknown, unknown][];
+}
+/**
+ * Reply to `get` (target=fields); always carries `request_id`. `sources` lists only the sources that are applicable to the instrument AND available to the caller (a source the caller has no access to is omitted, not marked).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2Fields".
+ */
+export interface MarketV2Fields {
+  channel: 'market';
+  schema: 'afbws.market.fields.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  instrument_key: AfbwsCommonV1_InstrumentKey;
+  sources: MarketV2FieldSource[];
+  /**
+   * Upper bound of N in `@median(N)` (calendar days).
+   */
+  median_max_days: number;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2FieldSource".
+ */
+export interface MarketV2FieldSource {
+  source: string;
+  /**
+   * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+   */
+  resolved_key?: string;
+  /**
+   * Native step of the source's data in seconds (currently 300 or 86400). Deliberately not a closed enum: a source with another native step is a registry row on the server, not a protocol change.
+   */
+  step_sec: number;
+  fields: MarketV2FieldEntry[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2FieldEntry".
+ */
+export interface MarketV2FieldEntry {
+  /**
+   * Field name; the client requests it as `<source>.<name>`. Stored and computed fields are not distinguished.
+   */
+  name: string;
+  /**
+   * True when `@median(N)` is allowed for this field.
+   */
+  median: boolean;
+}
+/**
+ * Unsolicited push, no `request_id`: sent on each health-state transition of an external source and once as a full snapshot right after this channel's first `subscribe`/`get`. `sources` lists every source the backend currently tracks; a source absent from the list has never reported a call yet — treat as "ok". Same structure as v1.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2SourceStatus".
+ */
+export interface MarketV2SourceStatus {
+  channel: 'market';
+  schema: 'afbws.market.source_status.v2';
+  sources: MarketV2SourceStatusEntry[];
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2SourceStatusEntry".
+ */
+export interface MarketV2SourceStatusEntry {
+  /**
+   * External source name as tracked by the backend's health registry.
+   */
+  source: string;
+  state: 'ok' | 'degraded' | 'down';
+  /**
+   * When this source entered its CURRENT state, ISO-8601 with offset.
+   */
+  since: string;
+  /**
+   * Human-readable cause (window error rate/p90 for degraded, breaker cooldown for down).
+   */
+  reason?: string;
+}
+/**
+ * Reply to a failed `get` (same `request_id`) or a channel-level error. Codes are the v1 codes plus the candle-load failures `provider_error` and `timeout`. `superseded` — a live `get` (target=series) was cancelled because a newer live `get` of the SAME slot replaced it before it finished; the client discards the pending request silently. `busy` — the connection's concurrent heavy-`get` limit was exceeded or the server is under memory pressure; carries `retry_after_sec`. `provider_error` — loading the candles failed at the data provider (the reason is in `message`; no live subscription was created). `timeout` — loading the candles timed out (same consequences). `not_supported` — the period or the instrument is not supported by the candle source (also used for an unsupported period of a data source).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "MarketV2Error".
+ */
+export interface MarketV2Error {
+  channel: 'market';
+  schema: 'afbws.market.error.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  code: MarketV2ErrorCode;
   message: string;
   details?: {};
   /**
