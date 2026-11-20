@@ -115,7 +115,7 @@ def test_alarm_v2_root_dispatch(registry):
 def test_gp_v2_no_request_response_pairs(registry):
     schema = json.loads((EXAMPLES.parent / "spec" / "schemas" / "afbws" / "gp.channel.v2.json").read_text())
     expected = {"list", "set", "delete", "indicatorList", "indicatorSet", "indicatorDelete",
-                "presetList", "presetSet", "presetDelete", "presetRejection", "style", "error"}
+                "datasetList", "datasetSet", "datasetDelete", "presetList", "presetSet", "presetDelete", "presetRejection", "style", "error"}
     assert expected <= set(schema["$defs"])
     stale = {"getRequest", "getResponse", "setRequest", "setResponse", "deleteRequest", "deleteResponse", "syncPush",
              "indicatorSyncPush", "indicatorSetRequest", "indicatorSetResponse", "errorResponse"}
@@ -123,7 +123,8 @@ def test_gp_v2_no_request_response_pairs(registry):
     ids = {d["properties"]["schema"]["const"] for d in schema["$defs"].values() if "schema" in d.get("properties", {}) and "channel" in d["properties"]}
     assert ids == {
         "afbws.gp.list.v2", "afbws.gp.set.v2", "afbws.gp.delete.v2", "afbws.gp.indicator.list.v2",
-        "afbws.gp.indicator.set.v2", "afbws.gp.indicator.delete.v2", "afbws.gp.preset.list.v2",
+        "afbws.gp.indicator.set.v2", "afbws.gp.indicator.delete.v2", "afbws.gp.dataset.list.v2",
+        "afbws.gp.dataset.set.v2", "afbws.gp.dataset.delete.v2", "afbws.gp.preset.list.v2",
         "afbws.gp.preset.set.v2", "afbws.gp.preset.delete.v2", "afbws.gp.style.v2", "afbws.gp.error.v2",
     }
 
@@ -272,7 +273,40 @@ def test_alarm_set_push_without_request_id(registry):
 
 # ----------------------------------------------------------------- gp presets
 _PRESET = {"id": "preset-1", "scope": "personal", "name": "Мой",
-           "panes": {"price": ["ind-1"], "upper": [], "lower": []}}
+           "panes": {"price": [{"dataset": "dataset-0a1b-2c3d-4e5f", "style": {"upColor": "#00C853"}}],
+                     "upper": [], "lower": []}}
+_DATASET = {"id": "dataset-1111-2222-3333", "scope": "shared", "name": "WillCo", "field": "positions.willco@window(180)",
+            "unit": "percent", "style": {"seriesType": "Line", "color": "#AB47BC", "lineWidth": 2, "lineStyle": 0}}
+
+
+def test_gp_v2_dataset_commands(registry):
+    base = {"channel": "gp", "request_id": "r"}
+    lst = _v(_GP, "datasetList", registry)
+    lst.validate({**base, "schema": "afbws.gp.dataset.list.v2"})
+    lst.validate({**base, "schema": "afbws.gp.dataset.list.v2", "items": [_DATASET]})
+    _invalid(lst, {**base, "schema": "afbws.gp.dataset.list.v2", "items": [dict(_DATASET, id="ds-1")]})
+    st = _v(_GP, "datasetSet", registry)
+    st.validate({**base, "schema": "afbws.gp.dataset.set.v2", "items": [_DATASET]})
+    st.validate({**base, "schema": "afbws.gp.dataset.set.v2", "items": [],
+                 "rejected": [{"id": _DATASET["id"], "code": "forbidden", "message": "staff only"}]})
+    _invalid(st, {**base, "schema": "afbws.gp.dataset.set.v2", "item": _DATASET})
+    _invalid(st, {**base, "schema": "afbws.gp.dataset.set.v2", "items": [dict(_DATASET, name="")]})
+    dl = _v(_GP, "datasetDelete", registry)
+    dl.validate({**base, "schema": "afbws.gp.dataset.delete.v2", "ids": [_DATASET["id"]]})
+    dl.validate({**base, "schema": "afbws.gp.dataset.delete.v2", "ids": [], "rejected": [{"id": "x", "code": "not_found"}]})
+    _invalid(dl, {**base, "schema": "afbws.gp.dataset.delete.v2", "id": _DATASET["id"]})
+
+
+def test_gp_v2_dataset_shared_push(registry):
+    """Shared-dataset deltas reuse dataset.set / dataset.delete without request_id; drafts are never pushed."""
+    st = _v(_GP, "datasetSet", registry)
+    st.validate({"channel": "gp", "schema": "afbws.gp.dataset.set.v2", "items": [_DATASET]})
+    _invalid(st, {"channel": "gp", "schema": "afbws.gp.dataset.set.v2", "items": []})
+    _invalid(st, {"channel": "gp", "schema": "afbws.gp.dataset.set.v2", "items": [_DATASET],
+                  "rejected": [{"id": "x", "code": "forbidden"}]})
+    dl = _v(_GP, "datasetDelete", registry)
+    dl.validate({"channel": "gp", "schema": "afbws.gp.dataset.delete.v2", "ids": [_DATASET["id"]]})
+    _invalid(dl, {"channel": "gp", "schema": "afbws.gp.dataset.delete.v2", "ids": []})
 
 
 def test_gp_v2_preset_commands(registry):
@@ -287,6 +321,9 @@ def test_gp_v2_preset_commands(registry):
                  "rejected": [{"id": "preset-1", "code": "validation_error", "message": "unit"}]})
     _invalid(st, {**base, "schema": "afbws.gp.preset.set.v2", "item": _PRESET})
     _invalid(st, {**base, "schema": "afbws.gp.preset.set.v2", "items": [dict(_PRESET, panes={"price": []})]})
+    # old shape (plain indicator ids) is gone
+    _invalid(st, {**base, "schema": "afbws.gp.preset.set.v2",
+                  "items": [dict(_PRESET, panes={"price": ["ind-1"], "upper": [], "lower": []})]})
     dl = _v(_GP, "presetDelete", registry)
     dl.validate({**base, "schema": "afbws.gp.preset.delete.v2", "ids": ["preset-1"]})
     dl.validate({**base, "schema": "afbws.gp.preset.delete.v2", "ids": [], "rejected": [{"id": "x", "code": "forbidden"}]})

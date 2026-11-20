@@ -1,7 +1,0 @@
-{
-  "id": "ind-sma-yur",
-  "type": "sma",
-  "scope": "personal",
-  "inputs": { "value": "positions.yur_net" },
-  "settings": { "color": "#2962FF", "lineWidth": 2, "lineStyle": "Solid", "seriesType": "Line", "period": 20 }
-}

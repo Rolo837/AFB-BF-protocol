@@ -5,8 +5,12 @@
     {
       "id": "preset-shared-1",
       "scope": "shared",
-      "name": "Позиции юрлиц",
-      "panes": { "price": [], "upper": ["ind-yur-long"], "lower": [] }
+      "name": "WillCo",
+      "panes": {
+        "price": [{ "dataset": "dataset-0a1b-2c3d-4e5f" }],
+        "upper": [{ "dataset": "dataset-1111-2222-3333" }],
+        "lower": []
+      }
     }
   ]
 }

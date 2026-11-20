@@ -16,6 +16,17 @@
 
 ### Removed
 
+## v2.11.1 — 2026-11-20
+
+### Added
+- `gp.v2.json`: ряды данных — `$defs/dataset` (`id` `dataset-xxxx-xxxx-xxxx`, `scope`, `name`, `field`, `unit`, `style`), `datasetRef` (`candles` | `<source>.<field>` | `@median(N)` | `@window(N)`), `datasetStyle`, `datasetRejection`, `presetItem`. `gp.channel.v2`: `afbws.gp.dataset.list|set|delete.v2` (запись только у персонала, черновики `personal` не рассылаются). `market.channel.v2`: `@window(N)` в `fields` (колонка `<field>@window(N)`), у поля `fields.v2` флаг `window`, в ответе `window_max_bars`, единица `percent`. Примеры `examples/gp_v2/dataset.*`, `series.window.*`.
+
+### Changed
+- `gp.v2.json` `$defs/preset.panes`: вместо id индикаторов — `presetItem[] = {dataset, style?}` (≤16 в панели, стиль — переопределения). `market.channel.v2`: `fields.v2` поле `window` и `window_max_bars` обязательны; `get fields` без `instrument_key` — только персоналу (иначе `forbidden`).
+
+### Removed
+- `gp.v2.json`: у индикатора убраны `inputs`, `$defs/fieldRef` и `settings.seriesType` (добавлены в 2.11.0, заменены рядами данных); удалены примеры `indicator.field/with_inputs/median_input`.
+
 ## v2.11.0 — 2026-11-19
 
 ### Added

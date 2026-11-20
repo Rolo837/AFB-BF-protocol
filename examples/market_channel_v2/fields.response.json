@@ -7,19 +7,20 @@
     {
       "source": "trades",
       "step_sec": 300,
-      "fields": [{ "name": "val_b", "median": true, "unit": "rub" }, { "name": "val_s", "median": true, "unit": "rub" }]
+      "fields": [{ "name": "val_b", "median": true, "window": false, "unit": "rub" }, { "name": "val_s", "median": true, "window": false, "unit": "rub" }]
     },
     {
       "source": "positions",
       "resolved_key": "MISX:SBRF",
       "step_sec": 300,
-      "fields": [{ "name": "openinterest", "median": false, "unit": "contracts" }]
+      "fields": [{ "name": "openinterest", "median": false, "window": false, "unit": "contracts" }]
     },
     {
       "source": "hhi",
       "step_sec": 86400,
-      "fields": [{ "name": "volume", "median": true, "unit": "hhi" }]
+      "fields": [{ "name": "volume", "median": true, "window": false, "unit": "hhi" }]
     }
   ],
-  "median_max_days": 31
+  "median_max_days": 31,
+  "window_max_bars": 500
 }

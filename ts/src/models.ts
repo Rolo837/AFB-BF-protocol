@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 09601a9173edf04f9d30ef9ff65ffbebb47a302af77b9a827888bcd1daf9567a
+ * source-hash: dfed31b2340eff1bef2dd7ff04189ef6b6b513615f9849a593af8d980afd82b9
  */
 
 /**
@@ -1480,7 +1480,7 @@ export type DealV2OrderEventStatus =
  */
 export type DealV2TriggerEvent = DealV2TriggerStatusChanged | DealV2TriggerRejected | DealV2TriggerReport;
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.gp.channel.v2). Items are afb.gp.v2 (`instrument_key`, kinds trendline/fibonacci; primitive parameters `start`/`stop`/`text` live in the `settings` dictionary, strictly typed by `kind`). Same convention as afbws.market: ONE schema id per message (`afbws.gp.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response and, where documented, a server push. Requests and responses are told apart by direction and fields (a response echoes the request's `request_id`); a message WITHOUT `request_id` is a server push. Collections are always arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. Chart-indicator management (replaces legacy settings/{get,set,get_default,set_default} `indicators`) is `indicator.list|set|delete`; shared indicators are changed by a manager only and pushed to everyone via `indicator.set`/`indicator.delete` without `request_id`. Chart presets (sets of indicators bound to the price/upper/lower panes) are `preset.list|set|delete`, with the same rules (shared presets are written and deleted by staff only; changes of shared presets are pushed without `request_id`). Primitive display settings: `style`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.gp.channel.v2). Items are afb.gp.v2 (`instrument_key`, kinds trendline/fibonacci; primitive parameters `start`/`stop`/`text` live in the `settings` dictionary, strictly typed by `kind`). Same convention as afbws.market: ONE schema id per message (`afbws.gp.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response and, where documented, a server push. Requests and responses are told apart by direction and fields (a response echoes the request's `request_id`); a message WITHOUT `request_id` is a server push. Collections are always arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. Chart-indicator management (replaces legacy settings/{get,set,get_default,set_default} `indicators`) is `indicator.list|set|delete`; shared indicators are changed by a manager only and pushed to everyone via `indicator.set`/`indicator.delete` without `request_id`. Chart datasets (primary-data series staff made available: a field of the market.v2 registry or the candles, with a name and a default style; `scope: personal` is a staff draft, `shared` is published) are `dataset.list|set|delete` — read by everyone (a regular user sees shared ones only), written and deleted by staff only; changes of shared datasets are pushed without `request_id`. Chart presets (datasets laid out on the price/upper/lower panes with per-item style overrides) are `preset.list|set|delete`, with the same rules (shared presets are written and deleted by staff only and reference shared datasets only; changes of shared presets are pushed without `request_id`). Primitive display settings: `style`. See AFB/docs/ENTITY_WS_PROTOCOL.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpChannelV2Message".
@@ -1492,6 +1492,9 @@ export type GpChannelV2Message =
   | GpV2IndicatorList
   | GpV2IndicatorSet
   | GpV2IndicatorDelete
+  | AfbwsGpChannelV2_DatasetList
+  | AfbwsGpChannelV2_DatasetSet
+  | AfbwsGpChannelV2_DatasetDelete
   | AfbwsGpChannelV2_PresetList
   | AfbwsGpChannelV2_PresetSet
   | AfbwsGpChannelV2_PresetDelete
@@ -1554,13 +1557,6 @@ export type GpV2Delete = {
   rejected?: GpV2Rejection[];
 };
 /**
- * Either a candle column `candles.(open|high|low|close|volume)` or a market.v2 registry field `<source>.<field>` with an optional `@median(N)` suffix (same shape as afbws/market.channel.v2.json#/$defs/fieldRequest; the real bounds of N are enforced by the server).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2_FieldRef".
- */
-export type GpV2_FieldRef = string;
-/**
  * Request: upsert by `id`, batched. Personal indicators for everyone; `scope: shared` only for a manager (otherwise that item is rejected with `forbidden`). Response (same `request_id`): applied `items[]` (possibly empty) + `rejected[]`. Push (no `request_id`): changed SHARED indicators to every connection with this capability (full authoritative records); personal ones are never pushed. Whether an indicator is drawn on the chart is NOT part of the protocol — it is a per-device view setting kept in the client's localStorage.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -1591,66 +1587,44 @@ export type GpV2IndicatorDelete = {
   rejected?: GpV2IndicatorRejection[];
 };
 /**
- * Indicator ids on one pane, in draw/legend order.
- *
- * @maxItems 16
+ * Grammar: `candles` (the candle series OHLC pseudo-field; price unit, pane `price` only, at most one per preset) | `<source>.<field>` | `<source>.<field>@median(N)` | `<source>.<field>@window(N)`. `@median(N)` is the rolling median of the field in calendar days (same meaning as in afbws/market.channel.v2.json#/$defs/fieldRequest); `@window(N)` is a window of N bars of the chart period, allowed only for fields flagged `window` in `fields.v2` and mandatory for them, N in 2..`window_max_bars` (e.g. `positions.willco@window(180)`). The pattern checks the shape only; the real bounds of N and the existence of the field are enforced by the server registry.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2_PresetPane".
+ * via the `definition` "GpV2_DatasetRef".
  */
-export type GpV2_PresetPane =
-  | []
-  | [string]
-  | [string, string]
-  | [string, string, string]
-  | [string, string, string, string]
-  | [string, string, string, string, string]
-  | [string, string, string, string, string, string]
-  | [string, string, string, string, string, string, string]
-  | [string, string, string, string, string, string, string, string]
-  | [string, string, string, string, string, string, string, string, string]
-  | [string, string, string, string, string, string, string, string, string, string]
-  | [string, string, string, string, string, string, string, string, string, string, string]
-  | [string, string, string, string, string, string, string, string, string, string, string, string]
-  | [string, string, string, string, string, string, string, string, string, string, string, string, string]
-  | [string, string, string, string, string, string, string, string, string, string, string, string, string, string]
-  | [
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string
-    ]
-  | [
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-      string
-    ];
+export type GpV2_DatasetRef = string;
 /**
- * Request: upsert by `id`, batched. Personal presets for everyone; `scope: shared` only for staff (otherwise that item is rejected with `forbidden`). Validation per item (violation = rejected with `validation_error`): every referenced indicator id must exist and be visible to the author; a shared preset may reference shared indicators only; an indicator id must not repeat across panes; a `field` indicator whose field unit is not `price` must not be on pane `price`. Response (same `request_id`): applied `items[]` (possibly empty) + `rejected[]`. Push (no `request_id`): changed SHARED presets to every connection with this capability (full authoritative records); personal ones are never pushed.
+ * Request: upsert by `id`, batched; STAFF ONLY — a regular user gets every item rejected with `forbidden`. `scope: personal` is a draft visible to its author only, `scope: shared` publishes the dataset to everyone. Validation per item (violation = rejected with `validation_error`): `field` must exist in the registry (and `@window(N)` match the field's `window` flag and 2..`window_max_bars`); `style` must be COMPLETE and its keys must fit the kind of the series (candles: `upColor`/`downColor`/`wickUpColor`/`wickDownColor`; others: `seriesType`/`color`/`lineWidth`/`lineStyle`) — the schema itself allows all style keys together; `unit` in the request is ignored, the server fills it. Response (same `request_id`): applied `items[]` (possibly empty, with `unit` filled) + `rejected[]`. Push (no `request_id`): changed SHARED datasets to every connection with this capability (full authoritative records); personal drafts are never pushed.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsGpChannelV2_DatasetSet".
+ */
+export type AfbwsGpChannelV2_DatasetSet = {
+  [k: string]: unknown;
+} & {
+  channel: 'gp';
+  schema: 'afbws.gp.dataset.set.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  items: GpV2_Dataset[];
+  rejected?: GpV2_DatasetRejection[];
+};
+/**
+ * Request: `ids[]`; STAFF ONLY (a regular user gets `forbidden` per id; unknown id: `not_found`; a dataset still referenced by a preset may be refused with `conflict`, as decided by the server). Response (same `request_id`): `ids[]` actually removed + `rejected[]`. Push (no `request_id`): shared datasets deleted by staff (`ids[]`, `rejected` not allowed).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsGpChannelV2_DatasetDelete".
+ */
+export type AfbwsGpChannelV2_DatasetDelete = {
+  [k: string]: unknown;
+} & {
+  channel: 'gp';
+  schema: 'afbws.gp.dataset.delete.v2';
+  request_id?: AfbwsCommonV1_RequestId;
+  ids: string[];
+  rejected?: GpV2_DatasetRejection[];
+};
+/**
+ * Request: upsert by `id`, batched. Personal presets for everyone; `scope: shared` only for staff (otherwise that item is rejected with `forbidden`). Validation per item (violation = rejected with `validation_error`) — the pane rules of `$defs/preset` in gp.v2.json: every referenced dataset (`panes.*[].dataset`) must exist and be visible to the author; a shared preset may reference shared datasets only; `price` takes only datasets of price scale class; `candles` only on `price`, at most once; one scale class per `upper`/`lower` pane; a dataset must not repeat in a preset; item `style` holds only overrides valid for the dataset's kind. Response (same `request_id`): applied `items[]` (possibly empty) + `rejected[]`. Push (no `request_id`): changed SHARED presets to every connection with this capability (full authoritative records); personal ones are never pushed.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsGpChannelV2_PresetSet".
@@ -2199,7 +2173,7 @@ export type MarketChannelV2Message =
   | MarketV2SourceStatus
   | MarketV2Error;
 /**
- * Reply by `target`: series -> `series` (mode:"replace"), quotes -> `quotes` (mode:"full"), fields -> `fields`; or `error` — all with the same `request_id`. Each target allows only its own fields (the others are rejected by the schema). target=series: candles are ALWAYS delivered (they are the grid the data rows live on, there is no flag for it); `fields` asks for additional data fields (see `$defs/fieldRequest`), its validity is decided by the server registry and an unserved field lands in `series.unavailable` instead of failing the request. LIVE RULE: if `end_date` is absent, or not earlier than "today" in the instrument's market timezone, this request ALSO becomes the live series subscription OF ITS `slot` and replaces only that slot's previous subscription (the replaced live `get`, if still pending, is answered with `error` code `superseded`); the server then pushes `series` (mode:"merge") for it. A request with `end_date` strictly before today (history paging) is a pure history fetch and touches no subscription. A connection has at most one live series subscription per slot, so at most two; there is no explicit unsubscribe — it lives until replaced by a live `get` of the same slot or until the connection closes. Identical sets in the two slots are two independent subscriptions. The limit of concurrently running heavy `get`s per connection is unchanged and applies across slots (`busy`). target=quotes: `instrument_keys` omitted means all instruments with cached data. target=fields: the answer lists the registry's sources and fields. With `instrument_key` — those applicable to that instrument and available to the caller; WITHOUT it — the full catalog of sources and fields (no `resolved_key`), used by the indicator editor.
+ * Reply by `target`: series -> `series` (mode:"replace"), quotes -> `quotes` (mode:"full"), fields -> `fields`; or `error` — all with the same `request_id`. Each target allows only its own fields (the others are rejected by the schema). target=series: candles are ALWAYS delivered (they are the grid the data rows live on, there is no flag for it); `fields` asks for additional data fields (see `$defs/fieldRequest`), its validity is decided by the server registry and an unserved field lands in `series.unavailable` instead of failing the request. LIVE RULE: if `end_date` is absent, or not earlier than "today" in the instrument's market timezone, this request ALSO becomes the live series subscription OF ITS `slot` and replaces only that slot's previous subscription (the replaced live `get`, if still pending, is answered with `error` code `superseded`); the server then pushes `series` (mode:"merge") for it. A request with `end_date` strictly before today (history paging) is a pure history fetch and touches no subscription. A connection has at most one live series subscription per slot, so at most two; there is no explicit unsubscribe — it lives until replaced by a live `get` of the same slot or until the connection closes. Identical sets in the two slots are two independent subscriptions. The limit of concurrently running heavy `get`s per connection is unchanged and applies across slots (`busy`). target=quotes: `instrument_keys` omitted means all instruments with cached data. target=fields: the answer lists the registry's sources and fields. With `instrument_key` — those applicable to that instrument and available to the caller; WITHOUT it — the full catalog of sources and fields (no `resolved_key`), used by the datasets dialog; that form is STAFF ONLY, any other caller gets `error` with code `forbidden`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketV2Get".
@@ -2248,7 +2222,7 @@ export type MarketV2Slot = 0 | 1;
  */
 export type MarketV2Period = '1min' | '5min' | '10min' | '15min' | '30min' | '1h' | '2h' | '4h' | '1d';
 /**
- * `<source>.<field>` with an optional `@median(N)` suffix, N an integer 1..999 by shape (the real upper bound is `fields.median_max_days`, enforced by the server). `@median(N)`: N is the width in CALENDAR DAYS of a rolling window before the bar's date; for a bar of date D and in-day slot s the value is the median of the same field in the same slot s over the days [D-N, D) — the current day D is excluded, days without a value are skipped, no values means null. Defined for intraday periods and `1d` (for `1d` the slot is the whole day); other periods answer the field as `unavailable` (`not_supported`). The response column is named `<field>@median(N)` (without the source prefix).
+ * `<source>.<field>` with an optional `@median(N)` suffix, N an integer 1..999 by shape (the real upper bound is `fields.median_max_days`, enforced by the server). `@median(N)`: N is the width in CALENDAR DAYS of a rolling window before the bar's date; for a bar of date D and in-day slot s the value is the median of the same field in the same slot s over the days [D-N, D) — the current day D is excluded, days without a value are skipped, no values means null. Defined for intraday periods and `1d` (for `1d` the slot is the whole day); other periods answer the field as `unavailable` (`not_supported`). `@window(N)`: N is a window of N BARS of the requested period, an integer 2..`fields.window_max_bars` (the pattern checks the shape only, N=0 and N=1 are invalid by shape or by registry); allowed only for fields flagged `window` in `fields.v2` and mandatory for them (computed fields such as `positions.willco@window(180)`); the server widens the read backwards by N bars. Any other combination answers the field as `unavailable` (`not_supported`). The response column is named `<field>@median(N)` or `<field>@window(N)` (without the source prefix).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "MarketV2FieldRequest".
@@ -7079,20 +7053,14 @@ export interface GpV2IndicatorList {
 export interface GpV2Indicator {
   id: string;
   /**
-   * Indicator type, an open set: indicators are computed by the frontend, so a new indicator needs no protocol change. Known: wma, kama, psar, cot, sma, ema, value_imbalance, volume_imbalance, rel_median, order_flow; `field` is the primary-data pseudo-formula (draws a registry field as is).
+   * Indicator type, an open set: indicators are computed by the frontend, so a new indicator needs no protocol change. Known: wma, kama, psar, cot.
    */
   type: string;
-  /**
-   * Optional input binding `{slot: fieldRef}`. Absent = the formula's default inputs, so existing records keep their meaning. For `type = "field"` the slot `value` is REQUIRED — enforced by the server, not by this schema.
-   */
-  inputs?: {
-    [k: string]: GpV2_FieldRef;
-  };
   settings: GpV2IndicatorSettings;
   scope: 'shared' | 'personal';
 }
 /**
- * Display + calculation settings. Required: color/lineWidth/lineStyle. Typed optional keys: seriesType (Line|Histogram|Area|Baseline, absent = Line); period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Any other key is allowed (value: number, string or boolean), except `enabled` (per-device view flag, never protocol) — indicators are computed by the frontend, so a new indicator brings its own parameters without a protocol change. Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.
+ * Display + calculation settings. Required: color/lineWidth/lineStyle. Typed optional keys of the built-in indicators: period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Any other key is allowed (value: number, string or boolean), except `enabled` (per-device view flag, never protocol) — indicators are computed by the frontend, so a new indicator brings its own parameters without a protocol change. Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpV2IndicatorSettings".
@@ -7102,10 +7070,6 @@ export interface GpV2IndicatorSettings {
   color: string;
   lineWidth: number;
   lineStyle: 'Solid' | 'Dots';
-  /**
-   * Series kind the frontend draws the indicator as; absent = Line.
-   */
-  seriesType?: 'Line' | 'Histogram' | 'Area' | 'Baseline';
   period?: number;
   erPeriod?: number;
   fastPeriod?: number;
@@ -7125,6 +7089,81 @@ export interface GpV2IndicatorRejection {
   message?: string;
 }
 /**
+ * Request: only `request_id`. Response (same `request_id`): `items[]` — staff get the shared datasets plus their own personal drafts (`scope: personal`), a regular user gets the shared datasets only.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsGpChannelV2_DatasetList".
+ */
+export interface AfbwsGpChannelV2_DatasetList {
+  channel: 'gp';
+  schema: 'afbws.gp.dataset.list.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  items?: GpV2_Dataset[];
+}
+/**
+ * A primary-data field (or the candle series) that staff made available, with a name and a default style. `scope: personal` is a DRAFT: visible to its author (staff) only, never pushed; `scope: shared` is published, visible to everyone by `name`, changed and deleted by staff only. A shared preset may reference shared datasets only. `unit` is filled by the server from the field registry and is ignored in `set`. `style` is the complete default style (see `$defs/datasetStyle`); the kind-vs-keys check is done by the server.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2_Dataset".
+ */
+export interface GpV2_Dataset {
+  /**
+   * Catalog id convention.
+   */
+  id: string;
+  scope: 'shared' | 'personal';
+  /**
+   * Label in the UI.
+   */
+  name: string;
+  field: GpV2_DatasetRef;
+  /**
+   * Unit of the field's values, set by the server from the registry; ignored in `set`.
+   */
+  unit?: 'price' | 'lots' | 'rub' | 'count' | 'contracts' | 'persons' | 'ratio' | 'hhi' | 'percent';
+  style: GpV2_DatasetStyle;
+}
+/**
+ * All keys are optional, unknown keys are rejected. Keys by kind of series: line-like (everything except `candles`) — `seriesType` (Line|Histogram|Area|Baseline), `color`, `lineWidth` (1..4, meaningful for Line/Area/Baseline), `lineStyle` (0..4, lightweight-charts numbering: 0 Solid, 1 Dotted, 2 Dashed, 3 LargeDashed, 4 SparseDotted; meaningful for Line/Area/Baseline); candles — `upColor`, `downColor`, `wickUpColor`, `wickDownColor`. This schema allows all keys together; whether the keys fit the kind of the series (candle keys on a non-`candles` dataset, `seriesType`/`color`/`lineWidth`/`lineStyle` on `candles`) is checked by the server (`validation_error`). In `$defs/dataset` the style is COMPLETE (the server requires all four candle colours for `candles`, and `seriesType`, `color`, `lineWidth`, `lineStyle` for the others). In a preset item it holds only OVERRIDES: effective style = dataset style overlaid with the item's keys; resetting a key means removing it.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2_DatasetStyle".
+ */
+export interface GpV2_DatasetStyle {
+  seriesType?: 'Line' | 'Histogram' | 'Area' | 'Baseline';
+  /**
+   * `#rrggbb`, `#rrggbbaa` or `rgba(r,g,b,a)`.
+   */
+  color?: string;
+  lineWidth?: number;
+  lineStyle?: number;
+  /**
+   * Candles only.
+   */
+  upColor?: string;
+  /**
+   * Candles only.
+   */
+  downColor?: string;
+  /**
+   * Candles only.
+   */
+  wickUpColor?: string;
+  /**
+   * Candles only.
+   */
+  wickDownColor?: string;
+}
+/**
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2_DatasetRejection".
+ */
+export interface GpV2_DatasetRejection {
+  id: string;
+  code: AfbwsCommonV1_ErrorCode;
+  message?: string;
+}
+/**
  * Request: only `request_id`. Response (same `request_id`): `items[]` — the caller's merged list (shared + personal).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -7137,7 +7176,7 @@ export interface AfbwsGpChannelV2_PresetList {
   items?: GpV2_Preset[];
 }
 /**
- * A set of indicators with a binding `which indicator is drawn on which pane`. `scope: shared` presets are common to all users and editable only by staff; `personal` belong to the caller. `panes` has three panes: `price` (the candle pane; only indicators whose scale is the price), `upper` and `lower` (the two extra panes). Each pane lists indicator ids (`$defs/indicator.id`); the ORDER is the draw and legend order. An id must not repeat across panes (checked by the server). Referenced indicators must exist and be visible to the author; a shared preset may reference shared indicators only (`validation_error` otherwise); a `field` indicator whose field unit is not `price` on pane `price` is a `validation_error`. Scale compatibility of other indicators on a pane is checked by the frontend.
+ * A set of datasets with a binding `which dataset is drawn on which pane`. `scope: shared` presets are common to all users and editable only by staff; `personal` belong to the caller. `panes` has three panes: `price` (the candle pane), `upper` and `lower` (the two extra panes); each is an array of at most 16 `presetItem`s, the ORDER is the draw and legend order. Pane rules (checked by the server in `preset.set`, `validation_error` otherwise; the frontend checks them too): `price` accepts only datasets of price scale class; `candles` only on `price`, at most one per preset; on `upper`/`lower` one scale class per pane (the class of the first item); a dataset occurs in a preset at most once. Referenced datasets must exist and be visible to the author; a shared preset may reference shared datasets only. WMA/KAMA/PSAR indicators are drawn on `price` over the candles outside the preset.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpV2_Preset".
@@ -7147,10 +7186,455 @@ export interface GpV2_Preset {
   scope: 'shared' | 'personal';
   name: string;
   panes: {
-    price: GpV2_PresetPane;
-    upper: GpV2_PresetPane;
-    lower: GpV2_PresetPane;
+    /**
+     * @maxItems 16
+     */
+    price:
+      | []
+      | [GpV2_PresetItem]
+      | [GpV2_PresetItem, GpV2_PresetItem]
+      | [GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem]
+      | [GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem]
+      | [GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem]
+      | [GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ];
+    /**
+     * @maxItems 16
+     */
+    upper:
+      | []
+      | [GpV2_PresetItem]
+      | [GpV2_PresetItem, GpV2_PresetItem]
+      | [GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem]
+      | [GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem]
+      | [GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem]
+      | [GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ];
+    /**
+     * @maxItems 16
+     */
+    lower:
+      | []
+      | [GpV2_PresetItem]
+      | [GpV2_PresetItem, GpV2_PresetItem]
+      | [GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem]
+      | [GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem]
+      | [GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem]
+      | [GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem, GpV2_PresetItem]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ]
+      | [
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem,
+          GpV2_PresetItem
+        ];
   };
+}
+/**
+ * `dataset` is the id of a dataset (`$defs/dataset.id`); `style` holds only OVERRIDES of the dataset's default style, with keys valid for the dataset's kind (checked by the server); absent = the dataset's own style.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2_PresetItem".
+ */
+export interface GpV2_PresetItem {
+  dataset: string;
+  style?: GpV2_DatasetStyle;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -7984,6 +8468,10 @@ export interface MarketV2Fields {
    * Upper bound of N in `@median(N)` (calendar days).
    */
   median_max_days: number;
+  /**
+   * Upper bound of N in `@window(N)` (bars of the chart period); the lower bound is 2.
+   */
+  window_max_bars: number;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -8015,9 +8503,13 @@ export interface MarketV2FieldEntry {
    */
   median: boolean;
   /**
-   * Unit of the field's values: price (instrument price), lots, rub (money), count (number of trades/orders/levels), contracts, persons (number of participants), ratio (dimensionless share/imbalance), hhi (Herfindahl-Hirschman index). The client uses it to decide which fields may share a chart pane.
+   * True when the field is a windowed computed field: `@window(N)` is allowed AND mandatory for it.
    */
-  unit: 'price' | 'lots' | 'rub' | 'count' | 'contracts' | 'persons' | 'ratio' | 'hhi';
+  window: boolean;
+  /**
+   * Unit of the field's values: price (instrument price), lots, rub (money), count (number of trades/orders/levels), contracts, persons (number of participants), ratio (dimensionless share/imbalance), hhi (Herfindahl-Hirschman index), percent (0..100 normalized value, e.g. WillCo). The client uses it to decide which fields may share a chart pane.
+   */
+  unit: 'price' | 'lots' | 'rub' | 'count' | 'contracts' | 'persons' | 'ratio' | 'hhi' | 'percent';
 }
 /**
  * Unsolicited push, no `request_id`: sent on each health-state transition of an external source and once as a full snapshot right after this channel's first `subscribe`/`get`. `sources` lists every source the backend currently tracks; a source absent from the list has never reported a call yet — treat as "ok". Same structure as v1.

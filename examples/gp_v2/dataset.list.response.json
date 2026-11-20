@@ -1,0 +1,31 @@
+{
+  "channel": "gp",
+  "schema": "afbws.gp.dataset.list.v2",
+  "request_id": "dl-1",
+  "items": [
+    {
+      "id": "dataset-0a1b-2c3d-4e5f",
+      "scope": "shared",
+      "name": "Свечи",
+      "field": "candles",
+      "unit": "price",
+      "style": { "upColor": "#26A69A", "downColor": "#EF5350", "wickUpColor": "#26A69A", "wickDownColor": "#EF5350" }
+    },
+    {
+      "id": "dataset-1111-2222-3333",
+      "scope": "shared",
+      "name": "WillCo, 180 баров",
+      "field": "positions.willco@window(180)",
+      "unit": "percent",
+      "style": { "seriesType": "Line", "color": "#AB47BC", "lineWidth": 2, "lineStyle": 0 }
+    },
+    {
+      "id": "dataset-aaaa-bbbb-cccc",
+      "scope": "personal",
+      "name": "Чёрновик: покупки, руб",
+      "field": "trades.val_b",
+      "unit": "rub",
+      "style": { "seriesType": "Histogram", "color": "rgba(38,166,154,0.6)", "lineWidth": 1, "lineStyle": 0 }
+    }
+  ]
+}

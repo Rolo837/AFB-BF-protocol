@@ -3,7 +3,7 @@
   "$id": "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/gp.channel.v2.json",
   "x-afbws-support-id": "afbws.gp.channel.v2",
   "title": "gp channel — schema-first (AFB backend<->AFB frontend only; not part of afb.execution.v1 wire)",
-  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.gp.channel.v2). Items are afb.gp.v2 (`instrument_key`, kinds trendline/fibonacci; primitive parameters `start`/`stop`/`text` live in the `settings` dictionary, strictly typed by `kind`). Same convention as afbws.market: ONE schema id per message (`afbws.gp.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response and, where documented, a server push. Requests and responses are told apart by direction and fields (a response echoes the request's `request_id`); a message WITHOUT `request_id` is a server push. Collections are always arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. Chart-indicator management (replaces legacy settings/{get,set,get_default,set_default} `indicators`) is `indicator.list|set|delete`; shared indicators are changed by a manager only and pushed to everyone via `indicator.set`/`indicator.delete` without `request_id`. Chart presets (sets of indicators bound to the price/upper/lower panes) are `preset.list|set|delete`, with the same rules (shared presets are written and deleted by staff only; changes of shared presets are pushed without `request_id`). Primitive display settings: `style`. See AFB/docs/ENTITY_WS_PROTOCOL.md.",
+  "description": "Negotiated via auth.support/auth_ok.support (capability id afbws.gp.channel.v2). Items are afb.gp.v2 (`instrument_key`, kinds trendline/fibonacci; primitive parameters `start`/`stop`/`text` live in the `settings` dictionary, strictly typed by `kind`). Same convention as afbws.market: ONE schema id per message (`afbws.gp.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response and, where documented, a server push. Requests and responses are told apart by direction and fields (a response echoes the request's `request_id`); a message WITHOUT `request_id` is a server push. Collections are always arrays (`items[]`, `ids[]`, `instrument_keys[]`), so bulk operations are single messages; partial failures come back in `rejected[]`. Chart-indicator management (replaces legacy settings/{get,set,get_default,set_default} `indicators`) is `indicator.list|set|delete`; shared indicators are changed by a manager only and pushed to everyone via `indicator.set`/`indicator.delete` without `request_id`. Chart datasets (primary-data series staff made available: a field of the market.v2 registry or the candles, with a name and a default style; `scope: personal` is a staff draft, `shared` is published) are `dataset.list|set|delete` — read by everyone (a regular user sees shared ones only), written and deleted by staff only; changes of shared datasets are pushed without `request_id`. Chart presets (datasets laid out on the price/upper/lower panes with per-item style overrides) are `preset.list|set|delete`, with the same rules (shared presets are written and deleted by staff only and reference shared datasets only; changes of shared presets are pushed without `request_id`). Primitive display settings: `style`. See AFB/docs/ENTITY_WS_PROTOCOL.md.",
   "type": "object",
   "oneOf": [
     {
@@ -23,6 +23,15 @@
     },
     {
       "$ref": "#/$defs/indicatorDelete"
+    },
+    {
+      "$ref": "#/$defs/datasetList"
+    },
+    {
+      "$ref": "#/$defs/datasetSet"
+    },
+    {
+      "$ref": "#/$defs/datasetDelete"
     },
     {
       "$ref": "#/$defs/presetList"
@@ -439,6 +448,150 @@
         }
       }
     },
+    "datasetList": {
+      "type": "object",
+      "title": "afbws.gp.dataset.list.v2 — read chart datasets (request / response).",
+      "description": "Request: only `request_id`. Response (same `request_id`): `items[]` — staff get the shared datasets plus their own personal drafts (`scope: personal`), a regular user gets the shared datasets only.",
+      "required": [
+        "channel",
+        "schema",
+        "request_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "gp"
+        },
+        "schema": {
+          "const": "afbws.gp.dataset.list.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "../gp.v2.json#/$defs/dataset"
+          }
+        }
+      }
+    },
+    "datasetSet": {
+      "type": "object",
+      "title": "afbws.gp.dataset.set.v2 — upsert chart datasets (request / response / server push).",
+      "description": "Request: upsert by `id`, batched; STAFF ONLY — a regular user gets every item rejected with `forbidden`. `scope: personal` is a draft visible to its author only, `scope: shared` publishes the dataset to everyone. Validation per item (violation = rejected with `validation_error`): `field` must exist in the registry (and `@window(N)` match the field's `window` flag and 2..`window_max_bars`); `style` must be COMPLETE and its keys must fit the kind of the series (candles: `upColor`/`downColor`/`wickUpColor`/`wickDownColor`; others: `seriesType`/`color`/`lineWidth`/`lineStyle`) — the schema itself allows all style keys together; `unit` in the request is ignored, the server fills it. Response (same `request_id`): applied `items[]` (possibly empty, with `unit` filled) + `rejected[]`. Push (no `request_id`): changed SHARED datasets to every connection with this capability (full authoritative records); personal drafts are never pushed.",
+      "required": [
+        "channel",
+        "schema",
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "gp"
+        },
+        "schema": {
+          "const": "afbws.gp.dataset.set.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "../gp.v2.json#/$defs/dataset"
+          }
+        },
+        "rejected": {
+          "type": "array",
+          "items": {
+            "$ref": "../gp.v2.json#/$defs/datasetRejection"
+          }
+        }
+      },
+      "dependentRequired": {
+        "rejected": [
+          "request_id"
+        ]
+      },
+      "allOf": [
+        {
+          "if": {
+            "not": {
+              "required": [
+                "request_id"
+              ]
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "datasetDelete": {
+      "type": "object",
+      "title": "afbws.gp.dataset.delete.v2 — delete chart datasets (request / response / server push).",
+      "description": "Request: `ids[]`; STAFF ONLY (a regular user gets `forbidden` per id; unknown id: `not_found`; a dataset still referenced by a preset may be refused with `conflict`, as decided by the server). Response (same `request_id`): `ids[]` actually removed + `rejected[]`. Push (no `request_id`): shared datasets deleted by staff (`ids[]`, `rejected` not allowed).",
+      "required": [
+        "channel",
+        "schema",
+        "ids"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "const": "gp"
+        },
+        "schema": {
+          "const": "afbws.gp.dataset.delete.v2"
+        },
+        "request_id": {
+          "$ref": "common.v1.json#/$defs/requestId"
+        },
+        "ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rejected": {
+          "type": "array",
+          "items": {
+            "$ref": "../gp.v2.json#/$defs/datasetRejection"
+          }
+        }
+      },
+      "dependentRequired": {
+        "rejected": [
+          "request_id"
+        ]
+      },
+      "allOf": [
+        {
+          "if": {
+            "not": {
+              "required": [
+                "request_id"
+              ]
+            }
+          },
+          "then": {
+            "properties": {
+              "ids": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
     "presetList": {
       "type": "object",
       "title": "afbws.gp.preset.list.v2 — read chart presets (request / response).",
@@ -470,7 +623,7 @@
     "presetSet": {
       "type": "object",
       "title": "afbws.gp.preset.set.v2 — upsert chart presets (request / response / server push).",
-      "description": "Request: upsert by `id`, batched. Personal presets for everyone; `scope: shared` only for staff (otherwise that item is rejected with `forbidden`). Validation per item (violation = rejected with `validation_error`): every referenced indicator id must exist and be visible to the author; a shared preset may reference shared indicators only; an indicator id must not repeat across panes; a `field` indicator whose field unit is not `price` must not be on pane `price`. Response (same `request_id`): applied `items[]` (possibly empty) + `rejected[]`. Push (no `request_id`): changed SHARED presets to every connection with this capability (full authoritative records); personal ones are never pushed.",
+      "description": "Request: upsert by `id`, batched. Personal presets for everyone; `scope: shared` only for staff (otherwise that item is rejected with `forbidden`). Validation per item (violation = rejected with `validation_error`) — the pane rules of `$defs/preset` in gp.v2.json: every referenced dataset (`panes.*[].dataset`) must exist and be visible to the author; a shared preset may reference shared datasets only; `price` takes only datasets of price scale class; `candles` only on `price`, at most once; one scale class per `upper`/`lower` pane; a dataset must not repeat in a preset; item `style` holds only overrides valid for the dataset's kind. Response (same `request_id`): applied `items[]` (possibly empty) + `rejected[]`. Push (no `request_id`): changed SHARED presets to every connection with this capability (full authoritative records); personal ones are never pushed.",
       "required": [
         "channel",
         "schema",

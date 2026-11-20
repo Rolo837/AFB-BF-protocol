@@ -65,6 +65,7 @@ def test_examples_validate(registry):
 @pytest.mark.parametrize("field", [
     "trades.val_b", "positions.openinterest", "trades.val_b@median(1)", "trades.val_b@median(31)",
     "trades.val_b@median(999)", "obstats.imbalance_vol@median(7)",
+    "positions.willco@window(180)", "positions.willco@window(2)", "positions.willco@window(500)",
 ])
 def test_get_series_valid_fields(registry, field):
     _validator(registry, "get").validate(_get(fields=[field]))
@@ -74,6 +75,9 @@ def test_get_series_valid_fields(registry, field):
     "trades.val_b@median(0)", "trades.val_b@median(1000)", "trades.val_b@median(x)", "trades.val_b@median()",
     "trades.val_b@median(05)", "trades.val_b@mean(3)", "val_b", "Trades.val_b", "trades.val_b@median(3)@median(3)",
     "trades.", ".val_b", "trades.val-b",
+    "positions.willco@window(0)", "positions.willco@window(05)", "positions.willco@window()",
+    "positions.willco@window(1000)", "positions.willco@window(x)", "positions.willco@window(3)@window(3)",
+    "positions.willco@median(3)@window(3)",
 ])
 def test_get_series_bad_fields(registry, field):
     _bad(_validator(registry, "get"), _get(fields=[field]))
@@ -206,10 +210,12 @@ def test_quotes_fixed_columns(registry):
 def test_fields_message(registry):
     v = _validator(registry, "fields")
     ok = _msg("fields", request_id="r", instrument_key="MISX:TQBR:SBER", median_max_days=31,
-              sources=[{"source": "trades", "step_sec": 300, "fields": [{"name": "val_b", "median": True, "unit": "rub"}]},
+              window_max_bars=500,
+              sources=[{"source": "trades", "step_sec": 300,
+                        "fields": [{"name": "val_b", "median": True, "window": False, "unit": "rub"}]},
                        {"source": "hhi", "resolved_key": "MISX:RFUD:X", "step_sec": 86400, "fields": []}])
     v.validate(ok)
-    for key in ("request_id", "sources", "median_max_days"):
+    for key in ("request_id", "sources", "median_max_days", "window_max_bars"):
         doc = copy.deepcopy(ok)
         del doc[key]
         _bad(v, doc)
@@ -217,10 +223,12 @@ def test_fields_message(registry):
     del catalog["instrument_key"]
     catalog["sources"] = [catalog["sources"][0]]
     v.validate(catalog)  # full catalog reply: no instrument_key
-    for patch in ({"median_max_days": 0}, {"sources": [{"source": "trades", "step_sec": 0, "fields": []}]},
-                  {"sources": [{"source": "trades", "step_sec": 300, "fields": [{"name": "val_b", "median": True}]}]},
-                  {"sources": [{"source": "trades", "step_sec": 300, "fields": [{"name": "val_b", "median": True, "unit": "kg"}]}]},
-                  {"sources": [{"source": "trades", "step_sec": 300, "fields": [{"name": "val_b", "median": "yes"}]}]},
+    for patch in ({"median_max_days": 0}, {"window_max_bars": 1}, {"window_max_bars": "500"}, {"sources": [{"source": "trades", "step_sec": 0, "fields": []}]},
+                  {"sources": [{"source": "trades", "step_sec": 300, "fields": [{"name": "val_b", "median": True, "window": False}]}]},
+                  {"sources": [{"source": "trades", "step_sec": 300, "fields": [{"name": "val_b", "median": True, "unit": "rub"}]}]},
+                  {"sources": [{"source": "trades", "step_sec": 300, "fields": [{"name": "val_b", "median": True, "window": 1, "unit": "rub"}]}]},
+                  {"sources": [{"source": "trades", "step_sec": 300, "fields": [{"name": "val_b", "median": True, "window": False, "unit": "kg"}]}]},
+                  {"sources": [{"source": "trades", "step_sec": 300, "fields": [{"name": "val_b", "median": "yes", "window": False, "unit": "rub"}]}]},
                   {"sources": [{"source": "Trades", "step_sec": 300, "fields": []}]}):
         _bad(v, {**ok, **patch})
 
@@ -272,12 +280,14 @@ def test_root_oneof_rejects_wrong_schema_id(registry):
     _bad(root, {"channel": "market", "schema": "afbws.market.get.v1", "request_id": "r", "target": "series"})
 
 
-@pytest.mark.parametrize("unit", ["price", "lots", "rub", "count", "contracts", "persons", "ratio", "hhi"])
+@pytest.mark.parametrize("unit", ["price", "lots", "rub", "count", "contracts", "persons", "ratio", "hhi", "percent"])
 def test_field_entry_units(registry, unit):
-    _validator(registry, "fieldEntry").validate({"name": "val_b", "median": False, "unit": unit})
+    _validator(registry, "fieldEntry").validate({"name": "val_b", "median": False, "window": False, "unit": unit})
 
 
 def test_field_entry_unit_required_and_closed(registry):
     v = _validator(registry, "fieldEntry")
-    _bad(v, {"name": "val_b", "median": False})
-    _bad(v, {"name": "val_b", "median": False, "unit": "percent"})
+    _bad(v, {"name": "val_b", "median": False, "window": False})
+    _bad(v, {"name": "val_b", "median": False, "unit": "rub"})  # window is required
+    _bad(v, {"name": "val_b", "median": False, "window": False, "unit": "kg"})
+    v.validate({"name": "willco", "median": False, "window": True, "unit": "percent"})

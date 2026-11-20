@@ -1,7 +1,0 @@
-{
-  "id": "ind-yur-long",
-  "type": "field",
-  "scope": "shared",
-  "inputs": { "value": "positions.yur_long" },
-  "settings": { "color": "#26A69A", "lineWidth": 1, "lineStyle": "Solid", "seriesType": "Histogram" }
-}
