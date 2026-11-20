@@ -7,37 +7,39 @@
       "source": "trades",
       "step_sec": 300,
       "fields": [
-        { "name": "val_b", "median": true, "unit": "rub" },
-        { "name": "vol_b", "median": true, "unit": "lots" },
-        { "name": "trades_b", "median": true, "unit": "count" }
+        { "name": "val_b", "median": true, "window": false, "unit": "rub" },
+        { "name": "vol_b", "median": true, "window": false, "unit": "lots" },
+        { "name": "trades_b", "median": true, "window": false, "unit": "count" }
       ]
     },
     {
       "source": "positions",
       "step_sec": 300,
       "fields": [
-        { "name": "yur_long", "median": false, "unit": "contracts" },
-        { "name": "yur_short", "median": false, "unit": "contracts" },
-        { "name": "yur_net", "median": false, "unit": "contracts" },
-        { "name": "openinterest", "median": false, "unit": "contracts" }
+        { "name": "yur_long", "median": false, "window": false, "unit": "contracts" },
+        { "name": "yur_short", "median": false, "window": false, "unit": "contracts" },
+        { "name": "yur_net", "median": false, "window": false, "unit": "contracts" },
+        { "name": "openinterest", "median": false, "window": false, "unit": "contracts" },
+        { "name": "willco", "median": false, "window": true, "unit": "percent" }
       ]
     },
     {
       "source": "depth",
       "step_sec": 300,
       "fields": [
-        { "name": "bid_depth", "median": true, "unit": "lots" },
-        { "name": "delta", "median": false, "unit": "lots" }
+        { "name": "bid_depth", "median": true, "window": false, "unit": "lots" },
+        { "name": "delta", "median": false, "window": false, "unit": "lots" }
       ]
     },
     {
       "source": "hhi",
       "step_sec": 86400,
       "fields": [
-        { "name": "volume", "median": true, "unit": "hhi" },
-        { "name": "netflow_buy", "median": true, "unit": "hhi" }
+        { "name": "volume", "median": true, "window": false, "unit": "hhi" },
+        { "name": "netflow_buy", "median": true, "window": false, "unit": "hhi" }
       ]
     }
   ],
-  "median_max_days": 31
+  "median_max_days": 31,
+  "window_max_bars": 500
 }

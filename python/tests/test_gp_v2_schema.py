@@ -1,7 +1,10 @@
 """afb.gp.v2 — instrument_key instead of ticker, kinds trendline/fibonacci,
 primitive parameters in the strictly kind-typed `settings` dictionary,
-and the chart-indicator $defs."""
+the chart-indicator, dataset and preset $defs."""
 from __future__ import annotations
+
+import json
+from pathlib import Path
 
 import pytest
 
@@ -185,88 +188,167 @@ def test_primitive_styles_valid_and_strict(registry):
             v.validate(bad)
 
 
-# ----------------------------------------------------- indicator inputs / preset
+# ----------------------------------------------------- datasets / presets
 _IND_SETTINGS = {"color": "#2962FF", "lineWidth": 2, "lineStyle": "Solid"}
+_LINE_STYLE = {"seriesType": "Line", "color": "#AB47BC", "lineWidth": 2, "lineStyle": 0}
+_CANDLE_STYLE = {"upColor": "#26A69A", "downColor": "#EF5350", "wickUpColor": "#26A69A", "wickDownColor": "#EF5350"}
+_DS_A = "dataset-0a1b-2c3d-4e5f"
+_DS_B = "dataset-1111-2222-3333"
 
 
-@pytest.mark.parametrize("ref", [
-    "candles.close", "candles.open", "candles.high", "candles.low", "candles.volume",
-    "positions.yur_net", "trades.val_b@median(30)", "obstats.vol_b@median(1)", "hhi.volume",
-])
-def test_indicator_inputs_valid(ref, registry):
+def test_indicator_inputs_and_series_type_removed(registry):
+    """Stage 8 rolled back `inputs` / `settings.seriesType` of the indicator (datasets replace them)."""
+    from jsonschema import ValidationError
+
     v = _validator(registry, "#/$defs/indicator")
-    v.validate(_indicator(type="sma", inputs={"value": ref}))
-    v.validate(_indicator(type="cot", inputs={"net": "positions.yur_net", "oi": "positions.openinterest"}))
+    v.validate(_indicator())
+    with pytest.raises(ValidationError):
+        v.validate(_indicator(inputs={"value": "candles.close"}))
+    with pytest.raises(ValidationError):
+        v.validate(_indicator(type="sma", inputs={}))
+    schema = json.loads((Path(__file__).parents[2] / "spec" / "schemas" / "gp.v2.json").read_text(encoding="utf-8"))
+    assert "seriesType" not in schema["$defs"]["indicatorSettings"]["properties"]
+    assert "fieldRef" not in schema["$defs"]
+    assert "inputs" not in schema["$defs"]["indicator"]["properties"]
 
 
-@pytest.mark.parametrize("ref", [
-    "candles.", "Candles.close", "close", "positions.yur_net@median(0)",
-    "positions.yur_net@median(1000)", "positions.yur_net@mean(3)", "trades.val_b@median(3)@median(3)",
-    "positions.", ".yur_net", "", 5,
+def _dataset(**overrides):
+    d = {"id": _DS_B, "scope": "shared", "name": "WillCo, 180 баров", "field": "positions.willco@window(180)",
+         "unit": "percent", "style": dict(_LINE_STYLE)}
+    d.update(overrides)
+    return d
+
+
+@pytest.mark.parametrize("ds", [
+    {},
+    {"scope": "personal"},
+    {"unit": None},  # removed below: unit is optional
+    {"id": "dataset-0a1b-2c3d-4e5f", "field": "candles", "unit": "price", "style": _CANDLE_STYLE},
+    {"field": "trades.val_b", "unit": "rub", "style": {"seriesType": "Histogram", "color": "rgba(38,166,154,0.6)"}},
+    {"field": "trades.val_b@median(30)", "style": {"color": "#11223380", "lineWidth": 4, "lineStyle": 4}},
+    {"name": "x" * 64},
+    # the schema lets candle keys and `seriesType` coexist: the kind check is the server's (see description)
+    {"style": {"seriesType": "Line", "upColor": "#26A69A"}},
+    {"style": {}},
 ])
-def test_indicator_inputs_bad_ref(ref, registry):
+def test_dataset_valid(ds, registry):
+    d = _dataset(**ds)
+    if d.get("unit") is None:
+        d.pop("unit", None)
+    _validator(registry, "#/$defs/dataset").validate(d)
+
+
+@pytest.mark.parametrize("patch", [
+    {"id": "dataset-1"},
+    {"id": "dataset-0A1B-2c3d-4e5f"},          # upper-case hex
+    {"id": "preset-0a1b-2c3d-4e5f"},
+    {"id": ""},
+    {"name": ""},
+    {"name": "x" * 65},
+    {"scope": "global"},
+    {"unit": "kg"},
+    {"field": "positions.willco@window(0)"},
+    {"field": "positions.willco@window(1000)"},
+    {"field": "positions.willco@window()"},
+    {"field": "positions.willco@mean(3)"},
+    {"field": "Positions.willco"},
+    {"field": "willco"},
+    {"style": {"seriesType": "Candles"}},
+    {"style": {"lineWidth": 5}},
+    {"style": {"lineStyle": 5}},
+    {"style": {"color": "red"}},
+    {"style": {"unknown": 1}},
+    {"unknown": 1},
+])
+def test_dataset_invalid(patch, registry):
     from jsonschema import ValidationError
 
     with pytest.raises(ValidationError):
-        _validator(registry, "#/$defs/indicator").validate(_indicator(type="sma", inputs={"value": ref}))
+        _validator(registry, "#/$defs/dataset").validate(_dataset(**patch))
 
 
-def test_indicator_inputs_bad_slot_name_and_shape(registry):
+@pytest.mark.parametrize("key", ["id", "scope", "name", "field", "style"])
+def test_dataset_required_keys(key, registry):
     from jsonschema import ValidationError
 
-    v = _validator(registry, "#/$defs/indicator")
-    for bad in ({"Value": "candles.close"}, {"1v": "candles.close"}, {"": "candles.close"}):
+    bad = _dataset()
+    del bad[key]
+    with pytest.raises(ValidationError):
+        _validator(registry, "#/$defs/dataset").validate(bad)
+
+
+@pytest.mark.parametrize("ref", [
+    "candles", "positions.yur_net", "trades.val_b@median(30)", "obstats.vol_b@median(1)", "hhi.volume",
+    "positions.willco@window(180)", "positions.willco@window(2)", "positions.willco@window(500)",
+])
+def test_dataset_ref_valid(ref, registry):
+    _validator(registry, "#/$defs/datasetRef").validate(ref)
+
+
+@pytest.mark.parametrize("ref", [
+    "candles.", "Candles", "close", "positions.yur_net@median(0)", "positions.yur_net@median(1000)",
+    "positions.willco@window(0)", "positions.willco@window(05)", "positions.willco@window(x)",
+    "trades.val_b@median(3)@median(3)", "trades.val_b@median(3)@window(3)", "positions.", ".yur_net", "", 5,
+])
+def test_dataset_ref_invalid(ref, registry):
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _validator(registry, "#/$defs/datasetRef").validate(ref)
+
+
+def test_dataset_style_candles_and_overrides(registry):
+    v = _validator(registry, "#/$defs/datasetStyle")
+    v.validate(_CANDLE_STYLE)
+    v.validate({"color": "#112233"})  # partial override
+    v.validate({"color": "rgba(1, 2, 3, .5)"})
+    v.validate({})
+
+
+def test_dataset_rejection(registry):
+    from jsonschema import ValidationError
+
+    v = _validator(registry, "#/$defs/datasetRejection")
+    v.validate({"id": _DS_A, "code": "forbidden"})
+    v.validate({"id": _DS_A, "code": "validation_error", "message": "x"})
+    for bad in ({"id": _DS_A}, {"code": "forbidden"}, {"id": "", "code": "forbidden"},
+                {"id": _DS_A, "code": "nope"}, {"id": _DS_A, "code": "forbidden", "extra": 1}):
         with pytest.raises(ValidationError):
-            v.validate(_indicator(inputs=bad))
-    with pytest.raises(ValidationError):
-        v.validate(_indicator(inputs=["candles.close"]))
-
-
-def test_indicator_without_inputs_still_valid(registry):
-    v = _validator(registry, "#/$defs/indicator")
-    ind = _indicator()
-    assert "inputs" not in ind
-    v.validate(ind)
-    v.validate(_indicator(inputs={}))
-    # type=field schema-wise valid even without inputs.value (server enforces it)
-    v.validate(_indicator(type="field", inputs={"value": "positions.yur_long"}))
-    v.validate(_indicator(type="field"))
-
-
-@pytest.mark.parametrize("st", ["Line", "Histogram", "Area", "Baseline"])
-def test_indicator_series_type(st, registry):
-    v = _validator(registry, "#/$defs/indicator")
-    v.validate(_indicator(settings={**_IND_SETTINGS, "seriesType": st}))
-
-
-def test_indicator_series_type_invalid(registry):
-    from jsonschema import ValidationError
-
-    with pytest.raises(ValidationError):
-        _validator(registry, "#/$defs/indicator").validate(
-            _indicator(settings={**_IND_SETTINGS, "seriesType": "Candles"}))
+            v.validate(bad)
 
 
 def _preset(**overrides):
     p = {"id": "preset-1", "scope": "personal", "name": "Мой",
-         "panes": {"price": ["a"], "upper": ["b"], "lower": []}}
+         "panes": {"price": [{"dataset": _DS_A}], "upper": [{"dataset": _DS_B, "style": {"color": "#FF9800"}}], "lower": []}}
     p.update(overrides)
     return p
+
+
+def _items(n):
+    return [{"dataset": f"dataset-0000-0000-{n_:04x}"} for n_ in range(n)]
 
 
 def test_preset_valid(registry):
     v = _validator(registry, "#/$defs/preset")
     v.validate(_preset())
     v.validate(_preset(scope="shared", panes={"price": [], "upper": [], "lower": []}))
-    v.validate(_preset(name="x" * 64, panes={"price": [f"i{n}" for n in range(16)], "upper": [], "lower": []}))
+    v.validate(_preset(name="x" * 64, panes={"price": _items(16), "upper": [], "lower": []}))
+    # candles on price with a style override
+    v.validate(_preset(panes={"price": [{"dataset": _DS_A, "style": {"upColor": "#00C853", "downColor": "#D50000"}}],
+                              "upper": [], "lower": []}))
 
 
 @pytest.mark.parametrize("patch", [
-    {"panes": {"price": [], "upper": []}},                                  # missing pane
-    {"panes": {"price": [], "upper": [], "lower": [], "extra": []}},         # unknown pane
-    {"panes": {"price": [f"i{n}" for n in range(17)], "upper": [], "lower": []}},  # > 16
-    {"panes": {"price": ["a", "a"], "upper": [], "lower": []}},             # not unique in pane
-    {"panes": {"price": [""], "upper": [], "lower": []}},                   # empty id
+    {"panes": {"price": [], "upper": []}},                                          # missing pane
+    {"panes": {"price": [], "upper": [], "lower": [], "extra": []}},                 # unknown pane
+    {"panes": {"price": _items(17), "upper": [], "lower": []}},                      # > 16
+    {"panes": {"price": [], "upper": _items(17), "lower": []}},
+    {"panes": {"price": [], "upper": [], "lower": _items(17)}},
+    {"panes": {"price": ["a"], "upper": [], "lower": []}},                           # old string ids
+    {"panes": {"price": [{"dataset": ""}], "upper": [], "lower": []}},               # empty id
+    {"panes": {"price": [{}], "upper": [], "lower": []}},                            # no dataset
+    {"panes": {"price": [{"dataset": "a", "extra": 1}], "upper": [], "lower": []}},  # unknown item key
+    {"panes": {"price": [{"dataset": "a", "style": {"seriesType": "Nope"}}], "upper": [], "lower": []}},
     {"name": ""},
     {"name": "x" * 65},
     {"scope": "global"},

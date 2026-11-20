@@ -645,22 +645,33 @@ Top-level `period` — общий таймфрейм вычисления ала
     `delete` (`ids[]` и/или `instrument_keys[]` — «удалить все свободные примитивы
     инструмента» одним сообщением; примитивы плана в `rejected[]` с `conflict`;
     без `request_id` — push удаления), `indicator.list|set|delete`, `style`, `error`.
-  - Пресеты графика: `preset.list|set|delete` (та же схема, что у `indicator.*`:
-    запрос/ответ/push без `request_id` для общих, `rejected[]`). `$defs/preset` в
-    `gp.v2.json`: `id`, `scope` (`shared|personal`), `name` (1..64), `panes`
-    `{price, upper, lower}` — массивы id индикаторов (≤16, без повторов; порядок =
-    порядок отрисовки и легенды; id не повторяется между панелями — проверяет сервер).
-    Общие пресеты пишет и удаляет только персонал (иначе `forbidden`); общий пресет
-    может ссылаться только на общие индикаторы, ссылки должны существовать и быть
-    видимы автору, индикатор `field` с единицей поля не `price` на панели `price` —
-    `validation_error`. `$defs/indicator` получил необязательное `inputs`
-    (`{слот: fieldRef}`; `fieldRef` — `candles.(open|high|low|close|volume)` или поле
-    реестра `market.v2`, в т.ч. `@median(N)`; нет `inputs` — входы формулы по
-    умолчанию), тип `field` («первичные данные») требует `inputs.value` (проверяет
-    сервер). `settings.seriesType` — `Line|Histogram|Area|Baseline`, нет — `Line`.
-  - `market.fields.v2`: `get fields` без `instrument_key` отдаёт полный каталог
-    источников и полей; у каждого поля обязательная `unit`
-    (`price|lots|rub|count|contracts|persons|ratio|hhi`).
+  - Ряды данных графика: `dataset.list|set|delete` (та же схема, что у `indicator.*`:
+    запрос/ответ/push без `request_id` для общих, `rejected[]`). `$defs/dataset` в
+    `gp.v2.json`: `id` (`dataset-xxxx-xxxx-xxxx`), `scope` (`shared|personal`; `personal` —
+    черновик персонала, виден только автору и не рассылается), `name` (1..64), `field`
+    (`$defs/datasetRef`: `candles` | `<source>.<field>` | `…@median(N)` | `…@window(N)`),
+    `unit` (заполняет сервер, в `set` игнорируется), `style` (`$defs/datasetStyle`, полный
+    стиль по умолчанию). Пользователь получает в `list` только общие ряды; `set`/`delete`
+    только у персонала (иначе `forbidden`). Соответствие ключей стиля виду ряда (свечные
+    `upColor`/`downColor`/`wickUpColor`/`wickDownColor` у `candles`, `seriesType`/`color`/
+    `lineWidth`/`lineStyle` у остальных) схема не проверяет — это делает сервер
+    (`validation_error`).
+  - Пресеты графика: `preset.list|set|delete`. `$defs/preset`: `id`, `scope`
+    (`shared|personal`), `name` (1..64), `panes` `{price, upper, lower}` — массивы
+    `presetItem = {dataset, style?}` (≤16 в панели; порядок = порядок отрисовки и
+    легенды; `style` — только переопределения стиля ряда, итог = стиль ряда ⊕ элемент).
+    Правила панелей проверяет сервер (`validation_error`): на `price` только шкала цены,
+    `candles` только на `price` и не больше одного, на `upper`/`lower` один класс шкалы на
+    панель, ряд не повторяется в пресете. Общие пресеты пишет и удаляет только персонал
+    (иначе `forbidden`) и ссылаются только на общие ряды. Индикаторы WMA/KAMA/PSAR
+    рисуются на `price` поверх свечей вне пресета; `$defs/indicator` снова `{id, type,
+    settings, scope}` (`inputs`, `fieldRef` и `settings.seriesType` убраны).
+  - `market.fields.v2`: `get fields` без `instrument_key` отдаёт полный каталог источников
+    и полей, только персоналу (остальным `error` `forbidden`); у каждого поля обязательные
+    `unit` (`price|lots|rub|count|contracts|persons|ratio|hhi|percent`) и флаг `window`
+    (допустим и обязателен `@window(N)`); в ответе `window_max_bars`. В `get fields`
+    допустим суффикс `@window(N)` — окно N баров периода графика, N в 2..`window_max_bars`
+    (например `positions.willco@window(180)`); колонка ответа — `<field>@window(N)`.
 - `afb.gp.v2` добавляет категории `trendline` и `fibonacci`: обе двухточечные
   (`start` и `stop` обязательны, `text` запрещён). Вид примитивов не специфицирован.
 - Параметры самого примитива (`start`, `stop`, `text`) в `afb.gp.v2` лежат не на корне,

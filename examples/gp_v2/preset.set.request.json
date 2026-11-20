@@ -7,7 +7,11 @@
       "id": "preset-1",
       "scope": "personal",
       "name": "Мой пресет",
-      "panes": { "price": ["ind-wma-5"], "upper": ["ind-sma-yur"], "lower": [] }
+      "panes": {
+        "price": [{ "dataset": "dataset-0a1b-2c3d-4e5f", "style": { "upColor": "#00C853", "downColor": "#D50000" } }],
+        "upper": [{ "dataset": "dataset-1111-2222-3333" }],
+        "lower": []
+      }
     }
   ]
 }

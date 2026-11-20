@@ -1,0 +1,68 @@
+{
+  "channel": "market",
+  "schema": "afbws.market.series.v2",
+  "request_id": "get-6",
+  "slot": 0,
+  "instrument_key": "MISX:TQBR:SBER",
+  "period": "1d",
+  "mode": "replace",
+  "tables": [
+    {
+      "source": "candles",
+      "columns": [
+        "time",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "rows": [
+        [
+          1795000800,
+          301.1,
+          301.5,
+          300.9,
+          301.2,
+          12000
+        ],
+        [
+          1795001100,
+          301.2,
+          301.4,
+          301.0,
+          301.3,
+          9000
+        ]
+      ]
+    },
+    {
+      "source": "positions",
+      "resolved_key": "MISX:SBRF",
+      "columns": [
+        "time",
+        "willco@window(180)"
+      ],
+      "rows": [
+        [
+          1795000800,
+          63.5
+        ],
+        [
+          1795001100,
+          null
+        ]
+      ]
+    }
+  ],
+  "future_times": [
+    1795001400,
+    1795001700
+  ],
+  "data_status": {
+    "state": "stale",
+    "source": "exchange",
+    "reason": "freshness lag",
+    "since": "2026-11-19T10:00:00+03:00"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "channel": "gp",
+  "schema": "afbws.gp.dataset.set.v2",
+  "request_id": "ds-1",
+  "items": [
+    {
+      "id": "dataset-1111-2222-3333",
+      "scope": "shared",
+      "name": "WillCo, 180 баров",
+      "field": "positions.willco@window(180)",
+      "style": { "seriesType": "Line", "color": "#AB47BC", "lineWidth": 2, "lineStyle": 0 }
+    }
+  ]
+}

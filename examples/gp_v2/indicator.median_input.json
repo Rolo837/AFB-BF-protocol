@@ -1,7 +1,0 @@
-{
-  "id": "ind-rel-median",
-  "type": "rel_median",
-  "scope": "personal",
-  "inputs": { "value": "trades.val_b@median(30)" },
-  "settings": { "color": "#FF9800", "lineWidth": 2, "lineStyle": "Dots", "days": 30 }
-}

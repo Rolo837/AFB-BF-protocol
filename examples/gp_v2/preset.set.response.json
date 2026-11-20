@@ -4,6 +4,6 @@
   "request_id": "ps-1",
   "items": [],
   "rejected": [
-    { "id": "preset-1", "code": "validation_error", "message": "indicator ind-yur-long (unit contracts) is not allowed on pane price" }
+    { "id": "preset-1", "code": "validation_error", "message": "dataset dataset-aaaa-bbbb-cccc (unit rub) is not allowed on pane price" }
   ]
 }

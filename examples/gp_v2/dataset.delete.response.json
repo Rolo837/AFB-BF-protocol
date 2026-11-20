@@ -1,0 +1,7 @@
+{
+  "channel": "gp",
+  "schema": "afbws.gp.dataset.delete.v2",
+  "request_id": "dd-1",
+  "ids": ["dataset-aaaa-bbbb-cccc"],
+  "rejected": [{ "id": "dataset-1111-2222-3333", "code": "forbidden", "message": "shared datasets are deleted by staff only" }]
+}

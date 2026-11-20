@@ -28,8 +28,8 @@
 
     "fieldRequest": {
       "type": "string",
-      "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*(@median\\([1-9][0-9]{0,2}\\))?$",
-      "description": "`<source>.<field>` with an optional `@median(N)` suffix, N an integer 1..999 by shape (the real upper bound is `fields.median_max_days`, enforced by the server). `@median(N)`: N is the width in CALENDAR DAYS of a rolling window before the bar's date; for a bar of date D and in-day slot s the value is the median of the same field in the same slot s over the days [D-N, D) — the current day D is excluded, days without a value are skipped, no values means null. Defined for intraday periods and `1d` (for `1d` the slot is the whole day); other periods answer the field as `unavailable` (`not_supported`). The response column is named `<field>@median(N)` (without the source prefix)."
+      "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*(@median\\([1-9][0-9]{0,2}\\)|@window\\([1-9][0-9]{0,2}\\))?$",
+      "description": "`<source>.<field>` with an optional `@median(N)` suffix, N an integer 1..999 by shape (the real upper bound is `fields.median_max_days`, enforced by the server). `@median(N)`: N is the width in CALENDAR DAYS of a rolling window before the bar's date; for a bar of date D and in-day slot s the value is the median of the same field in the same slot s over the days [D-N, D) — the current day D is excluded, days without a value are skipped, no values means null. Defined for intraday periods and `1d` (for `1d` the slot is the whole day); other periods answer the field as `unavailable` (`not_supported`). `@window(N)`: N is a window of N BARS of the requested period, an integer 2..`fields.window_max_bars` (the pattern checks the shape only, N=0 and N=1 are invalid by shape or by registry); allowed only for fields flagged `window` in `fields.v2` and mandatory for them (computed fields such as `positions.willco@window(180)`); the server widens the read backwards by N bars. Any other combination answers the field as `unavailable` (`not_supported`). The response column is named `<field>@median(N)` or `<field>@window(N)` (without the source prefix)."
     },
 
     "unavailableEntry": {
@@ -73,7 +73,7 @@
           "prefixItems": [{ "const": "time" }],
           "items": {
             "type": "string",
-            "pattern": "^[a-z][a-z0-9_]*(@median\\([1-9][0-9]{0,2}\\))?$"
+            "pattern": "^[a-z][a-z0-9_]*(@median\\([1-9][0-9]{0,2}\\)|@window\\([1-9][0-9]{0,2}\\))?$"
           }
         },
         "rows": {
@@ -201,7 +201,7 @@
     "fieldEntry": {
       "type": "object",
       "title": "One field of a source in `fields.sources[].fields[]`.",
-      "required": ["name", "median", "unit"],
+      "required": ["name", "median", "window", "unit"],
       "additionalProperties": false,
       "properties": {
         "name": {
@@ -213,9 +213,13 @@
           "type": "boolean",
           "description": "True when `@median(N)` is allowed for this field."
         },
+        "window": {
+          "type": "boolean",
+          "description": "True when the field is a windowed computed field: `@window(N)` is allowed AND mandatory for it."
+        },
         "unit": {
-          "enum": ["price", "lots", "rub", "count", "contracts", "persons", "ratio", "hhi"],
-          "description": "Unit of the field's values: price (instrument price), lots, rub (money), count (number of trades/orders/levels), contracts, persons (number of participants), ratio (dimensionless share/imbalance), hhi (Herfindahl-Hirschman index). The client uses it to decide which fields may share a chart pane."
+          "enum": ["price", "lots", "rub", "count", "contracts", "persons", "ratio", "hhi", "percent"],
+          "description": "Unit of the field's values: price (instrument price), lots, rub (money), count (number of trades/orders/levels), contracts, persons (number of participants), ratio (dimensionless share/imbalance), hhi (Herfindahl-Hirschman index), percent (0..100 normalized value, e.g. WillCo). The client uses it to decide which fields may share a chart pane."
         }
       }
     },
@@ -250,7 +254,7 @@
       "type": "object",
       "title": "afbws.market.fields.v2 — data fields available for one instrument, or the full catalog.",
       "description": "Reply to `get` (target=fields); always carries `request_id`. `sources` lists only the sources that are applicable to the instrument AND available to the caller (a source the caller has no access to is omitted, not marked). When the request carried no `instrument_key`, the reply is the full catalog of the registry's sources and fields: `instrument_key` is absent and no source carries `resolved_key`.",
-      "required": ["channel", "schema", "request_id", "sources", "median_max_days"],
+      "required": ["channel", "schema", "request_id", "sources", "median_max_days", "window_max_bars"],
       "additionalProperties": false,
       "properties": {
         "channel": { "const": "market" },
@@ -265,6 +269,11 @@
           "type": "integer",
           "minimum": 1,
           "description": "Upper bound of N in `@median(N)` (calendar days)."
+        },
+        "window_max_bars": {
+          "type": "integer",
+          "minimum": 2,
+          "description": "Upper bound of N in `@window(N)` (bars of the chart period); the lower bound is 2."
         }
       }
     },
@@ -324,7 +333,7 @@
     "get": {
       "type": "object",
       "title": "afbws.market.get.v2 — one-shot request (client -> server); `target` selects the kind.",
-      "description": "Reply by `target`: series -> `series` (mode:\"replace\"), quotes -> `quotes` (mode:\"full\"), fields -> `fields`; or `error` — all with the same `request_id`. Each target allows only its own fields (the others are rejected by the schema). target=series: candles are ALWAYS delivered (they are the grid the data rows live on, there is no flag for it); `fields` asks for additional data fields (see `$defs/fieldRequest`), its validity is decided by the server registry and an unserved field lands in `series.unavailable` instead of failing the request. LIVE RULE: if `end_date` is absent, or not earlier than \"today\" in the instrument's market timezone, this request ALSO becomes the live series subscription OF ITS `slot` and replaces only that slot's previous subscription (the replaced live `get`, if still pending, is answered with `error` code `superseded`); the server then pushes `series` (mode:\"merge\") for it. A request with `end_date` strictly before today (history paging) is a pure history fetch and touches no subscription. A connection has at most one live series subscription per slot, so at most two; there is no explicit unsubscribe — it lives until replaced by a live `get` of the same slot or until the connection closes. Identical sets in the two slots are two independent subscriptions. The limit of concurrently running heavy `get`s per connection is unchanged and applies across slots (`busy`). target=quotes: `instrument_keys` omitted means all instruments with cached data. target=fields: the answer lists the registry's sources and fields. With `instrument_key` — those applicable to that instrument and available to the caller; WITHOUT it — the full catalog of sources and fields (no `resolved_key`), used by the indicator editor.",
+      "description": "Reply by `target`: series -> `series` (mode:\"replace\"), quotes -> `quotes` (mode:\"full\"), fields -> `fields`; or `error` — all with the same `request_id`. Each target allows only its own fields (the others are rejected by the schema). target=series: candles are ALWAYS delivered (they are the grid the data rows live on, there is no flag for it); `fields` asks for additional data fields (see `$defs/fieldRequest`), its validity is decided by the server registry and an unserved field lands in `series.unavailable` instead of failing the request. LIVE RULE: if `end_date` is absent, or not earlier than \"today\" in the instrument's market timezone, this request ALSO becomes the live series subscription OF ITS `slot` and replaces only that slot's previous subscription (the replaced live `get`, if still pending, is answered with `error` code `superseded`); the server then pushes `series` (mode:\"merge\") for it. A request with `end_date` strictly before today (history paging) is a pure history fetch and touches no subscription. A connection has at most one live series subscription per slot, so at most two; there is no explicit unsubscribe — it lives until replaced by a live `get` of the same slot or until the connection closes. Identical sets in the two slots are two independent subscriptions. The limit of concurrently running heavy `get`s per connection is unchanged and applies across slots (`busy`). target=quotes: `instrument_keys` omitted means all instruments with cached data. target=fields: the answer lists the registry's sources and fields. With `instrument_key` — those applicable to that instrument and available to the caller; WITHOUT it — the full catalog of sources and fields (no `resolved_key`), used by the datasets dialog; that form is STAFF ONLY, any other caller gets `error` with code `forbidden`.",
       "required": ["channel", "schema", "request_id", "target"],
       "additionalProperties": false,
       "properties": {

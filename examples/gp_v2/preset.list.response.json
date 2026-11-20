@@ -6,14 +6,22 @@
     {
       "id": "preset-shared-1",
       "scope": "shared",
-      "name": "Позиции юрлиц",
-      "panes": { "price": [], "upper": ["ind-yur-long"], "lower": [] }
+      "name": "WillCo",
+      "panes": {
+        "price": [{ "dataset": "dataset-0a1b-2c3d-4e5f" }],
+        "upper": [{ "dataset": "dataset-1111-2222-3333" }],
+        "lower": []
+      }
     },
     {
       "id": "preset-1",
       "scope": "personal",
       "name": "Мой пресет",
-      "panes": { "price": ["ind-wma-5"], "upper": ["ind-sma-yur"], "lower": ["ind-rel-median"] }
+      "panes": {
+        "price": [{ "dataset": "dataset-0a1b-2c3d-4e5f", "style": { "upColor": "#00C853", "downColor": "#D50000" } }],
+        "upper": [{ "dataset": "dataset-1111-2222-3333", "style": { "color": "#FF9800", "lineWidth": 3 } }],
+        "lower": [{ "dataset": "dataset-aaaa-bbbb-cccc" }]
+      }
     }
   ]
 }
