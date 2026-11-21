@@ -9,13 +9,21 @@
 ## Unreleased
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## v2.11.2 — 2026-11-21
+
+### Added
 - `gp.v2.json`: канон стилей объектов графика — атомы `styleColor` (только `#rrggbbaa` строчными), `styleLineWidth`, `styleLineStyle`, `styleSeriesType` и полные закрытые стили `lineObjectStyle`, `seriesStyle`, `candleStyle` (`chartType` `candles|bars`, `volumeUpColor`/`volumeDownColor`); `datasetStyleOverride` для переопределений в `presetItem.style`.
 
 ### Changed
 - `gp.v2.json`: `datasetStyle` теперь `oneOf [candleStyle, seriesStyle]` (полный стиль), `presetItem.style` -> `datasetStyleOverride`; `indicator` получил обязательное поле `style: seriesStyle` (сообщения `indicator.list|set` и push наследуют); `indicatorSettings` — только параметры расчёта, `color`/`lineWidth`/`lineStyle` запрещены наравне с `enabled`, `lineStyle` числом LWC вместо `'Solid'|'Dots'`. `primitiveStyles` ссылается на `lineObjectStyle`.
 - `afbws.gp.style.v2`: форма прежняя; ответ/push несут итоговый набор (личный стиль вида, иначе общий), запись создаёт/заменяет личные строки переданных видов. Схемы gp v2 правятся на месте (2.27.x на прод не выкатывались).
-
-### Fixed
 
 ### Removed
 - `gp.v2.json`: `primitiveKindStyle` (заменён `lineObjectStyle`), `wickUpColor`/`wickDownColor` в стиле свечей, форматы цвета `#rrggbb` и `rgba(...)`.
