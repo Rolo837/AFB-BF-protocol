@@ -23,8 +23,8 @@ _GP_ITEM = {
 }
 _IND = {
     "id": "ind-1", "type": "kama", "scope": "shared",
-    "settings": {"color": "#fff", "lineWidth": 2, "lineStyle": "Dots",
-                 "erPeriod": 10, "fastPeriod": 2, "slowPeriod": 30},
+    "settings": {"erPeriod": 10, "fastPeriod": 2, "slowPeriod": 30},
+    "style": {"seriesType": "Line", "color": "#ffffffff", "lineWidth": 2, "lineStyle": 1},
 }
 _KEY = "MISX:TQBR:SBER"
 
@@ -204,7 +204,7 @@ def test_gp_v2_indicator_shared_push(registry):
 def test_gp_v2_style(registry):
     v = _v(_GP, "style", registry)
     base = {"channel": "gp", "schema": "afbws.gp.style.v2"}
-    styles = {"line": {"color": "#112233", "lineWidth": 3, "lineStyle": 0}, "zone": {"color": "#445566", "lineWidth": 1, "lineStyle": 2}}
+    styles = {"line": {"color": "#112233ff", "lineWidth": 3, "lineStyle": 0}, "zone": {"color": "#445566ff", "lineWidth": 1, "lineStyle": 2}}
     v.validate({**base, "request_id": "r"})                        # read
     v.validate({**base, "request_id": "r", "styles": styles})      # write / response
     v.validate({**base, "styles": styles})                         # push to other connections
@@ -273,10 +273,10 @@ def test_alarm_set_push_without_request_id(registry):
 
 # ----------------------------------------------------------------- gp presets
 _PRESET = {"id": "preset-1", "scope": "personal", "name": "Мой",
-           "panes": {"price": [{"dataset": "dataset-0a1b-2c3d-4e5f", "style": {"upColor": "#00C853"}}],
+           "panes": {"price": [{"dataset": "dataset-0a1b-2c3d-4e5f", "style": {"upColor": "#00c853ff"}}],
                      "upper": [], "lower": []}}
 _DATASET = {"id": "dataset-1111-2222-3333", "scope": "shared", "name": "WillCo", "field": "positions.willco@window(180)",
-            "unit": "percent", "style": {"seriesType": "Line", "color": "#AB47BC", "lineWidth": 2, "lineStyle": 0}}
+            "unit": "percent", "style": {"seriesType": "Line", "color": "#ab47bcff", "lineWidth": 2, "lineStyle": 0}}
 
 
 def test_gp_v2_dataset_commands(registry):

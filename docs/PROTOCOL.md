@@ -650,22 +650,22 @@ Top-level `period` — общий таймфрейм вычисления ала
     `gp.v2.json`: `id` (`dataset-xxxx-xxxx-xxxx`), `scope` (`shared|personal`; `personal` —
     черновик персонала, виден только автору и не рассылается), `name` (1..64), `field`
     (`$defs/datasetRef`: `candles` | `<source>.<field>` | `…@median(N)` | `…@window(N)`),
-    `unit` (заполняет сервер, в `set` игнорируется), `style` (`$defs/datasetStyle`, полный
-    стиль по умолчанию). Пользователь получает в `list` только общие ряды; `set`/`delete`
-    только у персонала (иначе `forbidden`). Соответствие ключей стиля виду ряда (свечные
-    `upColor`/`downColor`/`wickUpColor`/`wickDownColor` у `candles`, `seriesType`/`color`/
-    `lineWidth`/`lineStyle` у остальных) схема не проверяет — это делает сервер
+    `unit` (заполняет сервер, в `set` игнорируется), `style` (`$defs/datasetStyle` =
+    `candleStyle` | `seriesStyle`, полный стиль по умолчанию; см. «Канон стилей» ниже). Пользователь получает в `list` только общие ряды; `set`/`delete`
+    только у персонала (иначе `forbidden`). Соответствие формы стиля виду ряда (`candleStyle` у
+    `candles`, `seriesStyle` у остальных) схема не проверяет — это делает сервер
     (`validation_error`).
   - Пресеты графика: `preset.list|set|delete`. `$defs/preset`: `id`, `scope`
     (`shared|personal`), `name` (1..64), `panes` `{price, upper, lower}` — массивы
     `presetItem = {dataset, style?}` (≤16 в панели; порядок = порядок отрисовки и
-    легенды; `style` — только переопределения стиля ряда, итог = стиль ряда ⊕ элемент).
+    легенды; `style` — `$defs/datasetStyleOverride`: только переопределения стиля ряда,
+    итог = стиль ряда ⊕ элемент).
     Правила панелей проверяет сервер (`validation_error`): на `price` только шкала цены,
     `candles` только на `price` и не больше одного, на `upper`/`lower` один класс шкалы на
     панель, ряд не повторяется в пресете. Общие пресеты пишет и удаляет только персонал
     (иначе `forbidden`) и ссылаются только на общие ряды. Индикаторы WMA/KAMA/PSAR
-    рисуются на `price` поверх свечей вне пресета; `$defs/indicator` снова `{id, type,
-    settings, scope}` (`inputs`, `fieldRef` и `settings.seriesType` убраны).
+    рисуются на `price` поверх свечей вне пресета; `$defs/indicator` — `{id, type,
+    settings, style, scope}` (`inputs`, `fieldRef` и `settings.seriesType` убраны).
   - `market.fields.v2`: `get fields` без `instrument_key` отдаёт полный каталог источников
     и полей, только персоналу (остальным `error` `forbidden`); у каждого поля обязательные
     `unit` (`price|lots|rub|count|contracts|persons|ratio|hhi|percent`) и флаг `window`
@@ -688,15 +688,28 @@ Top-level `period` — общий таймфрейм вычисления ала
   `gp.channel.v2`: `indicator.list` / `indicator.set` (upsert массива по `id`) /
   `indicator.delete`; дельта **общих** индикаторов приходит теми же `indicator.set`
   / `indicator.delete` без `request_id`. `$defs/indicator` в `gp.v2.json`: `id`,
-  `type` (`wma|kama|psar|cot`), `scope` (`shared|personal`), `settings`. Общие
+  `type` (`wma|kama|psar|cot`), `scope` (`shared|personal`), `settings` (только параметры
+  расчёта; `color`/`lineWidth`/`lineStyle`/`enabled` запрещены), `style` (обязательный
+  `seriesStyle` — вид серии). Общие
   индикаторы создаёт/правит/удаляет только manager (иначе элемент в `rejected[]` с
   `forbidden`). Флага `enabled` в протоколе **нет**: показан ли индикатор на графике —
   настройка вида на устройстве (localStorage клиента).
 - Стили отображения примитивов (замена `settings.interface.primitive_styles`):
   `afbws.gp.style.v2` — `styles` по видам примитивов (`$defs/primitiveStyles` в
-  `gp.v2.json`: `color` hex, `lineWidth` 1–4, `lineStyle` 0–4). Запрос без `styles` —
-  чтение, с `styles` — запись (переданные виды заменяют хранимые); ответ и push на
-  остальные соединения несут полный `styles`.
+  `gp.v2.json`, значение — `lineObjectStyle`). Запрос без `styles` — чтение, с `styles` —
+  запись: создаёт/заменяет **личные** строки переданных видов; ответ и push на
+  остальные соединения несут **итоговый** набор (личный стиль вида, иначе общий).
+- Канон стилей (`gp.v2.json#/$defs`, единый для объектов графика). Атомы: `styleColor`
+  (`^#[0-9a-f]{8}$` — только `#rrggbbaa` строчными, альфа обязательна, `ff` = непрозрачный),
+  `styleLineWidth` (1–4), `styleLineStyle` (0–4, `LineStyle` lightweight-charts: 0 сплошная,
+  1 точки, 2 штрих, 3 редкий штрих, 4 редкие точки), `styleSeriesType`
+  (`Line|Area|Baseline|Histogram`). Стили (все ключи обязательны, лишних нет):
+  `lineObjectStyle` `{color, lineWidth, lineStyle}` (виды примитивов, заменил
+  `primitiveKindStyle`), `seriesStyle` `{seriesType, color, lineWidth, lineStyle}` (ряды не-свечи
+  и индикаторы), `candleStyle` `{chartType: candles|bars, upColor, downColor, volumeUpColor,
+  volumeDownColor}` (фитили рисуются цветом тела; `wickUpColor`/`wickDownColor` удалены).
+  `datasetStyle` = `candleStyle` | `seriesStyle`; `datasetStyleOverride` — объединение ключей
+  обоих, все необязательны (стиль элемента пресета).
 - `notification.alarm.v1.json`: `instrument_key` (изначально опциональное; с Этапа 6
   программы единого каталога — обязательное, `ticker` — только отображение).
 - Валидация: `payload_validation.validate_alarm` (только v2), `validate_gp` (только v2).

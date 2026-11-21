@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: dfed31b2340eff1bef2dd7ff04189ef6b6b513615f9849a593af8d980afd82b9
+# source-hash: fc4aca826a28fdbd5056c0ed3bba77f6fd8e1fc8f9426c83178cd0dff4878ed6
 
 from __future__ import annotations
 
@@ -1973,7 +1973,7 @@ class AfbwsGpChannelV2DatasetList(TypedDict):
 
 class AfbwsGpChannelV2DatasetSet(TypedDict):
     """
-    Request: upsert by `id`, batched; STAFF ONLY — a regular user gets every item rejected with `forbidden`. `scope: personal` is a draft visible to its author only, `scope: shared` publishes the dataset to everyone. Validation per item (violation = rejected with `validation_error`): `field` must exist in the registry (and `@window(N)` match the field's `window` flag and 2..`window_max_bars`); `style` must be COMPLETE and its keys must fit the kind of the series (candles: `upColor`/`downColor`/`wickUpColor`/`wickDownColor`; others: `seriesType`/`color`/`lineWidth`/`lineStyle`) — the schema itself allows all style keys together; `unit` in the request is ignored, the server fills it. Response (same `request_id`): applied `items[]` (possibly empty, with `unit` filled) + `rejected[]`. Push (no `request_id`): changed SHARED datasets to every connection with this capability (full authoritative records); personal drafts are never pushed.
+    Request: upsert by `id`, batched; STAFF ONLY — a regular user gets every item rejected with `forbidden`. `scope: personal` is a draft visible to its author only, `scope: shared` publishes the dataset to everyone. Validation per item (violation = rejected with `validation_error`): `field` must exist in the registry (and `@window(N)` match the field's `window` flag and 2..`window_max_bars`); `style` must be COMPLETE and its shape must fit the kind of the series (candles: `candleStyle` — `chartType`/`upColor`/`downColor`/`volumeUpColor`/`volumeDownColor`; others: `seriesStyle` — `seriesType`/`color`/`lineWidth`/`lineStyle`) — the schema itself accepts either shape for any field; `unit` in the request is ignored, the server fills it. Response (same `request_id`): applied `items[]` (possibly empty, with `unit` filled) + `rejected[]`. Push (no `request_id`): changed SHARED datasets to every connection with this capability (full authoritative records); personal drafts are never pushed.
     """
 
     channel: Literal["gp"]
@@ -4905,6 +4905,18 @@ class GpV2(TypedDict):
     tradeplan_id: NotRequired[TradeplanId]
 
 
+class GpV2CandleStyle(TypedDict):
+    """
+    Complete style: all keys are required, unknown keys are rejected. The wick is drawn in the body colour. Volume bars under the candles use their own up/down colours.
+    """
+
+    chartType: Literal["candles", "bars"]
+    upColor: GpV2StyleColor
+    downColor: GpV2StyleColor
+    volumeUpColor: GpV2StyleColor
+    volumeDownColor: GpV2StyleColor
+
+
 class GpV2Dataset(TypedDict):
     """
     A primary-data field (or the candle series) that staff made available, with a name and a default style. `scope: personal` is a DRAFT: visible to its author (staff) only, never pushed; `scope: shared` is published, visible to everyone by `name`, changed and deleted by staff only. A shared preset may reference shared datasets only. `unit` is filled by the server from the field registry and is ignored in `set`. `style` is the complete default style (see `$defs/datasetStyle`); the kind-vs-keys check is done by the server.
@@ -4939,19 +4951,20 @@ class GpV2DatasetRejection(TypedDict):
     message: NotRequired[str]
 
 
-class GpV2DatasetStyle(TypedDict):
+class GpV2DatasetStyleOverride(TypedDict):
     """
-    All keys are optional, unknown keys are rejected. Keys by kind of series: line-like (everything except `candles`) — `seriesType` (Line|Histogram|Area|Baseline), `color`, `lineWidth` (1..4, meaningful for Line/Area/Baseline), `lineStyle` (0..4, lightweight-charts numbering: 0 Solid, 1 Dotted, 2 Dashed, 3 LargeDashed, 4 SparseDotted; meaningful for Line/Area/Baseline); candles — `upColor`, `downColor`, `wickUpColor`, `wickDownColor`. This schema allows all keys together; whether the keys fit the kind of the series (candle keys on a non-`candles` dataset, `seriesType`/`color`/`lineWidth`/`lineStyle` on `candles`) is checked by the server (`validation_error`). In `$defs/dataset` the style is COMPLETE (the server requires all four candle colours for `candles`, and `seriesType`, `color`, `lineWidth`, `lineStyle` for the others). In a preset item it holds only OVERRIDES: effective style = dataset style overlaid with the item's keys; resetting a key means removing it.
+    Union of the keys of `candleStyle` and `seriesStyle`, all optional, unknown keys are rejected. Effective style of a preset item = the dataset's complete style overlaid with these keys; resetting a key means removing it. That the keys fit the dataset's kind (candle keys on `candles`, series keys on the others) is checked by the server (`validation_error`).
     """
 
-    seriesType: NotRequired[Literal["Line", "Histogram", "Area", "Baseline"]]
-    color: NotRequired[str]
-    lineWidth: NotRequired[int]
-    lineStyle: NotRequired[int]
-    upColor: NotRequired[str]
-    downColor: NotRequired[str]
-    wickUpColor: NotRequired[str]
-    wickDownColor: NotRequired[str]
+    chartType: NotRequired[Literal["candles", "bars"]]
+    upColor: NotRequired[GpV2StyleColor]
+    downColor: NotRequired[GpV2StyleColor]
+    volumeUpColor: NotRequired[GpV2StyleColor]
+    volumeDownColor: NotRequired[GpV2StyleColor]
+    seriesType: NotRequired[GpV2StyleSeriesType]
+    color: NotRequired[GpV2StyleColor]
+    lineWidth: NotRequired[GpV2StyleLineWidth]
+    lineStyle: NotRequired[GpV2StyleLineStyle]
 
 
 class GpV2Delete(TypedDict):
@@ -4988,12 +5001,13 @@ class GpV2ErrorDetails(TypedDict):
 
 class GpV2Indicator(TypedDict):
     """
-    `scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `settings` carry the parameters. Whether an indicator is shown on the chart is not part of the protocol (per-device view setting kept in the client's localStorage). `type` is an open string (pattern `^[a-z][a-z0-9_]*$`), not an enum; the server computes only wma/kama/psar (alarm indicator conditions, virtual account), other types are stored and returned as is. Type `cot` is chart-only.
+    `scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `settings` carry the calculation parameters only, `style` the complete look of the series. Whether an indicator is shown on the chart is not part of the protocol (per-device view setting kept in the client's localStorage). `type` is an open string (pattern `^[a-z][a-z0-9_]*$`), not an enum; the server computes only wma/kama/psar (alarm indicator conditions, virtual account), other types are stored and returned as is. Type `cot` is chart-only.
     """
 
     id: str
     type: str
     settings: GpV2IndicatorSettings
+    style: GpV2SeriesStyle
     scope: Literal["shared", "personal"]
 
 
@@ -5040,13 +5054,13 @@ class GpV2IndicatorSet(TypedDict):
 
 class GpV2IndicatorSettings(TypedDict):
     """
-    Display + calculation settings. Required: color/lineWidth/lineStyle. Typed optional keys of the built-in indicators: period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Any other key is allowed (value: number, string or boolean), except `enabled` (per-device view flag, never protocol) — indicators are computed by the frontend, so a new indicator brings its own parameters without a protocol change. Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.
+    Calculation parameters of an indicator (not its look: colour, width and dash style are in `indicator.style`). Typed optional keys of the built-in indicators: period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Any other key is allowed (value: number, string or boolean), except `enabled` (per-device view flag, never protocol) and `color`/`lineWidth`/`lineStyle` (moved to `style`) — indicators are computed by the frontend, so a new indicator brings its own parameters without a protocol change. Mirrors the parameter part of IndicatorInstance.settings of the frontend chart.
     """
 
     enabled: NotRequired[Any]
-    color: str
-    lineWidth: float
-    lineStyle: Literal["Solid", "Dots"]
+    color: NotRequired[Any]
+    lineWidth: NotRequired[Any]
+    lineStyle: NotRequired[Any]
     period: NotRequired[int]
     erPeriod: NotRequired[int]
     fastPeriod: NotRequired[int]
@@ -5054,6 +5068,16 @@ class GpV2IndicatorSettings(TypedDict):
     start: NotRequired[float]
     maximum: NotRequired[float]
     increment: NotRequired[float]
+
+
+class GpV2LineObjectStyle(TypedDict):
+    """
+    Complete style: all keys are required, unknown keys are rejected. Stored per primitive kind (personal row, otherwise the shared one) and read by the primitives plugin, plan levels (`line_enter`/`line_sl`/`line_tp`) and axis labels. For `note` the colour is that of the callout line, frame and text.
+    """
+
+    color: GpV2StyleColor
+    lineWidth: GpV2StyleLineWidth
+    lineStyle: GpV2StyleLineStyle
 
 
 class GpV2List(TypedDict):
@@ -5091,13 +5115,7 @@ class GpV2PresetItem(TypedDict):
     """
 
     dataset: str
-    style: NotRequired[GpV2DatasetStyle]
-
-
-class GpV2PrimitiveKindStyle(TypedDict):
-    color: str
-    lineWidth: Literal[1, 2, 3, 4]
-    lineStyle: int
+    style: NotRequired[GpV2DatasetStyleOverride]
 
 
 class GpV2PrimitiveSettingsLine(TypedDict):
@@ -5131,15 +5149,15 @@ class GpV2PrimitiveStyles(TypedDict):
     Keys are primitive kinds; a kind that is absent has no stored override (the client falls back to its defaults).
     """
 
-    line: NotRequired[GpV2PrimitiveKindStyle]
-    line_enter: NotRequired[GpV2PrimitiveKindStyle]
-    line_sl: NotRequired[GpV2PrimitiveKindStyle]
-    line_tp: NotRequired[GpV2PrimitiveKindStyle]
-    note: NotRequired[GpV2PrimitiveKindStyle]
-    zone: NotRequired[GpV2PrimitiveKindStyle]
-    ruler: NotRequired[GpV2PrimitiveKindStyle]
-    trendline: NotRequired[GpV2PrimitiveKindStyle]
-    fibonacci: NotRequired[GpV2PrimitiveKindStyle]
+    line: NotRequired[GpV2LineObjectStyle]
+    line_enter: NotRequired[GpV2LineObjectStyle]
+    line_sl: NotRequired[GpV2LineObjectStyle]
+    line_tp: NotRequired[GpV2LineObjectStyle]
+    note: NotRequired[GpV2LineObjectStyle]
+    zone: NotRequired[GpV2LineObjectStyle]
+    ruler: NotRequired[GpV2LineObjectStyle]
+    trendline: NotRequired[GpV2LineObjectStyle]
+    fibonacci: NotRequired[GpV2LineObjectStyle]
 
 
 class GpV2Rejection(TypedDict):
@@ -5152,6 +5170,20 @@ class GpV2Rejection(TypedDict):
     message: NotRequired[str]
     item: NotRequired[GpV2]
     details: NotRequired[GpV2ErrorDetails]
+
+
+class GpV2SeriesStyle(TypedDict):
+    """
+    Complete style: all keys are required, unknown keys are rejected. Used for every dataset that is not `candles`, and for chart indicators. `lineWidth`/`lineStyle` are meaningful for Line/Area/Baseline.
+    """
+
+    seriesType: GpV2StyleSeriesType
+    color: GpV2StyleColor
+    lineWidth: GpV2StyleLineWidth
+    lineStyle: GpV2StyleLineStyle
+
+
+GpV2DatasetStyle: TypeAlias = GpV2CandleStyle | GpV2SeriesStyle
 
 
 class GpV2Set(TypedDict):
@@ -5168,7 +5200,7 @@ class GpV2Set(TypedDict):
 
 class GpV2Style(TypedDict):
     """
-    Per-user chart styling of primitives by kind (replaces the legacy `settings.interface.primitive_styles`). Request without `styles` = read. Request with `styles` = write: the supplied kinds replace the stored ones, kinds not supplied are left as they are. Response (same `request_id`) always carries the full stored `styles`. Push (no `request_id`) delivers the full `styles` to the user's other connections after a write; `styles` is required there.
+    Per-user chart styling of primitives by kind (replaces the legacy `settings.interface.primitive_styles`). Request without `styles` = read. Request with `styles` = write: it creates or replaces the caller's PERSONAL rows for the supplied kinds, kinds not supplied are left as they are. Response (same `request_id`) and push always carry the EFFECTIVE set — every seeded kind with the caller's personal style if there is one, otherwise the shared one. Push (no `request_id`) delivers that set to the user's other connections after a write; `styles` is required there. Each style is a complete `lineObjectStyle` (colour `#rrggbbaa`).
     """
 
     channel: Literal["gp"]
@@ -5193,6 +5225,18 @@ GpChannelV2Message: TypeAlias = (
     | GpV2Style
     | GpV2Error
 )
+
+
+GpV2StyleColor: TypeAlias = str
+
+
+GpV2StyleLineStyle: TypeAlias = int
+
+
+GpV2StyleLineWidth: TypeAlias = int
+
+
+GpV2StyleSeriesType: TypeAlias = Literal["Line", "Area", "Baseline", "Histogram"]
 
 
 class Health(TypedDict):

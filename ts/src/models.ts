@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: dfed31b2340eff1bef2dd7ff04189ef6b6b513615f9849a593af8d980afd82b9
+ * source-hash: fc4aca826a28fdbd5056c0ed3bba77f6fd8e1fc8f9426c83178cd0dff4878ed6
  */
 
 /**
@@ -1594,7 +1594,14 @@ export type GpV2IndicatorDelete = {
  */
 export type GpV2_DatasetRef = string;
 /**
- * Request: upsert by `id`, batched; STAFF ONLY — a regular user gets every item rejected with `forbidden`. `scope: personal` is a draft visible to its author only, `scope: shared` publishes the dataset to everyone. Validation per item (violation = rejected with `validation_error`): `field` must exist in the registry (and `@window(N)` match the field's `window` flag and 2..`window_max_bars`); `style` must be COMPLETE and its keys must fit the kind of the series (candles: `upColor`/`downColor`/`wickUpColor`/`wickDownColor`; others: `seriesType`/`color`/`lineWidth`/`lineStyle`) — the schema itself allows all style keys together; `unit` in the request is ignored, the server fills it. Response (same `request_id`): applied `items[]` (possibly empty, with `unit` filled) + `rejected[]`. Push (no `request_id`): changed SHARED datasets to every connection with this capability (full authoritative records); personal drafts are never pushed.
+ * `candleStyle` for the `candles` dataset, `seriesStyle` for every other one. The schema only requires one of the two shapes; that the shape fits the dataset's field is checked by the server (`validation_error`). Used in `$defs/dataset.style`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2DatasetStyle".
+ */
+export type GpV2DatasetStyle = GpV2CandleStyle | GpV2SeriesStyle;
+/**
+ * Request: upsert by `id`, batched; STAFF ONLY — a regular user gets every item rejected with `forbidden`. `scope: personal` is a draft visible to its author only, `scope: shared` publishes the dataset to everyone. Validation per item (violation = rejected with `validation_error`): `field` must exist in the registry (and `@window(N)` match the field's `window` flag and 2..`window_max_bars`); `style` must be COMPLETE and its shape must fit the kind of the series (candles: `candleStyle` — `chartType`/`upColor`/`downColor`/`volumeUpColor`/`volumeDownColor`; others: `seriesStyle` — `seriesType`/`color`/`lineWidth`/`lineStyle`) — the schema itself accepts either shape for any field; `unit` in the request is ignored, the server fills it. Response (same `request_id`): applied `items[]` (possibly empty, with `unit` filled) + `rejected[]`. Push (no `request_id`): changed SHARED datasets to every connection with this capability (full authoritative records); personal drafts are never pushed.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsGpChannelV2_DatasetSet".
@@ -1654,7 +1661,7 @@ export type AfbwsGpChannelV2_PresetDelete = {
   rejected?: AfbwsGpChannelV2_PresetRejection[];
 };
 /**
- * Per-user chart styling of primitives by kind (replaces the legacy `settings.interface.primitive_styles`). Request without `styles` = read. Request with `styles` = write: the supplied kinds replace the stored ones, kinds not supplied are left as they are. Response (same `request_id`) always carries the full stored `styles`. Push (no `request_id`) delivers the full `styles` to the user's other connections after a write; `styles` is required there.
+ * Per-user chart styling of primitives by kind (replaces the legacy `settings.interface.primitive_styles`). Request without `styles` = read. Request with `styles` = write: it creates or replaces the caller's PERSONAL rows for the supplied kinds, kinds not supplied are left as they are. Response (same `request_id`) and push always carry the EFFECTIVE set — every seeded kind with the caller's personal style if there is one, otherwise the shared one. Push (no `request_id`) delivers that set to the user's other connections after a write; `styles` is required there. Each style is a complete `lineObjectStyle` (colour `#rrggbbaa`).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpV2Style".
@@ -2450,6 +2457,34 @@ export type DealV2_ExitList = {
   condition: DealV2_ConditionNode;
   source?: DealV2_LegSource;
 }[];
+/**
+ * The only colour format of the style model: `#rrggbbaa`, lowercase hex, the alpha byte is mandatory (`ff` = opaque). Producers normalise `#rrggbb` to `#rrggbbff` and `rgba(r,g,b,a)` to hex with alpha `round(a*255)`.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2StyleColor".
+ */
+export type GpV2StyleColor = string;
+/**
+ * Line thickness in pixels, the lightweight-charts `LineWidth` (1..4).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2_StyleLineWidth".
+ */
+export type GpV2_StyleLineWidth = number;
+/**
+ * lightweight-charts `LineStyle`: 0 Solid, 1 Dotted, 2 Dashed, 3 LargeDashed, 4 SparseDotted.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2_StyleLineStyle".
+ */
+export type GpV2_StyleLineStyle = number;
+/**
+ * How a non-candle series (dataset field or indicator) is drawn.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2_StyleSeriesType".
+ */
+export type GpV2_StyleSeriesType = 'Line' | 'Area' | 'Baseline' | 'Histogram';
 /**
  * AFB-side MQTT notification payload published to <topic_base>/system/<user_id> about an event of a bond the user holds in a portfolio: an offer, a maturity, an amortization, an issuer call, or a price/volume anomaly signal. Consumed by the AFB informer daemon (Telegram/email) exactly like alarm/deal/link/system/expiration notifications — informer never reads AFB settings, the recipient and channels come only from `user`. Event notices are sent at most once per (user, bond, `kind`, `stage`, event date) and not at all when the user's `bonds.notice_days` is 0; anomaly notices are not sent when `bonds.notify_anomaly` is false. NOT an AsyncAPI wire message — never crosses the AFB<->BF channel, not signed. `timestamp` is added by MQTTPublisher at publish time.
  *
@@ -7045,7 +7080,7 @@ export interface GpV2IndicatorList {
   items?: GpV2Indicator[];
 }
 /**
- * `scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `settings` carry the parameters. Whether an indicator is shown on the chart is not part of the protocol (per-device view setting kept in the client's localStorage). `type` is an open string (pattern `^[a-z][a-z0-9_]*$`), not an enum; the server computes only wma/kama/psar (alarm indicator conditions, virtual account), other types are stored and returned as is. Type `cot` is chart-only.
+ * `scope: shared` indicators are common to all users and editable only by a manager; `personal` belong to the caller. `settings` carry the calculation parameters only, `style` the complete look of the series. Whether an indicator is shown on the chart is not part of the protocol (per-device view setting kept in the client's localStorage). `type` is an open string (pattern `^[a-z][a-z0-9_]*$`), not an enum; the server computes only wma/kama/psar (alarm indicator conditions, virtual account), other types are stored and returned as is. Type `cot` is chart-only.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpV2Indicator".
@@ -7057,19 +7092,20 @@ export interface GpV2Indicator {
    */
   type: string;
   settings: GpV2IndicatorSettings;
+  style: GpV2SeriesStyle;
   scope: 'shared' | 'personal';
 }
 /**
- * Display + calculation settings. Required: color/lineWidth/lineStyle. Typed optional keys of the built-in indicators: period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Any other key is allowed (value: number, string or boolean), except `enabled` (per-device view flag, never protocol) — indicators are computed by the frontend, so a new indicator brings its own parameters without a protocol change. Mirrors IndicatorInstance.settings of the frontend chart and `indicators[].settings` of config/_default_.yaml, without the on/off flag.
+ * Calculation parameters of an indicator (not its look: colour, width and dash style are in `indicator.style`). Typed optional keys of the built-in indicators: period (wma, cot); erPeriod/fastPeriod/slowPeriod (kama); start/maximum/increment (psar). Any other key is allowed (value: number, string or boolean), except `enabled` (per-device view flag, never protocol) and `color`/`lineWidth`/`lineStyle` (moved to `style`) — indicators are computed by the frontend, so a new indicator brings its own parameters without a protocol change. Mirrors the parameter part of IndicatorInstance.settings of the frontend chart.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "GpV2IndicatorSettings".
  */
 export interface GpV2IndicatorSettings {
   enabled?: never;
-  color: string;
-  lineWidth: number;
-  lineStyle: 'Solid' | 'Dots';
+  color?: never;
+  lineWidth?: never;
+  lineStyle?: never;
   period?: number;
   erPeriod?: number;
   fastPeriod?: number;
@@ -7078,6 +7114,30 @@ export interface GpV2IndicatorSettings {
   maximum?: number;
   increment?: number;
   [k: string]: unknown;
+}
+/**
+ * Complete style: all keys are required, unknown keys are rejected. Used for every dataset that is not `candles`, and for chart indicators. `lineWidth`/`lineStyle` are meaningful for Line/Area/Baseline.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2SeriesStyle".
+ */
+export interface GpV2SeriesStyle {
+  /**
+   * How the series is drawn.
+   */
+  seriesType: 'Line' | 'Area' | 'Baseline' | 'Histogram';
+  /**
+   * Series colour.
+   */
+  color: string;
+  /**
+   * Line thickness.
+   */
+  lineWidth: number;
+  /**
+   * Dash style.
+   */
+  lineStyle: number;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -7121,38 +7181,35 @@ export interface GpV2_Dataset {
    * Unit of the field's values, set by the server from the registry; ignored in `set`.
    */
   unit?: 'price' | 'lots' | 'rub' | 'count' | 'contracts' | 'persons' | 'ratio' | 'hhi' | 'percent';
-  style: GpV2_DatasetStyle;
+  style: GpV2DatasetStyle;
 }
 /**
- * All keys are optional, unknown keys are rejected. Keys by kind of series: line-like (everything except `candles`) — `seriesType` (Line|Histogram|Area|Baseline), `color`, `lineWidth` (1..4, meaningful for Line/Area/Baseline), `lineStyle` (0..4, lightweight-charts numbering: 0 Solid, 1 Dotted, 2 Dashed, 3 LargeDashed, 4 SparseDotted; meaningful for Line/Area/Baseline); candles — `upColor`, `downColor`, `wickUpColor`, `wickDownColor`. This schema allows all keys together; whether the keys fit the kind of the series (candle keys on a non-`candles` dataset, `seriesType`/`color`/`lineWidth`/`lineStyle` on `candles`) is checked by the server (`validation_error`). In `$defs/dataset` the style is COMPLETE (the server requires all four candle colours for `candles`, and `seriesType`, `color`, `lineWidth`, `lineStyle` for the others). In a preset item it holds only OVERRIDES: effective style = dataset style overlaid with the item's keys; resetting a key means removing it.
+ * Complete style: all keys are required, unknown keys are rejected. The wick is drawn in the body colour. Volume bars under the candles use their own up/down colours.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2_DatasetStyle".
+ * via the `definition` "GpV2CandleStyle".
  */
-export interface GpV2_DatasetStyle {
-  seriesType?: 'Line' | 'Histogram' | 'Area' | 'Baseline';
+export interface GpV2CandleStyle {
   /**
-   * `#rrggbb`, `#rrggbbaa` or `rgba(r,g,b,a)`.
+   * Which series class draws the price: Japanese candles or OHLC bars.
    */
-  color?: string;
-  lineWidth?: number;
-  lineStyle?: number;
+  chartType: 'candles' | 'bars';
   /**
-   * Candles only.
+   * Colour of a rising candle/bar (and its wick).
    */
-  upColor?: string;
+  upColor: string;
   /**
-   * Candles only.
+   * Colour of a falling candle/bar (and its wick).
    */
-  downColor?: string;
+  downColor: string;
   /**
-   * Candles only.
+   * Colour of the volume bar of a rising candle.
    */
-  wickUpColor?: string;
+  volumeUpColor: string;
   /**
-   * Candles only.
+   * Colour of the volume bar of a falling candle.
    */
-  wickDownColor?: string;
+  volumeDownColor: string;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -7634,7 +7691,51 @@ export interface GpV2_Preset {
  */
 export interface GpV2_PresetItem {
   dataset: string;
-  style?: GpV2_DatasetStyle;
+  style?: GpV2DatasetStyleOverride;
+}
+/**
+ * Union of the keys of `candleStyle` and `seriesStyle`, all optional, unknown keys are rejected. Effective style of a preset item = the dataset's complete style overlaid with these keys; resetting a key means removing it. That the keys fit the dataset's kind (candle keys on `candles`, series keys on the others) is checked by the server (`validation_error`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "GpV2DatasetStyleOverride".
+ */
+export interface GpV2DatasetStyleOverride {
+  /**
+   * Which series class draws the price: Japanese candles or OHLC bars.
+   */
+  chartType?: 'candles' | 'bars';
+  /**
+   * Colour of a rising candle/bar (and its wick).
+   */
+  upColor?: string;
+  /**
+   * Colour of a falling candle/bar (and its wick).
+   */
+  downColor?: string;
+  /**
+   * Colour of the volume bar of a rising candle.
+   */
+  volumeUpColor?: string;
+  /**
+   * Colour of the volume bar of a falling candle.
+   */
+  volumeDownColor?: string;
+  /**
+   * How the series is drawn.
+   */
+  seriesType?: 'Line' | 'Area' | 'Baseline' | 'Histogram';
+  /**
+   * Series colour.
+   */
+  color?: string;
+  /**
+   * Line thickness.
+   */
+  lineWidth?: number;
+  /**
+   * Dash style.
+   */
+  lineStyle?: number;
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -7652,28 +7753,33 @@ export interface AfbwsGpChannelV2_PresetRejection {
  * via the `definition` "GpV2PrimitiveStyles".
  */
 export interface GpV2PrimitiveStyles {
-  line?: GpV2PrimitiveKindStyle;
-  line_enter?: GpV2PrimitiveKindStyle;
-  line_sl?: GpV2PrimitiveKindStyle;
-  line_tp?: GpV2PrimitiveKindStyle;
-  note?: GpV2PrimitiveKindStyle;
-  zone?: GpV2PrimitiveKindStyle;
-  ruler?: GpV2PrimitiveKindStyle;
-  trendline?: GpV2PrimitiveKindStyle;
-  fibonacci?: GpV2PrimitiveKindStyle;
+  line?: GpV2LineObjectStyle;
+  line_enter?: GpV2LineObjectStyle;
+  line_sl?: GpV2LineObjectStyle;
+  line_tp?: GpV2LineObjectStyle;
+  note?: GpV2LineObjectStyle;
+  zone?: GpV2LineObjectStyle;
+  ruler?: GpV2LineObjectStyle;
+  trendline?: GpV2LineObjectStyle;
+  fibonacci?: GpV2LineObjectStyle;
 }
 /**
+ * Complete style: all keys are required, unknown keys are rejected. Stored per primitive kind (personal row, otherwise the shared one) and read by the primitives plugin, plan levels (`line_enter`/`line_sl`/`line_tp`) and axis labels. For `note` the colour is that of the callout line, frame and text.
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "GpV2PrimitiveKindStyle".
+ * via the `definition` "GpV2LineObjectStyle".
  */
-export interface GpV2PrimitiveKindStyle {
+export interface GpV2LineObjectStyle {
   /**
-   * hex colour; for `note` the callout line / frame / text colour.
+   * Line colour.
    */
   color: string;
-  lineWidth: 1 | 2 | 3 | 4;
   /**
-   * lightweight-charts LineStyle: 0 Solid, 1 Dotted, 2 Dashed, 3 LargeDashed, 4 SparseDotted.
+   * Line thickness.
+   */
+  lineWidth: number;
+  /**
+   * Dash style.
    */
   lineStyle: number;
 }

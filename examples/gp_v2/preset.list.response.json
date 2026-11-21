@@ -18,8 +18,8 @@
       "scope": "personal",
       "name": "Мой пресет",
       "panes": {
-        "price": [{ "dataset": "dataset-0a1b-2c3d-4e5f", "style": { "upColor": "#00C853", "downColor": "#D50000" } }],
-        "upper": [{ "dataset": "dataset-1111-2222-3333", "style": { "color": "#FF9800", "lineWidth": 3 } }],
+        "price": [{ "dataset": "dataset-0a1b-2c3d-4e5f", "style": { "upColor": "#00c853ff", "downColor": "#d50000ff" } }],
+        "upper": [{ "dataset": "dataset-1111-2222-3333", "style": { "color": "#ff9800ff", "lineWidth": 3 } }],
         "lower": [{ "dataset": "dataset-aaaa-bbbb-cccc" }]
       }
     }

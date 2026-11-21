@@ -479,7 +479,7 @@
     "datasetSet": {
       "type": "object",
       "title": "afbws.gp.dataset.set.v2 — upsert chart datasets (request / response / server push).",
-      "description": "Request: upsert by `id`, batched; STAFF ONLY — a regular user gets every item rejected with `forbidden`. `scope: personal` is a draft visible to its author only, `scope: shared` publishes the dataset to everyone. Validation per item (violation = rejected with `validation_error`): `field` must exist in the registry (and `@window(N)` match the field's `window` flag and 2..`window_max_bars`); `style` must be COMPLETE and its keys must fit the kind of the series (candles: `upColor`/`downColor`/`wickUpColor`/`wickDownColor`; others: `seriesType`/`color`/`lineWidth`/`lineStyle`) — the schema itself allows all style keys together; `unit` in the request is ignored, the server fills it. Response (same `request_id`): applied `items[]` (possibly empty, with `unit` filled) + `rejected[]`. Push (no `request_id`): changed SHARED datasets to every connection with this capability (full authoritative records); personal drafts are never pushed.",
+      "description": "Request: upsert by `id`, batched; STAFF ONLY — a regular user gets every item rejected with `forbidden`. `scope: personal` is a draft visible to its author only, `scope: shared` publishes the dataset to everyone. Validation per item (violation = rejected with `validation_error`): `field` must exist in the registry (and `@window(N)` match the field's `window` flag and 2..`window_max_bars`); `style` must be COMPLETE and its shape must fit the kind of the series (candles: `candleStyle` — `chartType`/`upColor`/`downColor`/`volumeUpColor`/`volumeDownColor`; others: `seriesStyle` — `seriesType`/`color`/`lineWidth`/`lineStyle`) — the schema itself accepts either shape for any field; `unit` in the request is ignored, the server fills it. Response (same `request_id`): applied `items[]` (possibly empty, with `unit` filled) + `rejected[]`. Push (no `request_id`): changed SHARED datasets to every connection with this capability (full authoritative records); personal drafts are never pushed.",
       "required": [
         "channel",
         "schema",
@@ -760,7 +760,7 @@
     "style": {
       "type": "object",
       "title": "afbws.gp.style.v2 — primitive display settings (request / response / server push).",
-      "description": "Per-user chart styling of primitives by kind (replaces the legacy `settings.interface.primitive_styles`). Request without `styles` = read. Request with `styles` = write: the supplied kinds replace the stored ones, kinds not supplied are left as they are. Response (same `request_id`) always carries the full stored `styles`. Push (no `request_id`) delivers the full `styles` to the user's other connections after a write; `styles` is required there.",
+      "description": "Per-user chart styling of primitives by kind (replaces the legacy `settings.interface.primitive_styles`). Request without `styles` = read. Request with `styles` = write: it creates or replaces the caller's PERSONAL rows for the supplied kinds, kinds not supplied are left as they are. Response (same `request_id`) and push always carry the EFFECTIVE set — every seeded kind with the caller's personal style if there is one, otherwise the shared one. Push (no `request_id`) delivers that set to the user's other connections after a write; `styles` is required there. Each style is a complete `lineObjectStyle` (colour `#rrggbbaa`).",
       "required": [
         "channel",
         "schema"
