@@ -8,7 +8,7 @@
       "scope": "shared",
       "name": "WillCo",
       "panes": {
-        "price": [{ "dataset": "dataset-0a1b-2c3d-4e5f" }],
+        "price": [],
         "upper": [{ "dataset": "dataset-1111-2222-3333" }],
         "lower": []
       }
@@ -18,9 +18,9 @@
       "scope": "personal",
       "name": "Мой пресет",
       "panes": {
-        "price": [{ "dataset": "dataset-0a1b-2c3d-4e5f", "style": { "upColor": "#00C853", "downColor": "#D50000" } }],
-        "upper": [{ "dataset": "dataset-1111-2222-3333", "style": { "color": "#FF9800", "lineWidth": 3 } }],
-        "lower": [{ "dataset": "dataset-aaaa-bbbb-cccc" }]
+        "price": [{ "dataset": "dataset-aaaa-bbbb-cccc", "scale": "own" }],
+        "upper": [{ "dataset": "dataset-1111-2222-3333", "visible": false }],
+        "lower": [{ "dataset": "dataset-bbbb-cccc-dddd", "scale": "right" }]
       }
     }
   ]

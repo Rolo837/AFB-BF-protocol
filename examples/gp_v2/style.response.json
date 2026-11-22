@@ -1,0 +1,9 @@
+{
+  "channel": "gp",
+  "schema": "afbws.gp.style.v2",
+  "request_id": "st-1",
+  "styles": {
+    "line": { "color": "#2962ffff", "lineWidth": 2, "lineStyle": 0 },
+    "zone": { "color": "#ff980080", "lineWidth": 1, "lineStyle": 2 }
+  }
+}

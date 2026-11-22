@@ -8,7 +8,7 @@
       "name": "WillCo, 180 баров",
       "field": "positions.willco@window(180)",
       "unit": "percent",
-      "style": { "seriesType": "Line", "color": "#AB47BC", "lineWidth": 2, "lineStyle": 0 }
+      "style": { "seriesType": "Line", "color": "#ab47bcff", "lineWidth": 2, "lineStyle": 0 }
     }
   ]
 }

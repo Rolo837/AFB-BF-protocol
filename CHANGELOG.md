@@ -16,6 +16,29 @@
 
 ### Removed
 
+## v2.11.3 — 2026-11-22
+
+### Added
+- `gp.v2.json`: `seriesStyle.bottomColor?` (`styleColor`) — цвет ниже базы при `seriesType = Baseline`; `presetItem` получил `visible?` (по умолчанию `true`) и `scale?` (`right|left|own`). `dataset` с `scope: personal` и id общего ряда — личный стиль («тень»); права `dataset.list/set/delete` и пуш (тени и собственные ряды сотрудника — только владельцу) описаны в `gp.channel.v2`. Пример `examples/gp_v2/dataset.set.shadow.request.json`.
+
+### Changed
+- `gp.v2.json`: `presetItem` без `style` (`additionalProperties: false`), пресет — снимок раскладки; правила классов шкал и `candles` в панелях убраны (остались ≤16 в панели, без повтора ряда на панели, ряд существует и виден владельцу). Правка gp v2 на месте, совместимость с 2.11.x не требуется.
+
+### Removed
+- `gp.v2.json`: `$defs/datasetStyleOverride` и `presetItem.style`.
+
+## v2.11.2 — 2026-11-21
+
+### Added
+- `gp.v2.json`: канон стилей объектов графика — атомы `styleColor` (только `#rrggbbaa` строчными), `styleLineWidth`, `styleLineStyle`, `styleSeriesType` и полные закрытые стили `lineObjectStyle`, `seriesStyle`, `candleStyle` (`chartType` `candles|bars`, `volumeUpColor`/`volumeDownColor`); `datasetStyleOverride` для переопределений в `presetItem.style`.
+
+### Changed
+- `gp.v2.json`: `datasetStyle` теперь `oneOf [candleStyle, seriesStyle]` (полный стиль), `presetItem.style` -> `datasetStyleOverride`; `indicator` получил обязательное поле `style: seriesStyle` (сообщения `indicator.list|set` и push наследуют); `indicatorSettings` — только параметры расчёта, `color`/`lineWidth`/`lineStyle` запрещены наравне с `enabled`, `lineStyle` числом LWC вместо `'Solid'|'Dots'`. `primitiveStyles` ссылается на `lineObjectStyle`.
+- `afbws.gp.style.v2`: форма прежняя; ответ/push несут итоговый набор (личный стиль вида, иначе общий), запись создаёт/заменяет личные строки переданных видов. Схемы gp v2 правятся на месте (2.27.x на прод не выкатывались).
+
+### Removed
+- `gp.v2.json`: `primitiveKindStyle` (заменён `lineObjectStyle`), `wickUpColor`/`wickDownColor` в стиле свечей, форматы цвета `#rrggbb` и `rgba(...)`.
+
 ## v2.11.1 — 2026-11-20
 
 ### Added

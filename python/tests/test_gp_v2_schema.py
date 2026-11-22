@@ -120,7 +120,7 @@ def test_v1_schema_const_rejected(registry):
 def _indicator(**overrides):
     ind = {
         "id": "ind-1", "type": "wma", "scope": "personal",
-        "settings": {"color": "#2962FF", "lineWidth": 2, "lineStyle": "Solid", "period": 5},
+        "settings": {"period": 5}, "style": dict(_LINE_STYLE),
     }
     ind.update(overrides)
     return ind
@@ -152,9 +152,14 @@ def test_indicator_open_type_and_extra_settings(registry):
     with pytest.raises(ValidationError):
         v.validate(bad)
     bad = _indicator()
-    del bad["settings"]["color"]  # required keys stay required
+    del bad["style"]  # style is required
     with pytest.raises(ValidationError):
         v.validate(bad)
+    for key, val in (("color", "#112233ff"), ("lineWidth", 2), ("lineStyle", 0)):
+        bad = _indicator()
+        bad["settings"] = dict(bad["settings"], **{key: val})  # look moved to `style`
+        with pytest.raises(ValidationError):
+            v.validate(bad)
 
 
 def test_indicator_rejects_enabled_flag(registry):
@@ -175,23 +180,25 @@ def test_primitive_styles_valid_and_strict(registry):
     from jsonschema import ValidationError
 
     v = _validator(registry, "#/$defs/primitiveStyles")
-    v.validate({"line": {"color": "#112233", "lineWidth": 3, "lineStyle": 0}, "note": {"color": "#AABBCC", "lineWidth": 2, "lineStyle": 2}})
+    v.validate({"line": {"color": "#112233ff", "lineWidth": 3, "lineStyle": 0}, "note": {"color": "#aabbcc80", "lineWidth": 2, "lineStyle": 2}})
     v.validate({})
     for bad in (
-        {"rsi": {"color": "#112233", "lineWidth": 3, "lineStyle": 0}},
+        {"rsi": {"color": "#112233ff", "lineWidth": 3, "lineStyle": 0}},
         {"line": {"color": "red", "lineWidth": 3, "lineStyle": 0}},
-        {"line": {"color": "#112233", "lineWidth": 7, "lineStyle": 0}},
-        {"line": {"color": "#112233", "lineWidth": 3, "lineStyle": 9}},
-        {"line": {"color": "#112233", "lineWidth": 3}},
+        {"line": {"color": "#112233", "lineWidth": 3, "lineStyle": 0}},    # no alpha
+        {"line": {"color": "#112233FF", "lineWidth": 3, "lineStyle": 0}},  # upper case
+        {"line": {"color": "#112233ff", "lineWidth": 7, "lineStyle": 0}},
+        {"line": {"color": "#112233ff", "lineWidth": 3, "lineStyle": 9}},
+        {"line": {"color": "#112233ff", "lineWidth": 3}},
     ):
         with pytest.raises(ValidationError):
             v.validate(bad)
 
 
 # ----------------------------------------------------- datasets / presets
-_IND_SETTINGS = {"color": "#2962FF", "lineWidth": 2, "lineStyle": "Solid"}
-_LINE_STYLE = {"seriesType": "Line", "color": "#AB47BC", "lineWidth": 2, "lineStyle": 0}
-_CANDLE_STYLE = {"upColor": "#26A69A", "downColor": "#EF5350", "wickUpColor": "#26A69A", "wickDownColor": "#EF5350"}
+_LINE_STYLE = {"seriesType": "Line", "color": "#ab47bcff", "lineWidth": 2, "lineStyle": 0}
+_CANDLE_STYLE = {"chartType": "candles", "upColor": "#26a69aff", "downColor": "#ef5350ff",
+                 "volumeUpColor": "#26a69a80", "volumeDownColor": "#ef535080"}
 _DS_A = "dataset-0a1b-2c3d-4e5f"
 _DS_B = "dataset-1111-2222-3333"
 
@@ -224,12 +231,9 @@ def _dataset(**overrides):
     {"scope": "personal"},
     {"unit": None},  # removed below: unit is optional
     {"id": "dataset-0a1b-2c3d-4e5f", "field": "candles", "unit": "price", "style": _CANDLE_STYLE},
-    {"field": "trades.val_b", "unit": "rub", "style": {"seriesType": "Histogram", "color": "rgba(38,166,154,0.6)"}},
-    {"field": "trades.val_b@median(30)", "style": {"color": "#11223380", "lineWidth": 4, "lineStyle": 4}},
+    {"field": "trades.val_b", "unit": "rub", "style": {**_LINE_STYLE, "seriesType": "Histogram", "color": "#26a69a99"}},
+    {"field": "trades.val_b@median(30)", "style": {**_LINE_STYLE, "color": "#11223380", "lineWidth": 4, "lineStyle": 4}},
     {"name": "x" * 64},
-    # the schema lets candle keys and `seriesType` coexist: the kind check is the server's (see description)
-    {"style": {"seriesType": "Line", "upColor": "#26A69A"}},
-    {"style": {}},
 ])
 def test_dataset_valid(ds, registry):
     d = _dataset(**ds)
@@ -253,11 +257,17 @@ def test_dataset_valid(ds, registry):
     {"field": "positions.willco@mean(3)"},
     {"field": "Positions.willco"},
     {"field": "willco"},
-    {"style": {"seriesType": "Candles"}},
-    {"style": {"lineWidth": 5}},
-    {"style": {"lineStyle": 5}},
-    {"style": {"color": "red"}},
-    {"style": {"unknown": 1}},
+    {"style": {}},                                        # style must be complete
+    {"style": {**_LINE_STYLE, "seriesType": "Candles"}},
+    {"style": {**_LINE_STYLE, "lineWidth": 5}},
+    {"style": {**_LINE_STYLE, "lineStyle": 5}},
+    {"style": {**_LINE_STYLE, "color": "red"}},
+    {"style": {**_LINE_STYLE, "color": "#112233"}},       # alpha is mandatory
+    {"style": {**_LINE_STYLE, "unknown": 1}},
+    {"style": {**_LINE_STYLE, "upColor": "#26a69aff"}},   # mixed candle + series keys
+    {"style": {k: v for k, v in _CANDLE_STYLE.items() if k != "volumeUpColor"}},
+    {"style": {**_CANDLE_STYLE, "wickUpColor": "#26a69aff"}},
+    {"style": {**_CANDLE_STYLE, "chartType": "line"}},
     {"unknown": 1},
 ])
 def test_dataset_invalid(patch, registry):
@@ -298,11 +308,61 @@ def test_dataset_ref_invalid(ref, registry):
 
 
 def test_dataset_style_candles_and_overrides(registry):
+    from jsonschema import ValidationError
+
     v = _validator(registry, "#/$defs/datasetStyle")
     v.validate(_CANDLE_STYLE)
-    v.validate({"color": "#112233"})  # partial override
-    v.validate({"color": "rgba(1, 2, 3, .5)"})
-    v.validate({})
+    v.validate({**_CANDLE_STYLE, "chartType": "bars"})
+    v.validate(_LINE_STYLE)
+    for bad in ({}, {"color": "#112233ff"}):
+        with pytest.raises(ValidationError):
+            v.validate(bad)
+
+
+def test_series_style_bottom_color(registry):
+    from jsonschema import ValidationError
+
+    v = _validator(registry, "#/$defs/seriesStyle")
+    v.validate({**_LINE_STYLE, "seriesType": "Baseline", "bottomColor": "#ff9800ff"})
+    v.validate(_LINE_STYLE)  # bottomColor is optional
+    for bad in ("#ff9800", "red", "#FF9800FF", 5):
+        with pytest.raises(ValidationError):
+            v.validate({**_LINE_STYLE, "seriesType": "Baseline", "bottomColor": bad})
+
+
+def test_dataset_shadow_valid(registry):
+    """A personal row with the id of a shared dataset is the caller's personal style (shadow)."""
+    _validator(registry, "#/$defs/dataset").validate(
+        _dataset(scope="personal", style={**_LINE_STYLE, "seriesType": "Baseline", "bottomColor": "#ff9800ff"}))
+
+
+def test_preset_item_scale_visible(registry):
+    from jsonschema import ValidationError
+
+    v = _validator(registry, "#/$defs/presetItem")
+    v.validate({"dataset": _DS_A})
+    for scale in ("right", "left", "own"):
+        v.validate({"dataset": _DS_A, "visible": False, "scale": scale})
+    v.validate({"dataset": _DS_A, "visible": True})
+    for bad in ({"dataset": _DS_A, "style": {"color": "#112233ff"}}, {"dataset": _DS_A, "scale": "top"},
+                {"dataset": _DS_A, "visible": "yes"}, {"dataset": _DS_A, "extra": 1}, {"visible": True}):
+        with pytest.raises(ValidationError):
+            v.validate(bad)
+
+
+def test_style_defs_shape(registry):
+    """The style atoms and the three object styles are complete and closed."""
+    schema = json.loads((Path(__file__).parents[2] / "spec" / "schemas" / "gp.v2.json").read_text(encoding="utf-8"))
+    defs = schema["$defs"]
+    assert "primitiveKindStyle" not in defs
+    for name, keys in (("lineObjectStyle", {"color", "lineWidth", "lineStyle"}),
+                       ("seriesStyle", {"seriesType", "color", "lineWidth", "lineStyle"}),
+                       ("candleStyle", {"chartType", "upColor", "downColor", "volumeUpColor", "volumeDownColor"})):
+        assert set(defs[name]["required"]) == keys == set(defs[name]["properties"]) - ({"bottomColor"} if name == "seriesStyle" else set())
+        assert defs[name]["additionalProperties"] is False
+    assert "datasetStyleOverride" not in defs
+    assert "required" not in defs["indicatorSettings"]
+    assert "style" in defs["indicator"]["required"]
 
 
 def test_dataset_rejection(registry):
@@ -319,7 +379,7 @@ def test_dataset_rejection(registry):
 
 def _preset(**overrides):
     p = {"id": "preset-1", "scope": "personal", "name": "Мой",
-         "panes": {"price": [{"dataset": _DS_A}], "upper": [{"dataset": _DS_B, "style": {"color": "#FF9800"}}], "lower": []}}
+         "panes": {"price": [{"dataset": _DS_A}], "upper": [{"dataset": _DS_B, "visible": False, "scale": "left"}], "lower": []}}
     p.update(overrides)
     return p
 
@@ -333,9 +393,7 @@ def test_preset_valid(registry):
     v.validate(_preset())
     v.validate(_preset(scope="shared", panes={"price": [], "upper": [], "lower": []}))
     v.validate(_preset(name="x" * 64, panes={"price": _items(16), "upper": [], "lower": []}))
-    # candles on price with a style override
-    v.validate(_preset(panes={"price": [{"dataset": _DS_A, "style": {"upColor": "#00C853", "downColor": "#D50000"}}],
-                              "upper": [], "lower": []}))
+    v.validate(_preset(panes={"price": [{"dataset": _DS_A, "scale": "own"}], "upper": [], "lower": []}))
 
 
 @pytest.mark.parametrize("patch", [
@@ -348,7 +406,8 @@ def test_preset_valid(registry):
     {"panes": {"price": [{"dataset": ""}], "upper": [], "lower": []}},               # empty id
     {"panes": {"price": [{}], "upper": [], "lower": []}},                            # no dataset
     {"panes": {"price": [{"dataset": "a", "extra": 1}], "upper": [], "lower": []}},  # unknown item key
-    {"panes": {"price": [{"dataset": "a", "style": {"seriesType": "Nope"}}], "upper": [], "lower": []}},
+    {"panes": {"price": [{"dataset": "a", "style": {"color": "#112233ff"}}], "upper": [], "lower": []}},  # style is gone
+    {"panes": {"price": [{"dataset": "a", "scale": "top"}], "upper": [], "lower": []}},
     {"name": ""},
     {"name": "x" * 65},
     {"scope": "global"},

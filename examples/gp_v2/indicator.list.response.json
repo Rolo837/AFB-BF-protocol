@@ -1,0 +1,14 @@
+{
+  "channel": "gp",
+  "schema": "afbws.gp.indicator.list.v2",
+  "request_id": "ind-1",
+  "items": [
+    {
+      "id": "ind-1",
+      "type": "kama",
+      "scope": "shared",
+      "settings": { "erPeriod": 10, "fastPeriod": 2, "slowPeriod": 30 },
+      "style": { "seriesType": "Line", "color": "#2962ffff", "lineWidth": 2, "lineStyle": 0 }
+    }
+  ]
+}

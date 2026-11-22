@@ -99,7 +99,11 @@ const NAMED_DEF_SCHEMAS = {
     primitiveSettingsNote: "GpV2PrimitiveSettingsNote",
     primitiveSettingsTwoPoint: "GpV2PrimitiveSettingsTwoPoint",
     point: "GpV2Point",
-    primitiveKindStyle: "GpV2PrimitiveKindStyle",
+    styleColor: "GpV2StyleColor",
+    lineObjectStyle: "GpV2LineObjectStyle",
+    seriesStyle: "GpV2SeriesStyle",
+    candleStyle: "GpV2CandleStyle",
+    datasetStyle: "GpV2DatasetStyle",
     primitiveStyles: "GpV2PrimitiveStyles",
   },
   "common.v1.json": {
