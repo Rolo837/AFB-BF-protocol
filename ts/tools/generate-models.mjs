@@ -104,7 +104,6 @@ const NAMED_DEF_SCHEMAS = {
     seriesStyle: "GpV2SeriesStyle",
     candleStyle: "GpV2CandleStyle",
     datasetStyle: "GpV2DatasetStyle",
-    datasetStyleOverride: "GpV2DatasetStyleOverride",
     primitiveStyles: "GpV2PrimitiveStyles",
   },
   "common.v1.json": {

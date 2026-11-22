@@ -273,7 +273,7 @@ def test_alarm_set_push_without_request_id(registry):
 
 # ----------------------------------------------------------------- gp presets
 _PRESET = {"id": "preset-1", "scope": "personal", "name": "Мой",
-           "panes": {"price": [{"dataset": "dataset-0a1b-2c3d-4e5f", "style": {"upColor": "#00c853ff"}}],
+           "panes": {"price": [{"dataset": "dataset-0a1b-2c3d-4e5f", "visible": False, "scale": "left"}],
                      "upper": [], "lower": []}}
 _DATASET = {"id": "dataset-1111-2222-3333", "scope": "shared", "name": "WillCo", "field": "positions.willco@window(180)",
             "unit": "percent", "style": {"seriesType": "Line", "color": "#ab47bcff", "lineWidth": 2, "lineStyle": 0}}

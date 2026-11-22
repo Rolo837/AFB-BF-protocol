@@ -317,13 +317,37 @@ def test_dataset_style_candles_and_overrides(registry):
     for bad in ({}, {"color": "#112233ff"}):
         with pytest.raises(ValidationError):
             v.validate(bad)
-    o = _validator(registry, "#/$defs/datasetStyleOverride")
-    for ok in ({}, {"color": "#112233ff"}, {"upColor": "#00c853ff"}, {"chartType": "bars", "lineWidth": 3}, _CANDLE_STYLE, _LINE_STYLE):
-        o.validate(ok)
-    for bad in ({"color": "#112233"}, {"color": "rgba(1,2,3,.5)"}, {"wickUpColor": "#112233ff"}, {"lineWidth": 0},
-                {"chartType": "line"}, {"unknown": 1}):
+
+
+def test_series_style_bottom_color(registry):
+    from jsonschema import ValidationError
+
+    v = _validator(registry, "#/$defs/seriesStyle")
+    v.validate({**_LINE_STYLE, "seriesType": "Baseline", "bottomColor": "#ff9800ff"})
+    v.validate(_LINE_STYLE)  # bottomColor is optional
+    for bad in ("#ff9800", "red", "#FF9800FF", 5):
         with pytest.raises(ValidationError):
-            o.validate(bad)
+            v.validate({**_LINE_STYLE, "seriesType": "Baseline", "bottomColor": bad})
+
+
+def test_dataset_shadow_valid(registry):
+    """A personal row with the id of a shared dataset is the caller's personal style (shadow)."""
+    _validator(registry, "#/$defs/dataset").validate(
+        _dataset(scope="personal", style={**_LINE_STYLE, "seriesType": "Baseline", "bottomColor": "#ff9800ff"}))
+
+
+def test_preset_item_scale_visible(registry):
+    from jsonschema import ValidationError
+
+    v = _validator(registry, "#/$defs/presetItem")
+    v.validate({"dataset": _DS_A})
+    for scale in ("right", "left", "own"):
+        v.validate({"dataset": _DS_A, "visible": False, "scale": scale})
+    v.validate({"dataset": _DS_A, "visible": True})
+    for bad in ({"dataset": _DS_A, "style": {"color": "#112233ff"}}, {"dataset": _DS_A, "scale": "top"},
+                {"dataset": _DS_A, "visible": "yes"}, {"dataset": _DS_A, "extra": 1}, {"visible": True}):
+        with pytest.raises(ValidationError):
+            v.validate(bad)
 
 
 def test_style_defs_shape(registry):
@@ -334,10 +358,9 @@ def test_style_defs_shape(registry):
     for name, keys in (("lineObjectStyle", {"color", "lineWidth", "lineStyle"}),
                        ("seriesStyle", {"seriesType", "color", "lineWidth", "lineStyle"}),
                        ("candleStyle", {"chartType", "upColor", "downColor", "volumeUpColor", "volumeDownColor"})):
-        assert set(defs[name]["required"]) == keys == set(defs[name]["properties"])
+        assert set(defs[name]["required"]) == keys == set(defs[name]["properties"]) - ({"bottomColor"} if name == "seriesStyle" else set())
         assert defs[name]["additionalProperties"] is False
-    assert set(defs["datasetStyleOverride"]["properties"]) == set(defs["candleStyle"]["properties"]) | set(defs["seriesStyle"]["properties"])
-    assert "required" not in defs["datasetStyleOverride"]
+    assert "datasetStyleOverride" not in defs
     assert "required" not in defs["indicatorSettings"]
     assert "style" in defs["indicator"]["required"]
 
@@ -356,7 +379,7 @@ def test_dataset_rejection(registry):
 
 def _preset(**overrides):
     p = {"id": "preset-1", "scope": "personal", "name": "Мой",
-         "panes": {"price": [{"dataset": _DS_A}], "upper": [{"dataset": _DS_B, "style": {"color": "#ff9800ff"}}], "lower": []}}
+         "panes": {"price": [{"dataset": _DS_A}], "upper": [{"dataset": _DS_B, "visible": False, "scale": "left"}], "lower": []}}
     p.update(overrides)
     return p
 
@@ -370,9 +393,7 @@ def test_preset_valid(registry):
     v.validate(_preset())
     v.validate(_preset(scope="shared", panes={"price": [], "upper": [], "lower": []}))
     v.validate(_preset(name="x" * 64, panes={"price": _items(16), "upper": [], "lower": []}))
-    # candles on price with a style override
-    v.validate(_preset(panes={"price": [{"dataset": _DS_A, "style": {"upColor": "#00c853ff", "downColor": "#d50000ff"}}],
-                              "upper": [], "lower": []}))
+    v.validate(_preset(panes={"price": [{"dataset": _DS_A, "scale": "own"}], "upper": [], "lower": []}))
 
 
 @pytest.mark.parametrize("patch", [
@@ -385,7 +406,8 @@ def test_preset_valid(registry):
     {"panes": {"price": [{"dataset": ""}], "upper": [], "lower": []}},               # empty id
     {"panes": {"price": [{}], "upper": [], "lower": []}},                            # no dataset
     {"panes": {"price": [{"dataset": "a", "extra": 1}], "upper": [], "lower": []}},  # unknown item key
-    {"panes": {"price": [{"dataset": "a", "style": {"seriesType": "Nope"}}], "upper": [], "lower": []}},
+    {"panes": {"price": [{"dataset": "a", "style": {"color": "#112233ff"}}], "upper": [], "lower": []}},  # style is gone
+    {"panes": {"price": [{"dataset": "a", "scale": "top"}], "upper": [], "lower": []}},
     {"name": ""},
     {"name": "x" * 65},
     {"scope": "global"},

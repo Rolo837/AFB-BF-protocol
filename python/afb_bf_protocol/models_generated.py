@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: fc4aca826a28fdbd5056c0ed3bba77f6fd8e1fc8f9426c83178cd0dff4878ed6
+# source-hash: 186099e2a3873b19c6137e1bf302f2af091066a58aef06a8958a2d603a5020ae
 
 from __future__ import annotations
 
@@ -1950,7 +1950,7 @@ AfbwsCommonV1Root: TypeAlias = Any
 
 class AfbwsGpChannelV2DatasetDelete(TypedDict):
     """
-    Request: `ids[]`; STAFF ONLY (a regular user gets `forbidden` per id; unknown id: `not_found`; a dataset still referenced by a preset may be refused with `conflict`, as decided by the server). Response (same `request_id`): `ids[]` actually removed + `rejected[]`. Push (no `request_id`): shared datasets deleted by staff (`ids[]`, `rejected` not allowed).
+    Request: `ids[]`. Deleting one's own shadow (a reset to the shared style) is allowed to any user; deleting a shared dataset is staff only (`forbidden` per id otherwise) and removes its shadows too; unknown id: `not_found`; a dataset still referenced by a preset may be refused with `conflict`, as decided by the server. Response (same `request_id`): `ids[]` actually removed + `rejected[]`. Push (no `request_id`): a shared dataset deleted by staff to everyone, a deleted shadow to its owner only (`ids[]`, `rejected` not allowed).
     """
 
     channel: Literal["gp"]
@@ -1962,7 +1962,7 @@ class AfbwsGpChannelV2DatasetDelete(TypedDict):
 
 class AfbwsGpChannelV2DatasetList(TypedDict):
     """
-    Request: only `request_id`. Response (same `request_id`): `items[]` — staff get the shared datasets plus their own personal drafts (`scope: personal`), a regular user gets the shared datasets only.
+    Request: only `request_id`. Response (same `request_id`): `items[]` — a regular user gets the shared datasets plus their own shadows (`scope: personal` with the id of a shared dataset: the personal style, readers take `name`/`field`/`unit` from the shared one); staff additionally get their own series without a shared one (`scope: personal`, visible to the author only).
     """
 
     channel: Literal["gp"]
@@ -1973,7 +1973,7 @@ class AfbwsGpChannelV2DatasetList(TypedDict):
 
 class AfbwsGpChannelV2DatasetSet(TypedDict):
     """
-    Request: upsert by `id`, batched; STAFF ONLY — a regular user gets every item rejected with `forbidden`. `scope: personal` is a draft visible to its author only, `scope: shared` publishes the dataset to everyone. Validation per item (violation = rejected with `validation_error`): `field` must exist in the registry (and `@window(N)` match the field's `window` flag and 2..`window_max_bars`); `style` must be COMPLETE and its shape must fit the kind of the series (candles: `candleStyle` — `chartType`/`upColor`/`downColor`/`volumeUpColor`/`volumeDownColor`; others: `seriesStyle` — `seriesType`/`color`/`lineWidth`/`lineStyle`) — the schema itself accepts either shape for any field; `unit` in the request is ignored, the server fills it. Response (same `request_id`): applied `items[]` (possibly empty, with `unit` filled) + `rejected[]`. Push (no `request_id`): changed SHARED datasets to every connection with this capability (full authoritative records); personal drafts are never pushed.
+    Request: upsert by `id`, batched. `scope: personal`: any user, but only as a shadow of an EXISTING shared dataset with a style of the same kind (otherwise `validation_error`); the server copies `name`/`field`/`unit` from the shared one; an own series without a shared one is staff only (`forbidden` for a regular user). `scope: shared`: staff only (`forbidden` otherwise), including publishing a staff series for everyone. Validation per item (violation = rejected with `validation_error`): `field` must exist in the registry (and `@window(N)` match the field's `window` flag and 2..`window_max_bars`); `style` must be COMPLETE and its shape must fit the kind of the series (candles: `candleStyle` — `chartType`/`upColor`/`downColor`/`volumeUpColor`/`volumeDownColor`; others: `seriesStyle` — `seriesType`/`color`/`lineWidth`/`lineStyle`) — the schema itself accepts either shape for any field; `unit` in the request is ignored, the server fills it. Response (same `request_id`): applied `items[]` (possibly empty, with `unit` filled) + `rejected[]`. Push (no `request_id`): a changed SHARED dataset to every connection with this capability; a shadow or an own staff series only to the connections of its owner (full authoritative records).
     """
 
     channel: Literal["gp"]
@@ -2014,7 +2014,7 @@ class AfbwsGpChannelV2PresetRejection(TypedDict):
 
 class AfbwsGpChannelV2PresetSet(TypedDict):
     """
-    Request: upsert by `id`, batched. Personal presets for everyone; `scope: shared` only for staff (otherwise that item is rejected with `forbidden`). Validation per item (violation = rejected with `validation_error`) — the pane rules of `$defs/preset` in gp.v2.json: every referenced dataset (`panes.*[].dataset`) must exist and be visible to the author; a shared preset may reference shared datasets only; `price` takes only datasets of price scale class; `candles` only on `price`, at most once; one scale class per `upper`/`lower` pane; a dataset must not repeat in a preset; item `style` holds only overrides valid for the dataset's kind. Response (same `request_id`): applied `items[]` (possibly empty) + `rejected[]`. Push (no `request_id`): changed SHARED presets to every connection with this capability (full authoritative records); personal ones are never pushed.
+    Request: upsert by `id`, batched. Personal presets for everyone; `scope: shared` only for staff (otherwise that item is rejected with `forbidden`). Validation per item (violation = rejected with `validation_error`) — the layout rules of `$defs/preset` in gp.v2.json: every referenced dataset (`panes.*[].dataset`) must exist and be visible to the author; a shared preset may reference shared datasets only; at most 16 items per pane; a dataset must not repeat on one pane; items carry `visible`/`scale` only, no style. Response (same `request_id`): applied `items[]` (possibly empty) + `rejected[]`. Push (no `request_id`): changed SHARED presets to every connection with this capability (full authoritative records); personal ones are never pushed.
     """
 
     channel: Literal["gp"]
@@ -4919,7 +4919,7 @@ class GpV2CandleStyle(TypedDict):
 
 class GpV2Dataset(TypedDict):
     """
-    A primary-data field (or the candle series) that staff made available, with a name and a default style. `scope: personal` is a DRAFT: visible to its author (staff) only, never pushed; `scope: shared` is published, visible to everyone by `name`, changed and deleted by staff only. A shared preset may reference shared datasets only. `unit` is filled by the server from the field registry and is ignored in `set`. `style` is the complete default style (see `$defs/datasetStyle`); the kind-vs-keys check is done by the server.
+    A primary-data field (or the candle series) that staff made available, with a name and a style. `scope: shared` is the common series: visible to everyone by `name`, changed and deleted by staff only; a shared preset may reference shared datasets only. `scope: personal` has two meanings told apart by whether a shared dataset with the same `id` exists. With it, the row is the caller's personal style of that series (a "shadow"): only `style` is meaningful, readers take `name`/`field`/`unit` from the shared series and the server copies them from it; any user may create it, it is visible and pushed to its owner only. Without a shared series, it is a staff member's own series, visible to its author only; publishing it means the same row becomes `shared`. `unit` is filled by the server from the field registry and is ignored in `set`. `style` is the complete style (see `$defs/datasetStyle`); the kind-vs-keys check is done by the server.
     """
 
     id: str
@@ -4949,22 +4949,6 @@ class GpV2DatasetRejection(TypedDict):
     id: str
     code: AfbwsCommonV1ErrorCode
     message: NotRequired[str]
-
-
-class GpV2DatasetStyleOverride(TypedDict):
-    """
-    Union of the keys of `candleStyle` and `seriesStyle`, all optional, unknown keys are rejected. Effective style of a preset item = the dataset's complete style overlaid with these keys; resetting a key means removing it. That the keys fit the dataset's kind (candle keys on `candles`, series keys on the others) is checked by the server (`validation_error`).
-    """
-
-    chartType: NotRequired[Literal["candles", "bars"]]
-    upColor: NotRequired[GpV2StyleColor]
-    downColor: NotRequired[GpV2StyleColor]
-    volumeUpColor: NotRequired[GpV2StyleColor]
-    volumeDownColor: NotRequired[GpV2StyleColor]
-    seriesType: NotRequired[GpV2StyleSeriesType]
-    color: NotRequired[GpV2StyleColor]
-    lineWidth: NotRequired[GpV2StyleLineWidth]
-    lineStyle: NotRequired[GpV2StyleLineStyle]
 
 
 class GpV2Delete(TypedDict):
@@ -5100,7 +5084,7 @@ class GpV2Point(TypedDict):
 
 class GpV2Preset(TypedDict):
     """
-    A set of datasets with a binding `which dataset is drawn on which pane`. `scope: shared` presets are common to all users and editable only by staff; `personal` belong to the caller. `panes` has three panes: `price` (the candle pane), `upper` and `lower` (the two extra panes); each is an array of at most 16 `presetItem`s, the ORDER is the draw and legend order. Pane rules (checked by the server in `preset.set`, `validation_error` otherwise; the frontend checks them too): `price` accepts only datasets of price scale class; `candles` only on `price`, at most one per preset; on `upper`/`lower` one scale class per pane (the class of the first item); a dataset occurs in a preset at most once. Referenced datasets must exist and be visible to the author; a shared preset may reference shared datasets only. WMA/KAMA/PSAR indicators are drawn on `price` over the candles outside the preset.
+    A snapshot of a chart layout: which datasets are drawn on which pane. `scope: shared` presets are common to all users and editable only by staff; `personal` belong to the caller. `panes` has three panes: `price` (the candle pane), `upper` and `lower` (the two extra panes); each is an array of at most 16 `presetItem`s, the ORDER is the draw and legend order. Rules (checked by the server in `preset.set`, `validation_error` otherwise; the frontend checks them too): at most 16 items per pane; a dataset does not repeat on one pane (it may on different panes); a referenced dataset must exist and be visible to the author; a shared preset may reference shared datasets only. The candle series is not placed in panes. Applying a preset copies its `panes` into the chart slot; later edits of the slot do not change the preset, and later edits of a shared preset do not reach those who applied it. WMA/KAMA/PSAR indicators are not part of a preset.
     """
 
     id: str
@@ -5111,11 +5095,12 @@ class GpV2Preset(TypedDict):
 
 class GpV2PresetItem(TypedDict):
     """
-    `dataset` is the id of a dataset (`$defs/dataset.id`); `style` holds only OVERRIDES of the dataset's default style, with keys valid for the dataset's kind (checked by the server); absent = the dataset's own style.
+    `dataset` is the id of a dataset (`$defs/dataset.id`). The item carries layout only, no style: the style belongs to the dataset (shared, or the user's personal shadow).
     """
 
     dataset: str
-    style: NotRequired[GpV2DatasetStyleOverride]
+    visible: NotRequired[bool]
+    scale: NotRequired[Literal["right", "left", "own"]]
 
 
 class GpV2PrimitiveSettingsLine(TypedDict):
@@ -5174,13 +5159,14 @@ class GpV2Rejection(TypedDict):
 
 class GpV2SeriesStyle(TypedDict):
     """
-    Complete style: all keys are required, unknown keys are rejected. Used for every dataset that is not `candles`, and for chart indicators. `lineWidth`/`lineStyle` are meaningful for Line/Area/Baseline.
+    Complete style: all keys except the optional `bottomColor` are required, unknown keys are rejected. Used for every dataset that is not `candles`, and for chart indicators. `lineWidth`/`lineStyle` are meaningful for Line/Area/Baseline.
     """
 
     seriesType: GpV2StyleSeriesType
     color: GpV2StyleColor
     lineWidth: GpV2StyleLineWidth
     lineStyle: GpV2StyleLineStyle
+    bottomColor: NotRequired[GpV2StyleColor]
 
 
 GpV2DatasetStyle: TypeAlias = GpV2CandleStyle | GpV2SeriesStyle

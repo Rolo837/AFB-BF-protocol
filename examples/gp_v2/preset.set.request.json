@@ -8,8 +8,8 @@
       "scope": "personal",
       "name": "Мой пресет",
       "panes": {
-        "price": [{ "dataset": "dataset-0a1b-2c3d-4e5f", "style": { "upColor": "#00c853ff", "downColor": "#d50000ff" } }],
-        "upper": [{ "dataset": "dataset-1111-2222-3333" }],
+        "price": [{ "dataset": "dataset-aaaa-bbbb-cccc", "visible": false, "scale": "left" }],
+        "upper": [{ "dataset": "dataset-1111-2222-3333", "visible": true, "scale": "own" }],
         "lower": []
       }
     }

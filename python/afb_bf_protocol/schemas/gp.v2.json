@@ -249,7 +249,7 @@
     "seriesStyle": {
       "type": "object",
       "title": "Display style of a line-like series (dataset field or indicator).",
-      "description": "Complete style: all keys are required, unknown keys are rejected. Used for every dataset that is not `candles`, and for chart indicators. `lineWidth`/`lineStyle` are meaningful for Line/Area/Baseline.",
+      "description": "Complete style: all keys except the optional `bottomColor` are required, unknown keys are rejected. Used for every dataset that is not `candles`, and for chart indicators. `lineWidth`/`lineStyle` are meaningful for Line/Area/Baseline.",
       "required": [
         "seriesType",
         "color",
@@ -273,6 +273,10 @@
         "lineStyle": {
           "$ref": "#/$defs/styleLineStyle",
           "description": "Dash style."
+        },
+        "bottomColor": {
+          "$ref": "#/$defs/styleColor",
+          "description": "Colour below the base (0; 50 for `percent`); read only when `seriesType` is `Baseline`; absent means the frontend draws `#ef5350ff`."
         }
       }
     },
@@ -325,53 +329,6 @@
           "$ref": "#/$defs/seriesStyle"
         }
       ]
-    },
-    "datasetStyleOverride": {
-      "type": "object",
-      "title": "Overrides of a dataset style in a preset item.",
-      "description": "Union of the keys of `candleStyle` and `seriesStyle`, all optional, unknown keys are rejected. Effective style of a preset item = the dataset's complete style overlaid with these keys; resetting a key means removing it. That the keys fit the dataset's kind (candle keys on `candles`, series keys on the others) is checked by the server (`validation_error`).",
-      "additionalProperties": false,
-      "properties": {
-        "chartType": {
-          "enum": [
-            "candles",
-            "bars"
-          ],
-          "description": "Which series class draws the price: Japanese candles or OHLC bars."
-        },
-        "upColor": {
-          "$ref": "#/$defs/styleColor",
-          "description": "Colour of a rising candle/bar (and its wick)."
-        },
-        "downColor": {
-          "$ref": "#/$defs/styleColor",
-          "description": "Colour of a falling candle/bar (and its wick)."
-        },
-        "volumeUpColor": {
-          "$ref": "#/$defs/styleColor",
-          "description": "Colour of the volume bar of a rising candle."
-        },
-        "volumeDownColor": {
-          "$ref": "#/$defs/styleColor",
-          "description": "Colour of the volume bar of a falling candle."
-        },
-        "seriesType": {
-          "$ref": "#/$defs/styleSeriesType",
-          "description": "How the series is drawn."
-        },
-        "color": {
-          "$ref": "#/$defs/styleColor",
-          "description": "Series colour."
-        },
-        "lineWidth": {
-          "$ref": "#/$defs/styleLineWidth",
-          "description": "Line thickness."
-        },
-        "lineStyle": {
-          "$ref": "#/$defs/styleLineStyle",
-          "description": "Dash style."
-        }
-      }
     },
     "indicatorSettings": {
       "type": "object",
@@ -461,7 +418,7 @@
     "dataset": {
       "type": "object",
       "title": "Dataset of a chart (user-visible primary-data series)",
-      "description": "A primary-data field (or the candle series) that staff made available, with a name and a default style. `scope: personal` is a DRAFT: visible to its author (staff) only, never pushed; `scope: shared` is published, visible to everyone by `name`, changed and deleted by staff only. A shared preset may reference shared datasets only. `unit` is filled by the server from the field registry and is ignored in `set`. `style` is the complete default style (see `$defs/datasetStyle`); the kind-vs-keys check is done by the server.",
+      "description": "A primary-data field (or the candle series) that staff made available, with a name and a style. `scope: shared` is the common series: visible to everyone by `name`, changed and deleted by staff only; a shared preset may reference shared datasets only. `scope: personal` has two meanings told apart by whether a shared dataset with the same `id` exists. With it, the row is the caller's personal style of that series (a \"shadow\"): only `style` is meaningful, readers take `name`/`field`/`unit` from the shared series and the server copies them from it; any user may create it, it is visible and pushed to its owner only. Without a shared series, it is a staff member's own series, visible to its author only; publishing it means the same row becomes `shared`. `unit` is filled by the server from the field registry and is ignored in `set`. `style` is the complete style (see `$defs/datasetStyle`); the kind-vs-keys check is done by the server.",
       "required": [
         "id",
         "scope",
@@ -534,7 +491,7 @@
     "preset": {
       "type": "object",
       "title": "Chart preset (user or shared)",
-      "description": "A set of datasets with a binding `which dataset is drawn on which pane`. `scope: shared` presets are common to all users and editable only by staff; `personal` belong to the caller. `panes` has three panes: `price` (the candle pane), `upper` and `lower` (the two extra panes); each is an array of at most 16 `presetItem`s, the ORDER is the draw and legend order. Pane rules (checked by the server in `preset.set`, `validation_error` otherwise; the frontend checks them too): `price` accepts only datasets of price scale class; `candles` only on `price`, at most one per preset; on `upper`/`lower` one scale class per pane (the class of the first item); a dataset occurs in a preset at most once. Referenced datasets must exist and be visible to the author; a shared preset may reference shared datasets only. WMA/KAMA/PSAR indicators are drawn on `price` over the candles outside the preset.",
+      "description": "A snapshot of a chart layout: which datasets are drawn on which pane. `scope: shared` presets are common to all users and editable only by staff; `personal` belong to the caller. `panes` has three panes: `price` (the candle pane), `upper` and `lower` (the two extra panes); each is an array of at most 16 `presetItem`s, the ORDER is the draw and legend order. Rules (checked by the server in `preset.set`, `validation_error` otherwise; the frontend checks them too): at most 16 items per pane; a dataset does not repeat on one pane (it may on different panes); a referenced dataset must exist and be visible to the author; a shared preset may reference shared datasets only. The candle series is not placed in panes. Applying a preset copies its `panes` into the chart slot; later edits of the slot do not change the preset, and later edits of a shared preset do not reach those who applied it. WMA/KAMA/PSAR indicators are not part of a preset.",
       "required": [
         "id",
         "scope",
@@ -595,7 +552,7 @@
     "presetItem": {
       "type": "object",
       "title": "One dataset placed on a pane of a preset.",
-      "description": "`dataset` is the id of a dataset (`$defs/dataset.id`); `style` holds only OVERRIDES of the dataset's default style, with keys valid for the dataset's kind (checked by the server); absent = the dataset's own style.",
+      "description": "`dataset` is the id of a dataset (`$defs/dataset.id`). The item carries layout only, no style: the style belongs to the dataset (shared, or the user's personal shadow).",
       "required": [
         "dataset"
       ],
@@ -605,8 +562,18 @@
           "type": "string",
           "minLength": 1
         },
-        "style": {
-          "$ref": "#/$defs/datasetStyleOverride"
+        "visible": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the series is shown; a hidden series stays in the layout. Absent means true."
+        },
+        "scale": {
+          "enum": [
+            "right",
+            "left",
+            "own"
+          ],
+          "description": "Price scale of the series on its pane: `right` = the pane's common right scale, `left` = the pane's common left scale, `own` = the series' own invisible overlay scale (stretched over the pane height). Absent means the default by the dataset's scale class: normalized series (fixed range) on `left`, others on `right`, on the price pane on `own`."
         }
       }
     },

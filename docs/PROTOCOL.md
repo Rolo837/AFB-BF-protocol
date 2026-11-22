@@ -647,23 +647,30 @@ Top-level `period` — общий таймфрейм вычисления ала
     без `request_id` — push удаления), `indicator.list|set|delete`, `style`, `error`.
   - Ряды данных графика: `dataset.list|set|delete` (та же схема, что у `indicator.*`:
     запрос/ответ/push без `request_id` для общих, `rejected[]`). `$defs/dataset` в
-    `gp.v2.json`: `id` (`dataset-xxxx-xxxx-xxxx`), `scope` (`shared|personal`; `personal` —
-    черновик персонала, виден только автору и не рассылается), `name` (1..64), `field`
+    `gp.v2.json`: `id` (`dataset-xxxx-xxxx-xxxx`), `scope` (`shared|personal`; `personal` с тем же `id`, что у общего
+    ряда, — личный стиль вызывающего («тень»: значим только `style`, `name`/`field`/`unit` берутся из
+    общего ряда), без общего ряда — собственный ряд сотрудника, виден только автору; публикация —
+    та же строка становится `shared`), `name` (1..64), `field`
     (`$defs/datasetRef`: `candles` | `<source>.<field>` | `…@median(N)` | `…@window(N)`),
     `unit` (заполняет сервер, в `set` игнорируется), `style` (`$defs/datasetStyle` =
-    `candleStyle` | `seriesStyle`, полный стиль по умолчанию; см. «Канон стилей» ниже). Пользователь получает в `list` только общие ряды; `set`/`delete`
-    только у персонала (иначе `forbidden`). Соответствие формы стиля виду ряда (`candleStyle` у
+    `candleStyle` | `seriesStyle`, полный стиль по умолчанию; см. «Канон стилей» ниже). `dataset.list`: пользователю — общие ряды и его тени, персоналу ещё свои
+    ряды. `set` со `scope=personal` — любой пользователь, но только как тень существующего
+    общего ряда со стилем того же вида (`validation_error`); собственный ряд без общего — только
+    персонал (`forbidden`); `set` со `scope=shared` — только персонал. `delete` своей тени
+    («сбросить») — любой пользователь; общего ряда — только персонал, вместе с тенями. Пуш общего
+    ряда — всем, тени и собственного ряда — только владельцу. Соответствие формы стиля виду ряда (`candleStyle` у
     `candles`, `seriesStyle` у остальных) схема не проверяет — это делает сервер
     (`validation_error`).
   - Пресеты графика: `preset.list|set|delete`. `$defs/preset`: `id`, `scope`
     (`shared|personal`), `name` (1..64), `panes` `{price, upper, lower}` — массивы
-    `presetItem = {dataset, style?}` (≤16 в панели; порядок = порядок отрисовки и
-    легенды; `style` — `$defs/datasetStyleOverride`: только переопределения стиля ряда,
-    итог = стиль ряда ⊕ элемент).
-    Правила панелей проверяет сервер (`validation_error`): на `price` только шкала цены,
-    `candles` только на `price` и не больше одного, на `upper`/`lower` один класс шкалы на
-    панель, ряд не повторяется в пресете. Общие пресеты пишет и удаляет только персонал
-    (иначе `forbidden`) и ссылаются только на общие ряды. Индикаторы WMA/KAMA/PSAR
+    `presetItem = {dataset, visible?, scale?}` (≤16 в панели; порядок = порядок отрисовки и
+    легенды; без `style`: стиль принадлежит ряду; `visible` по умолчанию `true`; `scale` —
+    `right` общая правая шкала панели, `left` общая левая, `own` своя невидимая шкала ряда;
+    нет — по умолчанию по классу шкалы ряда). Пресет — снимок раскладки: применение копирует
+    его в слот графика. Правила проверяет сервер (`validation_error`): ≤16 в панели, ряд не
+    повторяется на одной панели, ряд существует и виден владельцу. Общие пресеты пишет и
+    удаляет только персонал (иначе `forbidden`) и ссылаются только на общие ряды. Свечной ряд в
+    панели не кладётся. Индикаторы WMA/KAMA/PSAR
     рисуются на `price` поверх свечей вне пресета; `$defs/indicator` — `{id, type,
     settings, style, scope}` (`inputs`, `fieldRef` и `settings.seriesType` убраны).
   - `market.fields.v2`: `get fields` без `instrument_key` отдаёт полный каталог источников
@@ -705,11 +712,11 @@ Top-level `period` — общий таймфрейм вычисления ала
   1 точки, 2 штрих, 3 редкий штрих, 4 редкие точки), `styleSeriesType`
   (`Line|Area|Baseline|Histogram`). Стили (все ключи обязательны, лишних нет):
   `lineObjectStyle` `{color, lineWidth, lineStyle}` (виды примитивов, заменил
-  `primitiveKindStyle`), `seriesStyle` `{seriesType, color, lineWidth, lineStyle}` (ряды не-свечи
+  `primitiveKindStyle`), `seriesStyle` `{seriesType, color, lineWidth, lineStyle, bottomColor?}` (`bottomColor` —
+  цвет ниже базы, только при `Baseline`; нет — фронт рисует `#ef5350ff`; ряды не-свечи
   и индикаторы), `candleStyle` `{chartType: candles|bars, upColor, downColor, volumeUpColor,
   volumeDownColor}` (фитили рисуются цветом тела; `wickUpColor`/`wickDownColor` удалены).
-  `datasetStyle` = `candleStyle` | `seriesStyle`; `datasetStyleOverride` — объединение ключей
-  обоих, все необязательны (стиль элемента пресета).
+  `datasetStyle` = `candleStyle` | `seriesStyle`.
 - `notification.alarm.v1.json`: `instrument_key` (изначально опциональное; с Этапа 6
   программы единого каталога — обязательное, `ticker` — только отображение).
 - Валидация: `payload_validation.validate_alarm` (только v2), `validate_gp` (только v2).

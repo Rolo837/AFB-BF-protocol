@@ -20,9 +20,17 @@
       "style": { "seriesType": "Line", "color": "#ab47bcff", "lineWidth": 2, "lineStyle": 0 }
     },
     {
+      "id": "dataset-1111-2222-3333",
+      "scope": "personal",
+      "name": "WillCo, 180 баров",
+      "field": "positions.willco@window(180)",
+      "unit": "percent",
+      "style": { "seriesType": "Baseline", "color": "#26a69aff", "lineWidth": 2, "lineStyle": 0, "bottomColor": "#ff9800ff" }
+    },
+    {
       "id": "dataset-aaaa-bbbb-cccc",
       "scope": "personal",
-      "name": "Чёрновик: покупки, руб",
+      "name": "Мой ряд: покупки, руб",
       "field": "trades.val_b",
       "unit": "rub",
       "style": { "seriesType": "Histogram", "color": "#26a69a99", "lineWidth": 1, "lineStyle": 0 }
