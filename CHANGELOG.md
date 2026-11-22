@@ -10,16 +10,21 @@
 
 ### Added
 
-- `gp.v2.json`: `seriesStyle.bottomColor?` (`styleColor`) — цвет ниже базы при `seriesType = Baseline`; `presetItem` получил `visible?` (по умолчанию `true`) и `scale?` (`right|left|own`). `dataset` с `scope: personal` и id общего ряда — личный стиль («тень»); права `dataset.list/set/delete` и пуш (тени и собственные ряды сотрудника — только владельцу) описаны в `gp.channel.v2`. Пример `examples/gp_v2/dataset.set.shadow.request.json`.
-
 ### Changed
-
-- `gp.v2.json`: `presetItem` без `style` (`additionalProperties: false`), пресет — снимок раскладки; правила классов шкал и `candles` в панелях убраны (остались ≤16 в панели, без повтора ряда на панели, ряд существует и виден владельцу). Правка gp v2 на месте, совместимость с 2.11.x не требуется.
 
 ### Fixed
 
 ### Removed
 
+## v2.11.3 — 2026-11-22
+
+### Added
+- `gp.v2.json`: `seriesStyle.bottomColor?` (`styleColor`) — цвет ниже базы при `seriesType = Baseline`; `presetItem` получил `visible?` (по умолчанию `true`) и `scale?` (`right|left|own`). `dataset` с `scope: personal` и id общего ряда — личный стиль («тень»); права `dataset.list/set/delete` и пуш (тени и собственные ряды сотрудника — только владельцу) описаны в `gp.channel.v2`. Пример `examples/gp_v2/dataset.set.shadow.request.json`.
+
+### Changed
+- `gp.v2.json`: `presetItem` без `style` (`additionalProperties: false`), пресет — снимок раскладки; правила классов шкал и `candles` в панелях убраны (остались ≤16 в панели, без повтора ряда на панели, ряд существует и виден владельцу). Правка gp v2 на месте, совместимость с 2.11.x не требуется.
+
+### Removed
 - `gp.v2.json`: `$defs/datasetStyleOverride` и `presetItem.style`.
 
 ## v2.11.2 — 2026-11-21
