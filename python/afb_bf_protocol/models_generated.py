@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 186099e2a3873b19c6137e1bf302f2af091066a58aef06a8958a2d603a5020ae
+# source-hash: 787f15a3c6d6e8044c978bf989137475228317a7889fcde4a3977c829cda10fe
 
 from __future__ import annotations
 
@@ -4049,6 +4049,7 @@ class DealV2Detail(TypedDict):
     status: DealStatus
     execution_phase: DealExecutionPhase
     bf_id: DealV2BfId
+    account_id: str
     tradeplan_id: TradeplanId
     instrument_key: AfbwsCommonV1InstrumentKey
     market: NotRequired[Literal["stock", "futures", "currency"]]
@@ -4301,6 +4302,7 @@ class DealV2Item(TypedDict):
     status: DealStatus
     execution_phase: DealExecutionPhase
     bf_id: DealV2BfId
+    account_id: str
     tradeplan_id: TradeplanId
     instrument_key: AfbwsCommonV1InstrumentKey
     market: NotRequired[Literal["stock", "futures", "currency"]]
@@ -4496,7 +4498,7 @@ class DealV2PositionsSyncedData(TypedDict):
 
 class DealV2Publish(TypedDict):
     """
-    Request: `items[]` (at least one) of `{tradeplan_id, bf_id}` (no inline plan draft, 1:1 per row). Response (same `request_id`): `results[]` (one per item; a failed row is accepted=false) and `accepted`. Distinguished by `items` vs `results`.
+    Request: `items[]` (at least one) of `{tradeplan_id, bf_id, account_id?}` (no inline plan draft, 1:1 per row). Response (same `request_id`): `results[]` (one per item; a failed row is accepted=false) and `accepted`. Distinguished by `items` vs `results`.
     """
 
     channel: Literal["deal"]
@@ -4510,6 +4512,7 @@ class DealV2Publish(TypedDict):
 class DealV2PublishItem(TypedDict):
     tradeplan_id: TradeplanId
     bf_id: DealV2BfId
+    account_id: NotRequired[str]
 
 
 class DealV2RealizedPnl(TypedDict):
@@ -4538,6 +4541,7 @@ class DealV2Rebind(TypedDict):
 class DealV2RebindItem(TypedDict):
     deal_id: DealV2Id
     bf_id: DealV2BfId
+    account_id: NotRequired[str]
 
 
 class DealV2Record(TypedDict):
@@ -4632,6 +4636,7 @@ class DealV2Summary(TypedDict):
     status: DealStatus
     execution_phase: DealExecutionPhase
     bf_id: DealV2BfId
+    account_id: str
     tradeplan_id: TradeplanId
     instrument_key: AfbwsCommonV1InstrumentKey
     market: NotRequired[Literal["stock", "futures", "currency"]]
@@ -6544,12 +6549,8 @@ class TradePlanV2(TypedDict):
     stop_loss: NotRequired[TradeplanV2TpExitList]
     take_profit: NotRequired[TradeplanV2TpExitList]
     sizing: DealSizing
-    publish: NotRequired[TradeplanV2Publish]
-    connector: NotRequired[str]
-    account_id: NotRequired[str]
     delivery_at: NotRequired[str]
     archived_components: NotRequired[TradeplanV2ArchivedComponents]
-    deal_id: NotRequired[str]
     created_at: NotRequired[str]
     updated_at: NotRequired[str]
 
@@ -6701,7 +6702,7 @@ class TradeplanV2List(TypedDict):
 
 class TradeplanV2PlanInput(TypedDict):
     """
-    Deliberately has NO server-owned fields: `status` (lifecycle is driven by the plan's deals), `activated_at`, `closed_at`, `archived_at`, `created_at`, `updated_at`, `delivery_at`, `archived_components`, `instrument_missing`; the server keeps them from its own storage (a create starts as `draft`). `ticker` is not accepted either: `instrument_key` is the only instrument reference (case-sensitive, never normalized). `editor` (frontend editor-mode hint) is not part of the channel: the current frontend neither sends nor reads it.
+    Deliberately has NO server-owned fields: `status` (lifecycle is driven by the plan's deals), `activated_at`, `closed_at`, `archived_at`, `created_at`, `updated_at`, `delivery_at`, `archived_components`, `instrument_missing`; the server keeps them from its own storage (a create starts as `draft`). `ticker` is not accepted either: `instrument_key` is the only instrument reference (case-sensitive, never normalized). `editor` (frontend editor-mode hint) is not part of the channel: the current frontend neither sends nor reads it. The binding to a connector and account is not part of the plan (it lives in the deal, see `afbws.deal.publish`).
     """
 
     schema: Literal["afb.tradeplan.v2"]
@@ -6751,7 +6752,7 @@ TradeplanV2ConditionRight: TypeAlias = (
 
 class TradeplanV2Publish(TypedDict):
     """
-    Параметры публикации плана (используется ТОЛЬКО при публикации, не хранит связь с сделкой). bf_id — коннектор по умолчанию для UI; истина при публикации — bf_id из afbws.deal.publish.request.v1. account_id пусто/отсутствует — дефолтный (торговый) счёт коннектора, резолвится на лету (ExecutionService.resolve_plan_account).
+    Форма устаревшего поля канала (см. `afbws.tradeplan` `planInput.publish`/`planItem.publish`); в план не входит.
     """
 
     bf_id: NotRequired[str]

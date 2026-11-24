@@ -189,67 +189,29 @@ def test_v2_primitive_ref_rejects_extra_keys(registry):
         _validator(TRADEPLAN_V2_ID, registry).validate(plan)
 
 
-def test_v2_accepts_optional_publish(registry):
-    v2 = {
-        "schema": "afb.tradeplan.v2",
-        "id": "tp1",
-        "instrument_key": "MISX:TQBR:SBER",
-        "direction": "long",
-        "entries": [
-            {"condition": {"left": {"source": "price"}, "op": "touch", "right": {"const": "100"}}}
-        ],
-        "sizing": {"mode": "lots", "value": "1"},
-        "publish": {"bf_id": "bf-a", "account_id": "ACC-123"},
-    }
-    _validator(TRADEPLAN_V2_ID, registry).validate(v2)
-
-
-def test_publish_bf_id_rejects_empty_string(registry):
+def test_v2_rejects_binding_fields(registry):
+    """План не несёт привязку к коннектору/счёту и deal_id: она живёт в сделке."""
     from jsonschema import ValidationError
 
-    v2 = {
-        "schema": "afb.tradeplan.v2",
-        "id": "tp1",
-        "instrument_key": "MISX:TQBR:SBER",
-        "direction": "long",
-        "entries": [
-            {"condition": {"left": {"source": "price"}, "op": "touch", "right": {"const": "100"}}}
-        ],
-        "sizing": {"mode": "lots", "value": "1"},
-        "publish": {"bf_id": ""},
-    }
-    with pytest.raises(ValidationError):
-        _validator(TRADEPLAN_V2_ID, registry).validate(v2)
+    v = _validator(TRADEPLAN_V2_ID, registry)
+    v.validate(_v2_plan(instrument_key="MISX:TQBR:SBER"))
+    for extra in ({"publish": {"bf_id": "bf-a", "account_id": "ACC-123"}}, {"connector": "bf-a"},
+                  {"account_id": "ACC-123"}, {"deal_id": ""}):
+        with pytest.raises(ValidationError):
+            v.validate(_v2_plan(instrument_key="MISX:TQBR:SBER", **extra))
 
 
-def test_publish_account_id_rejects_empty_string(registry):
+def test_publish_def_kept_for_channel(registry):
+    """$defs/publish остаётся: на него ссылаются planInput/planItem канала (deprecated)."""
     from jsonschema import ValidationError
 
-    v2 = _v2_plan(publish={"bf_id": "bf-main", "account_id": ""})
-    with pytest.raises(ValidationError):
-        _validator(TRADEPLAN_V2_ID, registry).validate(v2)
+    schema = registry[TRADEPLAN_V2_ID].contents
+    assert "publish" in schema["$defs"]
+    assert not {"publish", "connector", "account_id", "deal_id"} & set(schema["properties"])
 
 
 def test_tradeplan_v1_schema_is_gone(registry):
     assert TRADEPLAN_V1_ID not in registry
-
-
-def test_publish_rejects_unknown_keys(registry):
-    from jsonschema import ValidationError
-
-    v2 = {
-        "schema": "afb.tradeplan.v2",
-        "id": "tp1",
-        "instrument_key": "MISX:TQBR:SBER",
-        "direction": "long",
-        "entries": [
-            {"condition": {"left": {"source": "price"}, "op": "touch", "right": {"const": "100"}}}
-        ],
-        "sizing": {"mode": "lots", "value": "1"},
-        "publish": {"bf_id": "bf-a", "connector": "bf-a"},
-    }
-    with pytest.raises(ValidationError):
-        _validator(TRADEPLAN_V2_ID, registry).validate(v2)
 
 
 # --- leg_id (tradeplan/deal separation Фаза B2) ------------------------------
