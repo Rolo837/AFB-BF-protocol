@@ -33,7 +33,7 @@ _COND = {"node_type": "event", "op": "above", "left": {"source": "price", "field
          "right": {"const": "100"}}
 _DETAIL = {
     "deal_id": "d1", "revision": 2, "status": "active", "execution_phase": "holding", "bf_id": "bf1",
-    "tradeplan_id": "tp1", "instrument_key": "MISX:TQBR:SBER", "direction": "long",
+    "account_id": "ACC-1", "tradeplan_id": "tp1", "instrument_key": "MISX:TQBR:SBER", "direction": "long",
     "created_at": "2026-10-21T10:00:00+03:00", "updated_at": "2026-10-21T10:00:00+03:00",
     "deal": {
         "schema": "afb.deal.v2", "deal_id": "d1", "revision": 2,
@@ -186,7 +186,7 @@ def test_deal_v2_summary_and_detail(registry):
     for field in ("source_refs", "status_history", "event_journal", "orders", "owner_user_id",
                   "broker_instrument", "observed", "deal"):
         _invalid(v, _with(_SUMMARY, **{field: {}}))
-    for field in ("deal_id", "revision", "status", "execution_phase", "bf_id", "tradeplan_id",
+    for field in ("deal_id", "revision", "status", "execution_phase", "bf_id", "account_id", "tradeplan_id",
                   "instrument_key", "direction", "created_at", "updated_at"):
         _invalid(v, _with(_SUMMARY, **{field: None}))
     _invalid(v, _with(_SUMMARY, instrument_key=""))
@@ -291,6 +291,8 @@ def test_deal_v2_publish_rebind(registry):
     _invalid(v, _m("publish", request_id="r"))
     _invalid(v, _m("publish", request_id="r", items=[]))
     _invalid(v, _m("publish", request_id="r", items=[{"tradeplan_id": "tp1"}]))
+    v.validate(_m("publish", request_id="r", items=[{**p1, "account_id": "ACC-1"}, {**p2, "account_id": "virtual:u1"}]))
+    _invalid(v, _m("publish", request_id="r", items=[{**p1, "account_id": ""}]))
     _invalid(v, _m("publish", request_id="r", items=[{**p1, "bf_ids": ["x"]}]))
     _invalid(v, _m("publish", request_id="r", items=[{**p1, "tradeplan_id": ""}]))
     _invalid(v, _m("publish", request_id="r", tradeplan_id="tp1", bf_id="bf1"))  # single form
@@ -302,6 +304,8 @@ def test_deal_v2_publish_rebind(registry):
     v.validate(_m("rebind", request_id="r", items=[r1]))
     v.validate(_m("rebind", request_id="r", items=[r1, {"deal_id": "d2", "bf_id": "bf2"}]))
     v.validate(_m("rebind", request_id="r", results=[row, bad], accepted=True))
+    v.validate(_m("rebind", request_id="r", items=[{**r1, "account_id": "virtual:u1"}]))
+    _invalid(v, _m("rebind", request_id="r", items=[{**r1, "account_id": ""}]))
     _invalid(v, _m("rebind", request_id="r", items=[]))
     _invalid(v, _m("rebind", request_id="r", items=[{"deal_id": "d1"}]))
     _invalid(v, _m("rebind", request_id="r", deal_id="d1", bf_id="bf1"))  # single form

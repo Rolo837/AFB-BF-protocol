@@ -31,34 +31,18 @@
     "stop_loss": {"$ref": "#/$defs/tpExitList"},
     "take_profit": {"$ref": "#/$defs/tpExitList"},
     "sizing": {"$ref": "common.v1.json#/$defs/sizing"},
-    "publish": {"$ref": "#/$defs/publish"},
-    "connector": {
-      "type": "string",
-      "deprecated": true,
-      "description": "Deprecated pre-`publish` top-level connector id. AFB's parser still reads it as a fallback when `publish.bf_id` is absent (TradePlanV2.from_dict -> _coerce_publish_block) and rewrites the plan into `publish` on the next save, so the closed storage schema must keep accepting it until that fallback is removed. Never part of the channel contract."
-    },
-    "account_id": {
-      "type": "string",
-      "deprecated": true,
-      "description": "Deprecated pre-`publish` top-level account id — the companion of the deprecated `connector` (fallback for `publish.account_id`); see `connector`."
-    },
     "delivery_at": {
       "type": "string",
       "description": "Server-owned storage field: AFB mail/deals read watermark (notifications with created_at <= delivery_at are treated as read on reconnect), advanced by the backend. Never part of the channel contract (afbws/tradeplan.channel.v2.json neither accepts nor returns it)."
     },
     "archived_components": {"$ref": "#/$defs/archivedComponents"},
-    "deal_id": {
-      "type": "string",
-      "deprecated": true,
-      "description": "Deprecated storage leftover of the pre-separation plan->deal link (an empty string in the only stored file that has it, an archived plan from 2026-08). The plan does not store the link — deals reference plans via deal.source.tradeplan_id. Never written by new AFB (TradePlanV2.to_dict drops it), never part of the channel contract; declared only so the closed storage schema accepts that file as it lies on disk."
-    },
     "created_at": {"type": "string"},
     "updated_at": {"type": "string"}
   },
   "$defs": {
     "publish": {
       "type": "object",
-      "description": "Параметры публикации плана (используется ТОЛЬКО при публикации, не хранит связь с сделкой). bf_id — коннектор по умолчанию для UI; истина при публикации — bf_id из afbws.deal.publish.request.v1. account_id пусто/отсутствует — дефолтный (торговый) счёт коннектора, резолвится на лету (ExecutionService.resolve_plan_account).",
+      "description": "Форма устаревшего поля канала (см. `afbws.tradeplan` `planInput.publish`/`planItem.publish`); в план не входит.",
       "additionalProperties": false,
       "properties": {
         "bf_id": {"type": "string", "minLength": 1},

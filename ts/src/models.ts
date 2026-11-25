@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 186099e2a3873b19c6137e1bf302f2af091066a58aef06a8958a2d603a5020ae
+ * source-hash: 787f15a3c6d6e8044c978bf989137475228317a7889fcde4a3977c829cda10fe
  */
 
 /**
@@ -5773,6 +5773,10 @@ export interface DealV2Item {
   status: DealStatus;
   execution_phase: DealExecutionPhase;
   bf_id: DealV2BfId;
+  /**
+   * The deal's account — the only source of the plan-to-account binding. Broker connector: the broker account number; virtual: the virtual account id (`virtual:<user_id>`).
+   */
+  account_id: string;
   tradeplan_id: TradeplanId;
   /**
    * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
@@ -5981,7 +5985,7 @@ export interface DealPublicSource {
   tradeplan_id: string;
 }
 /**
- * Request: `items[]` (at least one) of `{tradeplan_id, bf_id}` (no inline plan draft, 1:1 per row). Response (same `request_id`): `results[]` (one per item; a failed row is accepted=false) and `accepted`. Distinguished by `items` vs `results`.
+ * Request: `items[]` (at least one) of `{tradeplan_id, bf_id, account_id?}` (no inline plan draft, 1:1 per row). Response (same `request_id`): `results[]` (one per item; a failed row is accepted=false) and `accepted`. Distinguished by `items` vs `results`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2Publish".
@@ -6007,6 +6011,10 @@ export interface DealV2Publish {
 export interface DealV2PublishItem {
   tradeplan_id: TradeplanId;
   bf_id: DealV2BfId;
+  /**
+   * Account on the `bf_id` connector the deal is published to. The deal is the only source of the plan-to-account binding: the plan does not store it. Broker connector: the broker account number; absent: the connector's default account, resolved by the server at publish time and written into the deal; if the connector has not reported a default account yet, the row is rejected (accepted=false). `bf_id=virtual`: the virtual account id; absent: the user's main account (`virtual:<user_id>`).
+   */
+  account_id?: string;
 }
 /**
  * accepted=true: `bf_id` and `status` are set (status is `deleted` after a delete), `revision` is the deal's revision and `item` the authoritative record when the deal still exists. accepted=false: only `message` (why) — the command did not touch the deal, so there is no status/revision. When a rebind changes the deal id, `deal_id`/`item` carry the NEW id — the client must drop the old cache key.
@@ -6035,6 +6043,10 @@ export interface DealV2Detail {
   status: DealStatus;
   execution_phase: DealExecutionPhase;
   bf_id: DealV2BfId;
+  /**
+   * The deal's account — the only source of the plan-to-account binding. Broker connector: the broker account number; virtual: the virtual account id (`virtual:<user_id>`).
+   */
+  account_id: string;
   tradeplan_id: TradeplanId;
   /**
    * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
@@ -6079,6 +6091,10 @@ export interface DealV2Rebind {
 export interface DealV2RebindItem {
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
+  /**
+   * Account on the new `bf_id` connector; same meaning and defaults as `publishItem.account_id`.
+   */
+  account_id?: string;
 }
 /**
  * Request: `items[]` (at least one). Response (same `request_id`): `results[]` (one per item, partial failures are rows with accepted=false) and `accepted`. Distinguished by `items` vs `results`.
@@ -6898,6 +6914,10 @@ export interface DealV2Summary {
   status: DealStatus;
   execution_phase: DealExecutionPhase;
   bf_id: DealV2BfId;
+  /**
+   * The deal's account — the only source of the plan-to-account binding. Broker connector: the broker account number; virtual: the virtual account id (`virtual:<user_id>`).
+   */
+  account_id: string;
   tradeplan_id: TradeplanId;
   /**
    * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
@@ -8841,10 +8861,8 @@ export interface TradeplanV2_PrimitiveRef {
   primitive_id: string;
 }
 /**
- * Параметры публикации плана (используется ТОЛЬКО при публикации, не хранит связь с сделкой). bf_id — коннектор по умолчанию для UI; истина при публикации — bf_id из afbws.deal.publish.request.v1. account_id пусто/отсутствует — дефолтный (торговый) счёт коннектора, резолвится на лету (ExecutionService.resolve_plan_account).
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV2_Publish".
+ * @deprecated
+ * Read-only projection for old clients: `bf_id`/`account_id` of the plan's latest non-hidden deal; absent if the plan has no deals. New clients take `dealSummary.bf_id`/`account_id`.
  */
 export interface TradeplanV2_Publish {
   bf_id?: string;
@@ -8865,7 +8883,7 @@ export interface TradeplanV2Set {
   amend_results?: TradeplanV2AmendResultItem[];
 }
 /**
- * Deliberately has NO server-owned fields: `status` (lifecycle is driven by the plan's deals), `activated_at`, `closed_at`, `archived_at`, `created_at`, `updated_at`, `delivery_at`, `archived_components`, `instrument_missing`; the server keeps them from its own storage (a create starts as `draft`). `ticker` is not accepted either: `instrument_key` is the only instrument reference (case-sensitive, never normalized). `editor` (frontend editor-mode hint) is not part of the channel: the current frontend neither sends nor reads it.
+ * Deliberately has NO server-owned fields: `status` (lifecycle is driven by the plan's deals), `activated_at`, `closed_at`, `archived_at`, `created_at`, `updated_at`, `delivery_at`, `archived_components`, `instrument_missing`; the server keeps them from its own storage (a create starts as `draft`). `ticker` is not accepted either: `instrument_key` is the only instrument reference (case-sensitive, never normalized). `editor` (frontend editor-mode hint) is not part of the channel: the current frontend neither sends nor reads it. The binding to a connector and account is not part of the plan (it lives in the deal, see `afbws.deal.publish`).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "TradeplanV2PlanInput".
@@ -8882,7 +8900,7 @@ export interface TradeplanV2PlanInput {
   stop_loss: TradeplanV2LegInput[];
   take_profit: TradeplanV2LegInput[];
   sizing: DealSizing;
-  publish?: TradeplanV2_Publish;
+  publish?: TradeplanV2_Publish1;
 }
 /**
  * `leg_id` is optional on input: a new leg has none, the server assigns one on save (existing ids are never reassigned). `percent`/`logic` — see ../deal.v2.json#/$defs/legJoin.
@@ -8895,6 +8913,14 @@ export interface TradeplanV2LegInput {
   percent?: DecimalString;
   logic?: DealV2_LegJoin;
   condition: TradeplanV2Condition;
+}
+/**
+ * @deprecated
+ * Ignored by the server: the plan stores neither connector nor account, they are passed in `afbws.deal.publish`. Accepted only for compatibility with old clients; will be removed after the release window.
+ */
+export interface TradeplanV2_Publish1 {
+  bf_id?: string;
+  account_id?: string;
 }
 /**
  * `id` is the plan id from the request, `code` a whole-request error code reused per plan (`not_found`, `validation_error`, `conflict`, ...), `message` the human-readable reason. `item` is the authoritative current plan and is present only with `conflict` (a stale or blocked plan: archive/delete blocked by a live deal that already entered a position, `set` over a primitive owned by another plan), so the client can adopt it without a separate read; a `conflict` may also come without it.
@@ -10620,27 +10646,11 @@ export interface TradePlanV2 {
   stop_loss?: TradeplanV2_TpExitList;
   take_profit?: TradeplanV2_TpExitList;
   sizing: DealSizing;
-  publish?: TradeplanV2_Publish;
-  /**
-   * @deprecated
-   * Deprecated pre-`publish` top-level connector id. AFB's parser still reads it as a fallback when `publish.bf_id` is absent (TradePlanV2.from_dict -> _coerce_publish_block) and rewrites the plan into `publish` on the next save, so the closed storage schema must keep accepting it until that fallback is removed. Never part of the channel contract.
-   */
-  connector?: string;
-  /**
-   * @deprecated
-   * Deprecated pre-`publish` top-level account id — the companion of the deprecated `connector` (fallback for `publish.account_id`); see `connector`.
-   */
-  account_id?: string;
   /**
    * Server-owned storage field: AFB mail/deals read watermark (notifications with created_at <= delivery_at are treated as read on reconnect), advanced by the backend. Never part of the channel contract (afbws/tradeplan.channel.v2.json neither accepts nor returns it).
    */
   delivery_at?: string;
   archived_components?: TradeplanV2_ArchivedComponents;
-  /**
-   * @deprecated
-   * Deprecated storage leftover of the pre-separation plan->deal link (an empty string in the only stored file that has it, an archived plan from 2026-08). The plan does not store the link — deals reference plans via deal.source.tradeplan_id. Never written by new AFB (TradePlanV2.to_dict drops it), never part of the channel contract; declared only so the closed storage schema accepts that file as it lies on disk.
-   */
-  deal_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -10681,4 +10691,14 @@ export interface TradeplanV2_TpConditionNode {
 export interface TradeplanV2_ArchivedComponents {
   primitives: {}[];
   indicators: {}[];
+}
+/**
+ * Форма устаревшего поля канала (см. `afbws.tradeplan` `planInput.publish`/`planItem.publish`); в план не входит.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "TradeplanV2_Publish".
+ */
+export interface TradeplanV2_Publish2 {
+  bf_id?: string;
+  account_id?: string;
 }
