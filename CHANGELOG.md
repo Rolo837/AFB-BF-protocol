@@ -9,12 +9,20 @@
 ## Unreleased
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## v2.11.4 — 2026-11-25
+
+### Added
 - `deal.channel.v2.json`: `publishItem.account_id?` и `rebindItem.account_id?` — счёт на коннекторе `bf_id` (нет — счёт коннектора по умолчанию, сервер резолвит при публикации; для `virtual` — основной виртуальный счёт пользователя). `dealSummary.account_id` (а также `dealDetail`/`dealItem`, зеркалящие summary) — обязательное поле ответа: счёт сделки — единственный источник привязки плана к счёту. Примеры `examples/deal_channel_v2` обновлены.
 
 ### Changed
 - `tradeplan.channel.v2.json`: `planInput.publish` и `planItem.publish` помечены `deprecated` (сервер игнорирует входное; в ответе — read-only проекция последней нескрытой сделки для старых клиентов). Описание `planInput`: привязка к коннектору и счёту не часть плана. Из `examples/tradeplan_channel_v2/set.request.json` убран `publish`.
-
-### Fixed
 
 ### Removed
 - `tradeplan.v2.json` (внутренняя схема плана AFB): свойства верхнего уровня `publish`, `connector`, `account_id`, `deal_id` — план их больше не несёт; `$defs/publish` остаётся как форма устаревшего поля канала. Из `examples/tradeplans/tradeplan.v2.json` убран `publish`.
