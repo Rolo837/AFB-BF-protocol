@@ -15,7 +15,8 @@ _ROOT = Path(__file__).resolve().parents[2]
 _EXAMPLES = _ROOT / "examples" / "account_channel_v2"
 _ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/account.channel.v2.json"
 _SNAP = {
-    "bf_id": "virtual", "account_id": "virtual:id_u1", "tradable": True, "readonly": False, "status": "ok",
+    "bf_id": "virtual", "account_id": "account-6f2a-41c8-9b0e", "kind": "virtual", "name": "Основной", "external_id": None,
+    "tradable": True, "readonly": False, "status": "ok",
     "equity": "100", "cash": [{"currency": "RUB", "value": "60"}, {"currency": "USD", "value": "1"}],
     "positions": [], "as_of": "2026-10-15T09:30:00+00:00",
 }
@@ -48,7 +49,7 @@ def _invalid(validator, message):
 
 def test_account_v2_one_id_per_message():
     schema = json.loads((_ROOT / "spec" / "schemas" / "afbws" / "account.channel.v2.json").read_text())
-    ops = {"list", "orders", "events", "cash", "set", "reconcile", "ledger", "settings", "error"}
+    ops = {"list", "orders", "events", "cash", "set", "delete", "reconcile", "ledger", "error"}
     assert ops <= set(schema["$defs"])
     stale = {"getRequest", "getResponse", "listRequest", "listResponse", "ordersRequest", "ordersResponse",
              "eventsRequest", "eventsResponse", "errorResponse", "snapshotPush", "ordersPush"}
@@ -66,22 +67,21 @@ def test_account_v2_list(registry):
     v.validate(_m("list", request_id="r", bf_id="virtual", account_id="a", force=True))
     v.validate(_m("list", request_id="r", items=[_SNAP]))  # response
     v.validate(_m("list", request_id="r", items=[]))
-    v.validate(_m("list", bf_id="virtual", default_account_id="virtual:id_u1", items=[_SNAP]))  # push
-    v.validate(_m("list", bf_id="virtual", default_account_id="a", items=[]))
-    # request must not carry items-side fields
+    v.validate(_m("list", bf_id="virtual", items=[_SNAP]))  # push
+    v.validate(_m("list", bf_id="virtual", items=[]))
+    # no default account anywhere
+    _invalid(v, _m("list", bf_id="virtual", default_account_id="a", items=[_SNAP]))
     _invalid(v, _m("list", request_id="r", default_account_id="a"))
-    # push needs bf_id, default_account_id and items
-    _invalid(v, _m("list", default_account_id="a", items=[_SNAP]))
-    _invalid(v, _m("list", bf_id="virtual", items=[_SNAP]))
-    _invalid(v, _m("list", bf_id="virtual", default_account_id="a"))
+    # push needs bf_id and items
+    _invalid(v, _m("list", items=[_SNAP]))
+    _invalid(v, _m("list", bf_id="virtual"))
     _invalid(v, _m("list"))
     # push must not carry request-only fields
-    _invalid(v, _m("list", bf_id="b", default_account_id="a", items=[], force=True))
-    _invalid(v, _m("list", bf_id="b", default_account_id="a", items=[], account_id="a"))
+    _invalid(v, _m("list", bf_id="b", items=[], force=True))
+    _invalid(v, _m("list", bf_id="b", items=[], account_id="a"))
     # response is only request_id + items
     _invalid(v, _m("list", request_id="r", bf_id="b", items=[_SNAP]))
     _invalid(v, _m("list", request_id="r", force=True, items=[_SNAP]))
-    _invalid(v, _m("list", request_id="r", default_account_id="a", items=[_SNAP]))
 
 
 def test_account_v2_snapshot_strict(registry):
@@ -92,6 +92,10 @@ def test_account_v2_snapshot_strict(registry):
     bad = dict(_SNAP)
     del bad["cash"]
     _invalid(v, _m("list", request_id="r", items=[bad]))
+    for field in ("kind", "name", "external_id"):  # new mandatory fields
+        _invalid(v, _m("list", request_id="r", items=[{k: x for k, x in _SNAP.items() if k != field}]))
+    _invalid(v, _m("list", request_id="r", items=[{**_SNAP, "kind": "other"}]))
+    v.validate(_m("list", request_id="r", items=[{**_SNAP, "bf_id": "finam", "kind": "broker", "name": None, "external_id": "1899011", "readonly": True}]))
     no_asof = {k: x for k, x in _SNAP.items() if k != "as_of"}
     v.validate(_m("list", request_id="r", items=[no_asof]))
 
@@ -114,6 +118,8 @@ def test_account_v2_events(registry):
     v = _v("events", registry)
     v.validate(_m("events", request_id="r", bf_id="bf"))
     v.validate(_m("events", request_id="r", bf_id="bf", date="2026-10-15"))
+    v.validate(_m("events", request_id="r", bf_id="bf", account_id="account-6f2a-41c8-9b0e"))
+    _invalid(v, _m("events", request_id="r", bf_id="bf", date="d", account_id="a", items=[_EVENT]))  # filter is request-only
     v.validate(_m("events", request_id="r", bf_id="bf", date="2026-10-15", items=[_EVENT]))
     # no push for events: request_id is mandatory
     _invalid(v, _m("events", bf_id="bf", date="2026-10-15", items=[_EVENT]))
@@ -156,7 +162,7 @@ def test_account_v2_examples_validate(registry):
 
 
 _KEY = "MISX:TQOB:SU26238RMFS4"
-_BOND_SNAP = {**{k: x for k, x in _SNAP.items() if k != "readonly"}, "owner": {}, "bf_id": "bond", "account_id": "bond:p-1", "cash": [{"currency": "RUB", "value": "100"}],
+_BOND_SNAP = {**{k: x for k, x in _SNAP.items() if k != "readonly"}, "owner": {}, "bf_id": "bond", "account_id": "bond:p-1", "kind": "bond", "name": "Облигации", "cash": [{"currency": "RUB", "value": "100"}],
               "positions": [{"quantity": 10, "average_price": "968", "instrument_key": _KEY, "accrued_int": "12.4"}]}
 _OP = {"ts": "2026-11-07T09:30:00Z", "kind": "deposit", "amount": "5"}
 _BUY_FX = {"ts": "2026-11-07T09:31:00Z", "kind": "buy", "amount": "-9000.00", "instrument_key": "MISX:TQOB:X", "quantity": 10, "price": "95.5", "accrued_int": "1.2", "fx_currency": "USD", "fx_rate": "90.5"}
@@ -166,7 +172,7 @@ def test_account_v2_bond_account_snapshot(registry):
     v = _v("list", registry)
     v.validate(_m("list", request_id="r", bf_id="bond", account_id="bond:p-1"))
     v.validate(_m("list", request_id="r", items=[_BOND_SNAP]))
-    v.validate(_m("list", bf_id="bond", default_account_id="bond:p-1", items=[_BOND_SNAP]))
+    v.validate(_m("list", bf_id="bond", items=[_BOND_SNAP]))
     v.validate(_m("list", request_id="r", items=[{**_BOND_SNAP, "positions": [{"quantity": 1, "average_price": "1", "accrued_int": None}]}]))
     _invalid(v, _m("list", request_id="r", items=[{**_BOND_SNAP, "positions": [{"quantity": 1, "average_price": "1", "accrued_int": 1.5}]}]))
 
@@ -206,18 +212,33 @@ def test_account_v2_cash(registry):
 
 def test_account_v2_set(registry):
     v = _v("set", registry)
-    req = _m("set", request_id="r", account_id="bond:p-1", targets=[{"instrument_key": _KEY, "quantity": 0}])
-    v.validate(req)
-    v.validate(_m("set", request_id="r", item=_BOND_SNAP, rejected=[]))
-    for reason in ("no_last_price", "no_fx", "insufficient_cash", "not_in_set", "not_supported", "forbidden"):
-        v.validate(_m("set", request_id="r", item=_BOND_SNAP, rejected=[{"instrument_key": _KEY, "reason": reason}]))
-    _invalid(v, _m("set", request_id="r", item=_BOND_SNAP, rejected=[{"instrument_key": _KEY, "reason": "x"}]))
-    _invalid(v, _m("set", request_id="r", item=_BOND_SNAP))  # response needs rejected
-    _invalid(v, _m("set", request_id="r", account_id="a", targets=[]))
-    _invalid(v, _m("set", request_id="r", account_id="a", targets=[{"instrument_key": _KEY, "quantity": -1}]))
-    _invalid(v, _m("set", request_id="r", account_id="a", targets=[{"instrument_key": _KEY, "quantity": 1.5}]))
-    _invalid(v, _m("set", request_id="r", account_id="a", targets=[{"instrument_key": _KEY, "quantity": 1}] * 201))
-    _invalid(v, _m("set", request_id="r", targets=req["targets"]))
+    v.validate(_m("set", request_id="r", name="Основной", amount="1000000"))  # open
+    v.validate(_m("set", request_id="r", name="A", amount="0.01"))
+    v.validate(_m("set", request_id="r", name="x" * 64, amount="1"))
+    v.validate(_m("set", request_id="r", account_id="account-6f2a-41c8-9b0e", name="Новое"))  # rename
+    v.validate(_m("set", request_id="r", item=_SNAP))  # response
+    _invalid(v, _m("set", request_id="r", name="A"))  # opening needs amount
+    _invalid(v, _m("set", request_id="r", account_id="a", name="A", amount="1"))  # rename forbids amount
+    _invalid(v, _m("set", request_id="r", account_id="a"))  # name is required
+    _invalid(v, _m("set", request_id="r", name=""))
+    _invalid(v, _m("set", request_id="r", name="x" * 65, amount="1"))
+    for bad in ("0", "0.00", "-5", "1e5", "abc", "", 100):
+        _invalid(v, _m("set", request_id="r", name="A", amount=bad))
+    _invalid(v, _m("set", name="A", amount="1"))  # request_id is mandatory
+    _invalid(v, _m("set", request_id="r", item=_SNAP, name="A"))  # request field in a response
+    _invalid(v, _m("set", request_id="r", name="A", amount="1", targets=[]))  # bond semantics are gone
+    for name in ("request", "request.rename", "response"):
+        v.validate(json.loads((_EXAMPLES / f"set.{name}.json").read_text()))
+
+
+def test_account_v2_delete(registry):
+    v = _v("delete", registry)
+    v.validate(_m("delete", request_id="r", account_id="account-6f2a-41c8-9b0e"))
+    _invalid(v, _m("delete", request_id="r"))
+    _invalid(v, _m("delete", account_id="a"))
+    _invalid(v, _m("delete", request_id="r", account_id="a", force=True))
+    for name in ("request", "response"):
+        v.validate(json.loads((_EXAMPLES / f"delete.{name}.json").read_text()))
 
 
 def test_account_v2_reconcile(registry):
@@ -265,21 +286,15 @@ def test_account_v2_ledger(registry):
     _invalid(v, _m("ledger", account_id="a"))
 
 
-def test_account_v2_settings(registry):
-    # deprecated: server answers unsupported_action; schema kept for compatibility
+def test_account_v2_settings_removed(registry):
     schema = json.loads((_ROOT / "spec" / "schemas" / "afbws" / "account.channel.v2.json").read_text())
-    assert schema["$defs"]["settings"]["deprecated"] is True
-    v = _v("settings", registry)
-    v.validate(_m("settings", request_id="r"))
-    v.validate(_m("settings", request_id="r", fx_spread_pct="0.5"))
-    _invalid(v, _m("settings", request_id="r", fx_spread_pct=0.5))
-    _invalid(v, _m("settings", fx_spread_pct="0.5"))
-    _invalid(v, _m("settings", request_id="r", account_id="a"))
+    assert "settings" not in schema["$defs"]
+    _invalid(_root(registry), _m("settings", request_id="r"))
 
 
 def test_account_v2_error_codes(registry):
     v = _v("error", registry)
-    for code in ("insufficient_cash", "forbidden", "not_supported"):
+    for code in ("insufficient_cash", "limit_exceeded", "conflict", "forbidden", "not_supported", "not_found", "validation_error"):
         v.validate(_m("error", request_id="r", code=code, message="x"))
     _invalid(v, _m("error", request_id="r", code="insufficient", message="x"))
 
@@ -288,6 +303,6 @@ def test_account_v2_root_dispatch_new_ops(registry):
     root = _root(registry)
     root.validate(_m("cash", request_id="r", account_id="a", kind="deposit", currency="RUB", amount="1"))
     root.validate(_m("ledger", request_id="r", account_id="a"))
-    root.validate(_m("settings", request_id="r"))
-    root.validate(_m("set", request_id="r", item=_BOND_SNAP, rejected=[]))
+    root.validate(_m("set", request_id="r", name="A", amount="1"))
+    root.validate(_m("delete", request_id="r", account_id="a"))
     root.validate(_m("reconcile", request_id="r", item=_BOND_SNAP, rejected=[]))

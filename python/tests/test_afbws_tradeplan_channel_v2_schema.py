@@ -111,7 +111,7 @@ def test_tradeplan_v2_deal_status_matches_deal_state():
 def test_tradeplan_v2_plan_input(registry):
     v = _v("planInput", registry)
     v.validate(_INPUT)
-    v.validate(_with(_INPUT, publish={"bf_id": "virtual", "account_id": "a"}))
+    _invalid(v, _with(_INPUT, publish={"bf_id": "virtual", "account_id": "a"}))  # publish is removed
     v.validate(_with(_INPUT, entries=[{"leg_id": "leg-1", "percent": "100", "logic": "split", **_LEG}]))
     # mandatory fields
     for field in ("schema", "id", "instrument_key", "direction", "entries", "stop_loss", "take_profit", "sizing"):
@@ -131,7 +131,6 @@ def test_tradeplan_v2_plan_input(registry):
     _invalid(v, _with(_INPUT, entries=[{"leg_id": "", **_LEG}]))
     _invalid(v, _with(_INPUT, entries=[{**_LEG, "extra": 1}]))
     _invalid(v, _with(_INPUT, entries=[{"condition": {**_LEG["condition"], "extra": 1}}]))
-    _invalid(v, _with(_INPUT, publish={"bf_id": "x", "extra": 1}))
 
 
 def test_tradeplan_v2_condition_vocabulary(registry):
@@ -152,7 +151,7 @@ def test_tradeplan_v2_condition_vocabulary(registry):
 def test_tradeplan_v2_plan_item(registry):
     v = _v("planItem", registry)
     v.validate(_ITEM)
-    v.validate(_with(_ITEM, publish={"bf_id": "virtual"}))
+    _invalid(v, _with(_ITEM, publish={"bf_id": "virtual"}))  # publish is removed
     # instrument: the key is mandatory and the only identifier; `ticker` is no longer part of the item;
     # `instrument_missing` = key not in the catalog
     _invalid(v, _with(_ITEM, ticker="SBER"))

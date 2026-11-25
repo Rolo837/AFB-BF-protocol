@@ -9,12 +9,21 @@
 ## Unreleased
 
 ### Added
+- НЕСОВМЕСТИМОЕ ИЗМЕНЕНИЕ (этап П, счета без счёта по умолчанию; бэкенд и фронт выкатываются одновременно, старые фронты не поддерживаются; версии схем `.v2`/`.v1` не менялись).
+- `account.channel.v2.json`: `accountSnapshot.kind` (`virtual|bond|broker`), `name` (string|null), `external_id` (string|null — номер счёта у брокера), все три обязательны. Новая операция `afbws.account.delete.v2` (`{account_id}` → `{account_id}`; ошибки `not_found`, `not_supported`, `conflict` — у счёта есть сделки). `afbws.account.events.v2`: необязательный `account_id` (фильтр одного счёта). `afbws.account.error.v2`: код `limit_exceeded`.
+- `bonds.channel.v1.json`: новая операция `afbws.bonds.positions.set.v1` (`$defs.positionsSet`) — целевые количества счёта портфеля, перенос прежнего `account.set` один в один (исполнение по LAST, частичный успех, те же `reason`), адресация по `id` портфеля. Примеры `examples/bonds_channel_v1/positions_set.*`, `account_channel_v2/{set.request.rename,delete.*,error.conflict,list.response.broker}.json`.
 
 ### Changed
+- `account.channel.v2.json`: `afbws.account.set.v2` получил новый смысл — жизненный цикл виртуального счёта: запрос `{account_id?, name, amount?}` (без `account_id` — открыть: `name` 1..64 без учёта регистра уникально, `amount` > 0 в рублях обязателен; с `account_id` — переименовать, `amount` запрещён), ответ `item`; ошибки `validation_error`, `not_found`, `limit_exceeded`, `not_supported`. Прежняя облигационная семантика (`targets[]`/`rejected[]`) переехала в `bonds.positions.set`.
+- `account_id` в протоколе — id строки `account` в `trading.db` (`account-xxxx-xxxx-xxxx`) для virtual и broker; для bond до отдельного этапа остаётся `bond:<portfolio_id>`. В списке отдаётся только торговый счёт коннектора. `afbws.account.reconcile.v2` для виртуального счёта — `not_supported`.
+- `deal.channel.v2.json`: в `publishItem` и `rebindItem` `account_id` обязателен; счёт должен существовать, принадлежать пользователю и соответствовать `bf_id` строки. Описания `dealSummary`/`dealDetail`/`dealItem.account_id` без алиаса `virtual:<user_id>`.
 
 ### Fixed
 
 ### Removed
+- `account.channel.v2.json`: `default_account_id` в пуше `afbws.account.list.v2` (удалён без deprecated); операция `afbws.account.settings.v2` целиком; алиас `virtual:<user_id>`, «счёт по умолчанию» и пустой `account_id` в описаниях.
+- `tradeplan.channel.v2.json`: `planInput.publish` и `planItem.publish`; `tradeplan.v2.json`: `$defs/publish`.
+- `config.v1.json`: `settings.trade.default_capital`.
 
 ## v2.11.4 — 2026-11-25
 

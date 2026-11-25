@@ -1,0 +1,16 @@
+{
+  "channel": "bonds",
+  "schema": "afbws.bonds.positions.set.v1",
+  "request_id": "b-14",
+  "id": "p-1",
+  "targets": [
+    {
+      "instrument_key": "MISX:TQOB:SU26238RMFS4",
+      "quantity": 100
+    },
+    {
+      "instrument_key": "MISX:TQCB:RU000A10A3Z4",
+      "quantity": 50
+    }
+  ]
+}

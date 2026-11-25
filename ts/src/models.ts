@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 787f15a3c6d6e8044c978bf989137475228317a7889fcde4a3977c829cda10fe
+ * source-hash: 48410d9de0a1a73ebb34b083ff9fa4f99fd91e2f0bb051c190eafc1182bad88b
  */
 
 /**
@@ -93,7 +93,7 @@ export type AccessV1UsersSetItem1 = {
   [k: string]: unknown;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, cash, set, reconcile, ledger, settings, error; `list` takes `bf_id` + `account_id`. `bf_id` is the account type for AFB-side accounts: `virtual` (trading simulation) and `bond` (virtual account of a bond portfolio; `account_id = "bond:" + portfolio_id`; created and deleted together with the portfolio, so there is no `open` operation). Operations `cash`, `set`, `reconcile`, `ledger`, `settings` serve accounts of type `bond` (the backend answers `not_supported` for other types); each has no server push, so `request_id` is always required. `settings` is deprecated (auto-conversion spread removed; the server answers `unsupported_action`). The money of a `bond` account is held ONLY in its base currency: cash[] has at most one element. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes , reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account (broker / virtual) is expressed through cash[] (one entry per currency); a `bond` account holds money only in its base currency (cash[] has at most one element); the virtual account fills `as_of`. `account` means a broker account (one bf_id may have more than one), not the connector itself.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, cash, set, delete, reconcile, ledger, error. `list` takes `bf_id` + `account_id`. ACCOUNT ID. `account_id` is the id of the `account` row in trading.db (`account-xxxx-xxxx-xxxx`) for a `virtual` and a broker account; for a `bond` account (virtual account of a bond portfolio; created and deleted together with the portfolio) it stays `bond:<portfolio_id>` until a later stage. A broker account of a connector is registered by the backend when the connector reports it; its number at the broker is `external_id` of the snapshot. Only the trading account of a connector is listed. `bf_id` is the account type for AFB-side accounts: `virtual` (trading simulation) and `bond` (portfolio account). The lifecycle of a `virtual` account is `set` (open / rename) and `delete`; the lifecycle of a `bond` account is bound to its portfolio (afbws.bonds.channel.v1), so there is no `open` for it; target quantities of a `bond` account are set by afbws.bonds.positions.set.v1. Operations `cash`, `reconcile`, `ledger` serve accounts of type `bond` (the backend answers `not_supported` for other types); each has no server push, so `request_id` is always required. The money of a `bond` account is held ONLY in its base currency: cash[] has at most one element. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes, reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account (broker / virtual) is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a single account (one bf_id may have more than one), not the connector itself.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountChannelV2Message".
@@ -104,12 +104,12 @@ export type AccountChannelV2Message =
   | AccountV2Events
   | AfbwsAccountChannelV2_Cash
   | AfbwsAccountChannelV2_Set
+  | AfbwsAccountChannelV2_Delete
   | AfbwsAccountChannelV2_Reconcile
   | AfbwsAccountChannelV2_Ledger
-  | AfbwsAccountChannelV2_Settings
   | AccountV2Error;
 /**
- * Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`; replaces v1 `get`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `default_account_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual account is pushed the same way). For `bf_id: "bond"` (accounts of bond portfolios, `account_id = "bond:" + portfolio_id`): a request without `account_id` returns only the caller's own accounts; with `account_id` the caller's own or a readable public one (staff accounts are `visibility public`, read-only for others). A `bond` snapshot carries `owner` instead of `readonly`: `{}` for the caller's own account, `{name, tier}` of the owner (null when unknown) for somebody else's public one; broker and virtual snapshots carry `readonly` and no `owner`. The snapshot is filled from the account log: `cash[]` per currency, `equity` in the base currency (cash + market value), `tradable: true`, `status: ok`, positions carry `instrument_key` and `accrued_int`. The push for `bond` is event-driven (after `cash` / `set`, an income credit, a composition change), like the virtual account. A request carrying `items`/`default_account_id` or a response/push carrying request-only fields is invalid.
+ * Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual accounts are pushed the same way). Only the trading account of a connector is listed. For `bf_id: "bond"` (accounts of bond portfolios, `account_id = "bond:" + portfolio_id`): a request without `account_id` returns only the caller's own accounts; with `account_id` the caller's own or a readable public one (staff accounts are `visibility public`, read-only for others). A `bond` snapshot carries `owner` instead of `readonly`: `{}` for the caller's own account, `{name, tier}` of the owner (null when unknown) for somebody else's public one; broker and virtual snapshots carry `readonly` and no `owner`. The snapshot is filled from the account log: `cash[]` per currency, `equity` in the base currency (cash + market value), `tradable: true`, `status: ok`, positions carry `instrument_key` and `accrued_int`. The push for `bond` is event-driven (after `cash`, a quantity edit, an income credit, a composition change), like the virtual account. A request carrying `items` or a response/push carrying request-only fields is invalid.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountV2List".
@@ -126,7 +126,6 @@ export type AccountV2List = {
    * Request only: bypass the cached accounts snapshot and re-fetch from BF.
    */
   force?: boolean;
-  default_account_id?: AccountV2AccountId;
   items?: AccountV2Snapshot[];
 };
 /**
@@ -137,6 +136,8 @@ export type AccountV2List = {
  */
 export type AccountV2BfId = string;
 /**
+ * Id of the `account` row in trading.db (`account-xxxx-xxxx-xxxx`) for `virtual` and broker accounts; for a `bond` account — `bond:<portfolio_id>` (until a later stage).
+ *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountV2AccountId".
  */
@@ -158,7 +159,7 @@ export type AccountV2Orders = {
   items?: AccountV2Order[];
 };
 /**
- * Request (`request_id`, no `items`): `bf_id` required, `date` (YYYY-MM-DD market date) omitted = today (market_today()). Response (same `request_id`, with `items`): `bf_id`, `date`, `items[]`. There is NO server push for events: `request_id` is always required.
+ * Request (`request_id`, no `items`): `bf_id` required, `date` (YYYY-MM-DD market date) omitted = today (market_today()), `account_id` optional (only the events of this one account). Response (same `request_id`, with `items`): `bf_id`, `date`, `items[]`. There is NO server push for events: `request_id` is always required.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountV2Events".
@@ -170,6 +171,10 @@ export type AccountV2Events = {
   schema: 'afbws.account.events.v2';
   request_id: AfbwsCommonV1_RequestId;
   bf_id: AccountV2BfId;
+  /**
+   * Id of the `account` row in trading.db (`account-xxxx-xxxx-xxxx`) for `virtual` and broker accounts; for a `bond` account — `bond:<portfolio_id>` (until a later stage).
+   */
+  account_id?: string;
   /**
    * YYYY-MM-DD market date; omitted in a request means today (market_today()).
    */
@@ -201,7 +206,7 @@ export type AfbwsAccountChannelV2_Cash = {
   item?: AccountV2Snapshot1;
 };
 /**
- * Request: `account_id`, `targets[]` (1..200, target quantity per instrument key). Each row is executed separately: delta > 0 is an emulated `buy`, delta < 0 a `sell`, both at LAST MOEX; partial success is allowed. Response (same `request_id`): `item` — the account snapshot after the edit — and `rejected[]` (refused rows with `reason`; empty when all went through). A whole-request failure is `afbws.account.error.v2`. No server push.
+ * Lifecycle of a `virtual` account. Request: `name` (1..64 characters, unique among the owner's virtual accounts, case-insensitive) and, optionally, `account_id`. WITHOUT `account_id` the request opens a new virtual account: `amount` is required (starting capital in rubles, a positive decimal string, no upper bound). WITH `account_id` it renames that account: `amount` is forbidden. Response (same `request_id`): `item` — the account snapshot after the change. Errors (`afbws.account.error.v2`): `validation_error` (bad or duplicate `name`, bad `amount`), `not_found` (unknown or foreign `account_id`), `limit_exceeded` (the limit of virtual accounts is reached), `not_supported` (the account is not a `virtual` one). No server push (the owner receives `afbws.account.list.v2`).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsAccountChannelV2_Set".
@@ -212,50 +217,22 @@ export type AfbwsAccountChannelV2_Set = {
   channel: 'account';
   schema: 'afbws.account.set.v2';
   request_id: AfbwsCommonV1_RequestId;
-  account_id?: AccountV2AccountId;
   /**
-   * Request only.
-   *
-   * @minItems 1
-   * @maxItems 200
+   * Id of the `account` row in trading.db (`account-xxxx-xxxx-xxxx`) for `virtual` and broker accounts; for a `bond` account — `bond:<portfolio_id>` (until a later stage).
    */
-  targets?: [
-    {
-      instrument_key: AfbwsCommonV1_InstrumentKey;
-      /**
-       * Target quantity (not a delta); 0 closes the position.
-       */
-      quantity: number;
-    },
-    ...{
-      instrument_key: AfbwsCommonV1_InstrumentKey;
-      /**
-       * Target quantity (not a delta); 0 closes the position.
-       */
-      quantity: number;
-    }[]
-  ];
+  account_id?: string;
+  /**
+   * Request only: account name, unique among the owner's virtual accounts, case-insensitive.
+   */
+  name?: string;
+  /**
+   * Request only, opening only: starting capital in rubles, a positive decimal string, no upper bound.
+   */
+  amount?: string;
   item?: AccountV2Snapshot2;
-  /**
-   * Response only.
-   */
-  rejected?: {
-    instrument_key: AfbwsCommonV1_InstrumentKey;
-    /**
-     * no_last_price: no known LAST MOEX (the last known one, not necessarily of today); no_fx: no exchange rate to convert the instrument currency to the base one; insufficient_cash: not enough money for a buy; not_in_set: the instrument is not in the portfolio composition; not_supported: instrument class has no provider; forbidden: not allowed for the caller.
-     */
-    reason: 'no_last_price' | 'no_fx' | 'insufficient_cash' | 'not_in_set' | 'not_supported' | 'forbidden';
-  }[];
 };
 /**
- * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsCommonV1_InstrumentKey".
- */
-export type AfbwsCommonV1_InstrumentKey = string;
-/**
- * Manual (later also broker / report) correction of positions and free cash. Request: `account_id`, `positions[]` (0..200, TARGET state of each instrument) and/or `cash` (TARGET free-cash balance in the account base currency); at least one of a non-empty `positions` or `cash`. The values are absolute: the backend computes the difference from the current state and skips unchanged rows (idempotent). A position row writes one `reconcile` log row with the NEW quantity / average price (amount 0; quantity 0 closes the position); a `cash` row writes one `reconcile` row with amount = new balance minus the previous one. Each position row is executed separately, partial success is allowed. Response (same `request_id`): `item` — the account snapshot after the edit — and `rejected[]` (refused position rows with `reason`; empty when all went through). A whole-request failure (including a negative `cash`) is `afbws.account.error.v2`. No server push.
+ * Serves `bond` accounts only; for a `virtual` (and broker) account the backend answers `not_supported`. Manual (later also broker / report) correction of positions and free cash. Request: `account_id`, `positions[]` (0..200, TARGET state of each instrument) and/or `cash` (TARGET free-cash balance in the account base currency); at least one of a non-empty `positions` or `cash`. The values are absolute: the backend computes the difference from the current state and skips unchanged rows (idempotent). A position row writes one `reconcile` log row with the NEW quantity / average price (amount 0; quantity 0 closes the position); a `cash` row writes one `reconcile` row with amount = new balance minus the previous one. Each position row is executed separately, partial success is allowed. Response (same `request_id`): `item` — the account snapshot after the edit — and `rejected[]` (refused position rows with `reason`; empty when all went through). A whole-request failure (including a negative `cash`) is `afbws.account.error.v2`. No server push.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsAccountChannelV2_Reconcile".
@@ -303,6 +280,13 @@ export type AfbwsAccountChannelV2_Reconcile = {
     reason: 'no_fx' | 'not_in_set' | 'not_supported' | 'invalid_value' | 'forbidden';
   }[];
 };
+/**
+ * Full composite key identifying one catalog listing or derivative: `<MIC>[:<board|market>]:<ticker>` (e.g. `MISX:TQBR:SBER`, `MISX:RFUD:IMOEXF`), or the venueless 2-segment derivative form `<MIC>:<code>` (e.g. `MISX:IMOEXF`) where the wire explicitly identifies a derivative rather than a listing. Case-sensitive, never normalized (`.lower()`/`.upper()`) on either side of the AFB backend<->frontend channel.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsCommonV1_InstrumentKey".
+ */
+export type AfbwsCommonV1_InstrumentKey = string;
 /**
  * Request: `account_id`, optional `before` (opaque cursor string taken from a previous response `next`: return entries older than it), optional `limit` (1..200). Entries are returned newest first (new -> old). Response (same `request_id`, with `items`): `account_id`, `items[]` (accountOp), `next` — the opaque cursor to pass as `before` for the next page, or null at the end. The client must not parse or construct cursors. No server push.
  *
@@ -523,7 +507,7 @@ export type BfsRegistryEntry = BfRegistryEntry & {
   };
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bonds: a bond search and cards, bond portfolios, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `screener`, `emitter`, `rates`, `rates.set`, `portfolios`, `portfolio`, `portfolios.set`, `signals`, `events`. `screener` is the bond screener (columnar, filters are kept per connection and applied to its pushes), `emitter` lists all bonds of an issuer, `rates`/`rates.set` are the base rates (key rate, RUONIA) from which floating coupons are forecast (set by staff only). There is no copy operation: adding a bond, or the composition of somebody else's portfolio, to one's own portfolio is an edit of the own composition via `portfolios.set`. IDENTITY. A bond is identified ONLY by `instrument_key` (the same composite catalog key as any instrument: `MISX:<primary board>:<secid>`, e.g. `MISX:TQCB:RU000A10A3Z4`; case-sensitive, never normalized). `secid`, `isin` and `shortname` are plain display/search attributes (`bondRow.secid`, `position.secid`) and never an identifier in any request, response or push. A board change (e.g. TQCB -> TQRD after a default) is another key, i.e. another bond: nothing is renamed or migrated. PORTFOLIO MODEL (the model changed: the former purchase journal is replaced by the PORTFOLIO ACCOUNT). Every portfolio has a virtual account of type `bond` (`account_id = "bond:" + portfolio_id`, `portfolioRef.account_id`; see afbws.account.channel.v2): the user sets the quantities, the backend emulates buys/sells at LAST MOEX, keeps money per currency and credits payments by schedule; the analytics of `portfolio` is built from the account. The journal operation `trades.set` is removed; `trades=[]`, `series.rows=[]`, `totals.xirr=null` in `portfolio` are kept for compatibility. The text below about purchases (journal) describes the legacy model. A portfolio is a set (type `bond`) with a COMPOSITION: `instrument_keys[]` — bonds only, in display order, at most 200. A PUBLIC (reference) portfolio is created and edited by staff only (`visibility` guest|user|manager) and is pure structure: it has no purchases. PURCHASES (the trade journal: date, price, quantity) exist only in PERSONAL portfolios and are an attribute of a bond that is in the composition; a bond may be in the composition with no purchases (observation). Removing a bond from a personal portfolio deletes its purchases there. A personal portfolio can be created by anybody with the `bonds` capability; a public visibility needs staff (`forbidden`); the scope personal <-> public never changes (`validation_error`); a `category=default` bond cannot be in a public portfolio. The bond search is paged by `offset` / `limit` (at most 100 per page); there is no cursor. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Reconciliation with the broker account (`reconcile`) is added later, additively, and is gated by the same capability `bonds`. See AFB/docs/ws/bonds.md.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.bonds.channel.v1). MOEX bonds: a bond search and cards, bond portfolios, upcoming offer/maturity/amortization events and market-wide price/volume anomaly signals. Same convention as afbws.screener/afbws.instrument.v2: ONE schema id per message (`afbws.bonds.<op>.v1`, no .request/.response suffixes); the same schema is the request, its response and, where documented, the server push; a message WITHOUT `request_id` is a server push; `request_id` is required in every client request. A failed request is answered with `afbws.bonds.error.v1`; a refused item of a batch goes to `rejected[]`. Operations: `search`, `bond`, `screener`, `emitter`, `rates`, `rates.set`, `portfolios`, `portfolio`, `portfolios.set`, `positions.set`, `signals`, `events`. `screener` is the bond screener (columnar, filters are kept per connection and applied to its pushes), `emitter` lists all bonds of an issuer, `rates`/`rates.set` are the base rates (key rate, RUONIA) from which floating coupons are forecast (set by staff only). There is no copy operation: adding a bond, or the composition of somebody else's portfolio, to one's own portfolio is an edit of the own composition via `portfolios.set`. IDENTITY. A bond is identified ONLY by `instrument_key` (the same composite catalog key as any instrument: `MISX:<primary board>:<secid>`, e.g. `MISX:TQCB:RU000A10A3Z4`; case-sensitive, never normalized). `secid`, `isin` and `shortname` are plain display/search attributes (`bondRow.secid`, `position.secid`) and never an identifier in any request, response or push. A board change (e.g. TQCB -> TQRD after a default) is another key, i.e. another bond: nothing is renamed or migrated. PORTFOLIO MODEL (the model changed: the former purchase journal is replaced by the PORTFOLIO ACCOUNT). Every portfolio has a virtual account of type `bond` (`account_id = "bond:" + portfolio_id`, `portfolioRef.account_id`; see afbws.account.channel.v2): the user sets the quantities (`positions.set`), the backend emulates buys/sells at LAST MOEX, keeps money per currency and credits payments by schedule; the analytics of `portfolio` is built from the account. The journal operation `trades.set` is removed; `trades=[]`, `series.rows=[]`, `totals.xirr=null` in `portfolio` are kept for compatibility. The text below about purchases (journal) describes the legacy model. A portfolio is a set (type `bond`) with a COMPOSITION: `instrument_keys[]` — bonds only, in display order, at most 200. A PUBLIC (reference) portfolio is created and edited by staff only (`visibility` guest|user|manager) and is pure structure: it has no purchases. PURCHASES (the trade journal: date, price, quantity) exist only in PERSONAL portfolios and are an attribute of a bond that is in the composition; a bond may be in the composition with no purchases (observation). Removing a bond from a personal portfolio deletes its purchases there. A personal portfolio can be created by anybody with the `bonds` capability; a public visibility needs staff (`forbidden`); the scope personal <-> public never changes (`validation_error`); a `category=default` bond cannot be in a public portfolio. The bond search is paged by `offset` / `limit` (at most 100 per page); there is no cursor. Dates are `YYYY-MM-DD`, numbers are JSON numbers, never NaN (a missing value is null). Money is in the bond face-value currency (`faceunit`), next to it a `_rub` field in rubles. Yields are computed without personal income tax and commissions. Access requires the `bonds` capability; otherwise `forbidden`; while the backend has the channel disabled it answers `unsupported_action`. Bond portfolios are sets of type `bond` in the catalog; they never appear in afbws.instrument.channel.v2 `sets` or afbws.catalog.channel.v1 snapshots. Reconciliation with the broker account (`reconcile`) is added later, additively, and is gated by the same capability `bonds`. See AFB/docs/ws/bonds.md.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsBondsChannelV1_Root".
@@ -534,6 +518,7 @@ export type AfbwsBondsChannelV1_Root =
   | AfbwsBondsChannelV1_Portfolios
   | AfbwsBondsChannelV1_Portfolio
   | AfbwsBondsChannelV1_PortfoliosSet
+  | AfbwsBondsChannelV1_PositionsSet
   | AfbwsBondsChannelV1_Signals
   | AfbwsBondsChannelV1_Events
   | AfbwsBondsChannelV1_Screener
@@ -789,6 +774,56 @@ export type AfbwsBondsChannelV1_PortfoliosSet = {
   emitters?: {
     [k: string]: AfbwsBondsChannelV1_BondEmitter;
   };
+};
+/**
+ * Request: `id` (portfolio id), `targets[]` (1..200, target quantity per instrument key). Each row is executed separately on the account of that portfolio (see afbws.account.channel.v2, `account_id = "bond:" + id`): delta > 0 is an emulated `buy`, delta < 0 a `sell`, both at LAST MOEX; partial success is allowed. Response (same `request_id`): `item` — the account snapshot after the edit — and `rejected[]` (refused rows with `reason`; empty when all went through). A whole-request failure is `afbws.bonds.error.v1` (unknown or foreign personal portfolio: `not_found`; a public portfolio of somebody else: `forbidden`). After the edit the owner receives the `afbws.account.list.v2` push for `bond`, `portfolios` and `portfolio` pushes. No other server push.
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsBondsChannelV1_PositionsSet".
+ */
+export type AfbwsBondsChannelV1_PositionsSet = {
+  [k: string]: unknown;
+} & {
+  channel: 'bonds';
+  schema: 'afbws.bonds.positions.set.v1';
+  request_id: AfbwsCommonV1_RequestId;
+  /**
+   * Request only: portfolio id.
+   */
+  id?: string;
+  /**
+   * Request only.
+   *
+   * @minItems 1
+   * @maxItems 200
+   */
+  targets?: [
+    {
+      instrument_key: AfbwsCommonV1_InstrumentKey;
+      /**
+       * Target quantity (not a delta); 0 closes the position.
+       */
+      quantity: number;
+    },
+    ...{
+      instrument_key: AfbwsCommonV1_InstrumentKey;
+      /**
+       * Target quantity (not a delta); 0 closes the position.
+       */
+      quantity: number;
+    }[]
+  ];
+  item?: AccountV2Snapshot4;
+  /**
+   * Response only.
+   */
+  rejected?: {
+    instrument_key: AfbwsCommonV1_InstrumentKey;
+    /**
+     * no_last_price: no known LAST MOEX (the last known one, not necessarily of today); no_fx: no exchange rate to convert the instrument currency to the base one; insufficient_cash: not enough money for a buy; not_in_set: the instrument is not in the portfolio composition; not_supported: instrument class has no provider; forbidden: not allowed for the caller.
+     */
+    reason: 'no_last_price' | 'no_fx' | 'insufficient_cash' | 'not_in_set' | 'not_supported' | 'forbidden';
+  }[];
 };
 /**
  * Request: `days` (1..30, default 5) — how far back, `held_only` (default false) — only the caller's bonds. Response: `items`. Server push: new and strengthened signals WITHOUT `request_id` to the connections that requested the feed.
@@ -3129,9 +3164,24 @@ export interface AccessV1Error {
  */
 export interface AccountV2Snapshot {
   bf_id: AccountV2BfId;
-  account_id: AccountV2AccountId;
   /**
-   * True only for this bf_id's default (trading) account.
+   * Id of the `account` row in trading.db (`account-xxxx-xxxx-xxxx`) for `virtual` and broker accounts; for a `bond` account — `bond:<portfolio_id>` (until a later stage).
+   */
+  account_id: string;
+  /**
+   * Account kind: `virtual` (trading simulation), `bond` (portfolio account), `broker` (the trading account of a broker connector).
+   */
+  kind: 'virtual' | 'bond' | 'broker';
+  /**
+   * Display name: the account name for `virtual`, the portfolio name for `bond`; null for a broker account.
+   */
+  name: string | null;
+  /**
+   * Broker accounts only: the account number at the broker (as reported by the connector); null for `virtual` and `bond`.
+   */
+  external_id: string | null;
+  /**
+   * True for the account orders are placed on. Only the trading account of a connector is listed, so it is true for every broker account; always true for `virtual` and `bond`.
    */
   tradable: boolean;
   /**
@@ -3230,9 +3280,24 @@ export interface AccountV2EventRecord {
  */
 export interface AccountV2Snapshot1 {
   bf_id: AccountV2BfId;
-  account_id: AccountV2AccountId;
   /**
-   * True only for this bf_id's default (trading) account.
+   * Id of the `account` row in trading.db (`account-xxxx-xxxx-xxxx`) for `virtual` and broker accounts; for a `bond` account — `bond:<portfolio_id>` (until a later stage).
+   */
+  account_id: string;
+  /**
+   * Account kind: `virtual` (trading simulation), `bond` (portfolio account), `broker` (the trading account of a broker connector).
+   */
+  kind: 'virtual' | 'bond' | 'broker';
+  /**
+   * Display name: the account name for `virtual`, the portfolio name for `bond`; null for a broker account.
+   */
+  name: string | null;
+  /**
+   * Broker accounts only: the account number at the broker (as reported by the connector); null for `virtual` and `bond`.
+   */
+  external_id: string | null;
+  /**
+   * True for the account orders are placed on. Only the trading account of a connector is listed, so it is true for every broker account; always true for `virtual` and `bond`.
    */
   tradable: boolean;
   /**
@@ -3266,9 +3331,24 @@ export interface AccountV2Snapshot1 {
  */
 export interface AccountV2Snapshot2 {
   bf_id: AccountV2BfId;
-  account_id: AccountV2AccountId;
   /**
-   * True only for this bf_id's default (trading) account.
+   * Id of the `account` row in trading.db (`account-xxxx-xxxx-xxxx`) for `virtual` and broker accounts; for a `bond` account — `bond:<portfolio_id>` (until a later stage).
+   */
+  account_id: string;
+  /**
+   * Account kind: `virtual` (trading simulation), `bond` (portfolio account), `broker` (the trading account of a broker connector).
+   */
+  kind: 'virtual' | 'bond' | 'broker';
+  /**
+   * Display name: the account name for `virtual`, the portfolio name for `bond`; null for a broker account.
+   */
+  name: string | null;
+  /**
+   * Broker accounts only: the account number at the broker (as reported by the connector); null for `virtual` and `bond`.
+   */
+  external_id: string | null;
+  /**
+   * True for the account orders are placed on. Only the trading account of a connector is listed, so it is true for every broker account; always true for `virtual` and `bond`.
    */
   tradable: boolean;
   /**
@@ -3298,13 +3378,40 @@ export interface AccountV2Snapshot2 {
   as_of?: string;
 }
 /**
+ * Request: `account_id` of a `virtual` account. Only an account without deals can be deleted (a deal of any status counts, hidden ones included); the last virtual account can be deleted too. Response (same `request_id`): `account_id` of the deleted account. Errors (`afbws.account.error.v2`): `not_found` (unknown or foreign), `not_supported` (the account is not a `virtual` one), `conflict` (the account has deals). No server push (the owner receives `afbws.account.list.v2`).
+ *
+ * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
+ * via the `definition` "AfbwsAccountChannelV2_Delete".
+ */
+export interface AfbwsAccountChannelV2_Delete {
+  channel: 'account';
+  schema: 'afbws.account.delete.v2';
+  request_id: AfbwsCommonV1_RequestId;
+  account_id: AccountV2AccountId;
+}
+/**
  * Response only.
  */
 export interface AccountV2Snapshot3 {
   bf_id: AccountV2BfId;
-  account_id: AccountV2AccountId;
   /**
-   * True only for this bf_id's default (trading) account.
+   * Id of the `account` row in trading.db (`account-xxxx-xxxx-xxxx`) for `virtual` and broker accounts; for a `bond` account — `bond:<portfolio_id>` (until a later stage).
+   */
+  account_id: string;
+  /**
+   * Account kind: `virtual` (trading simulation), `bond` (portfolio account), `broker` (the trading account of a broker connector).
+   */
+  kind: 'virtual' | 'bond' | 'broker';
+  /**
+   * Display name: the account name for `virtual`, the portfolio name for `bond`; null for a broker account.
+   */
+  name: string | null;
+  /**
+   * Broker accounts only: the account number at the broker (as reported by the connector); null for `virtual` and `bond`.
+   */
+  external_id: string | null;
+  /**
+   * True for the account orders are placed on. Only the trading account of a connector is listed, so it is true for every broker account; always true for `virtual` and `bond`.
    */
   tradable: boolean;
   /**
@@ -3382,22 +3489,6 @@ export interface AfbwsAccountChannelV2_AccountOp {
   fx_rate?: string;
 }
 /**
- * @deprecated
- * Deprecated: auto-conversion spread removed; the server does not handle the operation and answers `unsupported_action`. The schema is kept for compatibility. Former behaviour: request `{}` (only `request_id`) reads; `{fx_spread_pct}` writes (staff only, otherwise `forbidden`). Response: `{fx_spread_pct}` — the current spread (percent, decimal string, 0 by default) added to the exchange rate (CETS) on auto-conversion. No server push.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "AfbwsAccountChannelV2_Settings".
- */
-export interface AfbwsAccountChannelV2_Settings {
-  channel: 'account';
-  schema: 'afbws.account.settings.v2';
-  request_id: AfbwsCommonV1_RequestId;
-  /**
-   * Auto-conversion spread, percent; decimal string.
-   */
-  fx_spread_pct?: string;
-}
-/**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountV2Error".
  */
@@ -3406,9 +3497,9 @@ export interface AccountV2Error {
   schema: 'afbws.account.error.v2';
   request_id: AfbwsCommonV1_RequestId;
   /**
-   * The common error codes plus `insufficient_cash` (account.cash withdraw above the balance). `forbidden` and `not_supported` are common codes too.
+   * The common error codes plus `insufficient_cash` (account.cash withdraw above the balance) and `limit_exceeded` (account.set: the limit of virtual accounts is reached). `forbidden`, `not_found`, `conflict` and `not_supported` are common codes.
    */
-  code: AfbwsCommonV1_ErrorCode | 'insufficient_cash';
+  code: AfbwsCommonV1_ErrorCode | 'insufficient_cash' | 'limit_exceeded';
   message: string;
   details?: {};
 }
@@ -4296,6 +4387,57 @@ export interface AfbwsBondsChannelV1_PortfolioRejection {
    * Machine-readable reason, optional. no_last_price: no known LAST MOEX (the last known one, not necessarily of today) for a position being auto-sold; no_fx: no exchange rate for the conversion. Open for additive extension.
    */
   reason?: 'no_last_price' | 'no_fx';
+}
+/**
+ * Response only.
+ */
+export interface AccountV2Snapshot4 {
+  bf_id: AccountV2BfId;
+  /**
+   * Id of the `account` row in trading.db (`account-xxxx-xxxx-xxxx`) for `virtual` and broker accounts; for a `bond` account — `bond:<portfolio_id>` (until a later stage).
+   */
+  account_id: string;
+  /**
+   * Account kind: `virtual` (trading simulation), `bond` (portfolio account), `broker` (the trading account of a broker connector).
+   */
+  kind: 'virtual' | 'bond' | 'broker';
+  /**
+   * Display name: the account name for `virtual`, the portfolio name for `bond`; null for a broker account.
+   */
+  name: string | null;
+  /**
+   * Broker accounts only: the account number at the broker (as reported by the connector); null for `virtual` and `bond`.
+   */
+  external_id: string | null;
+  /**
+   * True for the account orders are placed on. Only the trading account of a connector is listed, so it is true for every broker account; always true for `virtual` and `bond`.
+   */
+  tradable: boolean;
+  /**
+   * Broker / virtual accounts only (every `bf_id` except `bond`; required there, forbidden for `bond`).
+   */
+  readonly?: boolean;
+  /**
+   * `bf_id: bond` only (required there, forbidden for other accounts). Owner of the portfolio account. An EMPTY object `{}` means the account is the caller's own. For a public account of somebody else (read-only for the caller) `name` and `tier` describe the owner; `null` means the owner is unknown.
+   */
+  owner?: {
+    /**
+     * Display name of the owner; null — unknown. Absent for the caller's own account.
+     */
+    name?: string | null;
+    /**
+     * Tier of the owner (e.g. `admin`, `manager`); null — unknown. Absent for the caller's own account.
+     */
+    tier?: string | null;
+  };
+  status: 'ok' | 'stale' | 'error';
+  equity: string | null;
+  /**
+   * Cash balances, one entry per currency. For `bf_id: bond` account money is held ONLY in the account base currency: at most one element.
+   */
+  cash: PayloadsBrokerAccounts_CashBalance[];
+  positions: AfbwsAccountChannelV2_Position[];
+  as_of?: string;
 }
 /**
  * A market-wide price/volume anomaly of one bond.
@@ -5482,14 +5624,11 @@ export interface ConfigV1_DashboardLayoutItem {
   [k: string]: unknown;
 }
 /**
- * `default_capital` is persisted by the server into the user's virtual account, not into the settings file; reads return the live value.
- *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "ConfigTrade".
  */
 export interface ConfigTrade {
   default_connector?: string;
-  default_capital?: number;
   /**
    * Default risk_factor (%) for a newly created trade plan.
    */
@@ -5774,7 +5913,7 @@ export interface DealV2Item {
   execution_phase: DealExecutionPhase;
   bf_id: DealV2BfId;
   /**
-   * The deal's account — the only source of the plan-to-account binding. Broker connector: the broker account number; virtual: the virtual account id (`virtual:<user_id>`).
+   * The deal's account — the only source of the plan-to-account binding. Its id is the `account` row id in trading.db (`account-xxxx-xxxx-xxxx`).
    */
   account_id: string;
   tradeplan_id: TradeplanId;
@@ -5985,7 +6124,7 @@ export interface DealPublicSource {
   tradeplan_id: string;
 }
 /**
- * Request: `items[]` (at least one) of `{tradeplan_id, bf_id, account_id?}` (no inline plan draft, 1:1 per row). Response (same `request_id`): `results[]` (one per item; a failed row is accepted=false) and `accepted`. Distinguished by `items` vs `results`.
+ * Request: `items[]` (at least one) of `{tradeplan_id, bf_id, account_id}` (no inline plan draft, 1:1 per row). Response (same `request_id`): `results[]` (one per item; a failed row is accepted=false) and `accepted`. Distinguished by `items` vs `results`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "DealV2Publish".
@@ -6012,9 +6151,9 @@ export interface DealV2PublishItem {
   tradeplan_id: TradeplanId;
   bf_id: DealV2BfId;
   /**
-   * Account on the `bf_id` connector the deal is published to. The deal is the only source of the plan-to-account binding: the plan does not store it. Broker connector: the broker account number; absent: the connector's default account, resolved by the server at publish time and written into the deal; if the connector has not reported a default account yet, the row is rejected (accepted=false). `bf_id=virtual`: the virtual account id; absent: the user's main account (`virtual:<user_id>`).
+   * Account the deal is published to. Required. The deal is the only source of the plan-to-account binding: the plan does not store it. The account must exist, belong to the user and match `bf_id` of the row (`virtual` for a virtual account, the connector's `bf_id` for its broker account); otherwise the row is rejected (accepted=false).
    */
-  account_id?: string;
+  account_id: string;
 }
 /**
  * accepted=true: `bf_id` and `status` are set (status is `deleted` after a delete), `revision` is the deal's revision and `item` the authoritative record when the deal still exists. accepted=false: only `message` (why) — the command did not touch the deal, so there is no status/revision. When a rebind changes the deal id, `deal_id`/`item` carry the NEW id — the client must drop the old cache key.
@@ -6044,7 +6183,7 @@ export interface DealV2Detail {
   execution_phase: DealExecutionPhase;
   bf_id: DealV2BfId;
   /**
-   * The deal's account — the only source of the plan-to-account binding. Broker connector: the broker account number; virtual: the virtual account id (`virtual:<user_id>`).
+   * The deal's account — the only source of the plan-to-account binding. Its id is the `account` row id in trading.db (`account-xxxx-xxxx-xxxx`).
    */
   account_id: string;
   tradeplan_id: TradeplanId;
@@ -6092,9 +6231,9 @@ export interface DealV2RebindItem {
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   /**
-   * Account on the new `bf_id` connector; same meaning and defaults as `publishItem.account_id`.
+   * Account on the new `bf_id` connector. Required; the same checks as `publishItem.account_id`.
    */
-  account_id?: string;
+  account_id: string;
 }
 /**
  * Request: `items[]` (at least one). Response (same `request_id`): `results[]` (one per item, partial failures are rows with accepted=false) and `accepted`. Distinguished by `items` vs `results`.
@@ -6915,7 +7054,7 @@ export interface DealV2Summary {
   execution_phase: DealExecutionPhase;
   bf_id: DealV2BfId;
   /**
-   * The deal's account — the only source of the plan-to-account binding. Broker connector: the broker account number; virtual: the virtual account id (`virtual:<user_id>`).
+   * The deal's account — the only source of the plan-to-account binding. Its id is the `account` row id in trading.db (`account-xxxx-xxxx-xxxx`).
    */
   account_id: string;
   tradeplan_id: TradeplanId;
@@ -8823,7 +8962,6 @@ export interface TradeplanV2PlanItem {
   stop_loss: TradeplanV2LegItem[];
   take_profit: TradeplanV2LegItem[];
   sizing: DealSizing;
-  publish?: TradeplanV2_Publish;
   activated_at: string;
   closed_at: string;
   created_at: string;
@@ -8861,14 +8999,6 @@ export interface TradeplanV2_PrimitiveRef {
   primitive_id: string;
 }
 /**
- * @deprecated
- * Read-only projection for old clients: `bf_id`/`account_id` of the plan's latest non-hidden deal; absent if the plan has no deals. New clients take `dealSummary.bf_id`/`account_id`.
- */
-export interface TradeplanV2_Publish {
-  bf_id?: string;
-  account_id?: string;
-}
-/**
  * Request: `items[]` (at least one) of `planInput` — create or update by `item.id`, batched. Response (same `request_id`): `items[]` the applied authoritative `planItem`s (possibly empty), `rejected[]` for plans that were not applied (a stale/conflicting plan carries its current `planItem` in `rejected[].item`), and `amend_results[]` — the per-deal outcome of re-amending the live deals of every applied plan (empty for creates only; each row names its `tradeplan_id`). Distinguished by `amend_results`: present => response, absent => request. A failing plan never fails the batch. There is no push on set.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -8900,7 +9030,6 @@ export interface TradeplanV2PlanInput {
   stop_loss: TradeplanV2LegInput[];
   take_profit: TradeplanV2LegInput[];
   sizing: DealSizing;
-  publish?: TradeplanV2_Publish1;
 }
 /**
  * `leg_id` is optional on input: a new leg has none, the server assigns one on save (existing ids are never reassigned). `percent`/`logic` — see ../deal.v2.json#/$defs/legJoin.
@@ -8913,14 +9042,6 @@ export interface TradeplanV2LegInput {
   percent?: DecimalString;
   logic?: DealV2_LegJoin;
   condition: TradeplanV2Condition;
-}
-/**
- * @deprecated
- * Ignored by the server: the plan stores neither connector nor account, they are passed in `afbws.deal.publish`. Accepted only for compatibility with old clients; will be removed after the release window.
- */
-export interface TradeplanV2_Publish1 {
-  bf_id?: string;
-  account_id?: string;
 }
 /**
  * `id` is the plan id from the request, `code` a whole-request error code reused per plan (`not_found`, `validation_error`, `conflict`, ...), `message` the human-readable reason. `item` is the authoritative current plan and is present only with `conflict` (a stale or blocked plan: archive/delete blocked by a live deal that already entered a position, `set` over a primitive owned by another plan), so the client can adopt it without a separate read; a `conflict` may also come without it.
@@ -10691,14 +10812,4 @@ export interface TradeplanV2_TpConditionNode {
 export interface TradeplanV2_ArchivedComponents {
   primitives: {}[];
   indicators: {}[];
-}
-/**
- * Форма устаревшего поля канала (см. `afbws.tradeplan` `planInput.publish`/`planItem.publish`); в план не входит.
- *
- * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
- * via the `definition` "TradeplanV2_Publish".
- */
-export interface TradeplanV2_Publish2 {
-  bf_id?: string;
-  account_id?: string;
 }

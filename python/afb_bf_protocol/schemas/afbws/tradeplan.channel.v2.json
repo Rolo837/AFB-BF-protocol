@@ -68,12 +68,7 @@
         "entries": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/legInput" } },
         "stop_loss": { "type": "array", "items": { "$ref": "#/$defs/legInput" } },
         "take_profit": { "type": "array", "items": { "$ref": "#/$defs/legInput" } },
-        "sizing": { "$ref": "../common.v1.json#/$defs/sizing" },
-        "publish": {
-          "$ref": "../tradeplan.v2.json#/$defs/publish",
-          "deprecated": true,
-          "description": "Ignored by the server: the plan stores neither connector nor account, they are passed in `afbws.deal.publish`. Accepted only for compatibility with old clients; will be removed after the release window."
-        }
+        "sizing": { "$ref": "../common.v1.json#/$defs/sizing" }
       }
     },
     "planItem": {
@@ -96,11 +91,6 @@
         "stop_loss": { "type": "array", "items": { "$ref": "#/$defs/legItem" } },
         "take_profit": { "type": "array", "items": { "$ref": "#/$defs/legItem" } },
         "sizing": { "$ref": "../common.v1.json#/$defs/sizing" },
-        "publish": {
-          "$ref": "../tradeplan.v2.json#/$defs/publish",
-          "deprecated": true,
-          "description": "Read-only projection for old clients: `bf_id`/`account_id` of the plan's latest non-hidden deal; absent if the plan has no deals. New clients take `dealSummary.bf_id`/`account_id`."
-        },
         "activated_at": { "type": "string" },
         "closed_at": { "type": "string" },
         "created_at": { "type": "string" },

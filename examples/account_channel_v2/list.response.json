@@ -5,7 +5,10 @@
   "items": [
     {
       "bf_id": "virtual",
-      "account_id": "virtual:id_u1",
+      "account_id": "account-6f2a-41c8-9b0e",
+      "kind": "virtual",
+      "name": "Основной",
+      "external_id": null,
       "tradable": true,
       "readonly": false,
       "status": "ok",

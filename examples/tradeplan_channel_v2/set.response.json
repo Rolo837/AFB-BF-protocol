@@ -79,10 +79,6 @@
         "mode": "lots",
         "value": "10"
       },
-      "publish": {
-        "bf_id": "virtual",
-        "account_id": "virtual:id_u1"
-      },
       "status": "published",
       "activated_at": "",
       "closed_at": "",
@@ -170,10 +166,6 @@
         "sizing": {
           "mode": "lots",
           "value": "10"
-        },
-        "publish": {
-          "bf_id": "virtual",
-          "account_id": "virtual:id_u1"
         },
         "status": "published",
         "activated_at": "",

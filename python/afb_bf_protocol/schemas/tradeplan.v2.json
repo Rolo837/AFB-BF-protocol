@@ -40,15 +40,6 @@
     "updated_at": {"type": "string"}
   },
   "$defs": {
-    "publish": {
-      "type": "object",
-      "description": "Форма устаревшего поля канала (см. `afbws.tradeplan` `planInput.publish`/`planItem.publish`); в план не входит.",
-      "additionalProperties": false,
-      "properties": {
-        "bf_id": {"type": "string", "minLength": 1},
-        "account_id": {"type": "string", "minLength": 1}
-      }
-    },
     "archivedComponents": {
       "type": "object",
       "description": "Server-owned storage field, written once when the plan is archived: a self-contained snapshot of the chart components the plan used (the plan's own line primitives — physically removed from the live gp store on archive — and the indicators its conditions reference), so an archived plan keeps its historical drawing without depending on gp. Items are copies of AFB's internal gp/indicator storage records, deliberately not formalized here (they are never sent to clients; the channel drops this field). Re-archiving an archived plan carries the snapshot forward unchanged.",
