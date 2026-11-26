@@ -199,7 +199,7 @@
         "account_id": {
           "type": "string",
           "minLength": 1,
-          "description": "The deal's account — the only source of the plan-to-account binding. Broker connector: the broker account number; virtual: the virtual account id (`virtual:<user_id>`)."
+          "description": "The deal's account — the only source of the plan-to-account binding. Its id is the `account` row id in trading.db (`account-xxxx-xxxx-xxxx`)."
         },
         "tradeplan_id": {
           "$ref": "../common.v1.json#/$defs/tradeplanId"
@@ -284,7 +284,7 @@
         "account_id": {
           "type": "string",
           "minLength": 1,
-          "description": "The deal's account — the only source of the plan-to-account binding. Broker connector: the broker account number; virtual: the virtual account id (`virtual:<user_id>`)."
+          "description": "The deal's account — the only source of the plan-to-account binding. Its id is the `account` row id in trading.db (`account-xxxx-xxxx-xxxx`)."
         },
         "tradeplan_id": {
           "$ref": "../common.v1.json#/$defs/tradeplanId"
@@ -376,7 +376,7 @@
         "account_id": {
           "type": "string",
           "minLength": 1,
-          "description": "The deal's account — the only source of the plan-to-account binding. Broker connector: the broker account number; virtual: the virtual account id (`virtual:<user_id>`)."
+          "description": "The deal's account — the only source of the plan-to-account binding. Its id is the `account` row id in trading.db (`account-xxxx-xxxx-xxxx`)."
         },
         "tradeplan_id": {
           "$ref": "../common.v1.json#/$defs/tradeplanId"
@@ -1990,7 +1990,7 @@
     "publish": {
       "type": "object",
       "title": "afbws.deal.publish.v2 — publish already-saved tradeplans as deals (request / response).",
-      "description": "Request: `items[]` (at least one) of `{tradeplan_id, bf_id, account_id?}` (no inline plan draft, 1:1 per row). Response (same `request_id`): `results[]` (one per item; a failed row is accepted=false) and `accepted`. Distinguished by `items` vs `results`.",
+      "description": "Request: `items[]` (at least one) of `{tradeplan_id, bf_id, account_id}` (no inline plan draft, 1:1 per row). Response (same `request_id`): `results[]` (one per item; a failed row is accepted=false) and `accepted`. Distinguished by `items` vs `results`.",
       "required": [
         "channel",
         "schema",
@@ -2512,7 +2512,8 @@
       "title": "One deal to publish: a saved tradeplan onto one connector (1:1).",
       "required": [
         "tradeplan_id",
-        "bf_id"
+        "bf_id",
+        "account_id"
       ],
       "additionalProperties": false,
       "properties": {
@@ -2525,7 +2526,7 @@
         "account_id": {
           "type": "string",
           "minLength": 1,
-          "description": "Account on the `bf_id` connector the deal is published to. The deal is the only source of the plan-to-account binding: the plan does not store it. Broker connector: the broker account number; absent: the connector's default account, resolved by the server at publish time and written into the deal; if the connector has not reported a default account yet, the row is rejected (accepted=false). `bf_id=virtual`: the virtual account id; absent: the user's main account (`virtual:<user_id>`)."
+          "description": "Account the deal is published to. Required. The deal is the only source of the plan-to-account binding: the plan does not store it. The account must exist, belong to the user and match `bf_id` of the row (`virtual` for a virtual account, the connector's `bf_id` for its broker account); otherwise the row is rejected (accepted=false)."
         }
       }
     },
@@ -2534,7 +2535,8 @@
       "title": "One deal to move to another connector.",
       "required": [
         "deal_id",
-        "bf_id"
+        "bf_id",
+        "account_id"
       ],
       "additionalProperties": false,
       "properties": {
@@ -2547,7 +2549,7 @@
         "account_id": {
           "type": "string",
           "minLength": 1,
-          "description": "Account on the new `bf_id` connector; same meaning and defaults as `publishItem.account_id`."
+          "description": "Account on the new `bf_id` connector. Required; the same checks as `publishItem.account_id`."
         }
       }
     },

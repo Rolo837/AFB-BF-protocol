@@ -201,12 +201,13 @@ def test_v2_rejects_binding_fields(registry):
             v.validate(_v2_plan(instrument_key="MISX:TQBR:SBER", **extra))
 
 
-def test_publish_def_kept_for_channel(registry):
-    """$defs/publish остаётся: на него ссылаются planInput/planItem канала (deprecated)."""
-    from jsonschema import ValidationError
+def test_publish_def_removed():
+    """$defs/publish удалён вместе с planInput.publish / planItem.publish канала."""
+    import json
+    from conftest import SPEC_SCHEMAS
 
-    schema = registry[TRADEPLAN_V2_ID].contents
-    assert "publish" in schema["$defs"]
+    schema = json.loads((SPEC_SCHEMAS / "tradeplan.v2.json").read_text())
+    assert "publish" not in schema.get("$defs", {})
     assert not {"publish", "connector", "account_id", "deal_id"} & set(schema["properties"])
 
 

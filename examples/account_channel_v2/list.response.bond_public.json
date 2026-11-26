@@ -6,6 +6,9 @@
     {
       "bf_id": "bond",
       "account_id": "bond:g-1",
+      "kind": "bond",
+      "name": "Облигации",
+      "external_id": null,
       "tradable": true,
       "owner": {
         "name": "Иван Петров",

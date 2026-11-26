@@ -65,7 +65,7 @@ def test_every_message_has_a_distinct_schema_const():
     for ref in doc["oneOf"]:
         d = doc["$defs"][ref["$ref"].split("/")[-1]]
         consts.append(d["properties"]["schema"]["const"])
-    assert len(consts) == len(set(consts)) == 12
+    assert len(consts) == len(set(consts)) == 13
     assert "afbws.bonds.error.v1" in consts
 
 
@@ -571,3 +571,27 @@ def test_rejection_reasons(registry):
     _bad(pr, {**base, "reason": "x"})
 
 
+
+
+def test_positions_set(registry):
+    s = _validator(registry, "positionsSet")
+    key = "MISX:TQOB:SU26238RMFS4"
+    s.validate(_ex("positions_set.request"))
+    s.validate(_ex("positions_set.response"))
+    req = _msg("positions.set", request_id="r", id="p-1", targets=[{"instrument_key": key, "quantity": 0}])
+    s.validate(req)
+    item = _ex("positions_set.response")["item"]
+    s.validate(_msg("positions.set", request_id="r", item=item, rejected=[]))
+    for reason in ("no_last_price", "no_fx", "insufficient_cash", "not_in_set", "not_supported", "forbidden"):
+        s.validate(_msg("positions.set", request_id="r", item=item, rejected=[{"instrument_key": key, "reason": reason}]))
+    _bad(s, _msg("positions.set", request_id="r", item=item, rejected=[{"instrument_key": key, "reason": "x"}]))
+    _bad(s, _msg("positions.set", request_id="r", item=item))  # response needs rejected
+    _bad(s, _msg("positions.set", request_id="r", id="p-1", targets=[]))
+    _bad(s, _msg("positions.set", request_id="r", id="", targets=req["targets"]))
+    _bad(s, _msg("positions.set", request_id="r", id="p-1", targets=[{"instrument_key": key, "quantity": -1}]))
+    _bad(s, _msg("positions.set", request_id="r", id="p-1", targets=[{"instrument_key": key, "quantity": 1.5}]))
+    _bad(s, _msg("positions.set", request_id="r", id="p-1", targets=[{"instrument_key": key, "quantity": 1}] * 201))
+    _bad(s, _msg("positions.set", request_id="r", targets=req["targets"]))  # no portfolio id
+    _bad(s, _msg("positions.set", request_id="r", account_id="bond:p-1", targets=req["targets"]))  # addressed by portfolio id
+    _bad(s, _msg("positions.set", id="p-1", targets=req["targets"]))  # request_id is mandatory
+    _validator(registry).validate(req)  # root dispatch

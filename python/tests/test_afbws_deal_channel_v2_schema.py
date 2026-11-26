@@ -281,8 +281,9 @@ def test_deal_v2_result(registry):
 def test_deal_v2_publish_rebind(registry):
     row = {"deal_id": "d1", "bf_id": "bf1", "status": "published", "accepted": True}
     bad = {"deal_id": "d2", "accepted": False, "message": "no"}
-    p1 = {"tradeplan_id": "tp1", "bf_id": "bf1"}
-    p2 = {"tradeplan_id": "tp2", "bf_id": "bf1"}
+    acc = "account-6f2a-41c8-9b0e"
+    p1 = {"tradeplan_id": "tp1", "bf_id": "bf1", "account_id": acc}
+    p2 = {"tradeplan_id": "tp2", "bf_id": "bf1", "account_id": acc}
     v = _v("publish", registry)
     v.validate(_m("publish", request_id="r", items=[p1]))
     v.validate(_m("publish", request_id="r", items=[p1, p2]))
@@ -291,7 +292,8 @@ def test_deal_v2_publish_rebind(registry):
     _invalid(v, _m("publish", request_id="r"))
     _invalid(v, _m("publish", request_id="r", items=[]))
     _invalid(v, _m("publish", request_id="r", items=[{"tradeplan_id": "tp1"}]))
-    v.validate(_m("publish", request_id="r", items=[{**p1, "account_id": "ACC-1"}, {**p2, "account_id": "virtual:u1"}]))
+    _invalid(v, _m("publish", request_id="r", items=[{"tradeplan_id": "tp1", "bf_id": "bf1"}]))  # account_id is required
+    v.validate(_m("publish", request_id="r", items=[p1, {**p2, "account_id": "ACC-1"}]))
     _invalid(v, _m("publish", request_id="r", items=[{**p1, "account_id": ""}]))
     _invalid(v, _m("publish", request_id="r", items=[{**p1, "bf_ids": ["x"]}]))
     _invalid(v, _m("publish", request_id="r", items=[{**p1, "tradeplan_id": ""}]))
@@ -300,11 +302,11 @@ def test_deal_v2_publish_rebind(registry):
     _invalid(v, _m("publish", request_id="r", items=[p1], results=[row], accepted=True))
     _invalid(v, _m("publish", request_id="r", items=[p1], accepted=True))
     v = _v("rebind", registry)
-    r1 = {"deal_id": "d1", "bf_id": "bf1"}
+    r1 = {"deal_id": "d1", "bf_id": "bf1", "account_id": acc}
     v.validate(_m("rebind", request_id="r", items=[r1]))
-    v.validate(_m("rebind", request_id="r", items=[r1, {"deal_id": "d2", "bf_id": "bf2"}]))
+    v.validate(_m("rebind", request_id="r", items=[r1, {"deal_id": "d2", "bf_id": "bf2", "account_id": acc}]))
+    _invalid(v, _m("rebind", request_id="r", items=[{"deal_id": "d1", "bf_id": "bf1"}]))  # account_id is required
     v.validate(_m("rebind", request_id="r", results=[row, bad], accepted=True))
-    v.validate(_m("rebind", request_id="r", items=[{**r1, "account_id": "virtual:u1"}]))
     _invalid(v, _m("rebind", request_id="r", items=[{**r1, "account_id": ""}]))
     _invalid(v, _m("rebind", request_id="r", items=[]))
     _invalid(v, _m("rebind", request_id="r", items=[{"deal_id": "d1"}]))

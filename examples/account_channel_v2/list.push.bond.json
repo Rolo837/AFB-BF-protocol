@@ -2,11 +2,13 @@
   "channel": "account",
   "schema": "afbws.account.list.v2",
   "bf_id": "bond",
-  "default_account_id": "bond:p-1",
   "items": [
     {
       "bf_id": "bond",
       "account_id": "bond:p-1",
+      "kind": "bond",
+      "name": "Облигации",
+      "external_id": null,
       "tradable": true,
       "owner": {},
       "status": "ok",

@@ -6,11 +6,12 @@
     {
       "deal_id": "deal-71a4-4d3e-8f56",
       "bf_id": "virtual",
-      "account_id": "virtual:id_u1"
+      "account_id": "account-6f2a-41c8-9b0e"
     },
     {
       "deal_id": "deal-aa11-4d3e-8f56",
-      "bf_id": "virtual"
+      "bf_id": "virtual",
+      "account_id": "account-6f2a-41c8-9b0e"
     }
   ]
 }

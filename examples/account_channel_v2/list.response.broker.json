@@ -1,0 +1,25 @@
+{
+  "channel": "account",
+  "schema": "afbws.account.list.v2",
+  "request_id": "req-16",
+  "items": [
+    {
+      "bf_id": "finam-arena-316",
+      "account_id": "account-7d1e-4a52-8c33",
+      "kind": "broker",
+      "name": null,
+      "external_id": "1899011",
+      "tradable": true,
+      "readonly": true,
+      "status": "ok",
+      "equity": "500000",
+      "cash": [
+        {
+          "currency": "RUB",
+          "value": "500000"
+        }
+      ],
+      "positions": []
+    }
+  ]
+}

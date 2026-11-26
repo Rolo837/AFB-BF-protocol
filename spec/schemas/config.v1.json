@@ -216,11 +216,9 @@
     "trade": {
       "type": "object",
       "title": "settings.trade — user trading prefs (replaced whole on write).",
-      "description": "`default_capital` is persisted by the server into the user's virtual account, not into the settings file; reads return the live value.",
       "additionalProperties": true,
       "properties": {
         "default_connector": { "type": "string" },
-        "default_capital": { "type": "number" },
         "default_risk_pct": {
           "type": "number",
           "minimum": 0,
