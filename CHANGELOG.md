@@ -2,9 +2,9 @@
 
 История версий протокола `afb-bf-protocol` (semver-теги пакета/спеки). Версия провода (`protocol` в конверте, поле `PROTOCOL_VERSION`) на всём этом диапазоне остаётся `afb.execution.v1` — ни один из релизов ниже не был проводным breaking change. Формат уровней версий — см. `VERSIONING.md`.
 
-Новые записи дописываются в секцию `## Unreleased` **без версии и даты**, в готовый подраздел `### Added` / `### Changed` / `### Fixed` / `### Removed` — они в Unreleased есть всегда, новые подразделы и версии вручную не заводить.
+Новые записи дописываются в секцию Unreleased (первый заголовок версии ниже) **без версии и даты**, в один из её готовых подразделов Added / Changed / Fixed / Removed — они в Unreleased есть всегда, новые подразделы и версии вручную не заводить. Добавлять запись — скриптом: `python3 scripts/changelog_add.py <Added|Changed|Fixed|Removed> "текст"`.
 
-`run/version.sh {patch|minor}` переносит непустые подразделы под `## vX.Y.Z — YYYY-MM-DD` и восстанавливает пустой скелет `## Unreleased`.
+`run/version.sh {patch|minor}` переносит непустые подразделы под заголовок новой версии с датой и восстанавливает пустой скелет Unreleased.
 
 ## Unreleased
 
@@ -15,6 +15,14 @@
 ### Fixed
 
 ### Removed
+
+## v2.12.1 — 2026-11-27
+
+### Added
+- `scripts/changelog_add.py` — добавление записи в секцию Unreleased этого файла (точный поиск заголовка по строкам, только внутрь Unreleased, печать diff, тесты `python/tests/test_changelog_add.py`); шапка файла переписана без подстрок заголовков.
+
+### Changed
+- Описания `access.channel.v1` (`capability`, `denied.feature`) и docs/PROTOCOL.md: границы capabilities — `virtual` = виртуальные счета и сделки на них, `trade` = брокерские счета и сделки на них; алармы, примитивы, индикаторы, избранное — не capability (только `limits`). Только описания, форма сообщений не меняется.
 
 ## v2.12.0 — 2026-11-26
 

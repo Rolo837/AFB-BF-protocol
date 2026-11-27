@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 7b98351861ceef5664dec45ca2f7ce8d0d6a6184929e96d5ec09c3a0993f62ca
+ * source-hash: a9a625dc5518c210e942d5826176d82296d6c2fb91d860c8f0e2bfe0a00aeff6
  */
 
 /**
@@ -40,7 +40,7 @@ export type AfbwsCommonV1_RequestId = string;
  */
 export type AccessV1Provider = string;
 /**
- * Назначаемая capability (набор задаёт код бэкенда): `trade` — реальная торговля через BF; `virtual` — виртуальный счёт и активация/оценка алармов и торговых планов (с `trade` они работают и без `virtual`); `screener` — выгрузки скринера и скоуп `futures` в market subscribe; `dataset` — наборы данных в market series, `oi`/`oi_daily` в market snapshot, screener participants; `bonds` — облигации: портфели, журнал сделок, доходности, сигналы (канал afbws.bonds.channel.v1). `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities.
+ * Назначаемая capability (набор задаёт код бэкенда): `trade` — брокерские счета коннекторов BF и сделки на них; `virtual` — открывать виртуальные счета и проводить на них сделки (без неё торговый план сохраняется, но сделка не порождается). Объекты рисования и информирования (примитивы, алармы, индикаторы, избранное) — не capability: доступны всем, ограничиваются только `limits`; `screener` — выгрузки скринера и скоуп `futures` в market subscribe; `dataset` — наборы данных в market series, `oi`/`oi_daily` в market snapshot, screener participants; `bonds` — облигации: портфели, журнал сделок, доходности, сигналы (канал afbws.bonds.channel.v1). `local` сюда не входит — бэкенд сам отдаёт её локальным пользователям в access.capabilities.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccessV1Capability".
@@ -3140,7 +3140,7 @@ export interface AccessV1Denied {
    */
   reason: 'basic' | 'showcase' | 'held' | 'capability';
   /**
-   * При `reason: capability` — имя отсутствующей capability; иначе — id фичи гейта (например `alarm.activate`).
+   * При `reason: capability` — имя отсутствующей capability; иначе — id фичи гейта.
    */
   feature: string;
   message: string;
