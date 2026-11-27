@@ -9,14 +9,20 @@
 ## Unreleased
 
 ### Added
-- `scripts/changelog_add.py` — добавление записи в секцию Unreleased этого файла (точный поиск заголовка по строкам, только внутрь Unreleased, печать diff, тесты `python/tests/test_changelog_add.py`); шапка файла переписана без подстрок заголовков.
 
 ### Changed
-- Описания `access.channel.v1` (`capability`, `denied.feature`) и docs/PROTOCOL.md: границы capabilities — `virtual` = виртуальные счета и сделки на них, `trade` = брокерские счета и сделки на них; алармы, примитивы, индикаторы, избранное — не capability (только `limits`). Только описания, форма сообщений не меняется.
 
 ### Fixed
 
 ### Removed
+
+## v2.12.1 — 2026-11-27
+
+### Added
+- `scripts/changelog_add.py` — добавление записи в секцию Unreleased этого файла (точный поиск заголовка по строкам, только внутрь Unreleased, печать diff, тесты `python/tests/test_changelog_add.py`); шапка файла переписана без подстрок заголовков.
+
+### Changed
+- Описания `access.channel.v1` (`capability`, `denied.feature`) и docs/PROTOCOL.md: границы capabilities — `virtual` = виртуальные счета и сделки на них, `trade` = брокерские счета и сделки на них; алармы, примитивы, индикаторы, избранное — не capability (только `limits`). Только описания, форма сообщений не меняется.
 
 ## v2.12.0 — 2026-11-26
 
