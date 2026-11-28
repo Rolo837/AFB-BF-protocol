@@ -7,6 +7,7 @@
       "bf_id": "finam-arena-316",
       "account_id": "account-7d1e-4a52-8c33",
       "kind": "broker",
+      "lifecycle": "active",
       "name": null,
       "external_id": "1899011",
       "tradable": true,

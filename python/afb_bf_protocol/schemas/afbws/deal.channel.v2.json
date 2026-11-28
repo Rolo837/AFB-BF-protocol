@@ -1751,7 +1751,8 @@
         },
         "notification_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Notification id formed by AFB: `mail-xxxx-xxxx-xxxx`."
         },
         "deal_id": {
           "$ref": "#/$defs/dealId"
@@ -1790,7 +1791,8 @@
         },
         "notification_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Notification id formed by AFB: `mail-xxxx-xxxx-xxxx`."
         },
         "deal_id": {
           "$ref": "#/$defs/dealId"
@@ -1829,7 +1831,8 @@
         },
         "notification_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Notification id formed by AFB: `mail-xxxx-xxxx-xxxx`."
         },
         "deal_id": {
           "$ref": "#/$defs/dealId"
@@ -1877,7 +1880,8 @@
         },
         "notification_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Notification id formed by AFB: `mail-xxxx-xxxx-xxxx`."
         }
       }
     },
@@ -1895,7 +1899,8 @@
         },
         "notification_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Notification id formed by AFB: `mail-xxxx-xxxx-xxxx`."
         },
         "status": {
           "enum": [

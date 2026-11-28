@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: a9a625dc5518c210e942d5826176d82296d6c2fb91d860c8f0e2bfe0a00aeff6
+ * source-hash: 9bc1ae02a73d8df10950186de92c98f48b0d5034c89f9b541fe37384d13e8f50
  */
 
 /**
@@ -93,7 +93,7 @@ export type AccessV1UsersSetItem1 = {
   [k: string]: unknown;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, cash, set, delete, reconcile, ledger, error. `list` takes `bf_id` + `account_id`. ACCOUNT ID. `account_id` is the id of the `account` row in trading.db (`account-xxxx-xxxx-xxxx`) for a `virtual` and a broker account; for a `bond` account (virtual account of a bond portfolio; created and deleted together with the portfolio) it is `account-<suffix>` (the portfolio id `portfolio-<suffix>` with the prefix replaced). A broker account of a connector is registered by the backend when the connector reports it; its number at the broker is `external_id` of the snapshot. Only the trading account of a connector is listed. `bf_id` is the account type for AFB-side accounts: `virtual` (trading simulation) and `bond` (portfolio account). The lifecycle of a `virtual` account is `set` (open / rename) and `delete`; the lifecycle of a `bond` account is bound to its portfolio (afbws.bonds.channel.v1), so there is no `open` for it; target quantities of a `bond` account are set by afbws.bonds.positions.set.v1. Operations `cash`, `reconcile`, `ledger` serve accounts of type `bond` (the backend answers `not_supported` for other types); each has no server push, so `request_id` is always required. The money of a `bond` account is held ONLY in its base currency: cash[] has at most one element. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes, reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account (broker / virtual) is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a single account (one bf_id may have more than one), not the connector itself.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, cash, set, delete, reconcile, ledger, error. `list` takes `bf_id` + `account_id`. ACCOUNT ID. `account_id` is the id of the `account` row in trading.db (`account-xxxx-xxxx-xxxx`) for a `virtual` and a broker account; for a `bond` account (virtual account of a bond portfolio; created and deleted together with the portfolio) it is `account-<suffix>` (the portfolio id `portfolio-<suffix>` with the prefix replaced). A broker account of a connector is registered by the backend when the connector reports it; its number at the broker is `external_id` of the snapshot. Only the trading account of a connector is listed. `bf_id` is the account type for AFB-side accounts: `virtual` (trading simulation) and `bond` (portfolio account). The lifecycle of a `virtual` account is `set` (open / rename / reopen) and `delete` (physical removal without history, otherwise closing); the lifecycle of a `bond` account is bound to its portfolio (afbws.bonds.channel.v1), so there is no `open` for it; target quantities of a `bond` account are set by afbws.bonds.positions.set.v1. Operations `cash`, `reconcile`, `ledger` serve accounts of type `bond` (the backend answers `not_supported` for other types); each has no server push, so `request_id` is always required. The money of a `bond` account is held ONLY in its base currency: cash[] has at most one element. Every account snapshot carries `lifecycle` (`active | suspended | closed`): `suspended` and `closed` accounts stay in `list`; `closed` is read-only, a closed account of the user may be reopened by `set` with `lifecycle: active`. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes, reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account (broker / virtual) is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a single account (one bf_id may have more than one), not the connector itself.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountChannelV2Message".
@@ -109,7 +109,7 @@ export type AccountChannelV2Message =
   | AfbwsAccountChannelV2_Ledger
   | AccountV2Error;
 /**
- * Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual accounts are pushed the same way). Only the trading account of a connector is listed. For `bf_id: "bond"` (accounts of bond portfolios, `account_id` = `account-<suffix>` (the portfolio id `portfolio-<suffix>` with the prefix replaced)): a request without `account_id` returns only the caller's own accounts; with `account_id` the caller's own or a readable public one (staff accounts are `visibility public`, read-only for others). A `bond` snapshot carries `owner` instead of `readonly`: `{}` for the caller's own account, `{name, tier}` of the owner (null when unknown) for somebody else's public one; broker and virtual snapshots carry `readonly` and no `owner`. The snapshot is filled from the account log: `cash[]` per currency, `equity` in the base currency (cash + market value), `tradable: true`, `status: ok`, positions carry `instrument_key` and `accrued_int`. The push for `bond` is event-driven (after `cash`, a quantity edit, an income credit, a composition change), like the virtual account. A request carrying `items` or a response/push carrying request-only fields is invalid.
+ * Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty; each carries `lifecycle`, closed and suspended accounts included). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual accounts are pushed the same way). Only the trading account of a connector is listed. For `bf_id: "bond"` (accounts of bond portfolios, `account_id` = `account-<suffix>` (the portfolio id `portfolio-<suffix>` with the prefix replaced)): a request without `account_id` returns only the caller's own accounts; with `account_id` the caller's own or a readable public one (staff accounts are `visibility public`, read-only for others). A `bond` snapshot carries `owner` instead of `readonly`: `{}` for the caller's own account, `{name, tier}` of the owner (null when unknown) for somebody else's public one; broker and virtual snapshots carry `readonly` and no `owner`. The snapshot is filled from the account log: `cash[]` per currency, `equity` in the base currency (cash + market value), `tradable: true`, `status: ok`, positions carry `instrument_key` and `accrued_int`. The push for `bond` is event-driven (after `cash`, a quantity edit, an income credit, a composition change), like the virtual account. A request carrying `items` or a response/push carrying request-only fields is invalid.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountV2List".
@@ -206,7 +206,7 @@ export type AfbwsAccountChannelV2_Cash = {
   item?: AccountV2Snapshot1;
 };
 /**
- * Lifecycle of a `virtual` account. Request: `name` (1..64 characters, unique among the owner's virtual accounts, case-insensitive) and, optionally, `account_id`. WITHOUT `account_id` the request opens a new virtual account: `amount` is required (starting capital in rubles, a positive decimal string, no upper bound). WITH `account_id` it renames that account: `amount` is forbidden. Response (same `request_id`): `item` — the account snapshot after the change. Errors (`afbws.account.error.v2`): `validation_error` (bad or duplicate `name`, bad `amount`), `not_found` (unknown or foreign `account_id`), `limit_exceeded` (the limit of virtual accounts is reached), `not_supported` (the account is not a `virtual` one). No server push (the owner receives `afbws.account.list.v2`).
+ * Lifecycle of a `virtual` account. Request: `name` (1..64 characters, unique among the owner's NOT closed virtual accounts, case-insensitive) and, optionally, `account_id`. WITHOUT `account_id` the request opens a new virtual account: `amount` is required (starting capital in rubles, a positive decimal string, no upper bound); `lifecycle` is forbidden. WITH `account_id` it renames that account: `amount` is forbidden. WITH `account_id` and `lifecycle: active` it REOPENS the caller's own closed account (`closed -> active`); `amount` is forbidden, `name` is then optional (omitted = keep the name; the name must stay unique among the owner's not closed accounts, otherwise `validation_error`). The limit of virtual accounts counts only not closed accounts (reopening over the limit is `limit_exceeded`). Renaming a closed account is not allowed (`conflict`: reopen it first); reopening an account that is not closed is `conflict`. An account closed by the system (a portfolio account) is not reopened by the user: `forbidden`. Response (same `request_id`): `item` — the account snapshot after the change. Errors (`afbws.account.error.v2`): `validation_error` (bad or duplicate `name`, bad `amount`), `not_found` (unknown or foreign `account_id`), `conflict` (rename of a closed account / reopen of a not closed one), `forbidden` (reopen of an account closed by the system), `limit_exceeded` (the limit of virtual accounts is reached), `not_supported` (the account is not a `virtual` one). No server push (the owner receives `afbws.account.list.v2`).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsAccountChannelV2_Set".
@@ -229,6 +229,10 @@ export type AfbwsAccountChannelV2_Set = {
    * Request only, opening only: starting capital in rubles, a positive decimal string, no upper bound.
    */
   amount?: string;
+  /**
+   * Request only: reopen the caller's own closed account (`closed -> active`). Allowed only together with `account_id`; forbidden when opening a new account and together with `amount`.
+   */
+  lifecycle?: 'active';
   item?: AccountV2Snapshot2;
 };
 /**
@@ -3181,6 +3185,10 @@ export interface AccountV2Snapshot {
    */
   external_id: string | null;
   /**
+   * Account life state. `active`: normal operation (deals are published to it, money moves, it is offered when choosing an account for a plan). `suspended`: set by the system when the source does not confirm the account (a broker account: the connector's report has no such account, or the connector was removed; a bond account: the portfolio is unavailable); reverts to `active` automatically when the source confirms it again; while suspended, publishing / moving a deal to the account and money operations are forbidden. `closed`: closed by the user (`account.delete` of an account with history) or, for a bond account, by the system when the portfolio is deleted; read-only, the whole history stays available; the user may reopen an account closed by the user (`account.set` with `lifecycle: active`), an account closed by the system is not reopened by the user. `closed`/`suspended` accounts stay in `account.list`.
+   */
+  lifecycle: 'active' | 'suspended' | 'closed';
+  /**
    * True for the account orders are placed on. Only the trading account of a connector is listed, so it is true for every broker account; always true for `virtual` and `bond`.
    */
   tradable: boolean;
@@ -3297,6 +3305,10 @@ export interface AccountV2Snapshot1 {
    */
   external_id: string | null;
   /**
+   * Account life state. `active`: normal operation (deals are published to it, money moves, it is offered when choosing an account for a plan). `suspended`: set by the system when the source does not confirm the account (a broker account: the connector's report has no such account, or the connector was removed; a bond account: the portfolio is unavailable); reverts to `active` automatically when the source confirms it again; while suspended, publishing / moving a deal to the account and money operations are forbidden. `closed`: closed by the user (`account.delete` of an account with history) or, for a bond account, by the system when the portfolio is deleted; read-only, the whole history stays available; the user may reopen an account closed by the user (`account.set` with `lifecycle: active`), an account closed by the system is not reopened by the user. `closed`/`suspended` accounts stay in `account.list`.
+   */
+  lifecycle: 'active' | 'suspended' | 'closed';
+  /**
    * True for the account orders are placed on. Only the trading account of a connector is listed, so it is true for every broker account; always true for `virtual` and `bond`.
    */
   tradable: boolean;
@@ -3348,6 +3360,10 @@ export interface AccountV2Snapshot2 {
    */
   external_id: string | null;
   /**
+   * Account life state. `active`: normal operation (deals are published to it, money moves, it is offered when choosing an account for a plan). `suspended`: set by the system when the source does not confirm the account (a broker account: the connector's report has no such account, or the connector was removed; a bond account: the portfolio is unavailable); reverts to `active` automatically when the source confirms it again; while suspended, publishing / moving a deal to the account and money operations are forbidden. `closed`: closed by the user (`account.delete` of an account with history) or, for a bond account, by the system when the portfolio is deleted; read-only, the whole history stays available; the user may reopen an account closed by the user (`account.set` with `lifecycle: active`), an account closed by the system is not reopened by the user. `closed`/`suspended` accounts stay in `account.list`.
+   */
+  lifecycle: 'active' | 'suspended' | 'closed';
+  /**
    * True for the account orders are placed on. Only the trading account of a connector is listed, so it is true for every broker account; always true for `virtual` and `bond`.
    */
   tradable: boolean;
@@ -3378,7 +3394,7 @@ export interface AccountV2Snapshot2 {
   as_of?: string;
 }
 /**
- * Request: `account_id` of a `virtual` account. Only an account without deals can be deleted (a deal of any status counts, hidden ones included); the last virtual account can be deleted too. Response (same `request_id`): `account_id` of the deleted account. Errors (`afbws.account.error.v2`): `not_found` (unknown or foreign), `not_supported` (the account is not a `virtual` one), `conflict` (the account has deals). No server push (the owner receives `afbws.account.list.v2`).
+ * Request: `account_id` of a `virtual` account. An account without history (no deals, trades, cash flows or adjustments; hidden deals count) is deleted physically. An account with history is CLOSED instead (`lifecycle: closed`; read-only, the history stays available, the user may reopen it with `account.set`). Closing while the account has live deals (`published | active | paused`) is `conflict`. The last virtual account can be deleted too. Response (same `request_id`): `account_id` of the deleted or closed account (the shape does not tell which; a closed account stays in `afbws.account.list.v2` with `lifecycle: closed`). Errors (`afbws.account.error.v2`): `not_found` (unknown or foreign), `not_supported` (the account is not a `virtual` one), `conflict` (the account has live deals). No server push (the owner receives `afbws.account.list.v2`).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsAccountChannelV2_Delete".
@@ -3410,6 +3426,10 @@ export interface AccountV2Snapshot3 {
    * Broker accounts only: the account number at the broker (as reported by the connector); null for `virtual` and `bond`.
    */
   external_id: string | null;
+  /**
+   * Account life state. `active`: normal operation (deals are published to it, money moves, it is offered when choosing an account for a plan). `suspended`: set by the system when the source does not confirm the account (a broker account: the connector's report has no such account, or the connector was removed; a bond account: the portfolio is unavailable); reverts to `active` automatically when the source confirms it again; while suspended, publishing / moving a deal to the account and money operations are forbidden. `closed`: closed by the user (`account.delete` of an account with history) or, for a bond account, by the system when the portfolio is deleted; read-only, the whole history stays available; the user may reopen an account closed by the user (`account.set` with `lifecycle: active`), an account closed by the system is not reopened by the user. `closed`/`suspended` accounts stay in `account.list`.
+   */
+  lifecycle: 'active' | 'suspended' | 'closed';
   /**
    * True for the account orders are placed on. Only the trading account of a connector is listed, so it is true for every broker account; always true for `virtual` and `bond`.
    */
@@ -4409,6 +4429,10 @@ export interface AccountV2Snapshot4 {
    * Broker accounts only: the account number at the broker (as reported by the connector); null for `virtual` and `bond`.
    */
   external_id: string | null;
+  /**
+   * Account life state. `active`: normal operation (deals are published to it, money moves, it is offered when choosing an account for a plan). `suspended`: set by the system when the source does not confirm the account (a broker account: the connector's report has no such account, or the connector was removed; a bond account: the portfolio is unavailable); reverts to `active` automatically when the source confirms it again; while suspended, publishing / moving a deal to the account and money operations are forbidden. `closed`: closed by the user (`account.delete` of an account with history) or, for a bond account, by the system when the portfolio is deleted; read-only, the whole history stays available; the user may reopen an account closed by the user (`account.set` with `lifecycle: active`), an account closed by the system is not reopened by the user. `closed`/`suspended` accounts stay in `account.list`.
+   */
+  lifecycle: 'active' | 'suspended' | 'closed';
   /**
    * True for the account orders are placed on. Only the trading account of a connector is listed, so it is true for every broker account; always true for `virtual` and `bond`.
    */
@@ -6364,6 +6388,9 @@ export interface DealV2AmendResult {
  */
 export interface DealV2AckEvent {
   schema: 'afb.deal.trigger_ack.v2';
+  /**
+   * Notification id formed by AFB: `mail-xxxx-xxxx-xxxx`.
+   */
   notification_id: string;
 }
 /**
@@ -6372,6 +6399,9 @@ export interface DealV2AckEvent {
  */
 export interface DealV2AckResultItem {
   schema: 'afbws.deal.ack_result.v2';
+  /**
+   * Notification id formed by AFB: `mail-xxxx-xxxx-xxxx`.
+   */
   notification_id: string;
   status: 'ok' | 'not_found';
 }
@@ -7000,6 +7030,9 @@ export interface DealV2Triggered {
  */
 export interface DealV2TriggerStatusChanged {
   schema: 'afb.deal.trigger.v2';
+  /**
+   * Notification id formed by AFB: `mail-xxxx-xxxx-xxxx`.
+   */
   notification_id: string;
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
@@ -7013,6 +7046,9 @@ export interface DealV2TriggerStatusChanged {
  */
 export interface DealV2TriggerRejected {
   schema: 'afb.deal.trigger.v2';
+  /**
+   * Notification id formed by AFB: `mail-xxxx-xxxx-xxxx`.
+   */
   notification_id: string;
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
@@ -7026,6 +7062,9 @@ export interface DealV2TriggerRejected {
  */
 export interface DealV2TriggerReport {
   schema: 'afb.deal.trigger.v2';
+  /**
+   * Notification id formed by AFB: `mail-xxxx-xxxx-xxxx`.
+   */
   notification_id: string;
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
