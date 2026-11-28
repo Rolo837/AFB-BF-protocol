@@ -2554,7 +2554,7 @@
         "account_id": {
           "type": "string",
           "minLength": 1,
-          "description": "Account on the new `bf_id` connector. Required; the same checks as `publishItem.account_id`."
+          "description": "Account on the new `bf_id` connector. Required; the same checks as `publishItem.account_id`. Moving a deal to another virtual account is allowed only for a deal that has not started (no executions)."
         }
       }
     },

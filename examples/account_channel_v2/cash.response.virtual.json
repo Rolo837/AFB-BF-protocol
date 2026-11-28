@@ -1,0 +1,33 @@
+{
+  "channel": "account",
+  "schema": "afbws.account.cash.v2",
+  "request_id": "req-15",
+  "item": {
+    "bf_id": "virtual",
+    "account_id": "account-6f2a-41c8-9b0e",
+    "kind": "virtual",
+    "lifecycle": "active",
+    "name": "Основной",
+    "external_id": null,
+    "tradable": true,
+    "readonly": false,
+    "status": "ok",
+    "equity": "1503000.00",
+    "cash": [
+      {
+        "currency": "RUB",
+        "value": "1247000.00"
+      }
+    ],
+    "positions": [
+      {
+        "quantity": 1000,
+        "average_price": "253.00",
+        "current_price": "256.00",
+        "unrealized_pnl": "3000.00",
+        "instrument_key": "MISX:TQBR:SBER"
+      }
+    ],
+    "as_of": "2026-11-20T11:05:00+00:00"
+  }
+}

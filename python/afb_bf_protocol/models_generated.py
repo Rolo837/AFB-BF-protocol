@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: 9bc1ae02a73d8df10950186de92c98f48b0d5034c89f9b541fe37384d13e8f50
+# source-hash: 17a7651b042882cb3004abb61c254fe30c2ef30cebc9700bbae0e2914a05b304
 
 from __future__ import annotations
 
@@ -623,7 +623,7 @@ class AccountV2Snapshot(TypedDict):
 
 class AfbwsAccountChannelV2AccountOp(TypedDict):
     """
-    A light journal of facts: rows are independent (no ids, no links between rows). Decimal strings for money and prices. ALL account money is in the account base currency, so `amount` is always in the base currency; the instrument currency appears only in `price` / `accrued_int` and, when it differs from the base one, in `fx_currency` / `fx_rate`. No spread and no fees. `kind`: deposit | withdraw (user cash movement), buy | sell (emulated at LAST MOEX, by a quantity edit or an auto-sale), coupon | amortization | redemption (income credited by the schedule), reconcile (manual or broker-sync correction, written by `afbws.account.reconcile.v2`: a position row has the NEW quantity / average price and amount 0; a cash row has no instrument_key and `amount` = new balance minus the previous one).
+    A light journal of facts: rows are independent (no ids, no links between rows). Decimal strings for money and prices. ALL account money is in the account base currency, so `amount` is always in the base currency; the instrument currency appears only in `price` / `accrued_int` and, when it differs from the base one, in `fx_currency` / `fx_rate`. No spread and no fees. `kind`: deposit | withdraw (user cash movement), buy | sell (emulated at LAST MOEX, by a quantity edit or an auto-sale), coupon | amortization | redemption (income credited by the schedule), reconcile (manual or broker-sync correction, written by `afbws.account.reconcile.v2`: a position row has the NEW quantity / average price and amount 0; a cash row has no instrument_key and `amount` = new balance minus the previous one), futures_result (virtual account only: the result of a futures position reduction, see `kind`). Futures `buy` / `sell` of a virtual account move no money (`amount` = 0); the realized result is a separate `futures_result` row. `deal_id` is present on `buy` / `sell` of a deal and on `futures_result` of the execution that closes (reduces) the position; it is absent on `deposit` / `withdraw` / `reconcile`.
     """
 
     ts: str
@@ -636,6 +636,7 @@ class AfbwsAccountChannelV2AccountOp(TypedDict):
         "amortization",
         "redemption",
         "reconcile",
+        "futures_result",
     ]
     amount: str
     instrument_key: NotRequired[str]
@@ -645,11 +646,15 @@ class AfbwsAccountChannelV2AccountOp(TypedDict):
     event_date: NotRequired[str]
     fx_currency: NotRequired[str]
     fx_rate: NotRequired[str]
+    deal_id: NotRequired[str]
+    source: NotRequired[
+        Literal["manual", "deal", "redemption", "expiration", "migration"]
+    ]
 
 
 class AfbwsAccountChannelV2Cash(TypedDict):
     """
-    Request: `account_id`, `kind` (deposit | withdraw), `currency`, `amount` (positive decimal string). Account money is held only in the account base currency: `currency` must equal it, otherwise the error is `validation_error`. The backend writes a `deposit` / `withdraw` operation (amount in the base currency); the starting capital is the first deposit. Response (same `request_id`, with `item`): the updated account snapshot. Errors (`afbws.account.error.v2`): `insufficient_cash` (withdraw above the balance), `validation_error` (`currency` differs from the account base currency), `forbidden` (not the owner / not staff for a public account), `not_found`, `not_supported`. No server push (the owner receives `afbws.account.list.v2`).
+    Request: `account_id`, `kind` (deposit | withdraw), `currency`, `amount` (positive decimal string). Account money is held only in the account base currency: `currency` must equal it, otherwise the error is `validation_error`. The backend writes a `deposit` / `withdraw` operation (amount in the base currency); the starting capital is the first deposit. Response (same `request_id`, with `item`): the updated account snapshot. Errors (`afbws.account.error.v2`): `insufficient_cash` (withdraw above the balance), `validation_error` (`currency` differs from the account base currency), `forbidden` (not the owner / not staff for a public account), `not_found`, `not_supported` (a broker account). Serves `virtual` and `bond` accounts. No server push (the owner receives `afbws.account.list.v2`).
     """
 
     channel: Literal["account"]
@@ -675,7 +680,7 @@ class AfbwsAccountChannelV2Delete(TypedDict):
 
 class AfbwsAccountChannelV2Ledger(TypedDict):
     """
-    Request: `account_id`, optional `before` (opaque cursor string taken from a previous response `next`: return entries older than it), optional `limit` (1..200). Entries are returned newest first (new -> old). Response (same `request_id`, with `items`): `account_id`, `items[]` (accountOp), `next` — the opaque cursor to pass as `before` for the next page, or null at the end. The client must not parse or construct cursors. No server push.
+    Serves `virtual` and `bond` accounts (a broker account: `not_supported`). Request: `account_id`, optional `before` (opaque cursor string taken from a previous response `next`: return entries older than it), optional `limit` (1..200). Entries are returned newest first (new -> old). Response (same `request_id`, with `items`): `account_id`, `items[]` (accountOp), `next` — the opaque cursor to pass as `before` for the next page, or null at the end. The client must not parse or construct cursors. No server push.
     """
 
     channel: Literal["account"]
@@ -716,7 +721,7 @@ class AfbwsAccountChannelV2Reconcile(TypedDict):
 
 class AfbwsAccountChannelV2Set(TypedDict):
     """
-    Lifecycle of a `virtual` account. Request: `name` (1..64 characters, unique among the owner's NOT closed virtual accounts, case-insensitive) and, optionally, `account_id`. WITHOUT `account_id` the request opens a new virtual account: `amount` is required (starting capital in rubles, a positive decimal string, no upper bound); `lifecycle` is forbidden. WITH `account_id` it renames that account: `amount` is forbidden. WITH `account_id` and `lifecycle: active` it REOPENS the caller's own closed account (`closed -> active`); `amount` is forbidden, `name` is then optional (omitted = keep the name; the name must stay unique among the owner's not closed accounts, otherwise `validation_error`). The limit of virtual accounts counts only not closed accounts (reopening over the limit is `limit_exceeded`). Renaming a closed account is not allowed (`conflict`: reopen it first); reopening an account that is not closed is `conflict`. An account closed by the system (a portfolio account) is not reopened by the user: `forbidden`. Response (same `request_id`): `item` — the account snapshot after the change. Errors (`afbws.account.error.v2`): `validation_error` (bad or duplicate `name`, bad `amount`), `not_found` (unknown or foreign `account_id`), `conflict` (rename of a closed account / reopen of a not closed one), `forbidden` (reopen of an account closed by the system), `limit_exceeded` (the limit of virtual accounts is reached), `not_supported` (the account is not a `virtual` one). No server push (the owner receives `afbws.account.list.v2`).
+    Lifecycle of a `virtual` account. Request: `name` (1..64 characters, unique among the owner's NOT closed virtual accounts, case-insensitive) and, optionally, `account_id`. WITHOUT `account_id` the request opens a new virtual account: `amount` is required (starting capital in rubles, a positive decimal string, no upper bound); `lifecycle` is forbidden. WITH `account_id` it renames that account: `amount` is forbidden. WITH `account_id` and `lifecycle: active` it REOPENS the caller's own closed account (`closed -> active`); `amount` is forbidden, `name` is then optional (omitted = keep the name; the name must stay unique among the owner's not closed accounts, otherwise `validation_error`). The limit of virtual accounts counts only not closed accounts (reopening over the limit is `limit_exceeded`). Renaming a closed account is not allowed (`conflict`: reopen it first); reopening an account that is not closed is `conflict`. An account closed by the system (a portfolio account) is not reopened by the user: `forbidden`. Opening writes the initial `deposit` of `amount` into the account log (a row of the `ledger`, `source: manual`). The maximum number of virtual accounts is a server setting. Response (same `request_id`): `item` — the account snapshot after the change. Errors (`afbws.account.error.v2`): `validation_error` (bad or duplicate `name`, bad `amount`), `not_found` (unknown or foreign `account_id`), `conflict` (rename of a closed account / reopen of a not closed one), `forbidden` (reopen of an account closed by the system), `limit_exceeded` (the limit of virtual accounts is reached), `not_supported` (the account is not a `virtual` one). No server push (the owner receives `afbws.account.list.v2`).
     """
 
     channel: Literal["account"]

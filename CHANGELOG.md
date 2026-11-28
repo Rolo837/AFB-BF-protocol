@@ -9,6 +9,7 @@
 ## Unreleased
 
 ### Added
+- account v2: операция ledger `futures_result`, поля `deal_id` и `source` строки журнала; `cash`/`ledger` разрешены для virtual; уточнены описания snapshot/set (этап 3.0)
 
 ### Changed
 
