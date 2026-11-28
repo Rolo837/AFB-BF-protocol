@@ -160,7 +160,7 @@ def test_account_v2_examples_validate(registry):
     for path in files:
         root.validate(json.loads(path.read_text(encoding="utf-8")))
     virtual = json.loads((_EXAMPLES / "list.response.json").read_text())["items"][0]
-    assert virtual["bf_id"] == "virtual" and {c["currency"] for c in virtual["cash"]} == {"RUB", "USD"}
+    assert virtual["bf_id"] == "virtual" and {c["currency"] for c in virtual["cash"]} == {"RUB"}
     assert virtual["as_of"]
 
 

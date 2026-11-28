@@ -1,7 +1,7 @@
 /**
  * DO NOT EDIT BY HAND — generated from spec/schemas/ (all *.json files) by
  * ts/tools/generate-models.mjs (invoked via `afb-bf-protocol-generate`).
- * source-hash: 9bc1ae02a73d8df10950186de92c98f48b0d5034c89f9b541fe37384d13e8f50
+ * source-hash: be126ce199ec501a034751773f2026d5cbe566e4ff6d16722193b86417e73d45
  */
 
 /**
@@ -93,7 +93,7 @@ export type AccessV1UsersSetItem1 = {
   [k: string]: unknown;
 };
 /**
- * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, cash, set, delete, reconcile, ledger, error. `list` takes `bf_id` + `account_id`. ACCOUNT ID. `account_id` is the id of the `account` row in trading.db (`account-xxxx-xxxx-xxxx`) for a `virtual` and a broker account; for a `bond` account (virtual account of a bond portfolio; created and deleted together with the portfolio) it is `account-<suffix>` (the portfolio id `portfolio-<suffix>` with the prefix replaced). A broker account of a connector is registered by the backend when the connector reports it; its number at the broker is `external_id` of the snapshot. Only the trading account of a connector is listed. `bf_id` is the account type for AFB-side accounts: `virtual` (trading simulation) and `bond` (portfolio account). The lifecycle of a `virtual` account is `set` (open / rename / reopen) and `delete` (physical removal without history, otherwise closing); the lifecycle of a `bond` account is bound to its portfolio (afbws.bonds.channel.v1), so there is no `open` for it; target quantities of a `bond` account are set by afbws.bonds.positions.set.v1. Operations `cash`, `reconcile`, `ledger` serve accounts of type `bond` (the backend answers `not_supported` for other types); each has no server push, so `request_id` is always required. The money of a `bond` account is held ONLY in its base currency: cash[] has at most one element. Every account snapshot carries `lifecycle` (`active | suspended | closed`): `suspended` and `closed` accounts stay in `list`; `closed` is read-only, a closed account of the user may be reopened by `set` with `lifecycle: active`. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes, reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency account (broker / virtual) is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a single account (one bf_id may have more than one), not the connector itself.
+ * Negotiated via auth.support/auth_ok.support (capability id afbws.account.channel.v2). Same convention as afbws.alarm.v2/afbws.market: ONE schema id per message (`afbws.account.<op>.v2`, no .request/.response/.push suffixes); the same schema is the request, its response (echoes `request_id`) and, for `list`/`orders`, the server push (a message WITHOUT `request_id`). `events` has no push; `error` is the single typed error. Operations: list, orders, events, cash, set, delete, reconcile, ledger, error. `list` takes `bf_id` + `account_id`. ACCOUNT ID. `account_id` is the id of the `account` row in trading.db (`account-xxxx-xxxx-xxxx`) for a `virtual` and a broker account; for a `bond` account (virtual account of a bond portfolio; created and deleted together with the portfolio) it is `account-<suffix>` (the portfolio id `portfolio-<suffix>` with the prefix replaced). A broker account of a connector is registered by the backend when the connector reports it; its number at the broker is `external_id` of the snapshot. Only the trading account of a connector is listed. `bf_id` is the account type for AFB-side accounts: `virtual` (trading simulation) and `bond` (portfolio account). The lifecycle of a `virtual` account is `set` (open / rename / reopen) and `delete` (physical removal without history, otherwise closing); the lifecycle of a `bond` account is bound to its portfolio (afbws.bonds.channel.v1), so there is no `open` for it; target quantities of a `bond` account are set by afbws.bonds.positions.set.v1. Operations `cash` and `ledger` serve accounts of type `virtual` and `bond`; `reconcile` serves `bond` only (for a `virtual` account the backend answers `not_supported`); each has no server push, so `request_id` is always required. The money of a `bond` account is held ONLY in its base currency: cash[] has at most one element. Every account snapshot carries `lifecycle` (`active | suspended | closed`): `suspended` and `closed` accounts stay in `list`; `closed` is read-only, a closed account of the user may be reopened by `set` with `lifecycle: active`. `items` are explicit allow-list projections built by backend/trade/public_views.py (never a verbatim proxy of a BF broker.* payload); $defs accountSnapshot/order/eventRecord are this file's own strict shapes, reusing only the field-level $defs of payloads/broker.accounts.json. A multi-currency broker account is expressed through cash[] (one entry per currency); the virtual account fills `as_of`. `account` means a single account (one bf_id may have more than one), not the connector itself.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AccountChannelV2Message".
@@ -182,7 +182,7 @@ export type AccountV2Events = {
   items?: AccountV2EventRecord[];
 };
 /**
- * Request: `account_id`, `kind` (deposit | withdraw), `currency`, `amount` (positive decimal string). Account money is held only in the account base currency: `currency` must equal it, otherwise the error is `validation_error`. The backend writes a `deposit` / `withdraw` operation (amount in the base currency); the starting capital is the first deposit. Response (same `request_id`, with `item`): the updated account snapshot. Errors (`afbws.account.error.v2`): `insufficient_cash` (withdraw above the balance), `validation_error` (`currency` differs from the account base currency), `forbidden` (not the owner / not staff for a public account), `not_found`, `not_supported`. No server push (the owner receives `afbws.account.list.v2`).
+ * Request: `account_id`, `kind` (deposit | withdraw), `currency`, `amount` (positive decimal string). Account money is held only in the account base currency: `currency` must equal it, otherwise the error is `validation_error`. The backend writes a `deposit` / `withdraw` operation (amount in the base currency); the starting capital is the first deposit. Response (same `request_id`, with `item`): the updated account snapshot. Errors (`afbws.account.error.v2`): `insufficient_cash` (withdraw above the balance), `validation_error` (`currency` differs from the account base currency), `forbidden` (not the owner / not staff for a public account), `not_found`, `not_supported` (a broker account). Serves `virtual` and `bond` accounts. No server push (the owner receives `afbws.account.list.v2`).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsAccountChannelV2_Cash".
@@ -206,7 +206,7 @@ export type AfbwsAccountChannelV2_Cash = {
   item?: AccountV2Snapshot1;
 };
 /**
- * Lifecycle of a `virtual` account. Request: `name` (1..64 characters, unique among the owner's NOT closed virtual accounts, case-insensitive) and, optionally, `account_id`. WITHOUT `account_id` the request opens a new virtual account: `amount` is required (starting capital in rubles, a positive decimal string, no upper bound); `lifecycle` is forbidden. WITH `account_id` it renames that account: `amount` is forbidden. WITH `account_id` and `lifecycle: active` it REOPENS the caller's own closed account (`closed -> active`); `amount` is forbidden, `name` is then optional (omitted = keep the name; the name must stay unique among the owner's not closed accounts, otherwise `validation_error`). The limit of virtual accounts counts only not closed accounts (reopening over the limit is `limit_exceeded`). Renaming a closed account is not allowed (`conflict`: reopen it first); reopening an account that is not closed is `conflict`. An account closed by the system (a portfolio account) is not reopened by the user: `forbidden`. Response (same `request_id`): `item` — the account snapshot after the change. Errors (`afbws.account.error.v2`): `validation_error` (bad or duplicate `name`, bad `amount`), `not_found` (unknown or foreign `account_id`), `conflict` (rename of a closed account / reopen of a not closed one), `forbidden` (reopen of an account closed by the system), `limit_exceeded` (the limit of virtual accounts is reached), `not_supported` (the account is not a `virtual` one). No server push (the owner receives `afbws.account.list.v2`).
+ * Lifecycle of a `virtual` account. Request: `name` (1..64 characters, unique among the owner's NOT closed virtual accounts, case-insensitive) and, optionally, `account_id`. WITHOUT `account_id` the request opens a new virtual account: `amount` is required (starting capital in rubles, a positive decimal string, no upper bound); `lifecycle` is forbidden. WITH `account_id` it renames that account: `amount` is forbidden. WITH `account_id` and `lifecycle: active` it REOPENS the caller's own closed account (`closed -> active`); `amount` is forbidden, `name` is then optional (omitted = keep the name; the name must stay unique among the owner's not closed accounts, otherwise `validation_error`). The limit of virtual accounts counts only not closed accounts (reopening over the limit is `limit_exceeded`). Renaming a closed account is not allowed (`conflict`: reopen it first); reopening an account that is not closed is `conflict`. An account closed by the system (a portfolio account) is not reopened by the user: `forbidden`. Opening writes the initial `deposit` of `amount` into the account log (a row of the `ledger`, `source: manual`). The maximum number of virtual accounts is a server setting. Response (same `request_id`): `item` — the account snapshot after the change. Errors (`afbws.account.error.v2`): `validation_error` (bad or duplicate `name`, bad `amount`), `not_found` (unknown or foreign `account_id`), `conflict` (rename of a closed account / reopen of a not closed one), `forbidden` (reopen of an account closed by the system), `limit_exceeded` (the limit of virtual accounts is reached), `not_supported` (the account is not a `virtual` one). No server push (the owner receives `afbws.account.list.v2`).
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsAccountChannelV2_Set".
@@ -292,7 +292,7 @@ export type AfbwsAccountChannelV2_Reconcile = {
  */
 export type AfbwsCommonV1_InstrumentKey = string;
 /**
- * Request: `account_id`, optional `before` (opaque cursor string taken from a previous response `next`: return entries older than it), optional `limit` (1..200). Entries are returned newest first (new -> old). Response (same `request_id`, with `items`): `account_id`, `items[]` (accountOp), `next` — the opaque cursor to pass as `before` for the next page, or null at the end. The client must not parse or construct cursors. No server push.
+ * Serves `virtual` and `bond` accounts (a broker account: `not_supported`). Request: `account_id`, optional `before` (opaque cursor string taken from a previous response `next`: return entries older than it), optional `limit` (1..200). Entries are returned newest first (new -> old). Response (same `request_id`, with `items`): `account_id`, `items[]` (accountOp), `next` — the opaque cursor to pass as `before` for the next page, or null at the end. The client must not parse or construct cursors. No server push.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsAccountChannelV2_Ledger".
@@ -3210,9 +3210,12 @@ export interface AccountV2Snapshot {
     tier?: string | null;
   };
   status: 'ok' | 'stale' | 'error';
+  /**
+   * Account value in the base currency. For a `virtual` account: cash + the valuation of positions; `null` when a position has no price or a needed currency rate.
+   */
   equity: string | null;
   /**
-   * Cash balances, one entry per currency. For `bf_id: bond` account money is held ONLY in the account base currency: at most one element.
+   * Cash balances, one entry per currency. For `bf_id: bond` account money is held ONLY in the account base currency: at most one element. A `virtual` account is the same: `cash[]` has one element in the base currency; a bought currency is a position of the CETS pair, not a cash element.
    */
   cash: PayloadsBrokerAccounts_CashBalance[];
   positions: AfbwsAccountChannelV2_Position[];
@@ -3330,9 +3333,12 @@ export interface AccountV2Snapshot1 {
     tier?: string | null;
   };
   status: 'ok' | 'stale' | 'error';
+  /**
+   * Account value in the base currency. For a `virtual` account: cash + the valuation of positions; `null` when a position has no price or a needed currency rate.
+   */
   equity: string | null;
   /**
-   * Cash balances, one entry per currency. For `bf_id: bond` account money is held ONLY in the account base currency: at most one element.
+   * Cash balances, one entry per currency. For `bf_id: bond` account money is held ONLY in the account base currency: at most one element. A `virtual` account is the same: `cash[]` has one element in the base currency; a bought currency is a position of the CETS pair, not a cash element.
    */
   cash: PayloadsBrokerAccounts_CashBalance[];
   positions: AfbwsAccountChannelV2_Position[];
@@ -3385,9 +3391,12 @@ export interface AccountV2Snapshot2 {
     tier?: string | null;
   };
   status: 'ok' | 'stale' | 'error';
+  /**
+   * Account value in the base currency. For a `virtual` account: cash + the valuation of positions; `null` when a position has no price or a needed currency rate.
+   */
   equity: string | null;
   /**
-   * Cash balances, one entry per currency. For `bf_id: bond` account money is held ONLY in the account base currency: at most one element.
+   * Cash balances, one entry per currency. For `bf_id: bond` account money is held ONLY in the account base currency: at most one element. A `virtual` account is the same: `cash[]` has one element in the base currency; a bought currency is a position of the CETS pair, not a cash element.
    */
   cash: PayloadsBrokerAccounts_CashBalance[];
   positions: AfbwsAccountChannelV2_Position[];
@@ -3452,16 +3461,19 @@ export interface AccountV2Snapshot3 {
     tier?: string | null;
   };
   status: 'ok' | 'stale' | 'error';
+  /**
+   * Account value in the base currency. For a `virtual` account: cash + the valuation of positions; `null` when a position has no price or a needed currency rate.
+   */
   equity: string | null;
   /**
-   * Cash balances, one entry per currency. For `bf_id: bond` account money is held ONLY in the account base currency: at most one element.
+   * Cash balances, one entry per currency. For `bf_id: bond` account money is held ONLY in the account base currency: at most one element. A `virtual` account is the same: `cash[]` has one element in the base currency; a bought currency is a position of the CETS pair, not a cash element.
    */
   cash: PayloadsBrokerAccounts_CashBalance[];
   positions: AfbwsAccountChannelV2_Position[];
   as_of?: string;
 }
 /**
- * A light journal of facts: rows are independent (no ids, no links between rows). Decimal strings for money and prices. ALL account money is in the account base currency, so `amount` is always in the base currency; the instrument currency appears only in `price` / `accrued_int` and, when it differs from the base one, in `fx_currency` / `fx_rate`. No spread and no fees. `kind`: deposit | withdraw (user cash movement), buy | sell (emulated at LAST MOEX, by a quantity edit or an auto-sale), coupon | amortization | redemption (income credited by the schedule), reconcile (manual or broker-sync correction, written by `afbws.account.reconcile.v2`: a position row has the NEW quantity / average price and amount 0; a cash row has no instrument_key and `amount` = new balance minus the previous one).
+ * A light journal of facts: rows are independent (no ids, no links between rows). Decimal strings for money and prices. ALL account money is in the account base currency, so `amount` is always in the base currency; the instrument currency appears only in `price` / `accrued_int` and, when it differs from the base one, in `fx_currency` / `fx_rate`. No spread and no fees. `kind`: deposit | withdraw (user cash movement), buy | sell (emulated at LAST MOEX, by a quantity edit or an auto-sale), coupon | amortization | redemption (income credited by the schedule), reconcile (manual or broker-sync correction, written by `afbws.account.reconcile.v2`: a position row has the NEW quantity / average price and amount 0; a cash row has no instrument_key and `amount` = new balance minus the previous one), futures_result (virtual account only: the result of a futures position reduction, see `kind`). Futures `buy` / `sell` of a virtual account move no money (`amount` = 0); the realized result is a separate `futures_result` row. `deal_id` is present on `buy` / `sell` of a deal and on `futures_result` of the execution that closes (reduces) the position; it is absent on `deposit` / `withdraw` / `reconcile`.
  *
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
  * via the `definition` "AfbwsAccountChannelV2_AccountOp".
@@ -3472,9 +3484,10 @@ export interface AfbwsAccountChannelV2_AccountOp {
    */
   ts: string;
   /**
-   * Operation kind.
+   * Operation kind. `futures_result` (virtual account): `amount` is the realized result in the account base currency, signed (profit positive, loss negative); `instrument_key` is the futures contract, `quantity` is by how many units the position was reduced, `deal_id` is the deal whose execution reduced it.
    */
-  kind: 'deposit' | 'withdraw' | 'buy' | 'sell' | 'coupon' | 'amortization' | 'redemption' | 'reconcile';
+  kind:
+    'deposit' | 'withdraw' | 'buy' | 'sell' | 'coupon' | 'amortization' | 'redemption' | 'reconcile' | 'futures_result';
   /**
    * Signed cash movement in the account BASE currency, decimal string: negative for buy / withdraw, positive for the rest. For a reconcile cash row it is the correction (new balance minus the previous one); for a reconcile position row it is 0.
    */
@@ -3507,6 +3520,14 @@ export interface AfbwsAccountChannelV2_AccountOp {
    * Present together with fx_currency: base-currency units per 1 unit of fx_currency (CETS LAST, decimal string). The amount in the instrument currency is amount / fx_rate (informational for a reconcile row: its amount is 0).
    */
   fx_rate?: string;
+  /**
+   * Deal id (`deal-xxxx-xxxx-xxxx`). Present on `buy` / `sell` of a deal and on `futures_result` of the execution that closes (reduces) the position; absent on `deposit` / `withdraw` / `reconcile`. Optional.
+   */
+  deal_id?: string;
+  /**
+   * What produced the row: `manual` (user cash movement or reconcile), `deal` (execution of a deal), `redemption` (bond redemption), `expiration` (expiration policy), `migration` (opening row written by the migration of an old account). Optional.
+   */
+  source?: 'manual' | 'deal' | 'redemption' | 'expiration' | 'migration';
 }
 /**
  * This interface was referenced by `_GeneratedRoot`'s JSON-Schema
@@ -4455,9 +4476,12 @@ export interface AccountV2Snapshot4 {
     tier?: string | null;
   };
   status: 'ok' | 'stale' | 'error';
+  /**
+   * Account value in the base currency. For a `virtual` account: cash + the valuation of positions; `null` when a position has no price or a needed currency rate.
+   */
   equity: string | null;
   /**
-   * Cash balances, one entry per currency. For `bf_id: bond` account money is held ONLY in the account base currency: at most one element.
+   * Cash balances, one entry per currency. For `bf_id: bond` account money is held ONLY in the account base currency: at most one element. A `virtual` account is the same: `cash[]` has one element in the base currency; a bought currency is a position of the CETS pair, not a cash element.
    */
   cash: PayloadsBrokerAccounts_CashBalance[];
   positions: AfbwsAccountChannelV2_Position[];
@@ -6255,7 +6279,7 @@ export interface DealV2RebindItem {
   deal_id: DealV2Id;
   bf_id: DealV2BfId;
   /**
-   * Account on the new `bf_id` connector. Required; the same checks as `publishItem.account_id`.
+   * Account on the new `bf_id` connector. Required; the same checks as `publishItem.account_id`. Moving a deal to another virtual account is allowed only for a deal that has not started (no executions).
    */
   account_id: string;
 }

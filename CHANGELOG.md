@@ -16,6 +16,11 @@
 
 ### Removed
 
+## v2.12.3 — 2026-11-28
+
+### Added
+- account v2: операция ledger `futures_result`, поля `deal_id` и `source` строки журнала; `cash`/`ledger` разрешены для virtual; уточнены описания snapshot/set (этап 3.0)
+
 ## v2.12.2 — 2026-11-28
 
 ### Changed
