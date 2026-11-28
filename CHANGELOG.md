@@ -11,11 +11,15 @@
 ### Added
 
 ### Changed
-- account (afbws.account.channel.v2): снимок счёта получил обязательное поле `lifecycle` (active | suspended | closed); `account.set` — необязательное `lifecycle: active` (переоткрытие своего закрытого счёта, только с `account_id`); `account.delete` закрывает счёт с историей; описан формат `notification_id` (`mail-xxxx-xxxx-xxxx`) — этап 3b.0
 
 ### Fixed
 
 ### Removed
+
+## v2.12.2 — 2026-11-28
+
+### Changed
+- account (afbws.account.channel.v2): снимок счёта получил обязательное поле `lifecycle` (active | suspended | closed); `account.set` — необязательное `lifecycle: active` (переоткрытие своего закрытого счёта, только с `account_id`); `account.delete` закрывает счёт с историей; описан формат `notification_id` (`mail-xxxx-xxxx-xxxx`) — этап 3b.0
 
 ## v2.12.1 — 2026-11-27
 
