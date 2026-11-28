@@ -7,6 +7,7 @@
       "bf_id": "bond",
       "account_id": "bond:p-1",
       "kind": "bond",
+      "lifecycle": "active",
       "name": "Облигации",
       "external_id": null,
       "tradable": true,

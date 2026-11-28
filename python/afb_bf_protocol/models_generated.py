@@ -1,7 +1,7 @@
 # DO NOT EDIT BY HAND — generated from spec/schemas/ (via
 # spec/.generated/bundled-schema.json) by datamodel-codegen, invoked from
 # tools/generate.py. Run `afb-bf-protocol-generate` to regenerate.
-# source-hash: a9a625dc5518c210e942d5826176d82296d6c2fb91d860c8f0e2bfe0a00aeff6
+# source-hash: 9bc1ae02a73d8df10950186de92c98f48b0d5034c89f9b541fe37384d13e8f50
 
 from __future__ import annotations
 
@@ -560,7 +560,7 @@ class AccountV2Events(TypedDict):
 
 class AccountV2List(TypedDict):
     """
-    Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual accounts are pushed the same way). Only the trading account of a connector is listed. For `bf_id: "bond"` (accounts of bond portfolios, `account_id` = `account-<suffix>` (the portfolio id `portfolio-<suffix>` with the prefix replaced)): a request without `account_id` returns only the caller's own accounts; with `account_id` the caller's own or a readable public one (staff accounts are `visibility public`, read-only for others). A `bond` snapshot carries `owner` instead of `readonly`: `{}` for the caller's own account, `{name, tier}` of the owner (null when unknown) for somebody else's public one; broker and virtual snapshots carry `readonly` and no `owner`. The snapshot is filled from the account log: `cash[]` per currency, `equity` in the base currency (cash + market value), `tradable: true`, `status: ok`, positions carry `instrument_key` and `accrued_int`. The push for `bond` is event-driven (after `cash`, a quantity edit, an income credit, a composition change), like the virtual account. A request carrying `items` or a response/push carrying request-only fields is invalid.
+    Request (`request_id`, no `items`): optional `bf_id` (only that connector's accounts; omitted = every account of every accessible connector), optional `account_id` (a single account; use together with `bf_id`), optional `force` (bypass the cached BfRuntimeState.accounts snapshot and re-fetch from BF). Response (same `request_id`, with `items`): only `request_id` + `items[]` (accountSnapshot, possibly empty; each carries `lifecycle`, closed and suspended accounts included). Push (no `request_id`, server-initiated): the full account list of ONE `bf_id` — `bf_id`, `items[]` (BF's broker.accounts is a full snapshot, never a delta; the virtual accounts are pushed the same way). Only the trading account of a connector is listed. For `bf_id: "bond"` (accounts of bond portfolios, `account_id` = `account-<suffix>` (the portfolio id `portfolio-<suffix>` with the prefix replaced)): a request without `account_id` returns only the caller's own accounts; with `account_id` the caller's own or a readable public one (staff accounts are `visibility public`, read-only for others). A `bond` snapshot carries `owner` instead of `readonly`: `{}` for the caller's own account, `{name, tier}` of the owner (null when unknown) for somebody else's public one; broker and virtual snapshots carry `readonly` and no `owner`. The snapshot is filled from the account log: `cash[]` per currency, `equity` in the base currency (cash + market value), `tradable: true`, `status: ok`, positions carry `instrument_key` and `accrued_int`. The push for `bond` is event-driven (after `cash`, a quantity edit, an income credit, a composition change), like the virtual account. A request carrying `items` or a response/push carrying request-only fields is invalid.
     """
 
     channel: Literal["account"]
@@ -610,6 +610,7 @@ class AccountV2Snapshot(TypedDict):
     kind: Literal["virtual", "bond", "broker"]
     name: str | None
     external_id: str | None
+    lifecycle: Literal["active", "suspended", "closed"]
     tradable: bool
     readonly: NotRequired[bool]
     owner: NotRequired[Owner]
@@ -663,7 +664,7 @@ class AfbwsAccountChannelV2Cash(TypedDict):
 
 class AfbwsAccountChannelV2Delete(TypedDict):
     """
-    Request: `account_id` of a `virtual` account. Only an account without deals can be deleted (a deal of any status counts, hidden ones included); the last virtual account can be deleted too. Response (same `request_id`): `account_id` of the deleted account. Errors (`afbws.account.error.v2`): `not_found` (unknown or foreign), `not_supported` (the account is not a `virtual` one), `conflict` (the account has deals). No server push (the owner receives `afbws.account.list.v2`).
+    Request: `account_id` of a `virtual` account. An account without history (no deals, trades, cash flows or adjustments; hidden deals count) is deleted physically. An account with history is CLOSED instead (`lifecycle: closed`; read-only, the history stays available, the user may reopen it with `account.set`). Closing while the account has live deals (`published | active | paused`) is `conflict`. The last virtual account can be deleted too. Response (same `request_id`): `account_id` of the deleted or closed account (the shape does not tell which; a closed account stays in `afbws.account.list.v2` with `lifecycle: closed`). Errors (`afbws.account.error.v2`): `not_found` (unknown or foreign), `not_supported` (the account is not a `virtual` one), `conflict` (the account has live deals). No server push (the owner receives `afbws.account.list.v2`).
     """
 
     channel: Literal["account"]
@@ -715,7 +716,7 @@ class AfbwsAccountChannelV2Reconcile(TypedDict):
 
 class AfbwsAccountChannelV2Set(TypedDict):
     """
-    Lifecycle of a `virtual` account. Request: `name` (1..64 characters, unique among the owner's virtual accounts, case-insensitive) and, optionally, `account_id`. WITHOUT `account_id` the request opens a new virtual account: `amount` is required (starting capital in rubles, a positive decimal string, no upper bound). WITH `account_id` it renames that account: `amount` is forbidden. Response (same `request_id`): `item` — the account snapshot after the change. Errors (`afbws.account.error.v2`): `validation_error` (bad or duplicate `name`, bad `amount`), `not_found` (unknown or foreign `account_id`), `limit_exceeded` (the limit of virtual accounts is reached), `not_supported` (the account is not a `virtual` one). No server push (the owner receives `afbws.account.list.v2`).
+    Lifecycle of a `virtual` account. Request: `name` (1..64 characters, unique among the owner's NOT closed virtual accounts, case-insensitive) and, optionally, `account_id`. WITHOUT `account_id` the request opens a new virtual account: `amount` is required (starting capital in rubles, a positive decimal string, no upper bound); `lifecycle` is forbidden. WITH `account_id` it renames that account: `amount` is forbidden. WITH `account_id` and `lifecycle: active` it REOPENS the caller's own closed account (`closed -> active`); `amount` is forbidden, `name` is then optional (omitted = keep the name; the name must stay unique among the owner's not closed accounts, otherwise `validation_error`). The limit of virtual accounts counts only not closed accounts (reopening over the limit is `limit_exceeded`). Renaming a closed account is not allowed (`conflict`: reopen it first); reopening an account that is not closed is `conflict`. An account closed by the system (a portfolio account) is not reopened by the user: `forbidden`. Response (same `request_id`): `item` — the account snapshot after the change. Errors (`afbws.account.error.v2`): `validation_error` (bad or duplicate `name`, bad `amount`), `not_found` (unknown or foreign `account_id`), `conflict` (rename of a closed account / reopen of a not closed one), `forbidden` (reopen of an account closed by the system), `limit_exceeded` (the limit of virtual accounts is reached), `not_supported` (the account is not a `virtual` one). No server push (the owner receives `afbws.account.list.v2`).
     """
 
     channel: Literal["account"]
@@ -724,6 +725,7 @@ class AfbwsAccountChannelV2Set(TypedDict):
     account_id: NotRequired[AccountV2AccountId]
     name: NotRequired[str]
     amount: NotRequired[str]
+    lifecycle: NotRequired[Literal["active"]]
     item: NotRequired[AccountV2Snapshot]
 
 

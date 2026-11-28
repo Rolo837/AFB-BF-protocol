@@ -16,7 +16,7 @@ _EXAMPLES = _ROOT / "examples" / "account_channel_v2"
 _ID = "https://github.com/Rolo837/AFB-BF-protocol/spec/schemas/afbws/account.channel.v2.json"
 _SNAP = {
     "bf_id": "virtual", "account_id": "account-6f2a-41c8-9b0e", "kind": "virtual", "name": "Основной", "external_id": None,
-    "tradable": True, "readonly": False, "status": "ok",
+    "lifecycle": "active", "tradable": True, "readonly": False, "status": "ok",
     "equity": "100", "cash": [{"currency": "RUB", "value": "60"}, {"currency": "USD", "value": "1"}],
     "positions": [], "as_of": "2026-10-15T09:30:00+00:00",
 }
@@ -92,9 +92,12 @@ def test_account_v2_snapshot_strict(registry):
     bad = dict(_SNAP)
     del bad["cash"]
     _invalid(v, _m("list", request_id="r", items=[bad]))
-    for field in ("kind", "name", "external_id"):  # new mandatory fields
+    for field in ("kind", "name", "external_id", "lifecycle"):  # new mandatory fields
         _invalid(v, _m("list", request_id="r", items=[{k: x for k, x in _SNAP.items() if k != field}]))
     _invalid(v, _m("list", request_id="r", items=[{**_SNAP, "kind": "other"}]))
+    for lc in ("suspended", "closed"):
+        v.validate(_m("list", request_id="r", items=[{**_SNAP, "lifecycle": lc}]))
+    _invalid(v, _m("list", request_id="r", items=[{**_SNAP, "lifecycle": "archived"}]))
     v.validate(_m("list", request_id="r", items=[{**_SNAP, "bf_id": "finam", "kind": "broker", "name": None, "external_id": "1899011", "readonly": True}]))
     no_asof = {k: x for k, x in _SNAP.items() if k != "as_of"}
     v.validate(_m("list", request_id="r", items=[no_asof]))
@@ -217,6 +220,12 @@ def test_account_v2_set(registry):
     v.validate(_m("set", request_id="r", name="x" * 64, amount="1"))
     v.validate(_m("set", request_id="r", account_id="account-6f2a-41c8-9b0e", name="Новое"))  # rename
     v.validate(_m("set", request_id="r", item=_SNAP))  # response
+    v.validate(_m("set", request_id="r", account_id="account-6f2a-41c8-9b0e", lifecycle="active"))  # reopen
+    v.validate(_m("set", request_id="r", account_id="account-6f2a-41c8-9b0e", name="Новое", lifecycle="active"))
+    _invalid(v, _m("set", request_id="r", account_id="account-6f2a-41c8-9b0e", lifecycle="closed"))  # only active
+    _invalid(v, _m("set", request_id="r", name="A", amount="1", lifecycle="active"))  # not when opening
+    _invalid(v, _m("set", request_id="r", account_id="account-6f2a-41c8-9b0e", amount="1", lifecycle="active"))
+    _invalid(v, _m("set", request_id="r", item=_SNAP, lifecycle="active"))  # request field in a response
     _invalid(v, _m("set", request_id="r", name="A"))  # opening needs amount
     _invalid(v, _m("set", request_id="r", account_id="a", name="A", amount="1"))  # rename forbids amount
     _invalid(v, _m("set", request_id="r", account_id="a"))  # name is required
@@ -227,7 +236,7 @@ def test_account_v2_set(registry):
     _invalid(v, _m("set", name="A", amount="1"))  # request_id is mandatory
     _invalid(v, _m("set", request_id="r", item=_SNAP, name="A"))  # request field in a response
     _invalid(v, _m("set", request_id="r", name="A", amount="1", targets=[]))  # bond semantics are gone
-    for name in ("request", "request.rename", "response"):
+    for name in ("request", "request.rename", "request.reopen", "response"):
         v.validate(json.loads((_EXAMPLES / f"set.{name}.json").read_text()))
 
 
